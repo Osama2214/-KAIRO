@@ -38,6 +38,7 @@ import { formatPrice } from "@/lib/utils";
 import { AdminLoginOverlay } from "@/components/admin/AdminLoginOverlay";
 import { VolumeFormModal } from "@/components/admin/VolumeFormModal";
 import { SeriesFormModal } from "@/components/admin/SeriesFormModal";
+import { GenreFormModal } from "@/components/admin/GenreFormModal";
 import { OrderDetailsModal } from "@/components/admin/OrderDetailsModal";
 import { CustomSelect } from "@/components/CustomSelect";
 import { CustomNumberInput } from "@/components/ui/CustomNumberInput";
@@ -66,6 +67,9 @@ export default function AdminPage() {
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<SavedOrder | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<UserProfile | null>(null);
+
+  const [isGenreModalOpen, setIsGenreModalOpen] = useState(false);
+  const [editingGenreForModal, setEditingGenreForModal] = useState<GenreInfo | null>(null);
 
   // Storefront CMS State & Actions
   const {
@@ -102,7 +106,9 @@ export default function AdminPage() {
     updateTrendingConfig,
     updateNewReleasesConfig,
     updateMangaDiscoveryConfig,
+    addGenre,
     updateGenre,
+    deleteGenre,
     logoutAdmin,
     updateAdminPin,
     updateAdminPinHash,
@@ -1966,12 +1972,25 @@ export default function AdminPage() {
                 {/* Individual Genre Card Editor */}
                 <div className="space-y-4 font-mono text-xs pt-4 border-t border-ink-border/50">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="text-[11px] uppercase tracking-wider text-paper font-bold">
-                      B. Individual Genre Cards ({genres.length} Categories)
+                    <div>
+                      <div className="text-[11px] uppercase tracking-wider text-paper font-bold">
+                        B. Individual Genre Cards ({genres.length} Categories)
+                      </div>
+                      <span className="text-[10px] text-text-muted">
+                        Select a genre below to customize its artwork, Kanji, and descriptions.
+                      </span>
                     </div>
-                    <span className="text-[10px] text-text-muted">
-                      Select a genre below to customize its artwork, Kanji, and descriptions.
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingGenreForModal(null);
+                        setIsGenreModalOpen(true);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-xs transition-colors self-start sm:self-auto"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add New Category</span>
+                    </button>
                   </div>
 
                   {/* Genre Selector Pills */}
@@ -2080,17 +2099,36 @@ export default function AdminPage() {
                           </div>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            updateGenre(currentGenre.id, currentGenre);
-                            showToast(`Genre "${currentGenre.name}" updated successfully.`);
-                          }}
-                          className="flex items-center gap-1.5 px-5 py-2.5 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
-                        >
-                          <Save className="w-3.5 h-3.5" />
-                          <span>Save {currentGenre.name}</span>
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm(`Are you sure you want to delete category "${currentGenre.name}"?`)) {
+                                const nextGenre = genres.find((g) => g.id !== currentGenre.id);
+                                deleteGenre(currentGenre.id);
+                                if (nextGenre) setSelectedGenreId(nextGenre.id);
+                                showToast(`Category "${currentGenre.name}" deleted.`);
+                              }
+                            }}
+                            className="flex items-center gap-1.5 px-3.5 py-2.5 bg-ink-elevated hover:bg-red-950/60 text-text-muted hover:text-red-400 font-bold text-xs uppercase tracking-wider rounded-sm transition-colors border border-ink-border cursor-pointer"
+                            title={`Delete category ${currentGenre.name}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updateGenre(currentGenre.id, currentGenre);
+                              showToast(`Genre "${currentGenre.name}" updated successfully.`);
+                            }}
+                            className="flex items-center gap-1.5 px-5 py-2.5 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
+                          >
+                            <Save className="w-3.5 h-3.5" />
+                            <span>Save {currentGenre.name}</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -2886,6 +2924,35 @@ export default function AdminPage() {
             setSelectedOrder({ ...selectedOrder, status: newStatus });
           }
           showToast(`Order #${orderId} status set to "${newStatus}"`);
+        }}
+      />
+
+      <GenreFormModal
+        isOpen={isGenreModalOpen}
+        onClose={() => {
+          setIsGenreModalOpen(false);
+          setEditingGenreForModal(null);
+        }}
+        initialGenre={editingGenreForModal}
+        onSave={(savedGenre) => {
+          if (editingGenreForModal) {
+            updateGenre(editingGenreForModal.id, savedGenre);
+            showToast(`Category "${savedGenre.name}" updated successfully.`);
+          } else {
+            addGenre(savedGenre);
+            setSelectedGenreId(savedGenre.id);
+            showToast(`Category "${savedGenre.name}" created successfully.`);
+          }
+          setIsGenreModalOpen(false);
+          setEditingGenreForModal(null);
+        }}
+        onDelete={(id) => {
+          const nextGenre = genres.find((g) => g.id !== id);
+          deleteGenre(id);
+          if (nextGenre) setSelectedGenreId(nextGenre.id);
+          setIsGenreModalOpen(false);
+          setEditingGenreForModal(null);
+          showToast("Category deleted successfully.");
         }}
       />
     </div>

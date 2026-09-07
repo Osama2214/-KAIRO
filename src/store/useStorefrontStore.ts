@@ -234,7 +234,8 @@ export type LiveEditTarget =
   | { type: "collection" }
   | { type: "shipping" }
   | { type: "editorial" }
-  | { type: "manga-discovery" };
+  | { type: "manga-discovery" }
+  | { type: "genre-card"; genreId: string };
 
 export interface StorefrontState {
   // Data
@@ -291,7 +292,9 @@ export interface StorefrontState {
   updateTrendingConfig: (updates: Partial<TrendingConfig>) => void;
   updateNewReleasesConfig: (updates: Partial<NewReleasesConfig>) => void;
   updateMangaDiscoveryConfig: (updates: Partial<MangaDiscoveryConfig>) => void;
+  addGenre: (genre: GenreInfo) => void;
   updateGenre: (id: string, updates: Partial<GenreInfo>) => void;
+  deleteGenre: (id: string) => void;
 
   // Admin Auth Actions
   loginAdmin: (pin: string, userEmail?: string) => boolean;
@@ -514,9 +517,26 @@ export const useStorefrontStore = create<StorefrontState>()(
         }));
       },
 
+      addGenre: (newGenre) => {
+        set((state) => {
+          const rawId = newGenre.id?.trim() || newGenre.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+          const exists = state.genres.some((g) => g.id === rawId);
+          const finalId = exists ? `${rawId}-${Date.now()}` : rawId;
+          return {
+            genres: [...state.genres, { ...newGenre, id: finalId }],
+          };
+        });
+      },
+
       updateGenre: (id, updates) => {
         set((state) => ({
           genres: state.genres.map((g) => (g.id === id ? { ...g, ...updates } : g)),
+        }));
+      },
+
+      deleteGenre: (id) => {
+        set((state) => ({
+          genres: state.genres.filter((g) => g.id !== id),
         }));
       },
 

@@ -61,6 +61,14 @@ export function GenreBento() {
                 <div className="absolute inset-0 bg-linear-to- from-ink via-ink/60 to-transparent" />
               </div>
 
+              {/* Live Edit Category Button */}
+              <LiveEditButton
+                target={{ type: "genre-card", genreId: genre.id }}
+                label="Edit Category"
+                variant="card"
+                size="xs"
+              />
+
               {/* Top-Right Arrow Action Badge */}
               <div className="absolute top-4.5 right-4.5 z-20 w-8 h-8 rounded-sm bg-ink/80 backdrop-blur-md border border-ink-border flex items-center justify-center text-paper-muted group-hover:text-gold group-hover:border-gold group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300 shadow-md">
                 <ArrowUpRight strokeWidth={1.5} className="w-4 h-4" />

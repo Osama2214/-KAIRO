@@ -26,6 +26,8 @@ import {
   ArrowRight,
   Play,
   Pause,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import {
   useStorefrontStore,
@@ -43,6 +45,8 @@ import {
 import { useMounted } from "@/store/useWishlistStore";
 import { VolumeFormModal } from "./VolumeFormModal";
 import { SeriesFormModal } from "./SeriesFormModal";
+import { GenreFormModal } from "./GenreFormModal";
+import { GenreInfo } from "@/data/manga";
 import { CustomSelect } from "@/components/CustomSelect";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 
@@ -56,6 +60,7 @@ export function LiveVisualEditor() {
     closeLiveEdit,
     volumes,
     series,
+    genres,
     heroContent,
     announcement,
     shippingConfig,
@@ -68,6 +73,9 @@ export function LiveVisualEditor() {
     mangaDiscoveryConfig,
     updateVolume,
     updateSeries,
+    addGenre,
+    updateGenre,
+    deleteGenre,
     updateHeroContent,
     updateAnnouncement,
     updateShippingConfig,
@@ -103,6 +111,11 @@ export function LiveVisualEditor() {
   const selectedSeries =
     activeLiveEditTarget?.type === "series"
       ? series.find((s) => s.slug === activeLiveEditTarget.seriesSlug) || null
+      : null;
+
+  const selectedGenre =
+    activeLiveEditTarget?.type === "genre-card"
+      ? genres.find((g) => g.id === activeLiveEditTarget.genreId) || null
       : null;
 
   return (
@@ -385,11 +398,48 @@ export function LiveVisualEditor() {
       {activeLiveEditTarget?.type === "genre-bento" && (
         <GenreBentoLiveEditModal
           initialConfig={genreBentoConfig}
+          genres={genres}
           onClose={closeLiveEdit}
           onSave={(updated) => {
             updateGenreBentoConfig(updated);
             closeLiveEdit();
             showToast("Genre Bento section updated and synced live!");
+          }}
+          onAddGenre={(newGenre) => {
+            addGenre(newGenre);
+            showToast(`Category "${newGenre.name}" created successfully!`);
+          }}
+          onUpdateGenre={(id, updates) => {
+            updateGenre(id, updates);
+            showToast("Category updated successfully!");
+          }}
+          onDeleteGenre={(id) => {
+            deleteGenre(id);
+            showToast("Category removed from catalog.");
+          }}
+        />
+      )}
+
+      {/* Genre Card Modal */}
+      {activeLiveEditTarget?.type === "genre-card" && (
+        <GenreFormModal
+          isOpen={true}
+          initialGenre={selectedGenre}
+          onClose={closeLiveEdit}
+          onSave={(savedGenre) => {
+            if (selectedGenre) {
+              updateGenre(selectedGenre.id, savedGenre);
+              showToast(`Category "${savedGenre.name}" updated live!`);
+            } else {
+              addGenre(savedGenre);
+              showToast(`Category "${savedGenre.name}" created live!`);
+            }
+            closeLiveEdit();
+          }}
+          onDelete={(id) => {
+            deleteGenre(id);
+            closeLiveEdit();
+            showToast("Category removed from catalog.");
           }}
         />
       )}
@@ -2111,89 +2161,286 @@ function NewReleasesLiveEditModal({
 
 function GenreBentoLiveEditModal({
   initialConfig,
+  genres,
   onClose,
   onSave,
+  onAddGenre,
+  onUpdateGenre,
+  onDeleteGenre,
 }: {
   initialConfig: GenreBentoConfig;
+  genres: GenreInfo[];
   onClose: () => void;
   onSave: (config: GenreBentoConfig) => void;
+  onAddGenre: (genre: GenreInfo) => void;
+  onUpdateGenre: (id: string, updates: Partial<GenreInfo>) => void;
+  onDeleteGenre: (id: string) => void;
 }) {
   useModalScrollLock(true);
+  const [activeTab, setActiveTab] = useState<"header" | "categories">("categories");
   const [form, setForm] = useState<GenreBentoConfig>(initialConfig);
+  const [editingGenre, setEditingGenre] = useState<GenreInfo | null>(null);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [genreToDelete, setGenreToDelete] = useState<GenreInfo | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(form);
   };
 
+  const handleOpenAdd = () => {
+    setEditingGenre(null);
+    setIsFormModalOpen(true);
+  };
+
+  const handleOpenEdit = (genre: GenreInfo) => {
+    setEditingGenre(genre);
+    setIsFormModalOpen(true);
+  };
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-lg flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
-          <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
-            Live Edit: Genre Bento Showcase
-          </h3>
-          <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Badge Text
-            </label>
-            <input
-              type="text"
-              value={form.badgeText || ""}
-              onChange={(e) => setForm({ ...form, badgeText: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Section Title
-            </label>
-            <input
-              type="text"
-              value={form.title || ""}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Description / Caption
-            </label>
-            <textarea
-              rows={3}
-              value={form.description || ""}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
-            />
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
+    <>
+      <div
+        data-lenis-prevent
+        role="dialog"
+        aria-modal="true"
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200"
+      >
+        <div className="w-full max-w-3xl flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans max-h-[90vh]">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50 shrink-0">
+            <div>
+              <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
+                Category &amp; Bento Grid Manager
+              </h3>
+              <p className="text-[11px] text-text-muted font-mono mt-0.5">
+                Manage showcase copy and curate all {genres.length} store categories
+              </p>
+            </div>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
+              className="text-text-muted hover:text-paper p-1 cursor-pointer transition-colors"
             >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-transform hover:scale-105"
-            >
-              <Save className="w-4 h-4" />
-              Save &amp; Sync Live
+              <X className="w-5 h-5" />
             </button>
           </div>
-        </form>
+
+          {/* Navigation Tabs */}
+          <div className="flex border-b border-ink-border bg-ink px-6 pt-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setActiveTab("categories")}
+              className={`px-4 py-2.5 text-xs font-mono uppercase tracking-wider font-bold border-b-2 transition-all cursor-pointer ${
+                activeTab === "categories"
+                  ? "border-gold text-gold"
+                  : "border-transparent text-text-muted hover:text-paper"
+              }`}
+            >
+              Categories ({genres.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("header")}
+              className={`px-4 py-2.5 text-xs font-mono uppercase tracking-wider font-bold border-b-2 transition-all cursor-pointer ${
+                activeTab === "header"
+                  ? "border-gold text-gold"
+                  : "border-transparent text-text-muted hover:text-paper"
+              }`}
+            >
+              Section Header Copy
+            </button>
+          </div>
+
+          {/* Content Area */}
+          <div className="p-6 overflow-y-auto overscroll-contain flex-1">
+            {activeTab === "categories" ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-mono font-bold text-paper uppercase tracking-wider block">
+                      Active Canonical Categories
+                    </span>
+                    <span className="text-[11px] text-text-muted font-mono">
+                      Add, update artwork, Kanji scripts, and delete categories across the store.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleOpenAdd}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-all hover:scale-105"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add New Category</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  {genres.map((genre) => (
+                    <div
+                      key={genre.id}
+                      className="flex items-center justify-between p-3 bg-ink-surface border border-ink-border rounded-xs group hover:border-gold/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 pr-2">
+                        <div className="w-10 h-12 rounded-xs overflow-hidden border border-ink-border shrink-0 bg-ink">
+                          <img
+                            src={genre.coverImage}
+                            alt={genre.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-paper truncate font-mono">
+                              {genre.name}
+                            </span>
+                            <span className="text-[10px] text-gold font-serif shrink-0">
+                              {genre.japanese}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-text-muted truncate block font-mono">
+                            {genre.popularTitle || "Archival Selection"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(genre)}
+                          className="p-1.5 text-text-muted hover:text-gold hover:bg-ink rounded-xs transition-colors cursor-pointer"
+                          title={`Edit ${genre.name}`}
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setGenreToDelete(genre)}
+                          className="p-1.5 text-text-muted hover:text-red-400 hover:bg-ink rounded-xs transition-colors cursor-pointer"
+                          title={`Delete ${genre.name}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    Badge Text
+                  </label>
+                  <input
+                    type="text"
+                    value={form.badgeText || ""}
+                    onChange={(e) => setForm({ ...form, badgeText: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    Section Title
+                  </label>
+                  <input
+                    type="text"
+                    value={form.title || ""}
+                    onChange={(e) => setForm({ ...form, title: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    Description / Caption
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={form.description || ""}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none font-mono"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-transform hover:scale-105"
+                  >
+                    <Save className="w-4 h-4" />
+                    Save &amp; Sync Live
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+
+      {/* Embedded Genre Form Modal */}
+      {isFormModalOpen && (
+        <GenreFormModal
+          isOpen={true}
+          initialGenre={editingGenre}
+          onClose={() => setIsFormModalOpen(false)}
+          onSave={(savedGenre) => {
+            if (editingGenre) {
+              onUpdateGenre(editingGenre.id, savedGenre);
+            } else {
+              onAddGenre(savedGenre);
+            }
+            setIsFormModalOpen(false);
+          }}
+          onDelete={(id) => {
+            onDeleteGenre(id);
+            setIsFormModalOpen(false);
+          }}
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {genreToDelete && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-ink/90 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-ink border border-red-800/80 rounded-sm shadow-2xl p-6 space-y-4 font-mono">
+            <h4 className="text-sm font-bold text-paper uppercase tracking-wider">
+              Delete Category &ldquo;{genreToDelete.name}&rdquo;?
+            </h4>
+            <p className="text-xs text-text-muted leading-relaxed">
+              This category will be permanently removed from the Bento showcase and manga filters.
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-ink-border">
+              <button
+                type="button"
+                onClick={() => setGenreToDelete(null)}
+                className="px-4 py-2 text-xs uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onDeleteGenre(genreToDelete.id);
+                  setGenreToDelete(null);
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 bg-red-900/80 hover:bg-red-800 text-red-200 text-xs font-bold uppercase tracking-wider rounded-xs cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Confirm Delete</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
