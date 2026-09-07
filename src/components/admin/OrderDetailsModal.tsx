@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Package, User, Banknote, Smartphone, Zap, CheckCircle2, Clock, ShieldCheck } from "lucide-react";
+import { X, Package, User, Banknote, Smartphone, Zap, CheckCircle2, Clock, ShieldCheck, Printer } from "lucide-react";
 import { SavedOrder, UserProfile } from "@/store/useAuthStore";
 import { formatPrice } from "@/lib/utils";
 import { CustomSelect } from "@/components/CustomSelect";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
+import { printCustomerInvoice } from "@/lib/invoicePrint";
 
 interface OrderDetailsModalProps {
   isOpen: boolean;
@@ -104,12 +105,23 @@ function OrderDetailsDialog({
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 text-text-muted hover:text-paper hover:bg-ink-elevated rounded transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => printCustomerInvoice(order, customer)}
+              title="Print Customer Packing Slip & Invoice"
+              className="px-2.5 py-1 text-gold bg-gold/10 hover:bg-gold hover:text-ink border border-gold/30 rounded-xs transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-mono font-bold"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Print Slip</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="p-1 text-text-muted hover:text-paper hover:bg-ink-elevated rounded transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -292,10 +304,19 @@ function OrderDetailsDialog({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end px-6 py-3 border-t border-ink-border bg-ink">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-6 py-3 border-t border-ink-border bg-ink">
           <button
+            type="button"
+            onClick={() => printCustomerInvoice(order, customer)}
+            className="px-4 py-2 bg-paper text-ink hover:bg-gold font-mono font-bold text-xs uppercase tracking-wider rounded-sm transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-95"
+          >
+            <Printer strokeWidth={1.6} className="w-4 h-4 text-ink" />
+            <span>Print Customer Invoice / Packing Slip</span>
+          </button>
+          <button
+            type="button"
             onClick={onClose}
-            className="px-5 py-2 border border-ink-border text-paper hover:bg-ink-elevated rounded-sm uppercase tracking-wider transition-colors cursor-pointer text-xs font-mono"
+            className="px-5 py-2 border border-ink-border text-paper hover:bg-ink-elevated rounded-sm uppercase tracking-wider transition-colors cursor-pointer text-xs font-mono text-center"
           >
             Close Window
           </button>

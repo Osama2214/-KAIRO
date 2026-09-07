@@ -28,6 +28,7 @@ import {
   Package,
   Shield,
   UserCheck,
+  Printer,
 } from "lucide-react";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { useAuthStore, SavedOrder, UserProfile } from "@/store/useAuthStore";
@@ -42,6 +43,7 @@ import { CustomNumberInput } from "@/components/ui/CustomNumberInput";
 import { useMounted } from "@/store/useWishlistStore";
 import { hashAdminPin, changeAdminPinWithServer } from "@/lib/security";
 import { EGYPT_GOVERNORATES, DEFAULT_GOVERNORATE_RATES } from "@/data/governorates";
+import { printCustomerInvoice } from "@/lib/invoicePrint";
 
 type AdminTab = "overview" | "volumes" | "series" | "cms" | "orders" | "settings";
 
@@ -1968,16 +1970,31 @@ export default function AdminPage() {
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <button
-                              onClick={() => {
-                                setSelectedOrder(order);
-                                setSelectedCustomer(customer);
-                                setIsOrderModalOpen(true);
-                              }}
-                              className="text-gold hover:underline cursor-pointer font-bold"
-                            >
-                              Manage Order
-                            </button>
+                            <div className="flex items-center justify-end gap-2.5">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  printCustomerInvoice(order, customer);
+                                }}
+                                title="Print Customer Packing Slip & Invoice"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-ink border border-ink-border hover:border-gold hover:bg-gold/10 text-paper hover:text-gold rounded-xs transition-colors cursor-pointer text-[11px] font-mono font-semibold"
+                              >
+                                <Printer strokeWidth={1.5} className="w-3.5 h-3.5 text-gold" />
+                                <span>Print</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedOrder(order);
+                                  setSelectedCustomer(customer);
+                                  setIsOrderModalOpen(true);
+                                }}
+                                className="text-gold hover:underline cursor-pointer font-bold text-xs"
+                              >
+                                Manage Order
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
