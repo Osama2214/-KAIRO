@@ -42,6 +42,12 @@ export interface ShippingConfig {
   governorateRates: Record<string, number>;
   freeShippingEnabled: boolean;
   freeShippingThreshold: number;
+  perk1Title: string;
+  perk1Desc: string;
+  perk2Title: string;
+  perk2Desc: string;
+  perk3Title: string;
+  perk3Desc: string;
 }
 
 export interface EditorialConfig {
@@ -51,6 +57,8 @@ export interface EditorialConfig {
   authenticityGuaranteeText: string;
   shippingPolicyText: string;
   returnPolicyText: string;
+  footerDescription: string;
+  hubCities: string;
 }
 
 export interface FeaturedSeriesConfig {
@@ -155,6 +163,12 @@ const DEFAULT_SHIPPING_CONFIG: ShippingConfig = {
   governorateRates: DEFAULT_GOVERNORATE_RATES,
   freeShippingEnabled: true,
   freeShippingThreshold: 500,
+  perk1Title: "EGYPT-WIDE EXPRESS DISPATCH",
+  perk1Desc: "Central archive hub in 6th of October City. Direct delivery to all Egyptian governorates with protective reinforced slip-sleeves.",
+  perk2Title: "AUTHENTIC JAPANESE EDITIONS",
+  perk2Desc: "100% licensed Tankōbon, Kanzenban, and oversized collector hardcovers.",
+  perk3Title: "COLLECTOR REPLACEMENT GUARANTEE",
+  perk3Desc: "Corner protection assurance. We replace any volume damaged during transit.",
 };
 
 const DEFAULT_EDITORIAL: EditorialConfig = {
@@ -164,6 +178,8 @@ const DEFAULT_EDITORIAL: EditorialConfig = {
   authenticityGuaranteeText: "Every single volume in the KAIRO archive is sourced directly from certified Tokyo and Kyoto publishing houses. We guarantee 100% genuine Kodansha, Shueisha, Shogakukan, and Dark Horse editorial pressings.",
   shippingPolicyText: "Orders are hand-packaged using archival protective sleeves, reinforced corner bumpers, and moisture-resistant sealing. Dispatched daily across Cairo, Giza, Alexandria, and all Egyptian governorates.",
   returnPolicyText: "We honor a 14-day archival integrity inspection. If your volume arrives with any structural binding defect, spine dent, or print anomaly, our concierge provides immediate replacement.",
+  footerDescription: "An editorial archive celebrating sequential art, Japanese literary epics, and tactile physical printing craftsmanship.",
+  hubCities: "6TH OF OCTOBER • CAIRO • ALEXANDRIA • ALL EGYPT",
 };
 
 const DEFAULT_FEATURED_SERIES: FeaturedSeriesConfig = {
@@ -706,10 +722,28 @@ export const useStorefrontStore = create<StorefrontState>()(
             freeShippingThreshold:
               persisted.shippingConfig.freeShippingThreshold ??
               DEFAULT_SHIPPING_CONFIG.freeShippingThreshold,
+            perk1Title: persisted.shippingConfig.perk1Title || DEFAULT_SHIPPING_CONFIG.perk1Title,
+            perk1Desc: persisted.shippingConfig.perk1Desc || DEFAULT_SHIPPING_CONFIG.perk1Desc,
+            perk2Title: persisted.shippingConfig.perk2Title || DEFAULT_SHIPPING_CONFIG.perk2Title,
+            perk2Desc: persisted.shippingConfig.perk2Desc || DEFAULT_SHIPPING_CONFIG.perk2Desc,
+            perk3Title: persisted.shippingConfig.perk3Title || DEFAULT_SHIPPING_CONFIG.perk3Title,
+            perk3Desc: persisted.shippingConfig.perk3Desc || DEFAULT_SHIPPING_CONFIG.perk3Desc,
             governorateRates: {
               ...DEFAULT_GOVERNORATE_RATES,
               ...(persisted.shippingConfig.governorateRates || {}),
             },
+          };
+        }
+        if (persisted?.editorialConfig) {
+          merged.editorialConfig = {
+            ...DEFAULT_EDITORIAL,
+            ...persisted.editorialConfig,
+            footerDescription:
+              persisted.editorialConfig.footerDescription ||
+              DEFAULT_EDITORIAL.footerDescription,
+            hubCities:
+              persisted.editorialConfig.hubCities ||
+              DEFAULT_EDITORIAL.hubCities,
           };
         }
         return merged;

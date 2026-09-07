@@ -1277,6 +1277,86 @@ export default function AdminPage() {
                   </div>
                 </div>
 
+                {/* Front-Facing Trust Perks (3 Footer Cards) */}
+                <div className="pt-4 border-t border-ink-border/60 space-y-3 font-mono text-xs">
+                  <div className="text-[11px] uppercase tracking-wider text-paper font-bold">
+                    Front-Facing Trust Perks (3 Footer Cards)
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Perk 1 */}
+                    <div className="p-3 bg-ink border border-ink-border rounded-xs space-y-2">
+                      <div className="text-gold font-bold uppercase text-[10px]">Card 01: Express Dispatch</div>
+                      <div>
+                        <label className="block text-text-muted text-[10px] uppercase mb-1">Title</label>
+                        <input
+                          type="text"
+                          value={shippingForm.perk1Title || ""}
+                          onChange={(e) => setShippingForm({ ...shippingForm, perk1Title: e.target.value })}
+                          placeholder="EGYPT-WIDE EXPRESS DISPATCH"
+                          className="w-full bg-ink-surface border border-ink-border text-paper px-2.5 py-1.5 rounded-xs focus:border-gold outline-none text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-text-muted text-[10px] uppercase mb-1">Description</label>
+                        <textarea
+                          rows={2}
+                          value={shippingForm.perk1Desc || ""}
+                          onChange={(e) => setShippingForm({ ...shippingForm, perk1Desc: e.target.value })}
+                          className="w-full bg-ink-surface border border-ink-border text-paper px-2.5 py-1.5 rounded-xs focus:border-gold outline-none text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Perk 2 */}
+                    <div className="p-3 bg-ink border border-ink-border rounded-xs space-y-2">
+                      <div className="text-gold font-bold uppercase text-[10px]">Card 02: Authentic Editions</div>
+                      <div>
+                        <label className="block text-text-muted text-[10px] uppercase mb-1">Title</label>
+                        <input
+                          type="text"
+                          value={shippingForm.perk2Title || ""}
+                          onChange={(e) => setShippingForm({ ...shippingForm, perk2Title: e.target.value })}
+                          placeholder="AUTHENTIC JAPANESE EDITIONS"
+                          className="w-full bg-ink-surface border border-ink-border text-paper px-2.5 py-1.5 rounded-xs focus:border-gold outline-none text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-text-muted text-[10px] uppercase mb-1">Description</label>
+                        <textarea
+                          rows={2}
+                          value={shippingForm.perk2Desc || ""}
+                          onChange={(e) => setShippingForm({ ...shippingForm, perk2Desc: e.target.value })}
+                          className="w-full bg-ink-surface border border-ink-border text-paper px-2.5 py-1.5 rounded-xs focus:border-gold outline-none text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Perk 3 */}
+                    <div className="p-3 bg-ink border border-ink-border rounded-xs space-y-2">
+                      <div className="text-gold font-bold uppercase text-[10px]">Card 03: Replacement Guarantee</div>
+                      <div>
+                        <label className="block text-text-muted text-[10px] uppercase mb-1">Title</label>
+                        <input
+                          type="text"
+                          value={shippingForm.perk3Title || ""}
+                          onChange={(e) => setShippingForm({ ...shippingForm, perk3Title: e.target.value })}
+                          placeholder="COLLECTOR REPLACEMENT GUARANTEE"
+                          className="w-full bg-ink-surface border border-ink-border text-paper px-2.5 py-1.5 rounded-xs focus:border-gold outline-none text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-text-muted text-[10px] uppercase mb-1">Description</label>
+                        <textarea
+                          rows={2}
+                          value={shippingForm.perk3Desc || ""}
+                          onChange={(e) => setShippingForm({ ...shippingForm, perk3Desc: e.target.value })}
+                          className="w-full bg-ink-surface border border-ink-border text-paper px-2.5 py-1.5 rounded-xs focus:border-gold outline-none text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Free Delivery Policy & Minimum Order Threshold */}
                 <div className="p-4 bg-ink/70 border border-gold/30 rounded-xs space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-ink-border/60">
@@ -1447,6 +1527,28 @@ export default function AdminPage() {
                 </div>
 
                 <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="block text-text-muted mb-1">Footer Brand Narrative / Description</label>
+                    <textarea
+                      rows={2}
+                      value={editorialForm.footerDescription || ""}
+                      onChange={(e) => setEditorialForm({ ...editorialForm, footerDescription: e.target.value })}
+                      placeholder="An editorial archive celebrating sequential art, Japanese literary epics, and tactile physical printing craftsmanship."
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-text-muted mb-1">Hub Cities Line (Under Brand Logo)</label>
+                    <input
+                      type="text"
+                      value={editorialForm.hubCities || ""}
+                      onChange={(e) => setEditorialForm({ ...editorialForm, hubCities: e.target.value })}
+                      placeholder="6TH OF OCTOBER • CAIRO • ALEXANDRIA • ALL EGYPT"
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+
                   <div>
                     <label className="block text-text-muted mb-1">Authenticity Guarantee Modal Statement</label>
                     <textarea

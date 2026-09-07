@@ -7,6 +7,7 @@ import { ShieldCheck, Truck, RefreshCw, Copyright } from "lucide-react";
 import { PolicyModal, PolicyTab } from "./PolicyModal";
 
 import { useAuthStore } from "@/store/useAuthStore";
+import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { useMounted } from "@/store/useWishlistStore";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 
@@ -15,7 +16,21 @@ export function Footer() {
   const [policyOpen, setPolicyOpen] = useState(false);
   const [activePolicyTab, setActivePolicyTab] = useState<PolicyTab>("shipping");
   const currentUser = useAuthStore((state) => state.currentUser);
+  const shippingConfig = useStorefrontStore((state) => state.shippingConfig);
+  const editorialConfig = useStorefrontStore((state) => state.editorialConfig);
   const mounted = useMounted();
+
+  const perk1Title = mounted && shippingConfig?.perk1Title ? shippingConfig.perk1Title : "EGYPT-WIDE EXPRESS DISPATCH";
+  const perk1Desc = mounted && shippingConfig?.perk1Desc ? shippingConfig.perk1Desc : "Central archive hub in 6th of October City. Direct delivery to all Egyptian governorates with protective reinforced slip-sleeves.";
+
+  const perk2Title = mounted && shippingConfig?.perk2Title ? shippingConfig.perk2Title : "AUTHENTIC JAPANESE EDITIONS";
+  const perk2Desc = mounted && shippingConfig?.perk2Desc ? shippingConfig.perk2Desc : "100% licensed Tankōbon, Kanzenban, and oversized collector hardcovers.";
+
+  const perk3Title = mounted && shippingConfig?.perk3Title ? shippingConfig.perk3Title : "COLLECTOR REPLACEMENT GUARANTEE";
+  const perk3Desc = mounted && shippingConfig?.perk3Desc ? shippingConfig.perk3Desc : "Corner protection assurance. We replace any volume damaged during transit.";
+
+  const footerDescription = mounted && editorialConfig?.footerDescription ? editorialConfig.footerDescription : "An editorial archive celebrating sequential art, Japanese literary epics, and tactile physical printing craftsmanship.";
+  const hubCities = mounted && editorialConfig?.hubCities ? editorialConfig.hubCities : "6TH OF OCTOBER • CAIRO • ALEXANDRIA • ALL EGYPT";
 
   const openPolicy = (tab: PolicyTab) => {
     setActivePolicyTab(tab);
@@ -53,10 +68,10 @@ export function Footer() {
               </div>
               <div>
                 <h4 className="text-xs font-bold tracking-widest text-paper uppercase">
-                  EGYPT-WIDE EXPRESS DISPATCH
+                  {perk1Title}
                 </h4>
                 <p className="text-xs text-text-muted mt-1 leading-relaxed">
-                  Central archive hub in 6th of October City. Direct delivery to all Egyptian governorates with protective reinforced slip-sleeves.
+                  {perk1Desc}
                 </p>
               </div>
             </div>
@@ -67,10 +82,10 @@ export function Footer() {
               </div>
               <div>
                 <h4 className="text-xs font-bold tracking-widest text-paper uppercase">
-                  AUTHENTIC JAPANESE EDITIONS
+                  {perk2Title}
                 </h4>
                 <p className="text-xs text-text-muted mt-1 leading-relaxed">
-                  100% licensed Tankōbon, Kanzenban, and oversized collector hardcovers.
+                  {perk2Desc}
                 </p>
               </div>
             </div>
@@ -81,10 +96,10 @@ export function Footer() {
               </div>
               <div>
                 <h4 className="text-xs font-bold tracking-widest text-paper uppercase">
-                  COLLECTOR REPLACEMENT GUARANTEE
+                  {perk3Title}
                 </h4>
                 <p className="text-xs text-text-muted mt-1 leading-relaxed">
-                  Corner protection assurance. We replace any volume damaged during transit.
+                  {perk3Desc}
                 </p>
               </div>
             </div>
@@ -107,16 +122,10 @@ export function Footer() {
               <LiveEditButton target={{ type: "editorial" }} label="Edit Policies & Quotes" variant="floating" size="xs" />
             </div>
             <p className="text-xs text-text-muted leading-relaxed max-w-sm">
-              An editorial archive celebrating sequential art, Japanese literary epics, and tactile physical printing craftsmanship.
+              {footerDescription}
             </p>
             <div className="pt-2 flex items-center gap-3 font-mono text-[11px] text-paper-muted">
-              <span>6TH OF OCTOBER</span>
-              <span>•</span>
-              <span>CAIRO</span>
-              <span>•</span>
-              <span>ALEXANDRIA</span>
-              <span>•</span>
-              <span>ALL EGYPT</span>
+              <span>{hubCities}</span>
             </div>
           </div>
 

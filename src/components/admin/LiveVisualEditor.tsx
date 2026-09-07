@@ -1112,93 +1112,185 @@ function ShippingLiveEditModal({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-lg flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
+      <div className="w-full max-w-xl max-h-[90vh] flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
         <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
           <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
-            Live Edit: Shipping &amp; Free Delivery
+            Live Edit: Logistics, Shipping &amp; Perks
           </h3>
           <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Dispatch Hub Name
-              </label>
-              <input
-                type="text"
-                value={form.hubName || ""}
-                onChange={(e) => setForm({ ...form, hubName: e.target.value })}
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-              />
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 overscroll-contain">
+          {/* Section 01: The 3 Value Props / Perks */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-mono font-bold text-gold uppercase tracking-wider border-b border-ink-border/60 pb-1">
+              01. Front-Facing Trust Perks (3 Footer Cards)
+            </h4>
+
+            {/* Perk 1 */}
+            <div className="p-3 bg-ink-surface/50 border border-ink-border rounded-xs space-y-2">
+              <div className="text-[11px] font-mono font-semibold text-paper uppercase">
+                Perk 01: Express Dispatch
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-mono text-text-muted uppercase">Card Title</label>
+                <input
+                  type="text"
+                  value={form.perk1Title || ""}
+                  onChange={(e) => setForm({ ...form, perk1Title: e.target.value })}
+                  placeholder="EGYPT-WIDE EXPRESS DISPATCH"
+                  className="w-full bg-ink border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs focus:border-gold outline-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-mono text-text-muted uppercase">Card Description</label>
+                <textarea
+                  rows={2}
+                  value={form.perk1Desc || ""}
+                  onChange={(e) => setForm({ ...form, perk1Desc: e.target.value })}
+                  className="w-full bg-ink border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs focus:border-gold outline-none resize-none font-sans"
+                />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Delivery Estimate
-              </label>
-              <input
-                type="text"
-                value={form.deliveryEstimate || ""}
-                onChange={(e) => setForm({ ...form, deliveryEstimate: e.target.value })}
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-              />
+
+            {/* Perk 2 */}
+            <div className="p-3 bg-ink-surface/50 border border-ink-border rounded-xs space-y-2">
+              <div className="text-[11px] font-mono font-semibold text-paper uppercase">
+                Perk 02: Authentic Editions
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-mono text-text-muted uppercase">Card Title</label>
+                <input
+                  type="text"
+                  value={form.perk2Title || ""}
+                  onChange={(e) => setForm({ ...form, perk2Title: e.target.value })}
+                  placeholder="AUTHENTIC JAPANESE EDITIONS"
+                  className="w-full bg-ink border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs focus:border-gold outline-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-mono text-text-muted uppercase">Card Description</label>
+                <textarea
+                  rows={2}
+                  value={form.perk2Desc || ""}
+                  onChange={(e) => setForm({ ...form, perk2Desc: e.target.value })}
+                  className="w-full bg-ink border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs focus:border-gold outline-none resize-none font-sans"
+                />
+              </div>
+            </div>
+
+            {/* Perk 3 */}
+            <div className="p-3 bg-ink-surface/50 border border-ink-border rounded-xs space-y-2">
+              <div className="text-[11px] font-mono font-semibold text-paper uppercase">
+                Perk 03: Replacement Guarantee
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-mono text-text-muted uppercase">Card Title</label>
+                <input
+                  type="text"
+                  value={form.perk3Title || ""}
+                  onChange={(e) => setForm({ ...form, perk3Title: e.target.value })}
+                  placeholder="COLLECTOR REPLACEMENT GUARANTEE"
+                  className="w-full bg-ink border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs focus:border-gold outline-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-mono text-text-muted uppercase">Card Description</label>
+                <textarea
+                  rows={2}
+                  value={form.perk3Desc || ""}
+                  onChange={(e) => setForm({ ...form, perk3Desc: e.target.value })}
+                  className="w-full bg-ink border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs focus:border-gold outline-none resize-none font-sans"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="p-4 bg-ink-surface/60 border border-ink-border rounded-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-xs font-mono font-semibold uppercase text-paper block">
-                  Free Shipping Threshold
-                </span>
-                <span className="text-[10px] text-text-muted">
-                  Automatic zero shipping on reaching threshold
-                </span>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-                <input
-                  type="checkbox"
-                  checked={form.freeShippingEnabled}
-                  onChange={(e) => setForm({ ...form, freeShippingEnabled: e.target.checked })}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-ink border border-ink-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-paper after:border after:border-ink-border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold peer-checked:border-gold"></div>
-                <span className={`ml-2.5 text-xs font-mono font-bold tracking-wider uppercase transition-colors ${
-                  form.freeShippingEnabled ? "text-gold" : "text-text-muted"
-                }`}>
-                  {form.freeShippingEnabled ? "ACTIVE" : "DISABLED"}
-                </span>
-              </label>
-            </div>
+          {/* Section 02: Logistics & Thresholds */}
+          <div className="space-y-4 pt-2 border-t border-ink-border/60">
+            <h4 className="text-xs font-mono font-bold text-gold uppercase tracking-wider">
+              02. Logistics &amp; Free Delivery Threshold
+            </h4>
 
-            {form.freeShippingEnabled && (
-              <div className="space-y-1.5 pt-2 border-t border-ink-border/50">
-                <label className="text-xs font-mono font-semibold text-gold uppercase tracking-wider">
-                  Minimum Subtotal for Free Delivery (EGP)
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  Dispatch Hub Name
                 </label>
                 <input
-                  type="number"
-                  value={form.freeShippingThreshold ?? 500}
-                  onChange={(e) => setForm({ ...form, freeShippingThreshold: Math.max(0, parseFloat(e.target.value) || 0) })}
-                  className="w-full bg-ink border border-gold/40 text-gold font-bold px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                  type="text"
+                  value={form.hubName || ""}
+                  onChange={(e) => setForm({ ...form, hubName: e.target.value })}
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
                 />
               </div>
-            )}
-          </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  Delivery Estimate
+                </label>
+                <input
+                  type="text"
+                  value={form.deliveryEstimate || ""}
+                  onChange={(e) => setForm({ ...form, deliveryEstimate: e.target.value })}
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                />
+              </div>
+            </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Standard Shipping Cost (EGP)
-            </label>
-            <input
-              type="number"
-              value={form.standardShippingCost || 65}
-              onChange={(e) => setForm({ ...form, standardShippingCost: Math.max(0, parseFloat(e.target.value) || 0) })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-            />
+            <div className="p-4 bg-ink-surface/60 border border-ink-border rounded-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-mono font-semibold uppercase text-paper block">
+                    Free Shipping Threshold
+                  </span>
+                  <span className="text-[10px] text-text-muted">
+                    Automatic zero shipping on reaching subtotal threshold
+                  </span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={form.freeShippingEnabled}
+                    onChange={(e) => setForm({ ...form, freeShippingEnabled: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-ink border border-ink-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-paper after:border after:border-ink-border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold peer-checked:border-gold"></div>
+                  <span className={`ml-2.5 text-xs font-mono font-bold tracking-wider uppercase transition-colors ${
+                    form.freeShippingEnabled ? "text-gold" : "text-text-muted"
+                  }`}>
+                    {form.freeShippingEnabled ? "ACTIVE" : "DISABLED"}
+                  </span>
+                </label>
+              </div>
+
+              {form.freeShippingEnabled && (
+                <div className="space-y-1.5 pt-2 border-t border-ink-border/50">
+                  <label className="text-xs font-mono font-semibold text-gold uppercase tracking-wider">
+                    Minimum Subtotal for Free Delivery (EGP)
+                  </label>
+                  <input
+                    type="number"
+                    value={form.freeShippingThreshold ?? 500}
+                    onChange={(e) => setForm({ ...form, freeShippingThreshold: Math.max(0, parseFloat(e.target.value) || 0) })}
+                    className="w-full bg-ink border border-gold/40 text-gold font-bold px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                Standard Baseline Shipping Cost (EGP)
+              </label>
+              <input
+                type="number"
+                value={form.standardShippingCost || 65}
+                onChange={(e) => setForm({ ...form, standardShippingCost: Math.max(0, parseFloat(e.target.value) || 0) })}
+                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+              />
+            </div>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
@@ -1245,60 +1337,124 @@ function EditorialLiveEditModal({
       <div className="w-full max-w-xl max-h-[90vh] flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
         <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
           <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
-            Live Edit: Editorial &amp; Footer Policies
+            Live Edit: Editorial &amp; Footer Brand
           </h3>
           <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Site Tagline
-            </label>
-            <input
-              type="text"
-              value={form.siteTagline || ""}
-              onChange={(e) => setForm({ ...form, siteTagline: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-            />
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 overscroll-contain">
+          {/* Section 01: Footer Brand Identity */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-mono font-bold text-gold uppercase tracking-wider border-b border-ink-border/60 pb-1">
+              01. Footer Brand Identity
+            </h4>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                Footer Brand Narrative / Description
+              </label>
+              <textarea
+                rows={3}
+                value={form.footerDescription || ""}
+                onChange={(e) => setForm({ ...form, footerDescription: e.target.value })}
+                placeholder="An editorial archive celebrating sequential art, Japanese literary epics, and tactile physical printing craftsmanship."
+                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                Hub Cities Line
+              </label>
+              <input
+                type="text"
+                value={form.hubCities || ""}
+                onChange={(e) => setForm({ ...form, hubCities: e.target.value })}
+                placeholder="6TH OF OCTOBER • CAIRO • ALEXANDRIA • ALL EGYPT"
+                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                Site Tagline
+              </label>
+              <input
+                type="text"
+                value={form.siteTagline || ""}
+                onChange={(e) => setForm({ ...form, siteTagline: e.target.value })}
+                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                Concierge Contact Email
+              </label>
+              <input
+                type="email"
+                value={form.contactEmail || ""}
+                onChange={(e) => setForm({ ...form, contactEmail: e.target.value })}
+                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+              />
+            </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Footer Philosophical Quote
-            </label>
-            <textarea
-              rows={3}
-              value={form.footerQuote || ""}
-              onChange={(e) => setForm({ ...form, footerQuote: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
-            />
-          </div>
+          {/* Section 02: Canonical Store Policies */}
+          <div className="space-y-4 pt-2 border-t border-ink-border/60">
+            <h4 className="text-xs font-mono font-bold text-gold uppercase tracking-wider">
+              02. Canonical Store Policies &amp; Philosophy
+            </h4>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Concierge Contact Email
-            </label>
-            <input
-              type="email"
-              value={form.contactEmail || ""}
-              onChange={(e) => setForm({ ...form, contactEmail: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-            />
-          </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                Footer Philosophical Quote
+              </label>
+              <textarea
+                rows={3}
+                value={form.footerQuote || ""}
+                onChange={(e) => setForm({ ...form, footerQuote: e.target.value })}
+                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
+              />
+            </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Authenticity Guarantee Text
-            </label>
-            <textarea
-              rows={3}
-              value={form.authenticityGuaranteeText || ""}
-              onChange={(e) => setForm({ ...form, authenticityGuaranteeText: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
-            />
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                Authenticity Guarantee Policy
+              </label>
+              <textarea
+                rows={3}
+                value={form.authenticityGuaranteeText || ""}
+                onChange={(e) => setForm({ ...form, authenticityGuaranteeText: e.target.value })}
+                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                Shipping Logistics Policy
+              </label>
+              <textarea
+                rows={3}
+                value={form.shippingPolicyText || ""}
+                onChange={(e) => setForm({ ...form, shippingPolicyText: e.target.value })}
+                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                Return &amp; Replacement Policy
+              </label>
+              <textarea
+                rows={3}
+                value={form.returnPolicyText || ""}
+                onChange={(e) => setForm({ ...form, returnPolicyText: e.target.value })}
+                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
+              />
+            </div>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
