@@ -230,6 +230,7 @@ export const DEFAULT_FORMATS: string[] = [
 export type LiveEditTarget =
   | { type: "volume"; volumeId: string }
   | { type: "series"; seriesSlug: string }
+  | { type: "new-series" }
   | { type: "hero" }
   | { type: "hero-card" }
   | { type: "trending" }
@@ -455,9 +456,21 @@ export const useStorefrontStore = create<StorefrontState>()(
       },
 
       updateSeries: (slug, updates) => {
-        set((state) => ({
-          series: state.series.map((s) => (s.slug === slug ? { ...s, ...updates } : s)),
-        }));
+        set((state) => {
+          const exists = state.series.some((s) => s.slug === slug);
+          if (exists) {
+            return {
+              series: state.series.map((s) => (s.slug === slug ? { ...s, ...updates } : s)),
+            };
+          }
+          const fallback = ALL_SERIES.find((s) => s.slug === slug);
+          if (fallback) {
+            return {
+              series: [...state.series, { ...fallback, ...updates }],
+            };
+          }
+          return state;
+        });
       },
 
       deleteSeries: (slug) => {

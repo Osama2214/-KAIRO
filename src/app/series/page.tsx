@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { ALL_SERIES } from "@/data/manga";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
+import { LiveEditButton } from "@/components/admin/LiveEditButton";
 
 export default function SeriesDirectoryPage() {
   const router = useRouter();
@@ -26,9 +27,17 @@ export default function SeriesDirectoryPage() {
               FEATURED SERIES
             </h1>
           </div>
-          <p className="text-xs sm:text-sm text-text-muted font-mono max-w-md">
-            Complete multi-volume canonical archives. Official English releases, Tankōbon editions, and collector boxsets.
-          </p>
+          <div className="flex flex-col sm:flex-row md:items-center gap-4">
+            <p className="text-xs sm:text-sm text-text-muted font-mono max-w-md">
+              Complete multi-volume canonical archives. Official English releases, Tankōbon editions, and collector boxsets.
+            </p>
+            <LiveEditButton
+              target={{ type: "new-series" }}
+              label="Add Series"
+              variant="floating"
+              size="sm"
+            />
+          </div>
         </div>
 
         {/* Series Cards Grid */}
@@ -70,6 +79,16 @@ export default function SeriesDirectoryPage() {
                   <span className="px-2.5 py-1 rounded-xs bg-vermilion/90 text-[10px] font-mono tracking-widest text-white">
                     {series.totalVolumes} VOLUMES
                   </span>
+                </div>
+
+                {/* Live Edit Series Button */}
+                <div className="absolute top-4 right-4 z-20">
+                  <LiveEditButton
+                    target={{ type: "series", seriesSlug: series.slug }}
+                    label="Edit Series"
+                    variant="floating"
+                    size="xs"
+                  />
                 </div>
               </div>
 

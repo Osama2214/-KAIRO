@@ -46,7 +46,7 @@ import { useMounted } from "@/store/useWishlistStore";
 import { VolumeFormModal } from "./VolumeFormModal";
 import { SeriesFormModal } from "./SeriesFormModal";
 import { GenreFormModal } from "./GenreFormModal";
-import { GenreInfo } from "@/data/manga";
+import { GenreInfo, ALL_SERIES } from "@/data/manga";
 import { CustomSelect } from "@/components/CustomSelect";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 
@@ -72,7 +72,9 @@ export function LiveVisualEditor() {
     genreBentoConfig,
     mangaDiscoveryConfig,
     updateVolume,
+    addSeries,
     updateSeries,
+    deleteSeries,
     addGenre,
     updateGenre,
     deleteGenre,
@@ -110,7 +112,9 @@ export function LiveVisualEditor() {
 
   const selectedSeries =
     activeLiveEditTarget?.type === "series"
-      ? series.find((s) => s.slug === activeLiveEditTarget.seriesSlug) || null
+      ? series.find((s) => s.slug === activeLiveEditTarget.seriesSlug) ||
+        ALL_SERIES.find((s) => s.slug === activeLiveEditTarget.seriesSlug) ||
+        null
       : null;
 
   const selectedGenre =
@@ -247,6 +251,25 @@ export function LiveVisualEditor() {
             updateSeries(updated.slug, updated);
             closeLiveEdit();
             showToast(`Series "${updated.title}" updated and synced live!`);
+          }}
+          onDelete={(slug) => {
+            deleteSeries(slug);
+            closeLiveEdit();
+            showToast("Series deleted successfully.");
+          }}
+        />
+      )}
+
+      {/* New Series Modal */}
+      {activeLiveEditTarget?.type === "new-series" && (
+        <SeriesFormModal
+          isOpen={true}
+          onClose={closeLiveEdit}
+          initialSeries={null}
+          onSave={(created) => {
+            addSeries(created);
+            closeLiveEdit();
+            showToast(`New series "${created.title}" created and synced live!`);
           }}
         />
       )}

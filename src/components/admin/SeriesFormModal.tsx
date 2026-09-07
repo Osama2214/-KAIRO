@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Save, Layers, Plus, Check } from "lucide-react";
+import { X, Save, Layers, Plus, Check, Trash2 } from "lucide-react";
 import { Series, GenreInfo } from "@/data/manga";
 import { CustomSelect } from "@/components/CustomSelect";
 import { CustomNumberInput } from "@/components/ui/CustomNumberInput";
@@ -12,6 +12,7 @@ interface SeriesFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (series: Series) => void;
+  onDelete?: (slug: string) => void;
   initialSeries?: Series | null;
 }
 
@@ -19,10 +20,12 @@ function SeriesFormDialog({
   initialSeries,
   onClose,
   onSave,
+  onDelete,
 }: {
   initialSeries?: Series | null;
   onClose: () => void;
   onSave: (series: Series) => void;
+  onDelete?: (slug: string) => void;
 }) {
   useModalScrollLock(true);
 
@@ -94,6 +97,18 @@ function SeriesFormDialog({
     setNewGenreName("");
     setNewGenreKanji("");
     setShowAddGenre(false);
+  };
+
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const handleDelete = () => {
+    if (!initialSeries || !onDelete) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    onDelete(initialSeries.slug);
+    onClose();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -435,21 +450,36 @@ function SeriesFormDialog({
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2.5 border border-ink-border text-text-muted hover:text-paper rounded-sm uppercase tracking-wider transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex items-center gap-2 px-6 py-2.5 bg-gold hover:bg-gold-muted text-ink font-bold rounded-sm uppercase tracking-widest transition-all cursor-pointer shadow-lg shadow-gold/15"
-            >
-              <Save className="w-4 h-4" />
-              <span>Save Series</span>
-            </button>
+          <div className="flex items-center justify-between gap-3 pt-4 border-t border-ink-border">
+            {initialSeries && onDelete ? (
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="px-4 py-2.5 border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-sm text-xs font-mono uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{confirmDelete ? "Confirm Delete?" : "Delete Series"}</span>
+              </button>
+            ) : (
+              <div />
+            )}
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-5 py-2.5 border border-ink-border text-text-muted hover:text-paper rounded-sm uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex items-center gap-2 px-6 py-2.5 bg-gold hover:bg-gold-muted text-ink font-bold rounded-sm uppercase tracking-widest transition-all cursor-pointer shadow-lg shadow-gold/15"
+              >
+                <Save className="w-4 h-4" />
+                <span>Save Series</span>
+              </button>
+            </div>
           </div>
         </form>
       </div>
@@ -461,6 +491,7 @@ export function SeriesFormModal({
   isOpen,
   onClose,
   onSave,
+  onDelete,
   initialSeries,
 }: SeriesFormModalProps) {
   if (!isOpen) return null;
@@ -471,6 +502,7 @@ export function SeriesFormModal({
       initialSeries={initialSeries}
       onClose={onClose}
       onSave={onSave}
+      onDelete={onDelete}
     />
   );
 }
