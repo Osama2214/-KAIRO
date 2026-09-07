@@ -10,6 +10,7 @@ import { useCartStore } from "@/store/useCartStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { formatPrice } from "@/lib/utils";
+import { LiveEditButton } from "@/components/admin/LiveEditButton";
 
 export function TrendingCarousel() {
   const router = useRouter();
@@ -98,9 +99,12 @@ export function TrendingCarousel() {
             <span className="text-[11px] font-mono tracking-[0.25em] text-gold uppercase block mb-1">
               CURATED SELECTION
             </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight uppercase text-paper font-sans">
-              TRENDING NOW
-            </h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight uppercase text-paper font-sans">
+                TRENDING NOW
+              </h2>
+              <LiveEditButton target={{ type: "collection" }} label="Edit Section" variant="floating" size="xs" />
+            </div>
           </div>
 
           {/* Clean Carousel Arrows */}
@@ -155,6 +159,14 @@ export function TrendingCarousel() {
                       alt={volume.title}
                       draggable={false}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out pointer-events-none"
+                    />
+
+                    {/* Live Edit Volume Button */}
+                    <LiveEditButton
+                      target={{ type: "volume", volumeId: volume.id }}
+                      label="Edit"
+                      variant="card"
+                      size="xs"
                     />
 
                     {/* Badges */}

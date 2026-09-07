@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react";
 
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { useMounted } from "@/store/useWishlistStore";
+import { LiveEditButton } from "@/components/admin/LiveEditButton";
 
 export function Hero() {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -88,14 +89,17 @@ export function Hero() {
       <div className="relative max-w-7xl mx-auto w-full my-auto grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center z-10 py-4">
         {/* Left Column: Bold & Confident Editorial Headline & Actions */}
         <div className="lg:col-span-7 flex flex-col space-y-5 sm:space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
-          {/* Japanese Chapter Badge */}
-          <div className="flex items-center gap-2.5">
-            <span className="text-xs font-mono tracking-[0.28em] text-gold uppercase">
-              {badgeText}
-            </span>
-            <span className="text-xs text-text-muted font-serif hidden sm:inline">
-              回路アーカイブ // {hubName}
-            </span>
+          {/* Japanese Chapter Badge & Live Edit */}
+          <div className="flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xs font-mono tracking-[0.28em] text-gold uppercase">
+                {badgeText}
+              </span>
+              <span className="text-xs text-text-muted font-serif hidden sm:inline">
+                回路アーカイブ // {hubName}
+              </span>
+            </div>
+            <LiveEditButton target={{ type: "hero" }} label="Edit Hero" variant="floating" size="xs" />
           </div>
 
           {/* Main Headline */}
@@ -181,6 +185,15 @@ export function Hero() {
             <div className="absolute top-5 right-5 p-2.5 rounded-sm bg-ink/75 backdrop-blur-md border border-ink-border/80 text-vermilion font-serif font-bold text-xs shadow-lg">
               回路
             </div>
+
+            {/* Live Edit Book Button */}
+            {featuredVolume && (
+              <LiveEditButton
+                target={{ type: "volume", volumeId: featuredVolume.id }}
+                label="Edit Book"
+                variant="card"
+              />
+            )}
 
             {/* Bottom Caption Pill */}
             {featuredVolume && (

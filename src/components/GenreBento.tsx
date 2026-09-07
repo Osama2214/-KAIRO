@@ -6,6 +6,7 @@ import { ArrowUpRight } from "lucide-react";
 import { GENRES } from "@/data/manga";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { useMounted } from "@/store/useWishlistStore";
+import { LiveEditButton } from "@/components/admin/LiveEditButton";
 
 export function GenreBento() {
   const mounted = useMounted();
@@ -26,9 +27,12 @@ export function GenreBento() {
             <span className="text-[11px] font-mono tracking-[0.25em] text-gold uppercase block mb-1">
               {badgeText}
             </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight uppercase text-paper font-sans">
-              {title}
-            </h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight uppercase text-paper font-sans">
+                {title}
+              </h2>
+              <LiveEditButton target={{ type: "collection" }} label="Edit Section" variant="floating" size="xs" />
+            </div>
           </div>
           <p className="text-xs text-text-muted font-mono max-w-sm">
             {description}

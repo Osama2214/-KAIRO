@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { ALL_SERIES } from "@/data/manga";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
+import { LiveEditButton } from "@/components/admin/LiveEditButton";
 
 export function FeaturedSeries() {
   const allSeries = useStorefrontStore((state) => state.series);
@@ -39,11 +40,12 @@ export function FeaturedSeries() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center relative z-10">
             {/* Left Column: Quiet & Authoritative Editorial Copy */}
             <div className="lg:col-span-7 flex flex-col justify-center space-y-6">
-              {/* Badge */}
-              <div>
+              {/* Badge & Live Edit */}
+              <div className="flex items-center justify-between gap-3">
                 <span className="text-xs font-mono tracking-[0.25em] text-gold uppercase">
                   {badgeText}
                 </span>
+                <LiveEditButton target={{ type: "featured-series" }} label="Edit Spotlight" variant="floating" size="xs" />
               </div>
 
               {/* Title & Author */}
@@ -80,6 +82,14 @@ export function FeaturedSeries() {
                   src={image}
                   alt={title}
                   className="w-full h-full object-cover object-top filter brightness-95 contrast-105 transition-transform duration-700 ease-out group-hover:scale-105"
+                />
+
+                {/* Live Edit Series Button */}
+                <LiveEditButton
+                  target={{ type: "series", seriesSlug: series.slug }}
+                  label="Edit Series"
+                  variant="card"
+                  size="xs"
                 />
 
                 {/* Subtle Japanese Seal in Corner */}

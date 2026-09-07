@@ -7,6 +7,7 @@ import { Footer } from "@/components/Footer";
 import { CartDrawer } from "@/components/CartDrawer";
 import { SearchModal } from "@/components/SearchModal";
 import { CinematicIntro } from "@/components/CinematicIntro";
+import { LiveVisualEditor } from "@/components/admin/LiveVisualEditor";
 
 export function StorefrontShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -24,6 +25,7 @@ export function StorefrontShell({ children }: { children: React.ReactNode }) {
       <CartDrawer />
       <SearchModal />
       <CinematicIntro />
+      <LiveVisualEditor />
     </>
   );
 }

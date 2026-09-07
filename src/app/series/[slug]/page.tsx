@@ -16,6 +16,7 @@ import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { formatPrice } from "@/lib/utils";
+import { LiveEditButton } from "@/components/admin/LiveEditButton";
 
 interface SeriesPageProps {
   params: Promise<{ slug: string }>;
@@ -77,13 +78,21 @@ export default function SeriesPage({ params }: SeriesPageProps) {
 
         {/* Hero Content */}
         <div className="relative max-w-7xl mx-auto w-full px-6 md:px-12 pb-12 z-10 space-y-4">
-          <div className="flex items-center gap-3">
-            <span className="px-2.5 py-1 rounded-xs bg-vermilion/90 text-white font-mono text-[10px] tracking-widest uppercase">
-              {series.status}
-            </span>
-            <span className="text-xs font-serif text-gold tracking-widest">
-              {series.japaneseTitle}
-            </span>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="px-2.5 py-1 rounded-xs bg-vermilion/90 text-white font-mono text-[10px] tracking-widest uppercase">
+                {series.status}
+              </span>
+              <span className="text-xs font-serif text-gold tracking-widest">
+                {series.japaneseTitle}
+              </span>
+            </div>
+            <LiveEditButton
+              target={{ type: "series", seriesSlug: series.slug }}
+              label="Edit Series"
+              variant="floating"
+              size="sm"
+            />
           </div>
 
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight uppercase font-sans">
@@ -167,6 +176,14 @@ export default function SeriesPage({ params }: SeriesPageProps) {
                   alt={volume.title}
                   draggable={false}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
+                />
+
+                {/* Live Edit Volume Button */}
+                <LiveEditButton
+                  target={{ type: "volume", volumeId: volume.id }}
+                  label="Edit"
+                  variant="card"
+                  size="xs"
                 />
                 <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 pointer-events-none z-10">
                   <span className="px-2 py-0.5 rounded-xs bg-ink/90 backdrop-blur-md text-[9px] font-mono tracking-wider text-gold border border-ink-border">

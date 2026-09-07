@@ -11,6 +11,7 @@ import { useCartStore } from "@/store/useCartStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { formatPrice } from "@/lib/utils";
+import { LiveEditButton } from "@/components/admin/LiveEditButton";
 
 export function TheCollection() {
   const router = useRouter();
@@ -823,10 +824,11 @@ export function TheCollection() {
         />
 
         {/* 01 — Top Editorial Header */}
-        <div className="text-center z-10 pt-4 sm:pt-6">
+        <div className="text-center z-10 pt-4 sm:pt-6 flex flex-col items-center gap-2">
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight uppercase text-paper font-cinzel">
             {collectionConfig?.headline || "THE COLLECTION"}
           </h2>
+          <LiveEditButton target={{ type: "collection" }} label="Edit Collection" variant="floating" size="xs" />
         </div>
 
         {/* 02 — Center 3D Stage (Enlarged Books & Boxset with Generous Clearance) */}

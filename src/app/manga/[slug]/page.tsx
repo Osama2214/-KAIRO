@@ -25,6 +25,7 @@ import { useUIStore } from "@/store/useUIStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { formatPrice } from "@/lib/utils";
 import { useWelcomeOffer } from "@/hooks/useWelcomeOffer";
+import { LiveEditButton } from "@/components/admin/LiveEditButton";
 
 interface MangaPageProps {
   params: Promise<{ slug: string }>;
@@ -116,6 +117,14 @@ export default function MangaDetailPage({ params }: MangaPageProps) {
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
               />
 
+              {/* Live Edit Volume Button */}
+              <LiveEditButton
+                target={{ type: "volume", volumeId: volume.id }}
+                label="Edit Volume"
+                variant="card"
+                size="sm"
+              />
+
               {/* Japanese Seal Floating Badge */}
               <div className="absolute top-4 left-4 px-3 py-1 bg-ink/90 backdrop-blur-md rounded-xs border border-ink-border font-mono text-[10px] text-gold">
                 VOL. {volume.volumeNumber < 10 ? `0${volume.volumeNumber}` : volume.volumeNumber}
@@ -157,22 +166,30 @@ export default function MangaDetailPage({ params }: MangaPageProps) {
                 >
                   {volume.seriesTitle}
                 </Link>
-                <button
-                  onClick={handleShare}
-                  className="flex items-center gap-1 text-[11px] font-mono text-text-muted hover:text-paper"
-                >
-                  {copied ? (
-                    <>
-                      <Check strokeWidth={1.5} className="w-3.5 h-3.5 text-gold" />
-                      <span className="text-gold">LINK COPIED</span>
-                    </>
-                  ) : (
-                    <>
-                      <Share2 strokeWidth={1.4} className="w-3.5 h-3.5" />
-                      <span>SHARE</span>
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center gap-2">
+                  <LiveEditButton
+                    target={{ type: "volume", volumeId: volume.id }}
+                    label="Edit Book"
+                    variant="floating"
+                    size="xs"
+                  />
+                  <button
+                    onClick={handleShare}
+                    className="flex items-center gap-1 text-[11px] font-mono text-text-muted hover:text-paper"
+                  >
+                    {copied ? (
+                      <>
+                        <Check strokeWidth={1.5} className="w-3.5 h-3.5 text-gold" />
+                        <span className="text-gold">LINK COPIED</span>
+                      </>
+                    ) : (
+                      <>
+                        <Share2 strokeWidth={1.4} className="w-3.5 h-3.5" />
+                        <span>SHARE</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
               <h1 className="text-3xl sm:text-4xl font-extrabold uppercase tracking-tight font-sans">

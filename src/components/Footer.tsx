@@ -8,6 +8,7 @@ import { PolicyModal, PolicyTab } from "./PolicyModal";
 
 import { useAuthStore } from "@/store/useAuthStore";
 import { useMounted } from "@/store/useWishlistStore";
+import { LiveEditButton } from "@/components/admin/LiveEditButton";
 
 export function Footer() {
   const pathname = usePathname();
@@ -40,47 +41,52 @@ export function Footer() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 md:px-10">
-        {/* Value Props Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pb-12 border-b border-ink-border/60">
-          <div className="flex items-start gap-4">
-            <div className="p-3 bg-ink-surface border border-ink-border rounded-sm text-gold shrink-0">
-              <Truck strokeWidth={1.4} className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold tracking-widest text-paper uppercase">
-                EGYPT-WIDE EXPRESS DISPATCH
-              </h4>
-              <p className="text-xs text-text-muted mt-1 leading-relaxed">
-                Central archive hub in 6th of October City. Direct delivery to all Egyptian governorates with protective reinforced slip-sleeves.
-              </p>
-            </div>
+        {/* Value Props Bar & Logistics Edit */}
+        <div className="relative pb-12 border-b border-ink-border/60">
+          <div className="flex items-center justify-end mb-4">
+            <LiveEditButton target={{ type: "shipping" }} label="Edit Logistics & Shipping" variant="floating" size="xs" />
           </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-ink-surface border border-ink-border rounded-sm text-gold shrink-0">
+                <Truck strokeWidth={1.4} className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold tracking-widest text-paper uppercase">
+                  EGYPT-WIDE EXPRESS DISPATCH
+                </h4>
+                <p className="text-xs text-text-muted mt-1 leading-relaxed">
+                  Central archive hub in 6th of October City. Direct delivery to all Egyptian governorates with protective reinforced slip-sleeves.
+                </p>
+              </div>
+            </div>
 
-          <div className="flex items-start gap-4">
-            <div className="p-3 bg-ink-surface border border-ink-border rounded-sm text-gold shrink-0">
-              <ShieldCheck strokeWidth={1.4} className="w-5 h-5" />
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-ink-surface border border-ink-border rounded-sm text-gold shrink-0">
+                <ShieldCheck strokeWidth={1.4} className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold tracking-widest text-paper uppercase">
+                  AUTHENTIC JAPANESE EDITIONS
+                </h4>
+                <p className="text-xs text-text-muted mt-1 leading-relaxed">
+                  100% licensed Tankōbon, Kanzenban, and oversized collector hardcovers.
+                </p>
+              </div>
             </div>
-            <div>
-              <h4 className="text-xs font-bold tracking-widest text-paper uppercase">
-                AUTHENTIC JAPANESE EDITIONS
-              </h4>
-              <p className="text-xs text-text-muted mt-1 leading-relaxed">
-                100% licensed Tankōbon, Kanzenban, and oversized collector hardcovers.
-              </p>
-            </div>
-          </div>
 
-          <div className="flex items-start gap-4">
-            <div className="p-3 bg-ink-surface border border-ink-border rounded-sm text-gold shrink-0">
-              <RefreshCw strokeWidth={1.4} className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold tracking-widest text-paper uppercase">
-                COLLECTOR REPLACEMENT GUARANTEE
-              </h4>
-              <p className="text-xs text-text-muted mt-1 leading-relaxed">
-                Corner protection assurance. We replace any volume damaged during transit.
-              </p>
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-ink-surface border border-ink-border rounded-sm text-gold shrink-0">
+                <RefreshCw strokeWidth={1.4} className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold tracking-widest text-paper uppercase">
+                  COLLECTOR REPLACEMENT GUARANTEE
+                </h4>
+                <p className="text-xs text-text-muted mt-1 leading-relaxed">
+                  Corner protection assurance. We replace any volume damaged during transit.
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -89,13 +95,16 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-10 py-16">
           {/* Brand Info */}
           <div className="col-span-2 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-7 h-7 bg-vermilion rounded-sm flex items-center justify-center text-paper font-serif font-bold text-xs">
-                回路
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 bg-vermilion rounded-sm flex items-center justify-center text-paper font-serif font-bold text-xs">
+                  回路
+                </div>
+                <span className="font-extrabold tracking-[0.25em] text-lg text-paper uppercase">
+                  KAIRO
+                </span>
               </div>
-              <span className="font-extrabold tracking-[0.25em] text-lg text-paper uppercase">
-                KAIRO
-              </span>
+              <LiveEditButton target={{ type: "editorial" }} label="Edit Policies & Quotes" variant="floating" size="xs" />
             </div>
             <p className="text-xs text-text-muted leading-relaxed max-w-sm">
               An editorial archive celebrating sequential art, Japanese literary epics, and tactile physical printing craftsmanship.

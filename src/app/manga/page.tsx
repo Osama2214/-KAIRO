@@ -20,6 +20,7 @@ import { useUIStore } from "@/store/useUIStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { formatPrice } from "@/lib/utils";
 import { CustomSelect } from "@/components/CustomSelect";
+import { LiveEditButton } from "@/components/admin/LiveEditButton";
 
 function MangaCatalogContent() {
   const router = useRouter();
@@ -453,6 +454,14 @@ function MangaCatalogContent() {
                         alt={volume.title}
                         draggable={false}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
+                      />
+
+                      {/* Live Edit Volume Button */}
+                      <LiveEditButton
+                        target={{ type: "volume", volumeId: volume.id }}
+                        label="Edit"
+                        variant="card"
+                        size="xs"
                       />
                       <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 pointer-events-none z-10">
                         <span className="px-2 py-0.5 rounded-xs bg-ink/90 backdrop-blur-md text-[9px] font-mono tracking-wider text-gold border border-ink-border">

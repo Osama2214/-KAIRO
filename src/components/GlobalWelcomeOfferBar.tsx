@@ -7,6 +7,7 @@ import { useCartStore } from "@/store/useCartStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useMounted } from "@/store/useWishlistStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
+import { LiveEditButton } from "@/components/admin/LiveEditButton";
 
 interface TimeRemaining {
   hours: number;
@@ -139,6 +140,8 @@ export function GlobalWelcomeOfferBar() {
             <span>{voucherCode}</span>
             <Copy className="w-3 h-3 opacity-70" />
           </button>
+
+          <LiveEditButton target={{ type: "announcement" }} label="Edit Offer" variant="badge" size="xs" />
         </div>
 
         {/* Right Side: Live Countdown & Auto-Apply Action */}

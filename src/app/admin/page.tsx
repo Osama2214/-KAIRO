@@ -385,11 +385,11 @@ export default function AdminPage() {
 
           <Link
             href="/"
-            target="_blank"
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-ink-border text-text-muted hover:text-paper hover:border-gold/50 rounded-sm transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-gold/10 hover:bg-gold text-gold hover:text-ink border border-gold/40 hover:border-gold rounded-sm transition-all font-semibold"
+            title="Browse storefront with Live Visual Editor mode enabled"
           >
-            <ExternalLink className="w-3.5 h-3.5" />
-            <span>View Live Store</span>
+            <Edit2 className="w-3.5 h-3.5" />
+            <span>Live On-Site Mode</span>
           </Link>
           <button
             onClick={logoutAdmin}

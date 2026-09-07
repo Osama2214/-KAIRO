@@ -158,13 +158,23 @@ const DEFAULT_GENRE_BENTO: GenreBentoConfig = {
   description: "Navigate through 9 core canonical categories with specialized curated reading lists.",
 };
 
-interface StorefrontState {
-  // Catalog State
+export type LiveEditTarget =
+  | { type: "volume"; volumeId: string }
+  | { type: "series"; seriesSlug: string }
+  | { type: "hero" }
+  | { type: "announcement" }
+  | { type: "featured-series" }
+  | { type: "collection" }
+  | { type: "shipping" }
+  | { type: "editorial" };
+
+export interface StorefrontState {
+  // Data
   volumes: MangaVolume[];
   series: Series[];
   genres: GenreInfo[];
 
-  // CMS Content State
+  // CMS Content
   heroContent: HeroContent;
   announcement: AnnouncementConfig;
   shippingConfig: ShippingConfig;
@@ -173,12 +183,19 @@ interface StorefrontState {
   collectionConfig: CollectionConfig;
   genreBentoConfig: GenreBentoConfig;
 
-  // Admin Access
+  // Admin Access & Live Visual Editor
   isAdminAuthenticated: boolean;
+  isVisualEditorActive: boolean;
+  activeLiveEditTarget: LiveEditTarget | null;
   adminPin?: string;
   adminPinHash: string;
   adminSessionToken?: string | null;
   adminEmails: string[];
+
+  // Live Visual Editor Actions
+  setVisualEditorActive: (active: boolean) => void;
+  openLiveEdit: (target: LiveEditTarget) => void;
+  closeLiveEdit: () => void;
 
   // Catalog Actions
   addVolume: (volume: MangaVolume) => void;
@@ -232,10 +249,16 @@ export const useStorefrontStore = create<StorefrontState>()(
       collectionConfig: DEFAULT_COLLECTION_CONFIG,
       genreBentoConfig: DEFAULT_GENRE_BENTO,
       isAdminAuthenticated: false,
+      isVisualEditorActive: true,
+      activeLiveEditTarget: null,
       adminPin: DEFAULT_ADMIN_PIN,
       adminPinHash: DEFAULT_PIN_HASH,
       adminSessionToken: null,
       adminEmails: AUTHORIZED_ADMIN_EMAILS,
+
+      setVisualEditorActive: (active) => set({ isVisualEditorActive: active }),
+      openLiveEdit: (target) => set({ activeLiveEditTarget: target }),
+      closeLiveEdit: () => set({ activeLiveEditTarget: null }),
 
       addVolume: (newVolume) => {
         set((state) => {
@@ -545,10 +568,22 @@ export const useStorefrontStore = create<StorefrontState>()(
         collectionConfig: state.collectionConfig,
         genreBentoConfig: state.genreBentoConfig,
         adminPinHash: state.adminPinHash,
+        isAdminAuthenticated: state.isAdminAuthenticated,
+        adminSessionToken: state.adminSessionToken,
+        isVisualEditorActive: state.isVisualEditorActive,
       }),
       merge: (persistedState: unknown, currentState: StorefrontState): StorefrontState => {
         const persisted = persistedState as Partial<StorefrontState> | undefined;
         const merged: StorefrontState = { ...currentState, ...(persisted || {}) };
+        if (typeof persisted?.isAdminAuthenticated === "boolean") {
+          merged.isAdminAuthenticated = persisted.isAdminAuthenticated;
+        }
+        if (typeof persisted?.isVisualEditorActive === "boolean") {
+          merged.isVisualEditorActive = persisted.isVisualEditorActive;
+        }
+        if (persisted?.adminSessionToken !== undefined) {
+          merged.adminSessionToken = persisted.adminSessionToken;
+        }
         if (persisted?.shippingConfig) {
           merged.shippingConfig = {
             ...DEFAULT_SHIPPING_CONFIG,
