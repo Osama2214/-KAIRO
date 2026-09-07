@@ -176,26 +176,28 @@ function OrderDetailsDialog({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <span
                   className={`px-2.5 py-1 rounded-xs font-mono text-[10px] uppercase font-bold border ${
                     paymentStatus === "Verified & Paid"
-                      ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/40"
+                      ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/40 flex items-center gap-1"
                       : paymentStatus === "Pending Verification"
                       ? "bg-amber-500/15 text-amber-400 border-amber-500/40 animate-pulse"
                       : "bg-sky-500/15 text-sky-400 border-sky-500/40"
                   }`}
                 >
-                  {paymentStatus}
+                  {paymentStatus === "Verified & Paid" && <CheckCircle2 className="w-3 h-3 stroke-[2.5]" />}
+                  <span>{paymentStatus}</span>
                 </span>
 
                 {paymentStatus !== "Verified & Paid" && (
                   <button
                     type="button"
                     onClick={handleConfirmPaid}
-                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-[10px] uppercase rounded-xs transition-colors flex items-center gap-1 cursor-pointer shadow-sm"
+                    className="px-3.5 py-1.5 bg-gold hover:bg-gold-light text-ink font-mono font-bold text-xs uppercase tracking-wider rounded-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-gold/25 ring-2 ring-gold/60 hover:ring-gold hover:scale-105 active:scale-95"
+                    title="Confirm payment received and mark verified"
                   >
-                    <CheckCircle2 className="w-3 h-3" />
+                    <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
                     <span>Confirm Paid</span>
                   </button>
                 )}
@@ -204,7 +206,7 @@ function OrderDetailsDialog({
 
             {/* Additional details if wallet or instapay */}
             {(paymentMethodKey === "wallet" || paymentMethodKey === "instapay") && (
-              <div className="text-[11px] text-text-muted flex flex-wrap items-center justify-between gap-2 pt-1 font-mono">
+              <div className="text-[11px] text-text-muted flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-ink-border/50 font-mono">
                 <div>
                   <span className="text-text-muted">Sender Reference: </span>
                   <strong className="text-paper">
@@ -212,7 +214,7 @@ function OrderDetailsDialog({
                   </strong>
                 </div>
                 {paymentStatus === "Pending Verification" && (
-                  <span className="text-amber-400 text-[10px]">
+                  <span className="text-gold font-bold text-[10px] flex items-center gap-1 bg-gold/10 px-2.5 py-1 rounded-xs border border-gold/30">
                     Action Required: Verify transfer before releasing for delivery
                   </span>
                 )}
