@@ -30,9 +30,18 @@ function MangaCatalogContent() {
 
   const storeVolumes = useStorefrontStore((state) => state.volumes);
   const storeGenres = useStorefrontStore((state) => state.genres);
+  const storeFormats = useStorefrontStore((state) => state.formats);
 
   const activeVolumes = storeVolumes && storeVolumes.length > 0 ? storeVolumes : ALL_VOLUMES;
   const activeGenres = storeGenres && storeGenres.length > 0 ? storeGenres : GENRES;
+
+  const availableFormats = useMemo(() => {
+    const base = storeFormats && storeFormats.length > 0
+      ? storeFormats
+      : ["Manga", "Deluxe Edition", "Box Set", "Light Novel"];
+    const volumeFormats = activeVolumes.map((v) => v.format).filter(Boolean);
+    return Array.from(new Set([...base, ...volumeFormats]));
+  }, [storeFormats, activeVolumes]);
 
   const highestPrice = useMemo(() => {
     if (!activeVolumes || activeVolumes.length === 0) return 500;
@@ -109,9 +118,23 @@ function MangaCatalogContent() {
 
       // Genre filter
       if (selectedGenres.length > 0) {
-        const matchesGenre = volume.genre.some((g) =>
-          selectedGenres.includes(g.toLowerCase())
-        );
+        const matchesGenre = volume.genre.some((g) => {
+          const gLower = g.toLowerCase();
+          const gSlug = gLower.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+          return selectedGenres.some((sel) => {
+            const selLower = sel.toLowerCase();
+            const selSlug = selLower.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+            return (
+              gLower === selLower ||
+              gSlug === selSlug ||
+              activeGenres.some(
+                (ag) =>
+                  (ag.id.toLowerCase() === selLower || ag.name.toLowerCase() === selLower) &&
+                  (ag.name.toLowerCase() === gLower || ag.id.toLowerCase() === gSlug)
+              )
+            );
+          });
+        });
         if (!matchesGenre) return false;
       }
 
@@ -310,7 +333,7 @@ function MangaCatalogContent() {
                 FORMAT
               </h4>
               <div className="space-y-2">
-                {["Manga", "Deluxe Edition", "Box Set", "Light Novel"].map((fmt) => {
+                {availableFormats.map((fmt) => {
                   const isChecked = selectedFormats.includes(fmt);
                   return (
                     <label

@@ -220,6 +220,13 @@ const DEFAULT_MANGA_DISCOVERY_CONFIG: MangaDiscoveryConfig = {
   displayCount: 4,
 };
 
+export const DEFAULT_FORMATS: string[] = [
+  "Manga",
+  "Deluxe Edition",
+  "Box Set",
+  "Light Novel",
+];
+
 export type LiveEditTarget =
   | { type: "volume"; volumeId: string }
   | { type: "series"; seriesSlug: string }
@@ -242,6 +249,7 @@ export interface StorefrontState {
   volumes: MangaVolume[];
   series: Series[];
   genres: GenreInfo[];
+  formats: string[];
 
   // CMS Content
   heroContent: HeroContent;
@@ -295,6 +303,7 @@ export interface StorefrontState {
   addGenre: (genre: GenreInfo) => void;
   updateGenre: (id: string, updates: Partial<GenreInfo>) => void;
   deleteGenre: (id: string) => void;
+  addFormat: (format: string) => void;
 
   // Admin Auth Actions
   loginAdmin: (pin: string, userEmail?: string) => boolean;
@@ -318,6 +327,7 @@ export const useStorefrontStore = create<StorefrontState>()(
       volumes: ALL_VOLUMES,
       series: ALL_SERIES,
       genres: GENRES,
+      formats: DEFAULT_FORMATS,
       heroContent: DEFAULT_HERO_CONTENT,
       announcement: DEFAULT_ANNOUNCEMENT,
       shippingConfig: DEFAULT_SHIPPING_CONFIG,
@@ -540,6 +550,18 @@ export const useStorefrontStore = create<StorefrontState>()(
         }));
       },
 
+      addFormat: (newFormat) => {
+        const trimmed = newFormat.trim();
+        if (!trimmed) return;
+        set((state) => {
+          const currentFormats = state.formats && state.formats.length > 0 ? state.formats : DEFAULT_FORMATS;
+          if (currentFormats.some((f) => f.toLowerCase() === trimmed.toLowerCase())) {
+            return state;
+          }
+          return { formats: [...currentFormats, trimmed] };
+        });
+      },
+
       loginAdmin: (pin, userEmail) => {
         if (pin !== get().adminPin) return false;
         if (userEmail && !get().isAuthorizedAdmin(userEmail)) return false;
@@ -607,6 +629,7 @@ export const useStorefrontStore = create<StorefrontState>()(
           volumes: ALL_VOLUMES,
           series: ALL_SERIES,
           genres: GENRES,
+          formats: DEFAULT_FORMATS,
           heroContent: DEFAULT_HERO_CONTENT,
           announcement: DEFAULT_ANNOUNCEMENT,
           shippingConfig: DEFAULT_SHIPPING_CONFIG,
@@ -628,6 +651,7 @@ export const useStorefrontStore = create<StorefrontState>()(
           volumes: state.volumes,
           series: state.series,
           genres: state.genres,
+          formats: state.formats || DEFAULT_FORMATS,
           heroContent: state.heroContent,
           announcement: state.announcement,
           shippingConfig: state.shippingConfig,
@@ -653,6 +677,7 @@ export const useStorefrontStore = create<StorefrontState>()(
             volumes: parsed.volumes || ALL_VOLUMES,
             series: parsed.series || ALL_SERIES,
             genres: parsed.genres || GENRES,
+            formats: parsed.formats || DEFAULT_FORMATS,
             heroContent: { ...DEFAULT_HERO_CONTENT, ...(parsed.heroContent || {}) },
             announcement: { ...DEFAULT_ANNOUNCEMENT, ...(parsed.announcement || {}) },
             shippingConfig: {

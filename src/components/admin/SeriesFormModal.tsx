@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Save, Layers } from "lucide-react";
-import { Series } from "@/data/manga";
+import { X, Save, Layers, Plus, Check } from "lucide-react";
+import { Series, GenreInfo } from "@/data/manga";
 import { CustomSelect } from "@/components/CustomSelect";
 import { CustomNumberInput } from "@/components/ui/CustomNumberInput";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
+import { useStorefrontStore } from "@/store/useStorefrontStore";
 
 interface SeriesFormModalProps {
   isOpen: boolean;
@@ -24,6 +25,10 @@ function SeriesFormDialog({
   onSave: (series: Series) => void;
 }) {
   useModalScrollLock(true);
+
+  const storeGenres = useStorefrontStore((s) => s.genres);
+  const addGenre = useStorefrontStore((s) => s.addGenre);
+
   const [formData, setFormData] = useState<Partial<Series>>(() => {
     if (initialSeries) return initialSeries;
     return {
@@ -44,15 +49,55 @@ function SeriesFormDialog({
     };
   });
 
-  const [genresInput, setGenresInput] = useState(() => (initialSeries?.genres || []).join(", ") || "Action");
+  const [selectedGenres, setSelectedGenres] = useState<string[]>(() => {
+    if (initialSeries?.genres && initialSeries.genres.length > 0) {
+      return initialSeries.genres;
+    }
+    return ["Action"];
+  });
+
+  const [showAddGenre, setShowAddGenre] = useState(false);
+  const [newGenreName, setNewGenreName] = useState("");
+  const [newGenreKanji, setNewGenreKanji] = useState("");
+
+  const toggleGenreSelection = (genreName: string) => {
+    setSelectedGenres((prev) => {
+      const exists = prev.some((g) => g.toLowerCase() === genreName.toLowerCase());
+      if (exists) {
+        return prev.filter((g) => g.toLowerCase() !== genreName.toLowerCase());
+      } else {
+        return [...prev, genreName];
+      }
+    });
+  };
+
+  const handleQuickAddGenre = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const name = newGenreName.trim();
+    if (!name) return;
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    const kanji = newGenreKanji.trim() || name;
+
+    const newCategory: GenreInfo = {
+      id: slug,
+      name,
+      japanese: kanji,
+      description: `Curated canonical ${name} titles.`,
+      coverImage: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=1000&auto=format&fit=crop",
+      popularTitle: formData.title || "Archival Selection",
+    };
+
+    addGenre(newCategory);
+    if (!selectedGenres.some((g) => g.toLowerCase() === name.toLowerCase())) {
+      setSelectedGenres((prev) => [...prev, name]);
+    }
+    setNewGenreName("");
+    setNewGenreKanji("");
+    setShowAddGenre(false);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    const parsedGenres = genresInput
-      .split(",")
-      .map((g) => g.trim())
-      .filter(Boolean);
 
     const generatedSlug =
       formData.slug?.trim() ||
@@ -69,7 +114,7 @@ function SeriesFormDialog({
       romajiTitle: formData.romajiTitle || formData.title || "",
       author: formData.author || "Unknown",
       artist: formData.artist || formData.author || "Unknown",
-      genres: parsedGenres.length ? parsedGenres : ["Manga"],
+      genres: selectedGenres.length ? selectedGenres : ["Action"],
       description: formData.description || "",
       quote: formData.quote || "",
       bannerImage: formData.bannerImage || "",
@@ -207,15 +252,140 @@ function SeriesFormDialog({
             </div>
           </div>
 
-          <div>
-            <label className="block text-text-muted mb-1.5">Genres (Comma separated)</label>
-            <input
-              type="text"
-              value={genresInput}
-              onChange={(e) => setGenresInput(e.target.value)}
-              placeholder="Action, Supernatural, Dark Fantasy"
-              className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-sm font-sans"
-            />
+          {/* Category / Genres Selection & Quick Add */}
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <label className="block text-text-muted text-xs uppercase tracking-wider font-semibold">
+                  Genres &amp; Categories *
+                </label>
+                <span className="text-[10px] text-paper-muted">
+                  ({selectedGenres.length} selected)
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddGenre(!showAddGenre)}
+                className="flex items-center gap-1 text-[11px] text-gold hover:text-gold-light font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>{showAddGenre ? "Cancel" : "+ Add New Category"}</span>
+              </button>
+            </div>
+
+            {/* Quick Add Inline Creator */}
+            {showAddGenre && (
+              <div className="p-3 bg-ink-surface border border-gold/40 rounded-xs space-y-3 animate-in fade-in duration-200">
+                <div className="text-[11px] font-mono text-paper font-bold uppercase tracking-wider flex items-center justify-between">
+                  <span>Create New Store Category</span>
+                  <span className="text-[10px] text-text-muted font-normal">
+                    Immediately updates site filters &amp; bento grid
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[10px] font-mono text-text-muted uppercase mb-1">
+                      Category Name (English) *
+                    </label>
+                    <input
+                      type="text"
+                      value={newGenreName}
+                      onChange={(e) => setNewGenreName(e.target.value)}
+                      placeholder="e.g. Cyberpunk, Mecha, Historical"
+                      className="w-full h-8 bg-ink border border-ink-border text-paper px-2.5 rounded-xs text-xs focus:border-gold outline-none font-sans"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-mono text-text-muted uppercase mb-1">
+                      Japanese Kanji (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={newGenreKanji}
+                      onChange={(e) => setNewGenreKanji(e.target.value)}
+                      placeholder="e.g. サイバーパンク"
+                      className="w-full h-8 bg-ink border border-ink-border text-gold px-2.5 rounded-xs text-xs focus:border-gold outline-none font-serif"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddGenre(false)}
+                    className="px-3 py-1 text-[10px] font-mono uppercase text-text-muted hover:text-paper cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleQuickAddGenre}
+                    disabled={!newGenreName.trim()}
+                    className="flex items-center gap-1.5 px-3 py-1 bg-gold hover:bg-gold-light disabled:opacity-50 text-ink text-[11px] font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-xs"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>Add &amp; Select Category</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Selected Genre Badges / Chips */}
+            <div className="flex flex-wrap items-center gap-1.5 min-h-[38px] p-2 bg-ink border border-ink-border rounded-sm">
+              {selectedGenres.length === 0 ? (
+                <span className="text-xs text-text-muted/60 italic font-mono">
+                  No categories selected yet. Click any category below to assign it.
+                </span>
+              ) : (
+                selectedGenres.map((g) => (
+                  <span
+                    key={g}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-gold/15 text-gold border border-gold/40 text-xs font-mono font-bold uppercase tracking-wide group"
+                  >
+                    <span>{g}</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleGenreSelection(g)}
+                      className="text-gold/70 hover:text-paper p-0.5 rounded-full hover:bg-gold/20 cursor-pointer transition-colors"
+                      title={`Remove ${g}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))
+              )}
+            </div>
+
+            {/* Available Store Categories (Click to Toggle) */}
+            <div className="space-y-1.5 pt-1">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted block">
+                Available Store Categories (Click to select/deselect):
+              </span>
+              <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto overscroll-contain pr-1">
+                {storeGenres.map((genre) => {
+                  const isSelected = selectedGenres.some(
+                    (g) => g.toLowerCase() === genre.name.toLowerCase() || g.toLowerCase() === genre.id.toLowerCase()
+                  );
+                  return (
+                    <button
+                      key={genre.id}
+                      type="button"
+                      onClick={() => toggleGenreSelection(genre.name)}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xs text-[11px] font-mono uppercase tracking-wider border transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-gold text-ink border-gold font-bold shadow-xs scale-105"
+                          : "bg-ink-surface text-text-muted border-ink-border hover:border-gold/50 hover:text-paper"
+                      }`}
+                    >
+                      {isSelected && <Check className="w-3 h-3 stroke-[2.5]" />}
+                      <span>{genre.name}</span>
+                      <span className={`text-[9px] font-serif ${isSelected ? "text-ink/80" : "text-gold/70"}`}>
+                        {genre.japanese}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           <div>

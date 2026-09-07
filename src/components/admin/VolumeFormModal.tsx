@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
-import { X, Save, BookOpen } from "lucide-react";
-import { MangaVolume, Series } from "@/data/manga";
+import React, { useState, useMemo } from "react";
+import { X, Save, BookOpen, Plus, Check } from "lucide-react";
+import { MangaVolume, Series, GenreInfo } from "@/data/manga";
 import { CustomSelect } from "@/components/CustomSelect";
 import { CustomNumberInput } from "@/components/ui/CustomNumberInput";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
+import { useStorefrontStore, DEFAULT_FORMATS } from "@/store/useStorefrontStore";
 
 interface VolumeFormModalProps {
   isOpen: boolean;
@@ -27,7 +28,16 @@ function VolumeFormDialog({
   onSave: (volume: MangaVolume) => void;
 }) {
   useModalScrollLock(true);
-  const defaultSeries = seriesList[0] || { slug: "jujutsu-kaisen", title: "Jujutsu Kaisen", author: "", artist: "" };
+
+  const storeGenres = useStorefrontStore((s) => s.genres);
+  const addGenre = useStorefrontStore((s) => s.addGenre);
+  const storeSeries = useStorefrontStore((s) => s.series);
+  const addSeries = useStorefrontStore((s) => s.addSeries);
+  const storeFormats = useStorefrontStore((s) => s.formats);
+  const addFormat = useStorefrontStore((s) => s.addFormat);
+
+  const effectiveSeriesList = storeSeries && storeSeries.length > 0 ? storeSeries : seriesList;
+  const defaultSeries = effectiveSeriesList[0] || { slug: "jujutsu-kaisen", title: "Jujutsu Kaisen", author: "", artist: "" };
 
   const [formData, setFormData] = useState<Partial<MangaVolume>>(() => {
     if (initialVolume) return initialVolume;
@@ -59,11 +69,117 @@ function VolumeFormDialog({
     };
   });
 
-  const [genresInput, setGenresInput] = useState(() => (initialVolume?.genre || []).join(", ") || "Action");
+  const effectiveFormats = useMemo(() => {
+    const base = storeFormats && storeFormats.length > 0 ? storeFormats : DEFAULT_FORMATS;
+    if (formData.format && !base.includes(formData.format)) {
+      return [...base, formData.format];
+    }
+    return base;
+  }, [storeFormats, formData.format]);
+
+  // Series quick creator
+  const [showAddSeries, setShowAddSeries] = useState(false);
+  const [newSeriesTitle, setNewSeriesTitle] = useState("");
+  const [newSeriesAuthor, setNewSeriesAuthor] = useState("");
+
+  const handleQuickAddSeries = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!newSeriesTitle.trim()) return;
+    const slug = newSeriesTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    const createdSeries: Series = {
+      slug,
+      title: newSeriesTitle.trim(),
+      japaneseTitle: newSeriesTitle.trim(),
+      romajiTitle: newSeriesTitle.trim(),
+      author: newSeriesAuthor.trim() || formData.author || "Unknown",
+      artist: formData.artist || "Unknown",
+      genres: selectedGenres.length > 0 ? selectedGenres : ["Action"],
+      description: `Curated narrative arc for ${newSeriesTitle.trim()}.`,
+      quote: "Canonical series collection.",
+      bannerImage: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=1000&auto=format&fit=crop",
+      featuredImage: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=1000&auto=format&fit=crop",
+      status: "Ongoing",
+      totalVolumes: 1,
+      volumes: [],
+    };
+    addSeries(createdSeries);
+    setFormData((prev) => ({
+      ...prev,
+      seriesSlug: slug,
+      seriesTitle: createdSeries.title,
+      author: prev.author || createdSeries.author,
+    }));
+    setNewSeriesTitle("");
+    setNewSeriesAuthor("");
+    setShowAddSeries(false);
+  };
+
+  // Format quick creator
+  const [showAddFormat, setShowAddFormat] = useState(false);
+  const [newFormatName, setNewFormatName] = useState("");
+
+  const handleQuickAddFormat = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const trimmed = newFormatName.trim();
+    if (!trimmed) return;
+    addFormat(trimmed);
+    setFormData((prev) => ({ ...prev, format: trimmed as MangaVolume["format"] }));
+    setNewFormatName("");
+    setShowAddFormat(false);
+  };
+
+  // Genre selection & quick creator
+  const [selectedGenres, setSelectedGenres] = useState<string[]>(() => {
+    if (initialVolume?.genre && initialVolume.genre.length > 0) {
+      return initialVolume.genre;
+    }
+    return ["Action"];
+  });
+
+  const [showAddGenre, setShowAddGenre] = useState(false);
+  const [newGenreName, setNewGenreName] = useState("");
+  const [newGenreKanji, setNewGenreKanji] = useState("");
+
+  const toggleGenreSelection = (genreName: string) => {
+    setSelectedGenres((prev) => {
+      const exists = prev.some((g) => g.toLowerCase() === genreName.toLowerCase());
+      if (exists) {
+        return prev.filter((g) => g.toLowerCase() !== genreName.toLowerCase());
+      } else {
+        return [...prev, genreName];
+      }
+    });
+  };
+
+  const handleQuickAddGenre = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const name = newGenreName.trim();
+    if (!name) return;
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    const kanji = newGenreKanji.trim() || name;
+
+    const newCategory: GenreInfo = {
+      id: slug,
+      name,
+      japanese: kanji,
+      description: `Curated canonical ${name} titles.`,
+      coverImage: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=1000&auto=format&fit=crop",
+      popularTitle: formData.title || "Archival Selection",
+    };
+
+    addGenre(newCategory);
+    if (!selectedGenres.some((g) => g.toLowerCase() === name.toLowerCase())) {
+      setSelectedGenres((prev) => [...prev, name]);
+    }
+    setNewGenreName("");
+    setNewGenreKanji("");
+    setShowAddGenre(false);
+  };
+
   const [previewPagesInput, setPreviewPagesInput] = useState(() => (initialVolume?.previewPages || []).join("\n"));
 
   const handleSeriesChange = (slug: string) => {
-    const selected = seriesList.find((s) => s.slug === slug);
+    const selected = effectiveSeriesList.find((s) => s.slug === slug);
     if (selected) {
       setFormData((prev) => ({
         ...prev,
@@ -78,22 +194,21 @@ function VolumeFormDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const parsedGenres = genresInput
-      .split(",")
-      .map((g) => g.trim())
-      .filter(Boolean);
-
     const parsedPreviews = previewPagesInput
       .split("\n")
       .map((p) => p.trim())
       .filter(Boolean);
 
+    if (formData.format) {
+      addFormat(formData.format);
+    }
+
     const finalVolume: MangaVolume = {
       id: formData.id || `vol-${Date.now()}`,
       volumeNumber: Number(formData.volumeNumber) || 1,
       title: formData.title || `Volume ${formData.volumeNumber || 1}`,
-      seriesSlug: formData.seriesSlug || seriesList[0]?.slug || "general",
-      seriesTitle: formData.seriesTitle || seriesList[0]?.title || "General",
+      seriesSlug: formData.seriesSlug || effectiveSeriesList[0]?.slug || "general",
+      seriesTitle: formData.seriesTitle || effectiveSeriesList[0]?.title || "General",
       japaneseTitle: formData.japaneseTitle || "",
       author: formData.author || "Unknown",
       artist: formData.artist || formData.author || "Unknown",
@@ -107,7 +222,7 @@ function VolumeFormDialog({
       pages: Number(formData.pages) || 192,
       publishDate: formData.publishDate || new Date().toISOString().split("T")[0],
       isbn: formData.isbn || "978-0000000000",
-      genre: parsedGenres.length ? parsedGenres : ["Manga"],
+      genre: selectedGenres.length ? selectedGenres : ["Action"],
       stock: Number(formData.stock) >= 0 ? Number(formData.stock) : 0,
       isTrending: Boolean(formData.isTrending),
       isNewRelease: Boolean(formData.isNewRelease),
@@ -153,15 +268,60 @@ function VolumeFormDialog({
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex flex-col justify-end">
-                <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">Parent Series *</label>
-                <CustomSelect
-                  fullWidth
-                  value={formData.seriesSlug || (seriesList[0]?.slug || "")}
-                  onChange={handleSeriesChange}
-                  options={seriesList.map((s) => ({ value: s.slug, label: s.title }))}
-                  buttonClassName="bg-ink rounded-sm h-10 px-3 text-xs"
-                  placeholder="Select Parent Series..."
-                />
+                <div className="flex items-center justify-between mb-1.5 min-h-[20px]">
+                  <label className="block text-text-muted">Parent Series *</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddSeries(!showAddSeries)}
+                    className="text-[10px] text-gold hover:text-gold-light font-mono font-bold uppercase tracking-wider cursor-pointer transition-colors"
+                  >
+                    {showAddSeries ? "Cancel" : "+ Add Series"}
+                  </button>
+                </div>
+                {showAddSeries ? (
+                  <div className="p-2.5 bg-ink border border-gold/40 rounded-xs space-y-2 font-mono">
+                    <input
+                      type="text"
+                      value={newSeriesTitle}
+                      onChange={(e) => setNewSeriesTitle(e.target.value)}
+                      placeholder="New Series Title..."
+                      className="w-full h-8 bg-ink-surface border border-ink-border text-paper px-2 text-xs rounded-xs focus:border-gold outline-none font-sans"
+                    />
+                    <input
+                      type="text"
+                      value={newSeriesAuthor}
+                      onChange={(e) => setNewSeriesAuthor(e.target.value)}
+                      placeholder="Author (optional)..."
+                      className="w-full h-8 bg-ink-surface border border-ink-border text-paper px-2 text-xs rounded-xs focus:border-gold outline-none font-sans"
+                    />
+                    <div className="flex justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setShowAddSeries(false)}
+                        className="px-2 py-1 text-[10px] text-text-muted hover:text-paper"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleQuickAddSeries}
+                        disabled={!newSeriesTitle.trim()}
+                        className="px-2.5 py-1 bg-gold hover:bg-gold-light disabled:opacity-50 text-ink text-[10px] font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-xs"
+                      >
+                        Create &amp; Select
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <CustomSelect
+                    fullWidth
+                    value={formData.seriesSlug || (effectiveSeriesList[0]?.slug || "")}
+                    onChange={handleSeriesChange}
+                    options={effectiveSeriesList.map((s) => ({ value: s.slug, label: s.title }))}
+                    buttonClassName="bg-ink rounded-sm h-10 px-3 text-xs"
+                    placeholder="Select Parent Series..."
+                  />
+                )}
               </div>
 
               <div className="flex flex-col justify-end">
@@ -176,19 +336,52 @@ function VolumeFormDialog({
               </div>
 
               <div className="flex flex-col justify-end">
-                <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">Format *</label>
-                <CustomSelect
-                  fullWidth
-                  value={formData.format || "Manga"}
-                  onChange={(val) => setFormData({ ...formData, format: val as MangaVolume["format"] })}
-                  options={[
-                    { value: "Manga", label: "Manga" },
-                    { value: "Light Novel", label: "Light Novel" },
-                    { value: "Box Set", label: "Box Set" },
-                    { value: "Deluxe Edition", label: "Deluxe Edition" },
-                  ]}
-                  buttonClassName="bg-ink rounded-sm h-10 px-3 text-xs"
-                />
+                <div className="flex items-center justify-between mb-1.5 min-h-[20px]">
+                  <label className="block text-text-muted">Format *</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddFormat(!showAddFormat)}
+                    className="text-[10px] text-gold hover:text-gold-light font-mono font-bold uppercase tracking-wider cursor-pointer transition-colors"
+                  >
+                    {showAddFormat ? "Cancel" : "+ Add Format"}
+                  </button>
+                </div>
+                {showAddFormat ? (
+                  <div className="p-2.5 bg-ink border border-gold/40 rounded-xs space-y-2 font-mono">
+                    <input
+                      type="text"
+                      value={newFormatName}
+                      onChange={(e) => setNewFormatName(e.target.value)}
+                      placeholder="e.g. Collector's Box Set"
+                      className="w-full h-8 bg-ink-surface border border-ink-border text-paper px-2 text-xs rounded-xs focus:border-gold outline-none font-sans"
+                    />
+                    <div className="flex justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setShowAddFormat(false)}
+                        className="px-2 py-1 text-[10px] text-text-muted hover:text-paper"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleQuickAddFormat}
+                        disabled={!newFormatName.trim()}
+                        className="px-2.5 py-1 bg-gold hover:bg-gold-light disabled:opacity-50 text-ink text-[10px] font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-xs"
+                      >
+                        Add &amp; Select
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <CustomSelect
+                    fullWidth
+                    value={formData.format || "Manga"}
+                    onChange={(val) => setFormData({ ...formData, format: val as MangaVolume["format"] })}
+                    options={effectiveFormats.map((f) => ({ value: f, label: f }))}
+                    buttonClassName="bg-ink rounded-sm h-10 px-3 text-xs"
+                  />
+                )}
               </div>
 
               <div className="md:col-span-2 flex flex-col justify-end">
@@ -357,15 +550,140 @@ function VolumeFormDialog({
                 />
               </div>
 
-              <div>
-                <label className="block text-text-muted mb-1.5">Genres (Comma separated)</label>
-                <input
-                  type="text"
-                  value={genresInput}
-                  onChange={(e) => setGenresInput(e.target.value)}
-                  placeholder="Action, Dark Fantasy, Supernatural"
-                  className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-sm font-sans"
-                />
+              {/* Category / Genres Selection & Quick Add */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <label className="block text-text-muted text-xs uppercase tracking-wider font-semibold">
+                      Genres &amp; Categories *
+                    </label>
+                    <span className="text-[10px] text-paper-muted">
+                      ({selectedGenres.length} selected)
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddGenre(!showAddGenre)}
+                    className="flex items-center gap-1 text-[11px] text-gold hover:text-gold-light font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>{showAddGenre ? "Cancel" : "+ Add New Category"}</span>
+                  </button>
+                </div>
+
+                {/* Quick Add Inline Creator */}
+                {showAddGenre && (
+                  <div className="p-3 bg-ink-surface border border-gold/40 rounded-xs space-y-3 animate-in fade-in duration-200">
+                    <div className="text-[11px] font-mono text-paper font-bold uppercase tracking-wider flex items-center justify-between">
+                      <span>Create New Store Category</span>
+                      <span className="text-[10px] text-text-muted font-normal">
+                        Immediately updates site filters &amp; bento grid
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="block text-[10px] font-mono text-text-muted uppercase mb-1">
+                          Category Name (English) *
+                        </label>
+                        <input
+                          type="text"
+                          value={newGenreName}
+                          onChange={(e) => setNewGenreName(e.target.value)}
+                          placeholder="e.g. Cyberpunk, Mecha, Historical"
+                          className="w-full h-8 bg-ink border border-ink-border text-paper px-2.5 rounded-xs text-xs focus:border-gold outline-none font-sans"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-mono text-text-muted uppercase mb-1">
+                          Japanese Kanji (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={newGenreKanji}
+                          onChange={(e) => setNewGenreKanji(e.target.value)}
+                          placeholder="e.g. サイバーパンク"
+                          className="w-full h-8 bg-ink border border-ink-border text-gold px-2.5 rounded-xs text-xs focus:border-gold outline-none font-serif"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowAddGenre(false)}
+                        className="px-3 py-1 text-[10px] font-mono uppercase text-text-muted hover:text-paper cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleQuickAddGenre}
+                        disabled={!newGenreName.trim()}
+                        className="flex items-center gap-1.5 px-3 py-1 bg-gold hover:bg-gold-light disabled:opacity-50 text-ink text-[11px] font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-xs"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>Add &amp; Select Category</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Selected Genre Badges / Chips */}
+                <div className="flex flex-wrap items-center gap-1.5 min-h-[38px] p-2 bg-ink border border-ink-border rounded-sm">
+                  {selectedGenres.length === 0 ? (
+                    <span className="text-xs text-text-muted/60 italic font-mono">
+                      No categories selected yet. Click any category below to assign it.
+                    </span>
+                  ) : (
+                    selectedGenres.map((g) => (
+                      <span
+                        key={g}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-gold/15 text-gold border border-gold/40 text-xs font-mono font-bold uppercase tracking-wide group"
+                      >
+                        <span>{g}</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleGenreSelection(g)}
+                          className="text-gold/70 hover:text-paper p-0.5 rounded-full hover:bg-gold/20 cursor-pointer transition-colors"
+                          title={`Remove ${g}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))
+                  )}
+                </div>
+
+                {/* Available Store Categories (Click to Toggle) */}
+                <div className="space-y-1.5 pt-1">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted block">
+                    Available Store Categories (Click to select/deselect):
+                  </span>
+                  <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto overscroll-contain pr-1">
+                    {storeGenres.map((genre) => {
+                      const isSelected = selectedGenres.some(
+                        (g) => g.toLowerCase() === genre.name.toLowerCase() || g.toLowerCase() === genre.id.toLowerCase()
+                      );
+                      return (
+                        <button
+                          key={genre.id}
+                          type="button"
+                          onClick={() => toggleGenreSelection(genre.name)}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xs text-[11px] font-mono uppercase tracking-wider border transition-all cursor-pointer ${
+                            isSelected
+                              ? "bg-gold text-ink border-gold font-bold shadow-xs scale-105"
+                              : "bg-ink-surface text-text-muted border-ink-border hover:border-gold/50 hover:text-paper"
+                          }`}
+                        >
+                          {isSelected && <Check className="w-3 h-3 stroke-[2.5]" />}
+                          <span>{genre.name}</span>
+                          <span className={`text-[9px] font-serif ${isSelected ? "text-ink/80" : "text-gold/70"}`}>
+                            {genre.japanese}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               <div>

@@ -86,6 +86,7 @@ export default function AdminPage() {
     newReleasesConfig,
     mangaDiscoveryConfig,
     genres,
+    formats,
     isAdminAuthenticated,
     adminPin,
     adminPinHash,
@@ -308,6 +309,14 @@ export default function AdminPage() {
       return matchesSearch && matchesSeries && matchesFormat;
     });
   }, [volumes, searchQuery, seriesFilter, formatFilter]);
+
+  const availableFormats = useMemo(() => {
+    const base = formats && formats.length > 0
+      ? formats
+      : ["Manga", "Deluxe Edition", "Box Set", "Light Novel"];
+    const volumeFormats = volumes.map((v) => v.format).filter(Boolean);
+    return Array.from(new Set([...base, ...volumeFormats]));
+  }, [formats, volumes]);
 
   // Prevent hydration mismatch between server render (localStorage empty) and client (persisted session)
   if (!mounted) {
@@ -720,10 +729,7 @@ export default function AdminPage() {
                     onChange={setFormatFilter}
                     options={[
                       { value: "all", label: "All Formats" },
-                      { value: "Manga", label: "Manga" },
-                      { value: "Light Novel", label: "Light Novel" },
-                      { value: "Box Set", label: "Box Set" },
-                      { value: "Deluxe Edition", label: "Deluxe Edition" },
+                      ...availableFormats.map((f) => ({ value: f, label: f })),
                     ]}
                     buttonClassName="bg-ink-surface border-ink-border py-2 px-3 text-xs"
                   />
