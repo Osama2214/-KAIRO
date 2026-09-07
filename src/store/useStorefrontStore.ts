@@ -1,0 +1,562 @@
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { MangaVolume, Series, GenreInfo, ALL_VOLUMES, ALL_SERIES, GENRES } from "@/data/manga";
+import { DEFAULT_ADMIN_PIN, DEFAULT_PIN_HASH, AUTHORIZED_ADMIN_EMAILS } from "@/config/adminConfig";
+import { DEFAULT_GOVERNORATE_RATES } from "@/data/governorates";
+
+export interface HeroContent {
+  badgeText: string;
+  headlineLine1: string;
+  headlineHighlight: string;
+  headlineLine2: string;
+  headline?: string;
+  subheadline: string;
+  japaneseWatermark1: string;
+  japaneseWatermark2: string;
+  primaryCtaText: string;
+  primaryCtaLink: string;
+  secondaryCtaText: string;
+  secondaryCtaLink: string;
+  stat1Value: string;
+  stat1Label: string;
+  stat2Value: string;
+  stat2Label: string;
+  stat3Value: string;
+  stat3Label: string;
+  featuredVolumeId: string;
+}
+
+export interface AnnouncementConfig {
+  enabled: boolean;
+  text: string;
+  voucherCode: string;
+  discountPercent: number;
+}
+
+export interface ShippingConfig {
+  hubName: string;
+  dispatchBadgeText: string;
+  guaranteeBadgeText: string;
+  deliveryEstimate: string;
+  standardShippingCost: number;
+  governorateRates: Record<string, number>;
+}
+
+export interface EditorialConfig {
+  siteTagline: string;
+  footerQuote: string;
+  contactEmail: string;
+  authenticityGuaranteeText: string;
+  shippingPolicyText: string;
+  returnPolicyText: string;
+}
+
+export interface FeaturedSeriesConfig {
+  seriesSlug: string;
+  badgeText: string;
+  customTitle?: string;
+  customDescription?: string;
+  ctaText: string;
+  ctaLink?: string;
+  customImage?: string;
+}
+
+export interface CollectionConfig {
+  headline: string;
+  badgeText: string;
+  price: number;
+  volumeId1: string;
+  volumeId2: string;
+  volumeId3: string;
+  primaryCtaText: string;
+  secondaryCtaText: string;
+  secondaryCtaLink: string;
+}
+
+export interface GenreBentoConfig {
+  badgeText: string;
+  title: string;
+  description: string;
+}
+
+const DEFAULT_HERO_CONTENT: HeroContent = {
+  badgeText: "CHAPTER 01 — 物語の始まり",
+  headlineLine1: "DISCOVER",
+  headlineHighlight: "YOUR NEXT",
+  headlineLine2: "STORY",
+  headline: "DISCOVER YOUR NEXT STORY",
+  subheadline: "Manga, light novels, and stories worth getting lost in. From pristine First Editions and oversize Deluxe hardcovers to complete collector slipcase box sets.",
+  japaneseWatermark1: "回路・物語の始まり",
+  japaneseWatermark2: "精神と物質の調和",
+  primaryCtaText: "EXPLORE MANGA",
+  primaryCtaLink: "/manga",
+  secondaryCtaText: "NEW RELEASES",
+  secondaryCtaLink: "#new-releases",
+  stat1Value: "1,400+",
+  stat1Label: "Volumes Archived",
+  stat2Value: "100%",
+  stat2Label: "Licensed Imports",
+  stat3Value: "24-48h",
+  stat3Label: "All Egypt Delivery",
+  featuredVolumeId: "tokyo-ghoul-1",
+};
+
+const DEFAULT_ANNOUNCEMENT: AnnouncementConfig = {
+  enabled: true,
+  text: "INAUGURAL PATRON GRANT — RECEIVE 20% OFF YOUR FIRST CURATED ARCHIVE WITH VOUCHER",
+  voucherCode: "KAIRO20",
+  discountPercent: 20,
+};
+
+const DEFAULT_SHIPPING_CONFIG: ShippingConfig = {
+  hubName: "6TH OF OCTOBER • EGYPT",
+  dispatchBadgeText: "Dispatched from 6th of October (All Egypt)",
+  guaranteeBadgeText: "Authenticity Guaranteed",
+  deliveryEstimate: "24-48h",
+  standardShippingCost: 65,
+  governorateRates: DEFAULT_GOVERNORATE_RATES,
+};
+
+const DEFAULT_EDITORIAL: EditorialConfig = {
+  siteTagline: "Japanese Manga & Editorial Storefront",
+  footerQuote: "In the quiet chambers between panels, human truths linger. KAIRO stands as an altar to physical print, Japanese craft, and uncompromising sequential art.",
+  contactEmail: "concierge@kairo.archive",
+  authenticityGuaranteeText: "Every single volume in the KAIRO archive is sourced directly from certified Tokyo and Kyoto publishing houses. We guarantee 100% genuine Kodansha, Shueisha, Shogakukan, and Dark Horse editorial pressings.",
+  shippingPolicyText: "Orders are hand-packaged using archival protective sleeves, reinforced corner bumpers, and moisture-resistant sealing. Dispatched daily across Cairo, Giza, Alexandria, and all Egyptian governorates.",
+  returnPolicyText: "We honor a 14-day archival integrity inspection. If your volume arrives with any structural binding defect, spine dent, or print anomaly, our concierge provides immediate replacement.",
+};
+
+const DEFAULT_FEATURED_SERIES: FeaturedSeriesConfig = {
+  seriesSlug: "jujutsu-kaisen",
+  badgeText: "FEATURED SERIES — 呪術廻戦",
+  customTitle: "",
+  customDescription: "",
+  ctaText: "EXPLORE SERIES ARCHIVE",
+  ctaLink: "/series/jujutsu-kaisen",
+  customImage: "",
+};
+
+const DEFAULT_COLLECTION_CONFIG: CollectionConfig = {
+  headline: "THE COLLECTION",
+  badgeText: "COMPLETE ARCHIVE • VOL. 01–03",
+  price: 29.99,
+  volumeId1: "jjk-01",
+  volumeId2: "jjk-02",
+  volumeId3: "jjk-03",
+  primaryCtaText: "ADD SET TO CART",
+  secondaryCtaText: "DISCOVER ALL BOXSETS",
+  secondaryCtaLink: "/manga?format=Box+Set",
+};
+
+const DEFAULT_GENRE_BENTO: GenreBentoConfig = {
+  badgeText: "CATEGORY DIRECTORY",
+  title: "EXPLORE YOUR GENRE",
+  description: "Navigate through 9 core canonical categories with specialized curated reading lists.",
+};
+
+interface StorefrontState {
+  // Catalog State
+  volumes: MangaVolume[];
+  series: Series[];
+  genres: GenreInfo[];
+
+  // CMS Content State
+  heroContent: HeroContent;
+  announcement: AnnouncementConfig;
+  shippingConfig: ShippingConfig;
+  editorialConfig: EditorialConfig;
+  featuredSeriesConfig: FeaturedSeriesConfig;
+  collectionConfig: CollectionConfig;
+  genreBentoConfig: GenreBentoConfig;
+
+  // Admin Access
+  isAdminAuthenticated: boolean;
+  adminPin?: string;
+  adminPinHash: string;
+  adminSessionToken?: string | null;
+  adminEmails: string[];
+
+  // Catalog Actions
+  addVolume: (volume: MangaVolume) => void;
+  updateVolume: (id: string, updates: Partial<MangaVolume>) => void;
+  deleteVolume: (id: string) => void;
+  duplicateVolume: (id: string) => MangaVolume | null;
+  deductStock: (items: { volumeId: string; quantity: number }[]) => void;
+
+  // Series Actions
+  addSeries: (series: Series) => void;
+  updateSeries: (slug: string, updates: Partial<Series>) => void;
+  deleteSeries: (slug: string) => void;
+
+  // CMS Content Actions
+  updateHeroContent: (updates: Partial<HeroContent>) => void;
+  updateAnnouncement: (updates: Partial<AnnouncementConfig>) => void;
+  updateShippingConfig: (updates: Partial<ShippingConfig>) => void;
+  updateEditorialConfig: (updates: Partial<EditorialConfig>) => void;
+  updateFeaturedSeriesConfig: (updates: Partial<FeaturedSeriesConfig>) => void;
+  updateCollectionConfig: (updates: Partial<CollectionConfig>) => void;
+  updateGenreBentoConfig: (updates: Partial<GenreBentoConfig>) => void;
+  updateGenre: (id: string, updates: Partial<GenreInfo>) => void;
+
+  // Admin Auth Actions
+  loginAdmin: (pin: string, userEmail?: string) => boolean;
+  loginAdminWithToken: (token: string, pinHash?: string) => void;
+  logoutAdmin: () => void;
+  updateAdminPin: (newPin: string) => void;
+  updateAdminPinHash: (newHash: string) => void;
+  addAdminEmail: (email: string) => void;
+  removeAdminEmail: (email: string) => void;
+  isAuthorizedAdmin: (email?: string) => boolean;
+
+  // Utilities
+  resetToDefaults: () => void;
+  exportData: () => string;
+  importData: (jsonStr: string) => boolean;
+}
+
+export const useStorefrontStore = create<StorefrontState>()(
+  persist(
+    (set, get) => ({
+      volumes: ALL_VOLUMES,
+      series: ALL_SERIES,
+      genres: GENRES,
+      heroContent: DEFAULT_HERO_CONTENT,
+      announcement: DEFAULT_ANNOUNCEMENT,
+      shippingConfig: DEFAULT_SHIPPING_CONFIG,
+      editorialConfig: DEFAULT_EDITORIAL,
+      featuredSeriesConfig: DEFAULT_FEATURED_SERIES,
+      collectionConfig: DEFAULT_COLLECTION_CONFIG,
+      genreBentoConfig: DEFAULT_GENRE_BENTO,
+      isAdminAuthenticated: false,
+      adminPin: DEFAULT_ADMIN_PIN,
+      adminPinHash: DEFAULT_PIN_HASH,
+      adminSessionToken: null,
+      adminEmails: AUTHORIZED_ADMIN_EMAILS,
+
+      addVolume: (newVolume) => {
+        set((state) => {
+          const exists = state.volumes.some((v) => v.id === newVolume.id);
+          const finalId = exists ? `${newVolume.id}-${Date.now()}` : newVolume.id;
+          const volumeWithId = { ...newVolume, id: finalId };
+          const updatedVolumes = [volumeWithId, ...state.volumes];
+
+          const updatedSeries = state.series.map((s) => {
+            if (s.slug === volumeWithId.seriesSlug) {
+              const alreadyHas = s.volumes.some((v) => v.id === volumeWithId.id);
+              return {
+                ...s,
+                totalVolumes: Math.max(s.totalVolumes, s.volumes.length + 1),
+                volumes: alreadyHas ? s.volumes : [...s.volumes, volumeWithId],
+              };
+            }
+            return s;
+          });
+
+          return { volumes: updatedVolumes, series: updatedSeries };
+        });
+      },
+
+      updateVolume: (id, updates) => {
+        set((state) => {
+          const updatedVolumes = state.volumes.map((v) =>
+            v.id === id ? { ...v, ...updates } : v
+          );
+
+          const updatedSeries = state.series.map((s) => ({
+            ...s,
+            volumes: s.volumes.map((v) => (v.id === id ? { ...v, ...updates } : v)),
+          }));
+
+          return { volumes: updatedVolumes, series: updatedSeries };
+        });
+      },
+
+      deleteVolume: (id) => {
+        set((state) => {
+          const updatedVolumes = state.volumes.filter((v) => v.id !== id);
+          const updatedSeries = state.series.map((s) => ({
+            ...s,
+            volumes: s.volumes.filter((v) => v.id !== id),
+          }));
+          return { volumes: updatedVolumes, series: updatedSeries };
+        });
+      },
+
+      duplicateVolume: (id) => {
+        const current = get().volumes.find((v) => v.id === id);
+        if (!current) return null;
+
+        const newId = `${current.id}-copy-${Date.now().toString().slice(-4)}`;
+        const duplicated: MangaVolume = {
+          ...current,
+          id: newId,
+          title: `${current.title} (Archival Duplicate)`,
+          volumeNumber: current.volumeNumber + 1,
+        };
+
+        get().addVolume(duplicated);
+        return duplicated;
+      },
+
+      deductStock: (items) => {
+        set((state) => {
+          const qtyMap = new Map<string, number>();
+          items.forEach((item) => {
+            qtyMap.set(item.volumeId, (qtyMap.get(item.volumeId) || 0) + item.quantity);
+          });
+
+          const updatedVolumes = state.volumes.map((v) => {
+            const deductQty = qtyMap.get(v.id);
+            if (deductQty) {
+              return { ...v, stock: Math.max(0, (v.stock || 0) - deductQty) };
+            }
+            return v;
+          });
+
+          const updatedSeries = state.series.map((s) => ({
+            ...s,
+            volumes: s.volumes.map((v) => {
+              const deductQty = qtyMap.get(v.id);
+              if (deductQty) {
+                return { ...v, stock: Math.max(0, (v.stock || 0) - deductQty) };
+              }
+              return v;
+            }),
+          }));
+
+          return { volumes: updatedVolumes, series: updatedSeries };
+        });
+      },
+
+      addSeries: (newSeries) => {
+        set((state) => {
+          const exists = state.series.some((s) => s.slug === newSeries.slug);
+          const finalSlug = exists ? `${newSeries.slug}-${Date.now().toString().slice(-4)}` : newSeries.slug;
+          const seriesWithSlug = { ...newSeries, slug: finalSlug };
+          return { series: [seriesWithSlug, ...state.series] };
+        });
+      },
+
+      updateSeries: (slug, updates) => {
+        set((state) => ({
+          series: state.series.map((s) => (s.slug === slug ? { ...s, ...updates } : s)),
+        }));
+      },
+
+      deleteSeries: (slug) => {
+        set((state) => ({
+          series: state.series.filter((s) => s.slug !== slug),
+          volumes: state.volumes.filter((v) => v.seriesSlug !== slug),
+        }));
+      },
+
+      updateHeroContent: (updates) => {
+        set((state) => ({
+          heroContent: { ...state.heroContent, ...updates },
+        }));
+      },
+
+      updateAnnouncement: (updates) => {
+        set((state) => ({
+          announcement: { ...state.announcement, ...updates },
+        }));
+      },
+
+      updateShippingConfig: (updates) => {
+        set((state) => ({
+          shippingConfig: { ...state.shippingConfig, ...updates },
+        }));
+      },
+
+      updateEditorialConfig: (updates) => {
+        set((state) => ({
+          editorialConfig: { ...state.editorialConfig, ...updates },
+        }));
+      },
+
+      updateFeaturedSeriesConfig: (updates) => {
+        set((state) => ({
+          featuredSeriesConfig: { ...state.featuredSeriesConfig, ...updates },
+        }));
+      },
+
+      updateCollectionConfig: (updates) => {
+        set((state) => ({
+          collectionConfig: { ...state.collectionConfig, ...updates },
+        }));
+      },
+
+      updateGenreBentoConfig: (updates) => {
+        set((state) => ({
+          genreBentoConfig: { ...state.genreBentoConfig, ...updates },
+        }));
+      },
+
+      updateGenre: (id, updates) => {
+        set((state) => ({
+          genres: state.genres.map((g) => (g.id === id ? { ...g, ...updates } : g)),
+        }));
+      },
+
+      loginAdmin: (pin, userEmail) => {
+        if (pin !== get().adminPin) return false;
+        if (userEmail && !get().isAuthorizedAdmin(userEmail)) return false;
+        set({ isAdminAuthenticated: true });
+        return true;
+      },
+
+      loginAdminWithToken: (token, pinHash) => {
+        set({
+          isAdminAuthenticated: true,
+          adminSessionToken: token,
+          ...(pinHash ? { adminPinHash: pinHash } : {}),
+        });
+      },
+
+      logoutAdmin: () => {
+        set({ isAdminAuthenticated: false, adminSessionToken: null });
+        if (typeof fetch !== "undefined") {
+          fetch("/api/admin/verify-session", { method: "DELETE" }).catch(() => {});
+        }
+        if (typeof document !== "undefined") {
+          document.cookie = "kairo_curator_session=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        }
+      },
+
+      updateAdminPin: (newPin) => {
+        if (newPin && newPin.length >= 4) {
+          set({ adminPin: newPin });
+        }
+      },
+
+      updateAdminPinHash: (newHash) => {
+        if (newHash && newHash.length >= 32) {
+          set({ adminPinHash: newHash });
+        }
+      },
+
+      addAdminEmail: (email) => {
+        const normalized = email.trim().toLowerCase();
+        if (!normalized) return;
+        set((state) => {
+          const list = state.adminEmails || AUTHORIZED_ADMIN_EMAILS;
+          if (list.includes(normalized)) return state;
+          return { adminEmails: [...list, normalized] };
+        });
+      },
+
+      removeAdminEmail: (email) => {
+        const normalized = email.trim().toLowerCase();
+        set((state) => {
+          const list = state.adminEmails || AUTHORIZED_ADMIN_EMAILS;
+          if (list.length <= 1) return state; // Never remove all admins
+          return { adminEmails: list.filter((e) => e.toLowerCase() !== normalized) };
+        });
+      },
+
+      isAuthorizedAdmin: (email) => {
+        if (!email) return false;
+        const list = get().adminEmails || AUTHORIZED_ADMIN_EMAILS;
+        return list.some((e) => e.trim().toLowerCase() === email.trim().toLowerCase());
+      },
+
+      resetToDefaults: () => {
+        set({
+          volumes: ALL_VOLUMES,
+          series: ALL_SERIES,
+          genres: GENRES,
+          heroContent: DEFAULT_HERO_CONTENT,
+          announcement: DEFAULT_ANNOUNCEMENT,
+          shippingConfig: DEFAULT_SHIPPING_CONFIG,
+          editorialConfig: DEFAULT_EDITORIAL,
+          featuredSeriesConfig: DEFAULT_FEATURED_SERIES,
+          collectionConfig: DEFAULT_COLLECTION_CONFIG,
+          genreBentoConfig: DEFAULT_GENRE_BENTO,
+        });
+      },
+
+      exportData: () => {
+        const state = get();
+        const exportPayload = {
+          version: "1.0",
+          exportedAt: new Date().toISOString(),
+          volumes: state.volumes,
+          series: state.series,
+          genres: state.genres,
+          heroContent: state.heroContent,
+          announcement: state.announcement,
+          shippingConfig: state.shippingConfig,
+          editorialConfig: state.editorialConfig,
+          featuredSeriesConfig: state.featuredSeriesConfig,
+          collectionConfig: state.collectionConfig,
+          genreBentoConfig: state.genreBentoConfig,
+        };
+        return JSON.stringify(exportPayload, null, 2);
+      },
+
+      importData: (jsonStr) => {
+        try {
+          const parsed = JSON.parse(jsonStr);
+          if (!parsed || !Array.isArray(parsed.volumes)) {
+            return false;
+          }
+
+          set({
+            volumes: parsed.volumes || ALL_VOLUMES,
+            series: parsed.series || ALL_SERIES,
+            genres: parsed.genres || GENRES,
+            heroContent: { ...DEFAULT_HERO_CONTENT, ...(parsed.heroContent || {}) },
+            announcement: { ...DEFAULT_ANNOUNCEMENT, ...(parsed.announcement || {}) },
+            shippingConfig: {
+              ...DEFAULT_SHIPPING_CONFIG,
+              ...(parsed.shippingConfig || {}),
+              governorateRates: {
+                ...DEFAULT_GOVERNORATE_RATES,
+                ...(parsed.shippingConfig?.governorateRates || {}),
+              },
+            },
+            editorialConfig: { ...DEFAULT_EDITORIAL, ...(parsed.editorialConfig || {}) },
+            featuredSeriesConfig: { ...DEFAULT_FEATURED_SERIES, ...(parsed.featuredSeriesConfig || {}) },
+            collectionConfig: { ...DEFAULT_COLLECTION_CONFIG, ...(parsed.collectionConfig || {}) },
+            genreBentoConfig: { ...DEFAULT_GENRE_BENTO, ...(parsed.genreBentoConfig || {}) },
+          });
+          return true;
+        } catch {
+          return false;
+        }
+      },
+    }),
+    {
+      name: "kairo_storefront_cms_v3",
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        volumes: state.volumes,
+        series: state.series,
+        genres: state.genres,
+        heroContent: state.heroContent,
+        announcement: state.announcement,
+        shippingConfig: state.shippingConfig,
+        editorialConfig: state.editorialConfig,
+        featuredSeriesConfig: state.featuredSeriesConfig,
+        collectionConfig: state.collectionConfig,
+        genreBentoConfig: state.genreBentoConfig,
+        adminPinHash: state.adminPinHash,
+      }),
+      merge: (persistedState: unknown, currentState: StorefrontState): StorefrontState => {
+        const persisted = persistedState as Partial<StorefrontState> | undefined;
+        const merged: StorefrontState = { ...currentState, ...(persisted || {}) };
+        if (persisted?.shippingConfig) {
+          merged.shippingConfig = {
+            ...DEFAULT_SHIPPING_CONFIG,
+            ...persisted.shippingConfig,
+            governorateRates: {
+              ...DEFAULT_GOVERNORATE_RATES,
+              ...(persisted.shippingConfig.governorateRates || {}),
+            },
+          };
+        }
+        return merged;
+      },
+    }
+  )
+);

@@ -1,0 +1,198 @@
+"use client";
+
+import React, { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
+import { Search, X, Star, ArrowRight } from "lucide-react";
+import { useUIStore } from "@/store/useUIStore";
+import { useStorefrontStore } from "@/store/useStorefrontStore";
+import { ALL_VOLUMES, MangaVolume } from "@/data/manga";
+import { formatPrice } from "@/lib/utils";
+import { useModalScrollLock } from "@/hooks/useModalScrollLock";
+
+export function SearchModal() {
+  const { isSearchOpen, closeSearch } = useUIStore();
+  useModalScrollLock(isSearchOpen);
+  const [query, setQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<"ALL" | "POPULAR" | "TOP_RATED" | "BEST_SELLERS">("ALL");
+
+  const storeVolumes = useStorefrontStore((state) => state.volumes);
+  const allVolumes = storeVolumes && storeVolumes.length > 0 ? storeVolumes : ALL_VOLUMES;
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isSearchOpen) {
+        closeSearch();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isSearchOpen, closeSearch]);
+
+  const filteredVolumes = useMemo(() => {
+    let list: MangaVolume[] = [...allVolumes];
+
+    if (activeFilter === "POPULAR") {
+      list = list.filter((v) => v.isTrending);
+    } else if (activeFilter === "TOP_RATED") {
+      list = list.filter((v) => v.rating >= 4.9);
+    } else if (activeFilter === "BEST_SELLERS") {
+      list = list.filter((v) => v.stock > 30);
+    }
+
+    if (!query.trim()) return list.slice(0, 6);
+
+    const q = query.toLowerCase().trim();
+    return list.filter(
+      (v) =>
+        v.title.toLowerCase().includes(q) ||
+        v.seriesTitle.toLowerCase().includes(q) ||
+        v.author.toLowerCase().includes(q) ||
+        v.genre.some((g) => g.toLowerCase().includes(q))
+    );
+  }, [query, activeFilter, allVolumes]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      data-lenis-prevent
+      className={`fixed inset-0 z-50 overflow-y-auto overscroll-contain p-4 sm:p-6 md:p-20 flex items-start justify-center transition-all duration-300 ${
+        isSearchOpen ? "visible pointer-events-auto" : "invisible pointer-events-none"
+      }`}
+    >
+      {/* Backdrop */}
+      <div
+        onClick={closeSearch}
+        className={`fixed inset-0 bg-ink/80 backdrop-blur-md transition-opacity duration-300 ${
+          isSearchOpen ? "opacity-100" : "opacity-0"
+        }`}
+      />
+
+      {/* Modal Dialog */}
+      <div
+        data-lenis-prevent
+        className={`relative w-full max-w-3xl bg-ink-surface border border-ink-border rounded-sm shadow-2xl overflow-hidden z-10 overscroll-contain transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          isSearchOpen ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 -translate-y-4"
+        }`}
+      >
+        {/* Search Input Bar */}
+        <div className="relative border-b border-ink-border flex items-center px-6 py-4 bg-ink">
+          <Search strokeWidth={1.5} className="w-5 h-5 text-gold shrink-0 mr-3" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search manga, author, or series... (e.g. Jujutsu Kaisen, Oda, Berserk)"
+            className="w-full bg-transparent text-paper placeholder-text-muted/60 text-sm md:text-base focus:outline-none font-sans"
+          />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              className="text-text-muted hover:text-paper text-xs font-mono mr-2 px-1.5 py-0.5 cursor-pointer"
+            >
+              CLEAR
+            </button>
+          )}
+          <button
+            onClick={closeSearch}
+            className="p-1 text-text-muted hover:text-paper transition-colors cursor-pointer"
+          >
+            <X strokeWidth={1.4} className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Quick Filter Tags */}
+        <div className="px-6 py-3 bg-ink/50 border-b border-ink-border/60 flex items-center gap-2 overflow-x-auto text-[11px] font-mono">
+          <span className="text-text-muted uppercase tracking-wider text-[10px] mr-2">
+            FILTERS:
+          </span>
+          {[
+            { id: "ALL" as const, label: "ALL TITLES" },
+            { id: "POPULAR" as const, label: "POPULAR" },
+            { id: "TOP_RATED" as const, label: "TOP RATED (4.9+)" },
+            { id: "BEST_SELLERS" as const, label: "BEST SELLERS" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveFilter(tab.id)}
+              className={`px-2.5 py-1 rounded-sm transition-colors uppercase tracking-wider cursor-pointer ${
+                activeFilter === tab.id
+                  ? "bg-gold/20 text-gold border border-gold/40"
+                  : "text-text-muted hover:text-paper hover:bg-ink-surface"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Results Container */}
+        <div data-lenis-prevent className="max-h-96 overflow-y-auto p-6 space-y-4">
+          {filteredVolumes.length === 0 ? (
+            <div className="text-center py-12 text-text-muted space-y-2 font-mono text-xs">
+              <p>NO VOLUMES FOUND MATCHING &quot;{query}&quot;</p>
+              <p className="text-[11px] text-text-muted/60">
+                Try searching for &quot;One Piece&quot;, &quot;Eiichiro Oda&quot;, or &quot;Dark Fantasy&quot;
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {filteredVolumes.map((volume) => (
+                <Link
+                  key={volume.id}
+                  href={`/manga/${volume.id}`}
+                  onClick={closeSearch}
+                  className="flex gap-3.5 p-3 rounded-sm bg-ink/60 border border-ink-border/60 hover:border-gold/50 hover:bg-ink-elevated transition-all duration-200 group"
+                >
+                  <div className="w-14 h-20 shrink-0 overflow-hidden bg-ink rounded-sm border border-ink-border">
+                    <img
+                      src={volume.coverImage}
+                      alt={volume.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="flex-1 flex flex-col justify-between py-0.5">
+                    <div>
+                      <span className="text-[9px] font-mono tracking-widest text-gold uppercase block">
+                        {volume.seriesTitle}
+                      </span>
+                      <h4 className="text-xs font-bold text-paper line-clamp-1 group-hover:text-gold transition-colors">
+                        Vol. {volume.volumeNumber}: {volume.title}
+                      </h4>
+                      <p className="text-[10px] text-text-muted line-clamp-1 mt-0.5">
+                        By {volume.author}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs font-mono pt-1">
+                      <span className="text-gold font-bold">
+                        {formatPrice(volume.price)}
+                      </span>
+                      <span className="flex items-center gap-1 text-[11px] text-paper-muted">
+                        <Star strokeWidth={1.5} className="w-3 h-3 text-gold fill-gold" />
+                        {volume.rating}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer Hint */}
+        <div className="px-6 py-3 bg-ink border-t border-ink-border flex items-center justify-between text-[11px] font-mono text-text-muted">
+          <span>Press ESC to exit</span>
+          <Link
+            href="/manga"
+            onClick={closeSearch}
+            className="flex items-center gap-1.5 text-paper hover:text-vermilion transition-colors font-semibold"
+          >
+            VIEW FULL ARCHIVE CATALOG
+            <ArrowRight strokeWidth={1.4} className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}

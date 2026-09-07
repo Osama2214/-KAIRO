@@ -1,0 +1,156 @@
+﻿import { NextResponse } from "next/server";
+import crypto from "crypto";
+import {
+  AUTHORIZED_ADMIN_EMAILS,
+  MAX_PIN_ATTEMPTS,
+  PIN_LOCKOUT_MS,
+} from "@/config/adminConfig";
+import { verifyServerPin, getCurrentPinHash } from "@/lib/adminPinStore";
+import { checkRateLimitKey, resetRateLimitKey, getClientIp } from "@/lib/rateLimit";
+
+const SESSION_SECRET =
+  process.env.ADMIN_SESSION_SECRET ||
+  "kairo_master_curator_super_secret_hmac_2026_994827_kairo_archive";
+
+function computeClientFingerprint(request: Request): string {
+  const ua = request.headers.get("user-agent") || "unknown";
+  return crypto.createHash("sha256").update(ua).digest("hex").slice(0, 16);
+}
+
+function generateCuratorToken(email: string, request: Request): string {
+  const payload = {
+    sub: email.toLowerCase(),
+    role: "admin",
+    fp: computeClientFingerprint(request),
+    iat: Date.now(),
+    exp: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+  };
+  const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  const signature = crypto
+    .createHmac("sha256", SESSION_SECRET)
+    .update(encodedPayload)
+    .digest("base64url");
+  return `${encodedPayload}.${signature}`;
+}
+
+export async function POST(request: Request) {
+  try {
+    const clientIp = getClientIp(request);
+    const body = await request.json().catch(() => ({}));
+    const email = (body.email || "").toString().trim().toLowerCase();
+    const pin = (body.pin || "").toString().trim();
+
+    if (!email || !pin) {
+      return NextResponse.json(
+        { success: false, message: "Email and Security PIN are required." },
+        { status: 400 }
+      );
+    }
+
+    // 1. IP-level rate limiting (max 15 attempts per 15 minutes per IP)
+    const ipCheck = checkRateLimitKey(`pin:ip:${clientIp}`, 15, PIN_LOCKOUT_MS);
+    if (!ipCheck.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          locked: true,
+          remainingSec: ipCheck.resetSeconds,
+          message: `Too many attempts from this network. Lockout active for ${Math.ceil(ipCheck.resetSeconds / 60)} minute(s).`,
+        },
+        { status: 429 }
+      );
+    }
+
+    // 2. Email-level rate limiting & lockout
+    const emailKey = `pin:email:${email}`;
+    const emailCheck = checkRateLimitKey(emailKey, MAX_PIN_ATTEMPTS, PIN_LOCKOUT_MS);
+    if (!emailCheck.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          locked: true,
+          remainingSec: emailCheck.resetSeconds,
+          remainingAttempts: 0,
+          message: `Security Lockout Active for ${email}. Try again in ${Math.ceil(emailCheck.resetSeconds / 60)} minute(s).`,
+        },
+        { status: 429 }
+      );
+    }
+
+    // 3. Check if email is on the authorized curator admin list
+    const isAuthorized = AUTHORIZED_ADMIN_EMAILS.some(
+      (e) => e.trim().toLowerCase() === email
+    );
+    if (!isAuthorized) {
+      return NextResponse.json(
+        {
+          success: false,
+          unauthorized: true,
+          message: "Access Denied: This account lacks curator administrative privileges.",
+        },
+        { status: 403 }
+      );
+    }
+
+    // 4. Verify PIN strictly against authoritative server PIN store
+    const isMatch = verifyServerPin(pin);
+
+    if (isMatch) {
+      // Clear failed rate limit counters upon successful verification
+      resetRateLimitKey(emailKey);
+      resetRateLimitKey(`pin:ip:${clientIp}`);
+
+      // Issue signed curator session token bound to client fingerprint
+      const token = generateCuratorToken(email, request);
+      const pinHash = getCurrentPinHash();
+
+      const response = NextResponse.json({
+        success: true,
+        token,
+        pinHash,
+        message: "Master Curator authentication verified. Welcome to KAIRO Admin Console.",
+      });
+
+      // Set hardened HTTP-Only security cookie
+      response.cookies.set("kairo_curator_session", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        path: "/",
+        maxAge: 24 * 60 * 60, // 24 hours
+      });
+
+      return response;
+    } else {
+      const remaining = emailCheck.remaining;
+      if (remaining === 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            locked: true,
+            remainingSec: Math.ceil(PIN_LOCKOUT_MS / 1000),
+            remainingAttempts: 0,
+            message: `Maximum attempts reached (${MAX_PIN_ATTEMPTS}/${MAX_PIN_ATTEMPTS}). Security Lockout active for 15 minutes.`,
+          },
+          { status: 429 }
+        );
+      } else {
+        return NextResponse.json(
+          {
+            success: false,
+            locked: false,
+            remainingAttempts: remaining,
+            message: `Invalid Security PIN. Access denied. (${remaining} attempt${remaining === 1 ? "" : "s"} remaining before security lockout)`,
+          },
+          { status: 401 }
+        );
+      }
+    }
+  } catch (error) {
+    console.error("API /api/admin/verify-pin error:", error);
+    return NextResponse.json(
+      { success: false, message: "Curator verification failed due to an internal security error." },
+      { status: 500 }
+    );
+  }
+}
