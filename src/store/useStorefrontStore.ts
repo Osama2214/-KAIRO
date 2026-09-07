@@ -181,7 +181,7 @@ const DEFAULT_COLLECTION_CONFIG: CollectionConfig = {
 const DEFAULT_GENRE_BENTO: GenreBentoConfig = {
   badgeText: "CATEGORY DIRECTORY",
   title: "EXPLORE YOUR GENRE",
-  description: "Navigate through 9 core canonical categories with specialized curated reading lists.",
+  description: "Curated reading lists across 9 canonical categories.",
 };
 
 export type LiveEditTarget =
@@ -194,6 +194,7 @@ export type LiveEditTarget =
   | { type: "genre-bento" }
   | { type: "announcement" }
   | { type: "featured-series" }
+  | { type: "featured-series-card" }
   | { type: "collection" }
   | { type: "shipping" }
   | { type: "editorial" };
@@ -630,6 +631,18 @@ export const useStorefrontStore = create<StorefrontState>()(
         }
         if (persisted?.newReleasesConfig) {
           merged.newReleasesConfig = { ...DEFAULT_NEW_RELEASES_CONFIG, ...persisted.newReleasesConfig };
+        }
+        if (persisted?.genreBentoConfig) {
+          const desc =
+            persisted.genreBentoConfig.description ===
+            "Navigate through 9 core canonical categories with specialized curated reading lists."
+              ? DEFAULT_GENRE_BENTO.description
+              : persisted.genreBentoConfig.description;
+          merged.genreBentoConfig = {
+            ...DEFAULT_GENRE_BENTO,
+            ...persisted.genreBentoConfig,
+            description: desc,
+          };
         }
         if (typeof persisted?.isAdminAuthenticated === "boolean") {
           merged.isAdminAuthenticated = persisted.isAdminAuthenticated;

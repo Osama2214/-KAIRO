@@ -16,7 +16,11 @@ export function GenreBento() {
   const genres = mounted && storeGenres && storeGenres.length > 0 ? storeGenres : GENRES;
   const badgeText = mounted && genreBentoConfig?.badgeText ? genreBentoConfig.badgeText : "CATEGORY DIRECTORY";
   const title = mounted && genreBentoConfig?.title ? genreBentoConfig.title : "EXPLORE YOUR GENRE";
-  const description = mounted && genreBentoConfig?.description ? genreBentoConfig.description : "Navigate through 9 core canonical categories with specialized curated reading lists.";
+  const rawDesc = mounted && genreBentoConfig?.description ? genreBentoConfig.description : "Curated reading lists across 9 canonical categories.";
+  const description =
+    rawDesc === "Navigate through 9 core canonical categories with specialized curated reading lists."
+      ? "Curated reading lists across 9 canonical categories."
+      : rawDesc;
 
   return (
     <section id="genres" className="py-24 px-6 md:px-12 bg-ink border-t border-ink-border/60 relative">

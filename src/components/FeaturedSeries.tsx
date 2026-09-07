@@ -86,8 +86,8 @@ export function FeaturedSeries() {
 
                 {/* Live Edit Series Button */}
                 <LiveEditButton
-                  target={{ type: "series", seriesSlug: series.slug }}
-                  label="Edit Series"
+                  target={{ type: "featured-series-card" }}
+                  label="Change Featured Series"
                   variant="card"
                   size="xs"
                 />

@@ -184,6 +184,12 @@ export default function AdminPage() {
     }
   }, [newReleasesConfig]);
 
+  useEffect(() => {
+    if (genreBentoConfig) {
+      setGenreBentoForm(genreBentoConfig);
+    }
+  }, [genreBentoConfig]);
+
   const handleGovRateChange = (govValue: string, price: number) => {
     setShippingForm((prev) => ({
       ...prev,
@@ -1286,8 +1292,10 @@ export default function AdminPage() {
                         }
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-ink-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-paper after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold"></div>
-                      <span className="ml-2.5 text-xs font-mono font-bold text-paper uppercase">
+                      <div className="w-11 h-6 bg-ink border border-ink-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-paper after:border after:border-ink-border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold peer-checked:border-gold"></div>
+                      <span className={`ml-2.5 text-xs font-mono font-bold tracking-wider uppercase transition-colors ${
+                        (shippingForm.freeShippingEnabled ?? true) ? "text-gold" : "text-text-muted"
+                      }`}>
                         {(shippingForm.freeShippingEnabled ?? true) ? "ACTIVE" : "DISABLED"}
                       </span>
                     </label>
@@ -2012,8 +2020,10 @@ export default function AdminPage() {
                           }
                           className="sr-only peer"
                         />
-                        <div className="w-11 h-6 bg-ink-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-paper after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold"></div>
-                        <span className="ml-2.5 text-xs font-mono font-bold text-paper uppercase">
+                        <div className="w-11 h-6 bg-ink border border-ink-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-paper after:border after:border-ink-border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold peer-checked:border-gold"></div>
+                        <span className={`ml-2.5 text-xs font-mono font-bold tracking-wider uppercase transition-colors ${
+                          trendingForm.autoplayEnabled ? "text-gold" : "text-text-muted"
+                        }`}>
                           {trendingForm.autoplayEnabled ? "ACTIVE" : "PAUSED"}
                         </span>
                       </label>

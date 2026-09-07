@@ -42,6 +42,7 @@ import {
 import { useMounted } from "@/store/useWishlistStore";
 import { VolumeFormModal } from "./VolumeFormModal";
 import { SeriesFormModal } from "./SeriesFormModal";
+import { CustomSelect } from "@/components/CustomSelect";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 
 export function LiveVisualEditor() {
@@ -291,10 +292,33 @@ export function LiveVisualEditor() {
         />
       )}
 
+      {/* Featured Series Card Selection Modal */}
+      {activeLiveEditTarget?.type === "featured-series-card" && (
+        <FeaturedSeriesCardLiveEditModal
+          currentSeriesSlug={featuredSeriesConfig.seriesSlug || series[0]?.slug || ""}
+          seriesList={series}
+          onClose={closeLiveEdit}
+          onSave={(selectedSlug) => {
+            updateFeaturedSeriesConfig({
+              ...featuredSeriesConfig,
+              seriesSlug: selectedSlug,
+              customTitle: "",
+              customDescription: "",
+              customImage: "",
+              ctaLink: `/series/${selectedSlug}`,
+            });
+            closeLiveEdit();
+            const s = series.find((item) => item.slug === selectedSlug);
+            showToast(`"${s?.title || selectedSlug}" set as Featured Spotlight series!`);
+          }}
+        />
+      )}
+
       {/* Collection Modal */}
       {activeLiveEditTarget?.type === "collection" && (
         <CollectionLiveEditModal
           initialConfig={collectionConfig}
+          volumes={volumes}
           onClose={closeLiveEdit}
           onSave={(updated) => {
             updateCollectionConfig(updated);
@@ -398,18 +422,13 @@ function HeroLiveEditModal({
       <div className="w-full max-w-2xl max-h-[90vh] flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
-          <div className="flex items-center gap-2.5">
-            <span className="p-1.5 bg-gold/10 text-gold rounded-xs">
-              <Sparkles className="w-4 h-4" />
-            </span>
-            <div>
-              <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
-                Live Edit: Hero Headline &amp; Actions
-              </h3>
-              <p className="text-[11px] font-mono text-text-muted">
-                Changes apply instantly to the homepage banner.
-              </p>
-            </div>
+          <div>
+            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
+              Live Edit: Hero Headline &amp; Actions
+            </h3>
+            <p className="text-[11px] font-mono text-text-muted">
+              Changes apply instantly to the homepage banner.
+            </p>
           </div>
           <button
             type="button"
@@ -580,14 +599,9 @@ function AnnouncementLiveEditModal({
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="w-full max-w-lg flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
         <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
-          <div className="flex items-center gap-2.5">
-            <span className="p-1.5 bg-vermilion/10 text-vermilion rounded-xs">
-              <Tag className="w-4 h-4" />
-            </span>
-            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
-              Live Edit: Welcome Voucher Bar
-            </h3>
-          </div>
+          <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
+            Live Edit: Welcome Voucher Bar
+          </h3>
           <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
             <X className="w-5 h-5" />
           </button>
@@ -598,15 +612,20 @@ function AnnouncementLiveEditModal({
             <span className="text-xs font-mono font-semibold uppercase text-paper">
               Announcement Banner Active
             </span>
-            <button
-              type="button"
-              onClick={() => setForm({ ...form, enabled: !form.enabled })}
-              className={`px-3 py-1 rounded-full text-xs font-mono font-bold cursor-pointer transition-colors ${
-                form.enabled ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-red-500/20 text-red-400 border border-red-500/30"
-              }`}
-            >
-              {form.enabled ? "ENABLED" : "HIDDEN"}
-            </button>
+            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+              <input
+                type="checkbox"
+                checked={form.enabled}
+                onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-ink border border-ink-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-paper after:border after:border-ink-border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold peer-checked:border-gold"></div>
+              <span className={`ml-2.5 text-xs font-mono font-bold tracking-wider uppercase transition-colors ${
+                form.enabled ? "text-gold" : "text-text-muted"
+              }`}>
+                {form.enabled ? "ACTIVE" : "HIDDEN"}
+              </span>
+            </label>
           </div>
 
           <div className="space-y-1.5">
@@ -691,14 +710,9 @@ function FeaturedSeriesLiveEditModal({
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="w-full max-w-lg flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
         <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
-          <div className="flex items-center gap-2.5">
-            <span className="p-1.5 bg-gold/10 text-gold rounded-xs">
-              <Layers className="w-4 h-4" />
-            </span>
-            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
-              Live Edit: Featured Series Spotlight
-            </h3>
-          </div>
+          <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
+            Live Edit: Featured Series Spotlight
+          </h3>
           <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
             <X className="w-5 h-5" />
           </button>
@@ -709,17 +723,19 @@ function FeaturedSeriesLiveEditModal({
             <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
               Select Series to Feature
             </label>
-            <select
+            <CustomSelect
+              fullWidth
               value={form.seriesSlug}
-              onChange={(e) => setForm({ ...form, seriesSlug: e.target.value, ctaLink: `/series/${e.target.value}` })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none cursor-pointer"
-            >
-              {seriesList.map((s) => (
-                <option key={s.slug} value={s.slug} className="bg-ink text-paper">
-                  {s.title} ({s.japaneseTitle})
-                </option>
-              ))}
-            </select>
+              onChange={(val) =>
+                setForm({ ...form, seriesSlug: val, ctaLink: `/series/${val}` })
+              }
+              options={seriesList.map((s) => ({
+                value: s.slug,
+                label: s.japaneseTitle ? `${s.title} (${s.japaneseTitle})` : s.title,
+                badge: s.status ? s.status.toUpperCase() : undefined,
+              }))}
+              buttonClassName="bg-ink-surface border-ink-border text-paper h-10 px-3 text-xs"
+            />
           </div>
 
           <div className="space-y-1.5">
@@ -785,15 +801,36 @@ function FeaturedSeriesLiveEditModal({
 
 function CollectionLiveEditModal({
   initialConfig,
+  volumes,
   onClose,
   onSave,
 }: {
   initialConfig: CollectionConfig;
+  volumes: any[];
   onClose: () => void;
   onSave: (config: CollectionConfig) => void;
 }) {
   useModalScrollLock(true);
-  const [form, setForm] = useState<CollectionConfig>(initialConfig);
+  const [form, setForm] = useState<CollectionConfig>({
+    ...initialConfig,
+    volumeId1: initialConfig.volumeId1 || "jjk-01",
+    volumeId2: initialConfig.volumeId2 || "jjk-02",
+    volumeId3: initialConfig.volumeId3 || "jjk-03",
+    secondaryCtaText: initialConfig.secondaryCtaText || "DISCOVER ALL BOXSETS",
+    secondaryCtaLink: initialConfig.secondaryCtaLink || "/manga?format=Box+Set",
+  });
+
+  const selectedVol1 = volumes.find((v) => v.id === form.volumeId1) || volumes[0];
+  const selectedVol2 = volumes.find((v) => v.id === form.volumeId2) || volumes[1] || volumes[0];
+  const selectedVol3 = volumes.find((v) => v.id === form.volumeId3) || volumes[2] || volumes[0];
+
+  const volumeOptions = React.useMemo(() => {
+    return volumes.map((v) => ({
+      value: v.id,
+      label: `${v.seriesTitle} - Vol. ${v.volumeNumber} (${v.title})`,
+      badge: v.format || "MANGA",
+    }));
+  }, [volumes]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -802,71 +839,222 @@ function CollectionLiveEditModal({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-lg flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
+      <div className="w-full max-w-2xl max-h-[90vh] flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
+        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
-          <div className="flex items-center gap-2.5">
-            <span className="p-1.5 bg-gold/10 text-gold rounded-xs">
-              <BookOpen className="w-4 h-4" />
-            </span>
+          <div>
             <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
-              Live Edit: The Collection Showcase
+              Live Edit: The Collection 3D Showcase
             </h3>
+            <p className="text-[11px] font-mono text-text-muted">
+              Configure boxset headline, 3 featured volumes, bundle price, and cart actions.
+            </p>
           </div>
-          <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-text-muted hover:text-paper p-1 cursor-pointer transition-colors"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Badge Text
-            </label>
-            <input
-              type="text"
-              value={form.badgeText || ""}
-              onChange={(e) => setForm({ ...form, badgeText: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-            />
+        {/* Scrollable Form Body */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
+          {/* 1. Boxset Volumes Selection with Live Covers */}
+          <div className="space-y-3 p-4 bg-ink-surface/40 border border-ink-border rounded-xs">
+            <div className="flex items-center justify-between border-b border-ink-border/50 pb-2">
+              <span className="text-xs font-mono font-bold text-gold uppercase tracking-wider">
+                3D Boxset Volumes (Slipcase Showcase)
+              </span>
+              <span className="text-[10px] font-mono text-text-muted">
+                Left, Center (Hero), and Right volumes
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+              {/* Volume 01 (Left) */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-12 rounded-xs overflow-hidden border border-ink-border shrink-0 bg-ink">
+                    {selectedVol1 && (
+                      <img
+                        src={selectedVol1.coverImage}
+                        alt={selectedVol1.title}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <label className="text-[11px] font-mono font-semibold text-paper block uppercase truncate">
+                      Vol 01 (Left)
+                    </label>
+                    <span className="text-[9px] font-mono text-gold block truncate">
+                      {selectedVol1?.seriesTitle}
+                    </span>
+                  </div>
+                </div>
+                <CustomSelect
+                  fullWidth
+                  value={form.volumeId1}
+                  onChange={(val) => setForm({ ...form, volumeId1: val })}
+                  options={volumeOptions}
+                  buttonClassName="bg-ink border-ink-border text-paper h-9 px-2 text-xs"
+                />
+              </div>
+
+              {/* Volume 02 (Center) */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-12 rounded-xs overflow-hidden border border-gold/50 ring-1 ring-gold/30 shrink-0 bg-ink">
+                    {selectedVol2 && (
+                      <img
+                        src={selectedVol2.coverImage}
+                        alt={selectedVol2.title}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <label className="text-[11px] font-mono font-semibold text-gold block uppercase truncate">
+                      Vol 02 (Center Hero)
+                    </label>
+                    <span className="text-[9px] font-mono text-gold block truncate">
+                      {selectedVol2?.seriesTitle}
+                    </span>
+                  </div>
+                </div>
+                <CustomSelect
+                  fullWidth
+                  value={form.volumeId2}
+                  onChange={(val) => setForm({ ...form, volumeId2: val })}
+                  options={volumeOptions}
+                  buttonClassName="bg-ink border-gold/40 text-paper h-9 px-2 text-xs"
+                />
+              </div>
+
+              {/* Volume 03 (Right) */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-12 rounded-xs overflow-hidden border border-ink-border shrink-0 bg-ink">
+                    {selectedVol3 && (
+                      <img
+                        src={selectedVol3.coverImage}
+                        alt={selectedVol3.title}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <label className="text-[11px] font-mono font-semibold text-paper block uppercase truncate">
+                      Vol 03 (Right)
+                    </label>
+                    <span className="text-[9px] font-mono text-gold block truncate">
+                      {selectedVol3?.seriesTitle}
+                    </span>
+                  </div>
+                </div>
+                <CustomSelect
+                  fullWidth
+                  value={form.volumeId3}
+                  onChange={(val) => setForm({ ...form, volumeId3: val })}
+                  options={volumeOptions}
+                  buttonClassName="bg-ink border-ink-border text-paper h-9 px-2 text-xs"
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Section Headline
-            </label>
-            <input
-              type="text"
-              value={form.headline || ""}
-              onChange={(e) => setForm({ ...form, headline: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+          {/* 2. Section Typography & Pricing */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Boxset Price (EGP)
+                Section Headline
               </label>
               <input
-                type="number"
-                value={form.price || 89.99}
-                onChange={(e) => setForm({ ...form, price: Math.max(0, parseFloat(e.target.value) || 0) })}
-                className="w-full bg-ink-surface border border-ink-border text-gold font-bold px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                type="text"
+                value={form.headline || ""}
+                onChange={(e) => setForm({ ...form, headline: e.target.value })}
+                placeholder="THE COLLECTION"
+                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
               />
             </div>
+
             <div className="space-y-1.5">
               <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                CTA Button Text
+                Metadata Badge Text
+              </label>
+              <input
+                type="text"
+                value={form.badgeText || ""}
+                onChange={(e) => setForm({ ...form, badgeText: e.target.value })}
+                placeholder="COMPLETE ARCHIVE • VOL. 01–03"
+                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                Boxset Bundle Price (EGP)
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={form.price || 29.99}
+                  onChange={(e) =>
+                    setForm({ ...form, price: Math.max(0, parseFloat(e.target.value) || 0) })
+                  }
+                  className="w-full bg-ink-surface border border-ink-border text-gold font-bold px-3 py-2 text-sm rounded-xs focus:border-gold outline-none font-mono"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-text-muted pointer-events-none">
+                  EGP
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                Primary CTA Label
               </label>
               <input
                 type="text"
                 value={form.primaryCtaText || ""}
                 onChange={(e) => setForm({ ...form, primaryCtaText: e.target.value })}
+                placeholder="ADD SET TO CART"
                 className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                Secondary CTA Label
+              </label>
+              <input
+                type="text"
+                value={form.secondaryCtaText || ""}
+                onChange={(e) => setForm({ ...form, secondaryCtaText: e.target.value })}
+                placeholder="DISCOVER ALL BOXSETS"
+                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                Secondary CTA Destination Link
+              </label>
+              <input
+                type="text"
+                value={form.secondaryCtaLink || ""}
+                onChange={(e) => setForm({ ...form, secondaryCtaLink: e.target.value })}
+                placeholder="/manga?format=Box+Set"
+                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none font-mono text-xs"
               />
             </div>
           </div>
 
+          {/* Footer */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
             <button
               type="button"
@@ -910,14 +1098,9 @@ function ShippingLiveEditModal({
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="w-full max-w-lg flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
         <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
-          <div className="flex items-center gap-2.5">
-            <span className="p-1.5 bg-gold/10 text-gold rounded-xs">
-              <Truck className="w-4 h-4" />
-            </span>
-            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
-              Live Edit: Shipping &amp; Free Delivery
-            </h3>
-          </div>
+          <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
+            Live Edit: Shipping &amp; Free Delivery
+          </h3>
           <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
             <X className="w-5 h-5" />
           </button>
@@ -959,15 +1142,20 @@ function ShippingLiveEditModal({
                   Automatic zero shipping on reaching threshold
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={() => setForm({ ...form, freeShippingEnabled: !form.freeShippingEnabled })}
-                className={`px-3 py-1 rounded-full text-xs font-mono font-bold cursor-pointer transition-colors ${
-                  form.freeShippingEnabled ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-red-500/20 text-red-400 border border-red-500/30"
-                }`}
-              >
-                {form.freeShippingEnabled ? "ACTIVE" : "DISABLED"}
-              </button>
+              <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+                <input
+                  type="checkbox"
+                  checked={form.freeShippingEnabled}
+                  onChange={(e) => setForm({ ...form, freeShippingEnabled: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-ink border border-ink-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-paper after:border after:border-ink-border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold peer-checked:border-gold"></div>
+                <span className={`ml-2.5 text-xs font-mono font-bold tracking-wider uppercase transition-colors ${
+                  form.freeShippingEnabled ? "text-gold" : "text-text-muted"
+                }`}>
+                  {form.freeShippingEnabled ? "ACTIVE" : "DISABLED"}
+                </span>
+              </label>
             </div>
 
             {form.freeShippingEnabled && (
@@ -1040,14 +1228,9 @@ function EditorialLiveEditModal({
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="w-full max-w-xl max-h-[90vh] flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
         <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
-          <div className="flex items-center gap-2.5">
-            <span className="p-1.5 bg-gold/10 text-gold rounded-xs">
-              <FileText className="w-4 h-4" />
-            </span>
-            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
-              Live Edit: Editorial &amp; Footer Policies
-            </h3>
-          </div>
+          <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
+            Live Edit: Editorial &amp; Footer Policies
+          </h3>
           <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
             <X className="w-5 h-5" />
           </button>
@@ -1175,18 +1358,13 @@ function HeroCardLiveEditModal({
       <div className="w-full max-w-3xl max-h-[90vh] flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
-          <div className="flex items-center gap-2.5">
-            <span className="p-1.5 bg-gold/10 text-gold rounded-xs">
-              <Sparkles className="w-4 h-4" />
-            </span>
-            <div>
-              <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
-                Select Featured Book for Hero
-              </h3>
-              <p className="text-[11px] font-mono text-text-muted">
-                Choose which manga volume is showcased on the primary homepage 3D card.
-              </p>
-            </div>
+          <div>
+            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
+              Select Featured Book for Hero
+            </h3>
+            <p className="text-[11px] font-mono text-text-muted">
+              Choose which manga volume is showcased on the primary homepage 3D card.
+            </p>
           </div>
           <button
             type="button"
@@ -1239,18 +1417,16 @@ function HeroCardLiveEditModal({
             />
           </div>
           <div>
-            <select
+            <CustomSelect
+              fullWidth
               value={selectedSeriesFilter}
-              onChange={(e) => setSelectedSeriesFilter(e.target.value)}
-              className="w-full px-3 py-1.5 bg-ink border border-ink-border text-paper text-xs rounded-xs focus:border-gold outline-none font-mono cursor-pointer"
-            >
-              <option value="all">All Series</option>
-              {seriesOptions.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedSeriesFilter(val)}
+              options={[
+                { value: "all", label: "All Series" },
+                ...seriesOptions.map((s) => ({ value: s, label: s })),
+              ]}
+              buttonClassName="bg-ink border-ink-border text-paper h-8 px-3 text-xs font-mono"
+            />
           </div>
         </div>
 
@@ -1333,6 +1509,189 @@ function HeroCardLiveEditModal({
   );
 }
 
+function FeaturedSeriesCardLiveEditModal({
+  currentSeriesSlug,
+  seriesList,
+  onClose,
+  onSave,
+}: {
+  currentSeriesSlug: string;
+  seriesList: any[];
+  onClose: () => void;
+  onSave: (seriesSlug: string) => void;
+}) {
+  useModalScrollLock(true);
+  const [selectedSlug, setSelectedSlug] = useState(currentSeriesSlug);
+  const [search, setSearch] = useState("");
+
+  const filteredSeries = React.useMemo(() => {
+    return seriesList.filter((s) => {
+      const matchSearch =
+        !search ||
+        s.title.toLowerCase().includes(search.toLowerCase()) ||
+        (s.japaneseTitle && s.japaneseTitle.toLowerCase().includes(search.toLowerCase())) ||
+        (s.author && s.author.toLowerCase().includes(search.toLowerCase())) ||
+        (s.genres && s.genres.some((g: string) => g.toLowerCase().includes(search.toLowerCase())));
+      return matchSearch;
+    });
+  }, [seriesList, search]);
+
+  const activeSeries = seriesList.find((s) => s.slug === selectedSlug) || seriesList[0];
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedSlug) {
+      onSave(selectedSlug);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="w-full max-w-3xl max-h-[90vh] flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
+          <div>
+            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
+              Select Featured Series for Spotlight
+            </h3>
+            <p className="text-[11px] font-mono text-text-muted">
+              Choose which manga franchise is showcased in the primary homepage spotlight card.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-text-muted hover:text-paper p-1 cursor-pointer transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Currently Selected Preview Banner */}
+        {activeSeries && (
+          <div className="px-6 py-3 bg-gold/5 border-b border-gold/20 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-14 bg-ink rounded-xs overflow-hidden border border-gold/40 shrink-0">
+                <img
+                  src={activeSeries.featuredImage || activeSeries.coverImage}
+                  alt={activeSeries.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div>
+                <span className="text-[10px] font-mono text-gold uppercase tracking-wider block">
+                  Currently Selected for Spotlight
+                </span>
+                <div className="text-sm font-bold text-paper line-clamp-1">
+                  {activeSeries.title} {activeSeries.japaneseTitle && <span className="text-gold font-serif font-normal">({activeSeries.japaneseTitle})</span>}
+                </div>
+                <div className="text-xs font-mono text-text-muted">
+                  By {activeSeries.author} • {activeSeries.totalVolumes} Volumes ({activeSeries.status})
+                </div>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 bg-gold text-ink font-mono text-xs font-bold rounded-xs shrink-0">
+              ACTIVE
+            </span>
+          </div>
+        )}
+
+        {/* Search Control */}
+        <div className="p-4 border-b border-ink-border bg-ink-surface/30">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+            <input
+              type="text"
+              placeholder="Search franchises by title, Japanese title, author..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 bg-ink border border-ink-border text-paper text-xs rounded-xs focus:border-gold outline-none font-mono"
+            />
+          </div>
+        </div>
+
+        {/* Series Grid */}
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {filteredSeries.map((s) => {
+              const isChosen = s.slug === selectedSlug;
+              return (
+                <div
+                  key={s.slug}
+                  onClick={() => setSelectedSlug(s.slug)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedSlug(s.slug);
+                    }
+                  }}
+                  className={`group relative p-2.5 rounded-sm border cursor-pointer transition-all flex flex-col justify-between ${
+                    isChosen
+                      ? "bg-gold/10 border-gold shadow-lg shadow-gold/10 ring-1 ring-gold"
+                      : "bg-ink-surface/40 border-ink-border/70 hover:border-gold/50 hover:bg-ink-surface"
+                  }`}
+                >
+                  <div className="relative aspect-[3/4] overflow-hidden rounded-xs bg-ink mb-2">
+                    <img
+                      src={s.featuredImage || s.coverImage}
+                      alt={s.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                    {isChosen && (
+                      <div className="absolute top-1.5 right-1.5 p-1 bg-gold text-ink rounded-full shadow-md">
+                        <Check strokeWidth={2.5} className="w-3 h-3" />
+                      </div>
+                    )}
+                    <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 bg-ink/90 text-gold text-[9px] font-mono rounded-xs">
+                      {s.totalVolumes} VOLS
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-serif text-gold line-clamp-1">
+                      {s.japaneseTitle}
+                    </div>
+                    <div className="text-xs font-bold text-paper line-clamp-1 group-hover:text-gold transition-colors">
+                      {s.title}
+                    </div>
+                    <div className="text-[10px] font-mono text-text-muted line-clamp-1 mt-0.5">
+                      {s.author}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between px-6 py-4 border-t border-ink-border bg-ink-surface/40">
+            <span className="text-xs font-mono text-text-muted">
+              {filteredSeries.length} franchise(s) available
+            </span>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-transform hover:scale-105"
+              >
+                <Save className="w-4 h-4" />
+                Save &amp; Set as Featured Series
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function TrendingLiveEditModal({
   initialConfig,
   onClose,
@@ -1356,14 +1715,9 @@ function TrendingLiveEditModal({
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="w-full max-w-lg flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
         <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
-          <div className="flex items-center gap-2.5">
-            <span className="p-1.5 bg-vermilion/10 text-vermilion rounded-xs">
-              <Sparkles className="w-4 h-4" />
-            </span>
-            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
-              Live Edit: Trending Now Carousel
-            </h3>
-          </div>
+          <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
+            Live Edit: Trending Now Carousel
+          </h3>
           <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
             <X className="w-5 h-5" />
           </button>
@@ -1372,7 +1726,7 @@ function TrendingLiveEditModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="flex items-center justify-between p-3 bg-ink-surface/60 border border-ink-border rounded-xs">
             <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-gold" />
+              <Layers className="w-4 h-4 text-gold" />
               <div>
                 <div className="text-xs font-mono font-semibold uppercase text-paper">
                   Automatic Card Flipping (Autoplay)
@@ -1382,17 +1736,20 @@ function TrendingLiveEditModal({
                 </div>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setForm({ ...form, autoplayEnabled: !form.autoplayEnabled })}
-              className={`px-3 py-1 rounded-full text-xs font-mono font-bold cursor-pointer transition-colors ${
-                form.autoplayEnabled
-                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                  : "bg-red-500/20 text-red-400 border border-red-500/30"
-              }`}
-            >
-              {form.autoplayEnabled ? "ENABLED" : "PAUSED"}
-            </button>
+            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+              <input
+                type="checkbox"
+                checked={form.autoplayEnabled}
+                onChange={(e) => setForm({ ...form, autoplayEnabled: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-ink border border-ink-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-paper after:border after:border-ink-border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold peer-checked:border-gold"></div>
+              <span className={`ml-2.5 text-xs font-mono font-bold tracking-wider uppercase transition-colors ${
+                form.autoplayEnabled ? "text-gold" : "text-text-muted"
+              }`}>
+                {form.autoplayEnabled ? "ACTIVE" : "PAUSED"}
+              </span>
+            </label>
           </div>
 
           <div className="space-y-2 p-3 bg-ink-surface/40 border border-ink-border rounded-xs">
@@ -1515,14 +1872,9 @@ function NewReleasesLiveEditModal({
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="w-full max-w-lg flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
         <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
-          <div className="flex items-center gap-2.5">
-            <span className="p-1.5 bg-gold/10 text-gold rounded-xs">
-              <Sparkles className="w-4 h-4" />
-            </span>
-            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
-              Live Edit: New Releases Section
-            </h3>
-          </div>
+          <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
+            Live Edit: New Releases Section
+          </h3>
           <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
             <X className="w-5 h-5" />
           </button>
@@ -1608,14 +1960,9 @@ function GenreBentoLiveEditModal({
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="w-full max-w-lg flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
         <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
-          <div className="flex items-center gap-2.5">
-            <span className="p-1.5 bg-gold/10 text-gold rounded-xs">
-              <Layers className="w-4 h-4" />
-            </span>
-            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
-              Live Edit: Genre Bento Showcase
-            </h3>
-          </div>
+          <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
+            Live Edit: Genre Bento Showcase
+          </h3>
           <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
             <X className="w-5 h-5" />
           </button>
