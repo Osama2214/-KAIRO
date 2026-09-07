@@ -40,6 +40,8 @@ export interface ShippingConfig {
   deliveryEstimate: string;
   standardShippingCost: number;
   governorateRates: Record<string, number>;
+  freeShippingEnabled: boolean;
+  freeShippingThreshold: number;
 }
 
 export interface EditorialConfig {
@@ -115,6 +117,8 @@ const DEFAULT_SHIPPING_CONFIG: ShippingConfig = {
   deliveryEstimate: "24-48h",
   standardShippingCost: 65,
   governorateRates: DEFAULT_GOVERNORATE_RATES,
+  freeShippingEnabled: true,
+  freeShippingThreshold: 500,
 };
 
 const DEFAULT_EDITORIAL: EditorialConfig = {
@@ -549,6 +553,12 @@ export const useStorefrontStore = create<StorefrontState>()(
           merged.shippingConfig = {
             ...DEFAULT_SHIPPING_CONFIG,
             ...persisted.shippingConfig,
+            freeShippingEnabled:
+              persisted.shippingConfig.freeShippingEnabled ??
+              DEFAULT_SHIPPING_CONFIG.freeShippingEnabled,
+            freeShippingThreshold:
+              persisted.shippingConfig.freeShippingThreshold ??
+              DEFAULT_SHIPPING_CONFIG.freeShippingThreshold,
             governorateRates: {
               ...DEFAULT_GOVERNORATE_RATES,
               ...(persisted.shippingConfig.governorateRates || {}),

@@ -29,6 +29,7 @@ import {
   Shield,
   UserCheck,
   Printer,
+  Truck,
 } from "lucide-react";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { useAuthStore, SavedOrder, UserProfile } from "@/store/useAuthStore";
@@ -155,6 +156,8 @@ export default function AdminPage() {
     if (shippingConfig) {
       setShippingForm({
         ...shippingConfig,
+        freeShippingEnabled: shippingConfig.freeShippingEnabled ?? true,
+        freeShippingThreshold: shippingConfig.freeShippingThreshold ?? 500,
         governorateRates: {
           ...DEFAULT_GOVERNORATE_RATES,
           ...(shippingConfig.governorateRates || {}),
@@ -1239,6 +1242,80 @@ export default function AdminPage() {
                       className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
                     />
                   </div>
+                </div>
+
+                {/* Free Delivery Policy & Minimum Order Threshold */}
+                <div className="p-4 bg-ink/70 border border-gold/30 rounded-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-ink-border/60">
+                    <div className="flex items-center gap-2.5">
+                      <Truck className="w-5 h-5 text-gold" />
+                      <div>
+                        <h3 className="text-xs font-bold text-gold uppercase tracking-wider">
+                          Nationwide Free Delivery Threshold
+                        </h3>
+                        <p className="text-[11px] text-text-muted">
+                          Automatically grant 100% free delivery across all Egyptian governorates when a patron meets this minimum order amount.
+                        </p>
+                      </div>
+                    </div>
+
+                    <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={shippingForm.freeShippingEnabled ?? true}
+                        onChange={(e) =>
+                          setShippingForm({ ...shippingForm, freeShippingEnabled: e.target.checked })
+                        }
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-ink-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-paper after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold"></div>
+                      <span className="ml-2.5 text-xs font-mono font-bold text-paper uppercase">
+                        {(shippingForm.freeShippingEnabled ?? true) ? "ACTIVE" : "DISABLED"}
+                      </span>
+                    </label>
+                  </div>
+
+                  {(shippingForm.freeShippingEnabled ?? true) && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
+                      <div>
+                        <label className="block text-text-muted mb-1.5 font-bold uppercase tracking-wider">
+                          Free Shipping Minimum Subtotal (EGP)
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100000"
+                            step="25"
+                            value={shippingForm.freeShippingThreshold ?? 500}
+                            onChange={(e) =>
+                              setShippingForm({
+                                ...shippingForm,
+                                freeShippingThreshold: Math.max(0, parseFloat(e.target.value) || 0),
+                              })
+                            }
+                            className="w-full bg-ink border border-ink-border text-gold font-bold px-3 py-2 text-sm rounded-sm focus:border-gold outline-none"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-muted">
+                            EGP
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-text-muted mt-1">
+                          Orders with subtotal ≥ {shippingForm.freeShippingThreshold ?? 500} EGP will receive free delivery and display the progress meter in the cart drawer.
+                        </p>
+                      </div>
+
+                      <div className="p-3 bg-ink-surface/60 border border-ink-border rounded-xs text-[11px] text-text-muted space-y-1.5 flex flex-col justify-center">
+                        <div className="text-paper font-semibold">Current Customer Experience:</div>
+                        <div>
+                          • Cart Drawer will show: <span className="text-gold font-bold">Add {formatPrice(shippingForm.freeShippingThreshold ?? 500)} for Free Shipping</span>
+                        </div>
+                        <div>
+                          • Checkout will apply <span className="text-emerald-400 font-bold">0 EGP shipping cost</span> automatically once reached.
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Governorate Shipping Rates Table */}

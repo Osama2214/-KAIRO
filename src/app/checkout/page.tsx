@@ -91,8 +91,9 @@ export default function CheckoutPage() {
     shippingConfig?.standardShippingCost ??
     65;
 
-  const freeShippingThreshold = 500;
-  const isFreeShipping = freeShippingGranted || subtotal >= freeShippingThreshold;
+  const freeShippingEnabled = shippingConfig?.freeShippingEnabled ?? true;
+  const freeShippingThreshold = shippingConfig?.freeShippingThreshold ?? 500;
+  const isFreeShipping = freeShippingGranted || (freeShippingEnabled && subtotal >= freeShippingThreshold);
   const shippingCost = isFreeShipping ? 0 : govShippingRate;
   const total = Math.max(0, subtotal - discountAmount + shippingCost);
 

@@ -9,6 +9,7 @@ import { useMounted } from "@/store/useWishlistStore";
 import { formatPrice } from "@/lib/utils";
 import { useWelcomeOffer } from "@/hooks/useWelcomeOffer";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
+import { useStorefrontStore } from "@/store/useStorefrontStore";
 
 export function CartDrawer() {
   const mounted = useMounted();
@@ -39,8 +40,10 @@ export function CartDrawer() {
   const discountAmount = mounted ? getDiscountAmount() : 0;
   const grandTotal = mounted ? getGrandTotal(0) : 0;
   const totalCount = mounted ? getTotalItems() : 0;
-  const freeShippingThreshold = 500.0;
-  const isFreeShipping = freeShippingGranted || subtotal >= freeShippingThreshold;
+  const shippingConfig = useStorefrontStore((state) => state.shippingConfig);
+  const freeShippingEnabled = shippingConfig?.freeShippingEnabled ?? true;
+  const freeShippingThreshold = shippingConfig?.freeShippingThreshold ?? 500.0;
+  const isFreeShipping = freeShippingGranted || (freeShippingEnabled && subtotal >= freeShippingThreshold);
   const progressToFreeShipping = isFreeShipping ? 100 : Math.min(100, (subtotal / freeShippingThreshold) * 100);
   const remainingForFreeShipping = isFreeShipping ? 0 : Math.max(0, freeShippingThreshold - subtotal);
 
@@ -100,23 +103,25 @@ export function CartDrawer() {
           </div>
 
           {/* Free Shipping Progress bar */}
-          <div className="px-6 py-3 bg-ink-surface/30 border-b border-ink-border text-xs">
-            <div className="flex items-center justify-between mb-1.5 font-mono text-[11px]">
-              <span className="flex items-center gap-1.5 text-paper-muted">
-                <Truck strokeWidth={1.4} className="w-3.5 h-3.5 text-gold" />
-                {remainingForFreeShipping > 0
-                  ? `Add ${formatPrice(remainingForFreeShipping)} for Free Shipping`
-                  : "Unlocked Free Express Shipping!"}
-              </span>
-              <span className="text-gold font-semibold">{Math.round(progressToFreeShipping)}%</span>
+          {(freeShippingEnabled || freeShippingGranted) && (
+            <div className="px-6 py-3 bg-ink-surface/30 border-b border-ink-border text-xs">
+              <div className="flex items-center justify-between mb-1.5 font-mono text-[11px]">
+                <span className="flex items-center gap-1.5 text-paper-muted">
+                  <Truck strokeWidth={1.4} className="w-3.5 h-3.5 text-gold" />
+                  {remainingForFreeShipping > 0
+                    ? `Add ${formatPrice(remainingForFreeShipping)} for Free Shipping`
+                    : "Unlocked Free Express Shipping!"}
+                </span>
+                <span className="text-gold font-semibold">{Math.round(progressToFreeShipping)}%</span>
+              </div>
+              <div className="w-full h-1 bg-ink-border rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gold transition-all duration-500 ease-out"
+                  style={{ width: `${progressToFreeShipping}%` }}
+                />
+              </div>
             </div>
-            <div className="w-full h-1 bg-ink-border rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gold transition-all duration-500 ease-out"
-                style={{ width: `${progressToFreeShipping}%` }}
-              />
-            </div>
-          </div>
+          )}
 
           {/* Cart Item List */}
           <div data-lenis-prevent className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-6">
