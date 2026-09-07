@@ -17,8 +17,11 @@ export function TrendingCarousel() {
   const addItem = useCartStore((state) => state.addItem);
   const { openCart, openReader } = useUIStore();
   const volumes = useStorefrontStore((state) => state.volumes);
+  const trendingConfig = useStorefrontStore((state) => state.trendingConfig);
 
   const activeVolumes = volumes && volumes.length > 0 ? volumes : ALL_VOLUMES;
+  const autoplaySpeed = trendingConfig?.autoplaySpeed || 3800;
+  const autoplayEnabled = trendingConfig?.autoplayEnabled ?? true;
 
   // Curated trending items dynamically populated
   const trendingItems = React.useMemo(() => {
@@ -26,7 +29,19 @@ export function TrendingCarousel() {
     return items.length >= 4 ? items : activeVolumes.slice(0, 8);
   }, [activeVolumes]);
 
-  // Initialize Embla Carousel with true circular infinite loop and official track padding
+  const plugins = React.useMemo(() => {
+    if (!autoplayEnabled) return [];
+    return [
+      Autoplay({
+        delay: autoplaySpeed,
+        stopOnInteraction: false,
+        stopOnMouseEnter: true,
+        playOnInit: true,
+      }),
+    ];
+  }, [autoplayEnabled, autoplaySpeed]);
+
+  // Initialize Embla Carousel with true circular infinite loop and dynamic autoplay
   const [emblaRef, emblaApi] = useEmblaCarousel(
     {
       loop: true,
@@ -34,14 +49,7 @@ export function TrendingCarousel() {
       slidesToScroll: 1,
       skipSnaps: false,
     },
-    [
-      Autoplay({
-        delay: 3800,
-        stopOnInteraction: false,
-        stopOnMouseEnter: true,
-        playOnInit: true,
-      }),
-    ]
+    plugins
   );
 
   const handlePrev = useCallback(() => {
@@ -97,13 +105,13 @@ export function TrendingCarousel() {
         <div className="flex items-end justify-between mb-8 pb-4 border-b border-ink-border/70">
           <div>
             <span className="text-[11px] font-mono tracking-[0.25em] text-gold uppercase block mb-1">
-              CURATED SELECTION
+              {trendingConfig?.badgeText || "CURATED SELECTION"}
             </span>
             <div className="flex items-center gap-3">
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight uppercase text-paper font-sans">
-                TRENDING NOW
+                {trendingConfig?.headline || "TRENDING NOW"}
               </h2>
-              <LiveEditButton target={{ type: "collection" }} label="Edit Section" variant="floating" size="xs" />
+              <LiveEditButton target={{ type: "trending" }} label="Edit Trending" variant="floating" size="xs" />
             </div>
           </div>
 

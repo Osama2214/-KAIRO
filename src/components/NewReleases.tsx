@@ -19,8 +19,12 @@ export function NewReleases() {
   const mounted = useMounted();
   const { openCart, openReader } = useUIStore();
   const volumes = useStorefrontStore((state) => state.volumes);
+  const newReleasesConfig = useStorefrontStore((state) => state.newReleasesConfig);
 
   const activeVolumes = volumes && volumes.length > 0 ? volumes : ALL_VOLUMES;
+  const badgeText = newReleasesConfig?.badgeText || "JUST ARCHIVED";
+  const headline = newReleasesConfig?.headline || "NEW RELEASES";
+  const viewAllText = newReleasesConfig?.viewAllText || "VIEW COMPLETE ARCHIVE";
 
   const newItems = React.useMemo(() => {
     const tagged = activeVolumes.filter((v) => v.isNewRelease);
@@ -52,20 +56,20 @@ export function NewReleases() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 pb-4 border-b border-ink-border/70 gap-4">
           <div>
             <span className="text-[11px] font-mono tracking-[0.25em] text-gold uppercase block mb-1">
-              JUST ARCHIVED
+              {badgeText}
             </span>
             <div className="flex items-center gap-3">
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight uppercase text-paper font-sans">
-                NEW RELEASES
+                {headline}
               </h2>
-              <LiveEditButton target={{ type: "collection" }} label="Edit Section" variant="floating" size="xs" />
+              <LiveEditButton target={{ type: "new-releases" }} label="Edit Releases" variant="floating" size="xs" />
             </div>
           </div>
           <Link
             href="/manga"
             className="flex items-center gap-2 text-xs font-mono tracking-widest text-text-muted hover:text-paper transition-colors group"
           >
-            <span>VIEW COMPLETE ARCHIVE</span>
+            <span>{viewAllText}</span>
             <ArrowRight strokeWidth={1.4} className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>

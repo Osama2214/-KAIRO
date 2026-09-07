@@ -22,8 +22,23 @@ import {
   Tag,
   Search,
   Check,
+  Clock,
+  ArrowRight,
+  Play,
+  Pause,
 } from "lucide-react";
-import { useStorefrontStore, HeroContent, AnnouncementConfig, ShippingConfig, EditorialConfig, FeaturedSeriesConfig, CollectionConfig } from "@/store/useStorefrontStore";
+import {
+  useStorefrontStore,
+  HeroContent,
+  AnnouncementConfig,
+  ShippingConfig,
+  EditorialConfig,
+  FeaturedSeriesConfig,
+  CollectionConfig,
+  TrendingConfig,
+  NewReleasesConfig,
+  GenreBentoConfig,
+} from "@/store/useStorefrontStore";
 import { useMounted } from "@/store/useWishlistStore";
 import { VolumeFormModal } from "./VolumeFormModal";
 import { SeriesFormModal } from "./SeriesFormModal";
@@ -45,6 +60,9 @@ export function LiveVisualEditor() {
     editorialConfig,
     featuredSeriesConfig,
     collectionConfig,
+    trendingConfig,
+    newReleasesConfig,
+    genreBentoConfig,
     updateVolume,
     updateSeries,
     updateHeroContent,
@@ -53,6 +71,9 @@ export function LiveVisualEditor() {
     updateEditorialConfig,
     updateFeaturedSeriesConfig,
     updateCollectionConfig,
+    updateTrendingConfig,
+    updateNewReleasesConfig,
+    updateGenreBentoConfig,
     logoutAdmin,
   } = useStorefrontStore();
 
@@ -305,6 +326,45 @@ export function LiveVisualEditor() {
             updateEditorialConfig(updated);
             closeLiveEdit();
             showToast("Editorial quotes & store policies updated and synced live!");
+          }}
+        />
+      )}
+
+      {/* Trending Now Modal */}
+      {activeLiveEditTarget?.type === "trending" && (
+        <TrendingLiveEditModal
+          initialConfig={trendingConfig}
+          onClose={closeLiveEdit}
+          onSave={(updated) => {
+            updateTrendingConfig(updated);
+            closeLiveEdit();
+            showToast("Trending carousel configuration updated and synced live!");
+          }}
+        />
+      )}
+
+      {/* New Releases Modal */}
+      {activeLiveEditTarget?.type === "new-releases" && (
+        <NewReleasesLiveEditModal
+          initialConfig={newReleasesConfig}
+          onClose={closeLiveEdit}
+          onSave={(updated) => {
+            updateNewReleasesConfig(updated);
+            closeLiveEdit();
+            showToast("New releases showcase updated and synced live!");
+          }}
+        />
+      )}
+
+      {/* Genre Bento Modal */}
+      {activeLiveEditTarget?.type === "genre-bento" && (
+        <GenreBentoLiveEditModal
+          initialConfig={genreBentoConfig}
+          onClose={closeLiveEdit}
+          onSave={(updated) => {
+            updateGenreBentoConfig(updated);
+            closeLiveEdit();
+            showToast("Genre Bento section updated and synced live!");
           }}
         />
       )}
@@ -1272,4 +1332,352 @@ function HeroCardLiveEditModal({
     </div>
   );
 }
+
+function TrendingLiveEditModal({
+  initialConfig,
+  onClose,
+  onSave,
+}: {
+  initialConfig: TrendingConfig;
+  onClose: () => void;
+  onSave: (config: TrendingConfig) => void;
+}) {
+  useModalScrollLock(true);
+  const [form, setForm] = useState<TrendingConfig>(initialConfig);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(form);
+  };
+
+  const speedInSeconds = (form.autoplaySpeed / 1000).toFixed(1);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="w-full max-w-lg flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
+          <div className="flex items-center gap-2.5">
+            <span className="p-1.5 bg-vermilion/10 text-vermilion rounded-xs">
+              <Sparkles className="w-4 h-4" />
+            </span>
+            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
+              Live Edit: Trending Now Carousel
+            </h3>
+          </div>
+          <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="flex items-center justify-between p-3 bg-ink-surface/60 border border-ink-border rounded-xs">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-gold" />
+              <div>
+                <div className="text-xs font-mono font-semibold uppercase text-paper">
+                  Automatic Card Flipping (Autoplay)
+                </div>
+                <div className="text-[11px] text-text-muted">
+                  Auto-advance carousel cards smoothly
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, autoplayEnabled: !form.autoplayEnabled })}
+              className={`px-3 py-1 rounded-full text-xs font-mono font-bold cursor-pointer transition-colors ${
+                form.autoplayEnabled
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                  : "bg-red-500/20 text-red-400 border border-red-500/30"
+              }`}
+            >
+              {form.autoplayEnabled ? "ENABLED" : "PAUSED"}
+            </button>
+          </div>
+
+          <div className="space-y-2 p-3 bg-ink-surface/40 border border-ink-border rounded-xs">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                Card Flipping Speed / Transition Delay
+              </label>
+              <span className="text-xs font-mono font-bold text-gold px-2 py-0.5 bg-gold/10 border border-gold/30 rounded-xs">
+                {speedInSeconds}s ({form.autoplaySpeed} ms)
+              </span>
+            </div>
+
+            <input
+              type="range"
+              min={1500}
+              max={8000}
+              step={100}
+              value={form.autoplaySpeed}
+              disabled={!form.autoplayEnabled}
+              onChange={(e) =>
+                setForm({ ...form, autoplaySpeed: parseInt(e.target.value) || 3800 })
+              }
+              className="w-full accent-gold cursor-pointer disabled:opacity-40"
+            />
+
+            <div className="flex items-center justify-between text-[10px] font-mono text-text-muted">
+              <span>1.5s (Fast)</span>
+              <span>3.8s (Balanced)</span>
+              <span>8.0s (Relaxed)</span>
+            </div>
+
+            <div className="pt-2 flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-mono text-text-muted uppercase">Presets:</span>
+              {[
+                { label: "2.0s Fast", val: 2000 },
+                { label: "3.8s Standard", val: 3800 },
+                { label: "5.0s Gentle", val: 5000 },
+                { label: "6.5s Leisure", val: 6500 },
+              ].map((preset) => (
+                <button
+                  key={preset.val}
+                  type="button"
+                  onClick={() => setForm({ ...form, autoplaySpeed: preset.val })}
+                  className={`px-2 py-0.5 text-[10px] font-mono rounded-xs border transition-colors cursor-pointer ${
+                    form.autoplaySpeed === preset.val
+                      ? "bg-gold text-ink border-gold font-bold"
+                      : "bg-ink-surface text-paper-muted border-ink-border hover:text-paper hover:border-gold/50"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+              Section Badge
+            </label>
+            <input
+              type="text"
+              value={form.badgeText || ""}
+              onChange={(e) => setForm({ ...form, badgeText: e.target.value })}
+              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+              Section Headline
+            </label>
+            <input
+              type="text"
+              value={form.headline || ""}
+              onChange={(e) => setForm({ ...form, headline: e.target.value })}
+              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-transform hover:scale-105"
+            >
+              <Save className="w-4 h-4" />
+              Save &amp; Sync Live
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function NewReleasesLiveEditModal({
+  initialConfig,
+  onClose,
+  onSave,
+}: {
+  initialConfig: NewReleasesConfig;
+  onClose: () => void;
+  onSave: (config: NewReleasesConfig) => void;
+}) {
+  useModalScrollLock(true);
+  const [form, setForm] = useState<NewReleasesConfig>(initialConfig);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(form);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="w-full max-w-lg flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
+          <div className="flex items-center gap-2.5">
+            <span className="p-1.5 bg-gold/10 text-gold rounded-xs">
+              <Sparkles className="w-4 h-4" />
+            </span>
+            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
+              Live Edit: New Releases Section
+            </h3>
+          </div>
+          <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+              Section Badge
+            </label>
+            <input
+              type="text"
+              value={form.badgeText || ""}
+              onChange={(e) => setForm({ ...form, badgeText: e.target.value })}
+              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+              Section Headline
+            </label>
+            <input
+              type="text"
+              value={form.headline || ""}
+              onChange={(e) => setForm({ ...form, headline: e.target.value })}
+              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+              View All Link Text
+            </label>
+            <input
+              type="text"
+              value={form.viewAllText || ""}
+              onChange={(e) => setForm({ ...form, viewAllText: e.target.value })}
+              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-transform hover:scale-105"
+            >
+              <Save className="w-4 h-4" />
+              Save &amp; Sync Live
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function GenreBentoLiveEditModal({
+  initialConfig,
+  onClose,
+  onSave,
+}: {
+  initialConfig: GenreBentoConfig;
+  onClose: () => void;
+  onSave: (config: GenreBentoConfig) => void;
+}) {
+  useModalScrollLock(true);
+  const [form, setForm] = useState<GenreBentoConfig>(initialConfig);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(form);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="w-full max-w-lg flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
+          <div className="flex items-center gap-2.5">
+            <span className="p-1.5 bg-gold/10 text-gold rounded-xs">
+              <Layers className="w-4 h-4" />
+            </span>
+            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
+              Live Edit: Genre Bento Showcase
+            </h3>
+          </div>
+          <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+              Badge Text
+            </label>
+            <input
+              type="text"
+              value={form.badgeText || ""}
+              onChange={(e) => setForm({ ...form, badgeText: e.target.value })}
+              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+              Section Title
+            </label>
+            <input
+              type="text"
+              value={form.title || ""}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+              Description / Caption
+            </label>
+            <textarea
+              rows={3}
+              value={form.description || ""}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-transform hover:scale-105"
+            >
+              <Save className="w-4 h-4" />
+              Save &amp; Sync Live
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 

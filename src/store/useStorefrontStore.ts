@@ -81,6 +81,32 @@ export interface GenreBentoConfig {
   description: string;
 }
 
+export interface TrendingConfig {
+  badgeText: string;
+  headline: string;
+  autoplayEnabled: boolean;
+  autoplaySpeed: number; // in milliseconds
+}
+
+export interface NewReleasesConfig {
+  badgeText: string;
+  headline: string;
+  viewAllText: string;
+}
+
+const DEFAULT_TRENDING_CONFIG: TrendingConfig = {
+  badgeText: "CURATED SELECTION",
+  headline: "TRENDING NOW",
+  autoplayEnabled: true,
+  autoplaySpeed: 3800,
+};
+
+const DEFAULT_NEW_RELEASES_CONFIG: NewReleasesConfig = {
+  badgeText: "JUST ARCHIVED",
+  headline: "NEW RELEASES",
+  viewAllText: "VIEW COMPLETE ARCHIVE",
+};
+
 const DEFAULT_HERO_CONTENT: HeroContent = {
   badgeText: "CHAPTER 01 — 物語の始まり",
   headlineLine1: "DISCOVER",
@@ -163,6 +189,9 @@ export type LiveEditTarget =
   | { type: "series"; seriesSlug: string }
   | { type: "hero" }
   | { type: "hero-card" }
+  | { type: "trending" }
+  | { type: "new-releases" }
+  | { type: "genre-bento" }
   | { type: "announcement" }
   | { type: "featured-series" }
   | { type: "collection" }
@@ -183,6 +212,8 @@ export interface StorefrontState {
   featuredSeriesConfig: FeaturedSeriesConfig;
   collectionConfig: CollectionConfig;
   genreBentoConfig: GenreBentoConfig;
+  trendingConfig: TrendingConfig;
+  newReleasesConfig: NewReleasesConfig;
 
   // Admin Access & Live Visual Editor
   isAdminAuthenticated: boolean;
@@ -218,6 +249,8 @@ export interface StorefrontState {
   updateFeaturedSeriesConfig: (updates: Partial<FeaturedSeriesConfig>) => void;
   updateCollectionConfig: (updates: Partial<CollectionConfig>) => void;
   updateGenreBentoConfig: (updates: Partial<GenreBentoConfig>) => void;
+  updateTrendingConfig: (updates: Partial<TrendingConfig>) => void;
+  updateNewReleasesConfig: (updates: Partial<NewReleasesConfig>) => void;
   updateGenre: (id: string, updates: Partial<GenreInfo>) => void;
 
   // Admin Auth Actions
@@ -249,6 +282,8 @@ export const useStorefrontStore = create<StorefrontState>()(
       featuredSeriesConfig: DEFAULT_FEATURED_SERIES,
       collectionConfig: DEFAULT_COLLECTION_CONFIG,
       genreBentoConfig: DEFAULT_GENRE_BENTO,
+      trendingConfig: DEFAULT_TRENDING_CONFIG,
+      newReleasesConfig: DEFAULT_NEW_RELEASES_CONFIG,
       isAdminAuthenticated: false,
       isVisualEditorActive: true,
       activeLiveEditTarget: null,
@@ -420,6 +455,18 @@ export const useStorefrontStore = create<StorefrontState>()(
         }));
       },
 
+      updateTrendingConfig: (updates) => {
+        set((state) => ({
+          trendingConfig: { ...state.trendingConfig, ...updates },
+        }));
+      },
+
+      updateNewReleasesConfig: (updates) => {
+        set((state) => ({
+          newReleasesConfig: { ...state.newReleasesConfig, ...updates },
+        }));
+      },
+
       updateGenre: (id, updates) => {
         set((state) => ({
           genres: state.genres.map((g) => (g.id === id ? { ...g, ...updates } : g)),
@@ -568,6 +615,8 @@ export const useStorefrontStore = create<StorefrontState>()(
         featuredSeriesConfig: state.featuredSeriesConfig,
         collectionConfig: state.collectionConfig,
         genreBentoConfig: state.genreBentoConfig,
+        trendingConfig: state.trendingConfig,
+        newReleasesConfig: state.newReleasesConfig,
         adminPinHash: state.adminPinHash,
         isAdminAuthenticated: state.isAdminAuthenticated,
         adminSessionToken: state.adminSessionToken,
@@ -576,6 +625,12 @@ export const useStorefrontStore = create<StorefrontState>()(
       merge: (persistedState: unknown, currentState: StorefrontState): StorefrontState => {
         const persisted = persistedState as Partial<StorefrontState> | undefined;
         const merged: StorefrontState = { ...currentState, ...(persisted || {}) };
+        if (persisted?.trendingConfig) {
+          merged.trendingConfig = { ...DEFAULT_TRENDING_CONFIG, ...persisted.trendingConfig };
+        }
+        if (persisted?.newReleasesConfig) {
+          merged.newReleasesConfig = { ...DEFAULT_NEW_RELEASES_CONFIG, ...persisted.newReleasesConfig };
+        }
         if (typeof persisted?.isAdminAuthenticated === "boolean") {
           merged.isAdminAuthenticated = persisted.isAdminAuthenticated;
         }

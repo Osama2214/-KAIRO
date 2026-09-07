@@ -78,6 +78,8 @@ export default function AdminPage() {
     featuredSeriesConfig,
     collectionConfig,
     genreBentoConfig,
+    trendingConfig,
+    newReleasesConfig,
     genres,
     isAdminAuthenticated,
     adminPin,
@@ -96,6 +98,8 @@ export default function AdminPage() {
     updateFeaturedSeriesConfig,
     updateCollectionConfig,
     updateGenreBentoConfig,
+    updateTrendingConfig,
+    updateNewReleasesConfig,
     updateGenre,
     logoutAdmin,
     updateAdminPin,
@@ -121,6 +125,8 @@ export default function AdminPage() {
   const [featuredSeriesForm, setFeaturedSeriesForm] = useState(featuredSeriesConfig);
   const [collectionForm, setCollectionForm] = useState(collectionConfig);
   const [genreBentoForm, setGenreBentoForm] = useState(genreBentoConfig);
+  const [trendingForm, setTrendingForm] = useState(trendingConfig);
+  const [newReleasesForm, setNewReleasesForm] = useState(newReleasesConfig);
   const [selectedGenreId, setSelectedGenreId] = useState<string>(genres?.[0]?.id || "action");
   const [genreDrafts, setGenreDrafts] = useState<Record<string, GenreInfo>>({});
   const [currentPinInput, setCurrentPinInput] = useState("");
@@ -165,6 +171,18 @@ export default function AdminPage() {
       });
     }
   }, [shippingConfig]);
+
+  useEffect(() => {
+    if (trendingConfig) {
+      setTrendingForm(trendingConfig);
+    }
+  }, [trendingConfig]);
+
+  useEffect(() => {
+    if (newReleasesConfig) {
+      setNewReleasesForm(newReleasesConfig);
+    }
+  }, [newReleasesConfig]);
 
   const handleGovRateChange = (govValue: string, price: number) => {
     setShippingForm((prev) => ({
@@ -1957,6 +1975,229 @@ export default function AdminPage() {
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* 8. TRENDING NOW CAROUSEL & AUTOPLAY */}
+              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-5">
+                <div className="flex items-center justify-between border-b border-ink-border/50 pb-3">
+                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-vermilion" />
+                    <span>08. Trending Now Carousel &amp; Card Flipping Controls</span>
+                  </h2>
+                  <span className="text-[10px] text-text-muted">
+                    Configure carousel autoplay, card transition delay, and section typography.
+                  </span>
+                </div>
+
+                <div className="space-y-4 font-mono text-xs">
+                  {/* Autoplay Toggle & Speed Control */}
+                  <div className="p-4 bg-ink/70 border border-gold/30 rounded-xs space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-ink-border/60">
+                      <div>
+                        <h3 className="text-xs font-bold text-gold uppercase tracking-wider">
+                          Automatic Card Flipping (Autoplay)
+                        </h3>
+                        <p className="text-[11px] text-text-muted">
+                          Automatically advance carousel cards smoothly across the screen.
+                        </p>
+                      </div>
+
+                      <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={trendingForm.autoplayEnabled}
+                          onChange={(e) =>
+                            setTrendingForm({ ...trendingForm, autoplayEnabled: e.target.checked })
+                          }
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-ink-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-paper after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold"></div>
+                        <span className="ml-2.5 text-xs font-mono font-bold text-paper uppercase">
+                          {trendingForm.autoplayEnabled ? "ACTIVE" : "PAUSED"}
+                        </span>
+                      </label>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-text-muted font-bold uppercase tracking-wider">
+                          Card Flipping Speed / Transition Delay
+                        </label>
+                        <span className="text-xs font-mono font-bold text-gold px-2.5 py-0.5 bg-gold/10 border border-gold/30 rounded-xs">
+                          {(trendingForm.autoplaySpeed / 1000).toFixed(1)}s ({trendingForm.autoplaySpeed} ms)
+                        </span>
+                      </div>
+
+                      <input
+                        type="range"
+                        min={1500}
+                        max={8000}
+                        step={100}
+                        value={trendingForm.autoplaySpeed}
+                        disabled={!trendingForm.autoplayEnabled}
+                        onChange={(e) =>
+                          setTrendingForm({
+                            ...trendingForm,
+                            autoplaySpeed: parseInt(e.target.value) || 3800,
+                          })
+                        }
+                        className="w-full accent-gold cursor-pointer disabled:opacity-40"
+                      />
+
+                      <div className="flex items-center justify-between text-[10px] text-text-muted">
+                        <span>1.5s (Fast)</span>
+                        <span>3.8s (Standard / Balanced)</span>
+                        <span>8.0s (Relaxed)</span>
+                      </div>
+
+                      <div className="pt-2 flex flex-wrap items-center gap-1.5">
+                        <span className="text-[10px] text-text-muted uppercase">Quick Presets:</span>
+                        {[
+                          { label: "2.0s Fast", val: 2000 },
+                          { label: "3.8s Standard", val: 3800 },
+                          { label: "5.0s Gentle", val: 5000 },
+                          { label: "6.5s Leisure", val: 6500 },
+                        ].map((preset) => (
+                          <button
+                            key={preset.val}
+                            type="button"
+                            onClick={() =>
+                              setTrendingForm({ ...trendingForm, autoplaySpeed: preset.val })
+                            }
+                            className={`px-2.5 py-1 text-[10px] rounded-xs border transition-colors cursor-pointer ${
+                              trendingForm.autoplaySpeed === preset.val
+                                ? "bg-gold text-ink border-gold font-bold"
+                                : "bg-ink-surface text-paper-muted border-ink-border hover:text-paper hover:border-gold/50"
+                            }`}
+                          >
+                            {preset.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Typography Inputs */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex flex-col justify-end">
+                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                        Section Badge Text
+                      </label>
+                      <input
+                        type="text"
+                        value={trendingForm.badgeText}
+                        onChange={(e) =>
+                          setTrendingForm({ ...trendingForm, badgeText: e.target.value })
+                        }
+                        placeholder="e.g. CURATED SELECTION"
+                        className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                      />
+                    </div>
+
+                    <div className="flex flex-col justify-end">
+                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                        Section Headline Title
+                      </label>
+                      <input
+                        type="text"
+                        value={trendingForm.headline}
+                        onChange={(e) =>
+                          setTrendingForm({ ...trendingForm, headline: e.target.value })
+                        }
+                        placeholder="e.g. TRENDING NOW"
+                        className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateTrendingConfig(trendingForm);
+                      showToast("Trending carousel settings and flip speed saved live.");
+                    }}
+                    className="flex items-center gap-1.5 px-5 py-2.5 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Save Trending Settings</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 9. NEW RELEASES SHOWCASE HEADER */}
+              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-5">
+                <div className="flex items-center justify-between border-b border-ink-border/50 pb-3">
+                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-gold" />
+                    <span>09. New Releases Showcase Header</span>
+                  </h2>
+                  <span className="text-[10px] text-text-muted">
+                    Controls the section badge, headline, and link to the complete archive.
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
+                  <div className="flex flex-col justify-end">
+                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                      Section Badge Text
+                    </label>
+                    <input
+                      type="text"
+                      value={newReleasesForm.badgeText}
+                      onChange={(e) =>
+                        setNewReleasesForm({ ...newReleasesForm, badgeText: e.target.value })
+                      }
+                      placeholder="e.g. JUST ARCHIVED"
+                      className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                    />
+                  </div>
+
+                  <div className="flex flex-col justify-end">
+                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                      Section Headline Title
+                    </label>
+                    <input
+                      type="text"
+                      value={newReleasesForm.headline}
+                      onChange={(e) =>
+                        setNewReleasesForm({ ...newReleasesForm, headline: e.target.value })
+                      }
+                      placeholder="e.g. NEW RELEASES"
+                      className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                    />
+                  </div>
+
+                  <div className="flex flex-col justify-end">
+                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                      View All Link Text
+                    </label>
+                    <input
+                      type="text"
+                      value={newReleasesForm.viewAllText}
+                      onChange={(e) =>
+                        setNewReleasesForm({ ...newReleasesForm, viewAllText: e.target.value })
+                      }
+                      placeholder="e.g. VIEW COMPLETE ARCHIVE"
+                      className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateNewReleasesConfig(newReleasesForm);
+                      showToast("New releases showcase header settings saved live.");
+                    }}
+                    className="flex items-center gap-1.5 px-5 py-2.5 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Save New Releases Header</span>
+                  </button>
                 </div>
               </div>
             </div>

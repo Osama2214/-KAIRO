@@ -31,7 +31,7 @@ export function GenreBento() {
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight uppercase text-paper font-sans">
                 {title}
               </h2>
-              <LiveEditButton target={{ type: "collection" }} label="Edit Section" variant="floating" size="xs" />
+              <LiveEditButton target={{ type: "genre-bento" }} label="Edit Genres" variant="floating" size="xs" />
             </div>
           </div>
           <p className="text-xs text-text-muted font-mono max-w-sm">
