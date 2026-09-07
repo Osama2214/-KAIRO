@@ -186,14 +186,12 @@ export function Hero() {
               回路
             </div>
 
-            {/* Live Edit Book Button */}
-            {featuredVolume && (
-              <LiveEditButton
-                target={{ type: "volume", volumeId: featuredVolume.id }}
-                label="Edit Book"
-                variant="card"
-              />
-            )}
+            {/* Live Edit Hero Card Button */}
+            <LiveEditButton
+              target={{ type: "hero-card" }}
+              label="Change Hero Card"
+              variant="card"
+            />
 
             {/* Bottom Caption Pill */}
             {featuredVolume && (

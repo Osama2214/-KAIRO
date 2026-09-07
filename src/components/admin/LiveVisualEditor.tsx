@@ -20,6 +20,8 @@ import {
   Layers,
   FileText,
   Tag,
+  Search,
+  Check,
 } from "lucide-react";
 import { useStorefrontStore, HeroContent, AnnouncementConfig, ShippingConfig, EditorialConfig, FeaturedSeriesConfig, CollectionConfig } from "@/store/useStorefrontStore";
 import { useMounted } from "@/store/useWishlistStore";
@@ -222,6 +224,21 @@ export function LiveVisualEditor() {
             updateHeroContent(updated);
             closeLiveEdit();
             showToast("Hero section updated and synced live!");
+          }}
+        />
+      )}
+
+      {/* Hero Card Selection Modal */}
+      {activeLiveEditTarget?.type === "hero-card" && (
+        <HeroCardLiveEditModal
+          currentVolumeId={heroContent.featuredVolumeId || volumes[0]?.id || ""}
+          volumes={volumes}
+          onClose={closeLiveEdit}
+          onSave={(selectedVolumeId) => {
+            updateHeroContent({ featuredVolumeId: selectedVolumeId });
+            closeLiveEdit();
+            const vol = volumes.find((v) => v.id === selectedVolumeId);
+            showToast(`"${vol?.title || "Volume"}" set as Hero card!`);
           }}
         />
       )}
@@ -1046,3 +1063,213 @@ function EditorialLiveEditModal({
     </div>
   );
 }
+
+function HeroCardLiveEditModal({
+  currentVolumeId,
+  volumes,
+  onClose,
+  onSave,
+}: {
+  currentVolumeId: string;
+  volumes: any[];
+  onClose: () => void;
+  onSave: (volumeId: string) => void;
+}) {
+  useModalScrollLock(true);
+  const [selectedId, setSelectedId] = useState(currentVolumeId);
+  const [search, setSearch] = useState("");
+  const [selectedSeriesFilter, setSelectedSeriesFilter] = useState("all");
+
+  const seriesOptions = React.useMemo(() => {
+    const set = new Set<string>();
+    volumes.forEach((v) => {
+      if (v.seriesTitle) set.add(v.seriesTitle);
+    });
+    return Array.from(set).sort();
+  }, [volumes]);
+
+  const filteredVolumes = React.useMemo(() => {
+    return volumes.filter((v) => {
+      const matchSearch =
+        !search ||
+        v.title.toLowerCase().includes(search.toLowerCase()) ||
+        (v.seriesTitle && v.seriesTitle.toLowerCase().includes(search.toLowerCase())) ||
+        String(v.volumeNumber).includes(search);
+      const matchSeries =
+        selectedSeriesFilter === "all" || v.seriesTitle === selectedSeriesFilter;
+      return matchSearch && matchSeries;
+    });
+  }, [volumes, search, selectedSeriesFilter]);
+
+  const selectedVolume = volumes.find((v) => v.id === selectedId) || volumes[0];
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedId) {
+      onSave(selectedId);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="w-full max-w-3xl max-h-[90vh] flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
+          <div className="flex items-center gap-2.5">
+            <span className="p-1.5 bg-gold/10 text-gold rounded-xs">
+              <Sparkles className="w-4 h-4" />
+            </span>
+            <div>
+              <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
+                Select Featured Book for Hero
+              </h3>
+              <p className="text-[11px] font-mono text-text-muted">
+                Choose which manga volume is showcased on the primary homepage 3D card.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-text-muted hover:text-paper p-1 cursor-pointer transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Currently Selected Preview Banner */}
+        {selectedVolume && (
+          <div className="px-6 py-3 bg-gold/5 border-b border-gold/20 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-14 bg-ink rounded-xs overflow-hidden border border-gold/40 shrink-0">
+                <img
+                  src={selectedVolume.coverImage}
+                  alt={selectedVolume.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div>
+                <span className="text-[10px] font-mono text-gold uppercase tracking-wider block">
+                  Currently Selected for Hero
+                </span>
+                <div className="text-sm font-bold text-paper line-clamp-1">
+                  {selectedVolume.title}
+                </div>
+                <div className="text-xs font-mono text-text-muted">
+                  {selectedVolume.seriesTitle} • Vol. {selectedVolume.volumeNumber}
+                </div>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 bg-gold text-ink font-mono text-xs font-bold rounded-xs shrink-0">
+              ACTIVE
+            </span>
+          </div>
+        )}
+
+        {/* Filter Controls */}
+        <div className="p-4 border-b border-ink-border bg-ink-surface/30 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+            <input
+              type="text"
+              placeholder="Search manga by title, volume..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 bg-ink border border-ink-border text-paper text-xs rounded-xs focus:border-gold outline-none font-mono"
+            />
+          </div>
+          <div>
+            <select
+              value={selectedSeriesFilter}
+              onChange={(e) => setSelectedSeriesFilter(e.target.value)}
+              className="w-full px-3 py-1.5 bg-ink border border-ink-border text-paper text-xs rounded-xs focus:border-gold outline-none font-mono cursor-pointer"
+            >
+              <option value="all">All Series</option>
+              {seriesOptions.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Volumes Grid */}
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {filteredVolumes.map((vol) => {
+              const isChosen = vol.id === selectedId;
+              return (
+                <div
+                  key={vol.id}
+                  onClick={() => setSelectedId(vol.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedId(vol.id);
+                    }
+                  }}
+                  className={`group relative p-2.5 rounded-sm border cursor-pointer transition-all flex flex-col justify-between ${
+                    isChosen
+                      ? "bg-gold/10 border-gold shadow-lg shadow-gold/10 ring-1 ring-gold"
+                      : "bg-ink-surface/40 border-ink-border/70 hover:border-gold/50 hover:bg-ink-surface"
+                  }`}
+                >
+                  <div className="relative aspect-[3/4] overflow-hidden rounded-xs bg-ink mb-2">
+                    <img
+                      src={vol.coverImage}
+                      alt={vol.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                    {isChosen && (
+                      <div className="absolute top-1.5 right-1.5 p-1 bg-gold text-ink rounded-full shadow-md">
+                        <Check strokeWidth={2.5} className="w-3 h-3" />
+                      </div>
+                    )}
+                    <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 bg-ink/90 text-gold text-[9px] font-mono rounded-xs">
+                      VOL. {vol.volumeNumber}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-mono text-gold line-clamp-1">
+                      {vol.seriesTitle}
+                    </div>
+                    <div className="text-xs font-bold text-paper line-clamp-1 group-hover:text-gold transition-colors">
+                      {vol.title}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between px-6 py-4 border-t border-ink-border bg-ink-surface/40">
+            <span className="text-xs font-mono text-text-muted">
+              {filteredVolumes.length} volume(s) available
+            </span>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-transform hover:scale-105"
+              >
+                <Save className="w-4 h-4" />
+                Save &amp; Set as Hero Book
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+

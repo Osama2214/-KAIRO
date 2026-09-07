@@ -162,6 +162,7 @@ export type LiveEditTarget =
   | { type: "volume"; volumeId: string }
   | { type: "series"; seriesSlug: string }
   | { type: "hero" }
+  | { type: "hero-card" }
   | { type: "announcement" }
   | { type: "featured-series" }
   | { type: "collection" }
