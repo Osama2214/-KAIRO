@@ -741,13 +741,13 @@ export default function AdminPage() {
                 <table className="w-full text-left text-xs min-w-[800px]">
                   <thead className="bg-ink text-text-muted text-[10px] uppercase border-b border-ink-border">
                     <tr>
-                      <th className="px-4 py-3">Book Title & Vol</th>
-                      <th className="px-4 py-3">Series</th>
-                      <th className="px-4 py-3">Format</th>
-                      <th className="px-4 py-3 text-right">Price</th>
-                      <th className="px-4 py-3 text-center">Stock</th>
-                      <th className="px-4 py-3 text-center">Merchandising</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
+                      <th className="px-4 py-3 min-w-[200px]">Book Title &amp; Vol</th>
+                      <th className="px-4 py-3 min-w-[130px]">Series</th>
+                      <th className="px-4 py-3 whitespace-nowrap">Format</th>
+                      <th className="px-4 py-3 text-right whitespace-nowrap">Price</th>
+                      <th className="px-4 py-3 text-center whitespace-nowrap">Stock</th>
+                      <th className="px-4 py-3 text-center whitespace-nowrap">Merchandising</th>
+                      <th className="px-4 py-3 text-right whitespace-nowrap">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-ink-border/50">
@@ -773,15 +773,23 @@ export default function AdminPage() {
                             </div>
                           </td>
 
-                          <td className="px-4 py-3 text-text-muted">{vol.seriesTitle}</td>
+                          <td className="px-4 py-3 text-text-muted whitespace-nowrap">{vol.seriesTitle}</td>
 
-                          <td className="px-4 py-3">
-                            <span className="px-2 py-0.5 bg-ink border border-ink-border rounded-xs text-[10px]">
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span
+                              className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-xs text-[10px] font-mono uppercase tracking-wider whitespace-nowrap border ${
+                                vol.format === "Deluxe Edition"
+                                  ? "bg-gold/15 text-gold border-gold/40 font-bold"
+                                  : vol.format === "Box Set"
+                                  ? "bg-vermilion/15 text-vermilion border-vermilion/40 font-semibold"
+                                  : "bg-ink text-paper-muted border-ink-border hover:border-gold/40 hover:text-paper transition-colors"
+                              }`}
+                            >
                               {vol.format}
                             </span>
                           </td>
 
-                          <td className="px-4 py-3 text-right font-bold text-gold">
+                          <td className="px-4 py-3 text-right font-bold text-gold whitespace-nowrap">
                             {formatPrice(vol.price)}
                             {vol.originalPrice && (
                               <span className="block text-[10px] text-text-muted line-through font-normal">
@@ -790,9 +798,9 @@ export default function AdminPage() {
                             )}
                           </td>
 
-                          <td className="px-4 py-3 text-center">
+                          <td className="px-4 py-3 text-center whitespace-nowrap">
                             <span
-                              className={`px-2 py-0.5 rounded-xs font-bold text-[11px] ${
+                              className={`px-2 py-0.5 rounded-xs font-bold text-[11px] inline-block ${
                                 vol.stock <= 5
                                   ? "bg-vermilion/20 text-vermilion border border-vermilion/30"
                                   : "bg-ink border border-ink-border text-paper"
