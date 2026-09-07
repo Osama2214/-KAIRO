@@ -134,7 +134,6 @@ export function LiveVisualEditor() {
             className="flex items-center gap-2.5 px-3.5 py-2 bg-ink/95 border border-gold/60 text-gold rounded-full shadow-2xl backdrop-blur-md hover:scale-105 transition-all text-xs font-mono cursor-pointer font-bold tracking-wider uppercase"
             title="Expand Curator Toolbar"
           >
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span>KAIRO CURATOR</span>
             <Maximize2 className="w-3.5 h-3.5 text-paper-muted" />
           </button>
@@ -142,7 +141,6 @@ export function LiveVisualEditor() {
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-4 py-2.5 bg-ink/95 border border-gold/50 rounded-full shadow-2xl backdrop-blur-md text-xs font-mono text-paper">
             {/* Curator Badge */}
             <div className="flex items-center gap-2 pr-2 border-r border-ink-border">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="font-serif text-sm font-bold text-vermilion">回路</span>
               <span className="font-bold tracking-wider text-[11px] text-paper hidden sm:inline">
                 CURATOR MODE
