@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search, ArrowRight, Heart } from "lucide-react";
@@ -14,14 +14,28 @@ import { LiveEditButton } from "@/components/admin/LiveEditButton";
 
 export function MangaDiscovery() {
   const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState<"POPULAR" | "TOP_RATED" | "BEST_SELLERS" | "RECENTLY_ADDED">("POPULAR");
-
+  const mangaDiscoveryConfig = useStorefrontStore((state) => state.mangaDiscoveryConfig);
   const storeVolumes = useStorefrontStore((state) => state.volumes);
   const addItem = useCartStore((state) => state.addItem);
   const { toggleWishlist, isInWishlist } = useWishlistStore();
   const mounted = useMounted();
   const { openCart } = useUIStore();
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState<"POPULAR" | "TOP_RATED" | "BEST_SELLERS" | "RECENTLY_ADDED">("POPULAR");
+
+  useEffect(() => {
+    if (mangaDiscoveryConfig?.defaultTab) {
+      setActiveTab(mangaDiscoveryConfig.defaultTab);
+    }
+  }, [mangaDiscoveryConfig?.defaultTab]);
+
+  const badgeText = mounted && mangaDiscoveryConfig?.badgeText ? mangaDiscoveryConfig.badgeText : "INSTANT ARCHIVAL LOOKUP";
+  const title = mounted && mangaDiscoveryConfig?.title ? mangaDiscoveryConfig.title : "FIND YOUR NEXT MANGA";
+  const description = mounted && mangaDiscoveryConfig?.description ? mangaDiscoveryConfig.description : "Query across titles, authors, genres, or ISBN registry.";
+  const searchPlaceholder = mounted && mangaDiscoveryConfig?.searchPlaceholder ? mangaDiscoveryConfig.searchPlaceholder : "Search manga, author, or series... (e.g. Eiichiro Oda, Dark Fantasy, Solo Leveling)";
+  const catalogLinkText = mounted && mangaDiscoveryConfig?.catalogLinkText ? mangaDiscoveryConfig.catalogLinkText : "GO TO COMPLETE MANGA CATALOG";
+  const displayCount = mangaDiscoveryConfig?.displayCount || 4;
 
   const handleCardClick = (volumeId: string) => {
     router.push(`/manga/${volumeId}`);
@@ -40,7 +54,7 @@ export function MangaDiscovery() {
       list = list.filter((v) => v.isNewRelease || v.volumeNumber === 1);
     }
 
-    if (!searchTerm.trim()) return list.slice(0, 4);
+    if (!searchTerm.trim()) return list.slice(0, displayCount);
 
     const term = searchTerm.toLowerCase();
     return list.filter(
@@ -49,22 +63,30 @@ export function MangaDiscovery() {
         v.seriesTitle.toLowerCase().includes(term) ||
         v.author.toLowerCase().includes(term) ||
         v.genre.some((g) => g.toLowerCase().includes(term))
-    ).slice(0, 4);
-  }, [searchTerm, activeTab, storeVolumes]);
+    ).slice(0, displayCount);
+  }, [searchTerm, activeTab, storeVolumes, displayCount]);
 
   return (
     <section className="py-24 px-6 md:px-12 bg-ink border-t border-ink-border/60">
       <div className="max-w-7xl mx-auto">
         {/* Section Title */}
-        <div className="text-center max-w-2xl mx-auto mb-10 space-y-2">
-          <span className="text-[11px] font-mono tracking-[0.25em] text-gold uppercase">
-            INSTANT ARCHIVAL LOOKUP
-          </span>
+        <div className="relative text-center max-w-2xl mx-auto mb-10 space-y-2">
+          <div className="inline-flex items-center justify-center gap-2">
+            <span className="text-[11px] font-mono tracking-[0.25em] text-gold uppercase">
+              {badgeText}
+            </span>
+            <LiveEditButton
+              target={{ type: "manga-discovery" }}
+              label="Edit Discovery"
+              variant="floating"
+              size="xs"
+            />
+          </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight uppercase text-paper font-sans">
-            FIND YOUR NEXT MANGA
+            {title}
           </h2>
           <p className="text-xs text-text-muted">
-            Query across titles, authors, genres, or ISBN registry.
+            {description}
           </p>
         </div>
 
@@ -76,7 +98,7 @@ export function MangaDiscovery() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search manga, author, or series... (e.g. Eiichiro Oda, Dark Fantasy, Solo Leveling)"
+              placeholder={searchPlaceholder}
               className="w-full py-4.5 px-4 bg-transparent text-paper placeholder-text-muted/60 text-sm focus:outline-none font-sans"
             />
             {searchTerm && (
@@ -220,7 +242,7 @@ export function MangaDiscovery() {
             href="/manga"
             className="inline-flex items-center gap-2 text-xs font-mono tracking-widest text-text-muted hover:text-gold transition-colors"
           >
-            <span>GO TO COMPLETE MANGA CATALOG</span>
+            <span>{catalogLinkText}</span>
             <ArrowRight strokeWidth={1.4} className="w-3.5 h-3.5" />
           </Link>
         </div>

@@ -129,12 +129,9 @@ function VolumeFormDialog({
       <div className="relative w-full max-w-3xl bg-ink-surface border border-ink-border rounded-sm shadow-2xl my-8 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink">
-          <div className="flex items-center gap-2.5">
-            <BookOpen className="w-5 h-5 text-gold" />
-            <h2 className="font-cinzel text-lg font-bold text-paper">
-              {initialVolume ? `Edit Volume: ${initialVolume.title}` : "Add New Manga Volume"}
-            </h2>
-          </div>
+          <h2 className="font-cinzel text-lg font-bold text-paper">
+            {initialVolume ? `Edit Volume: ${initialVolume.title}` : "Add New Manga Volume"}
+          </h2>
           <button
             onClick={onClose}
             className="p-1.5 text-text-muted hover:text-paper hover:bg-ink-elevated rounded-sm transition-colors cursor-pointer"

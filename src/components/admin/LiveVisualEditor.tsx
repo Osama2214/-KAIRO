@@ -38,6 +38,7 @@ import {
   TrendingConfig,
   NewReleasesConfig,
   GenreBentoConfig,
+  MangaDiscoveryConfig,
 } from "@/store/useStorefrontStore";
 import { useMounted } from "@/store/useWishlistStore";
 import { VolumeFormModal } from "./VolumeFormModal";
@@ -64,6 +65,7 @@ export function LiveVisualEditor() {
     trendingConfig,
     newReleasesConfig,
     genreBentoConfig,
+    mangaDiscoveryConfig,
     updateVolume,
     updateSeries,
     updateHeroContent,
@@ -75,6 +77,7 @@ export function LiveVisualEditor() {
     updateTrendingConfig,
     updateNewReleasesConfig,
     updateGenreBentoConfig,
+    updateMangaDiscoveryConfig,
     logoutAdmin,
   } = useStorefrontStore();
 
@@ -389,6 +392,19 @@ export function LiveVisualEditor() {
             updateGenreBentoConfig(updated);
             closeLiveEdit();
             showToast("Genre Bento section updated and synced live!");
+          }}
+        />
+      )}
+
+      {/* Manga Discovery Modal */}
+      {activeLiveEditTarget?.type === "manga-discovery" && (
+        <MangaDiscoveryLiveEditModal
+          initialConfig={mangaDiscoveryConfig}
+          onClose={closeLiveEdit}
+          onSave={(updated) => {
+            updateMangaDiscoveryConfig(updated);
+            closeLiveEdit();
+            showToast("Manga Discovery section updated and synced live!");
           }}
         />
       )}
@@ -2003,6 +2019,154 @@ function GenreBentoLiveEditModal({
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
             />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-transform hover:scale-105"
+            >
+              <Save className="w-4 h-4" />
+              Save &amp; Sync Live
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function MangaDiscoveryLiveEditModal({
+  initialConfig,
+  onClose,
+  onSave,
+}: {
+  initialConfig: MangaDiscoveryConfig;
+  onClose: () => void;
+  onSave: (config: MangaDiscoveryConfig) => void;
+}) {
+  useModalScrollLock(true);
+  const [form, setForm] = useState<MangaDiscoveryConfig>(initialConfig);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(form);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="w-full max-w-lg flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
+          <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
+            Live Edit: Manga Discovery Section
+          </h3>
+          <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto overscroll-contain">
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+              Badge Text
+            </label>
+            <input
+              type="text"
+              value={form.badgeText || ""}
+              onChange={(e) => setForm({ ...form, badgeText: e.target.value })}
+              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+              Section Title
+            </label>
+            <input
+              type="text"
+              value={form.title || ""}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+              Description / Caption
+            </label>
+            <textarea
+              rows={2}
+              value={form.description || ""}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+              Search Input Placeholder
+            </label>
+            <input
+              type="text"
+              value={form.searchPlaceholder || ""}
+              onChange={(e) => setForm({ ...form, searchPlaceholder: e.target.value })}
+              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+              Catalog Link Text
+            </label>
+            <input
+              type="text"
+              value={form.catalogLinkText || ""}
+              onChange={(e) => setForm({ ...form, catalogLinkText: e.target.value })}
+              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                Default Active Tab
+              </label>
+              <CustomSelect
+                fullWidth
+                value={form.defaultTab || "POPULAR"}
+                onChange={(val) => setForm({ ...form, defaultTab: val as MangaDiscoveryConfig["defaultTab"] })}
+                options={[
+                  { value: "POPULAR", label: "POPULAR (Trending)" },
+                  { value: "TOP_RATED", label: "TOP RATED (4.9+ Stars)" },
+                  { value: "BEST_SELLERS", label: "BEST SELLERS" },
+                  { value: "RECENTLY_ADDED", label: "RECENTLY ADDED (Vol. 1)" },
+                ]}
+                buttonClassName="bg-ink-surface rounded-xs h-10 px-3 text-xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                Cards Display Count
+              </label>
+              <CustomSelect
+                fullWidth
+                value={String(form.displayCount || 4)}
+                onChange={(val) => setForm({ ...form, displayCount: parseInt(val, 10) || 4 })}
+                options={[
+                  { value: "4", label: "4 Cards (Single Row)" },
+                  { value: "8", label: "8 Cards (Two Rows)" },
+                ]}
+                buttonClassName="bg-ink-surface rounded-xs h-10 px-3 text-xs"
+              />
+            </div>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">

@@ -94,6 +94,16 @@ export interface NewReleasesConfig {
   viewAllText: string;
 }
 
+export interface MangaDiscoveryConfig {
+  badgeText: string;
+  title: string;
+  description: string;
+  searchPlaceholder: string;
+  catalogLinkText: string;
+  defaultTab: "POPULAR" | "TOP_RATED" | "BEST_SELLERS" | "RECENTLY_ADDED";
+  displayCount: number;
+}
+
 const DEFAULT_TRENDING_CONFIG: TrendingConfig = {
   badgeText: "CURATED SELECTION",
   headline: "TRENDING NOW",
@@ -184,6 +194,16 @@ const DEFAULT_GENRE_BENTO: GenreBentoConfig = {
   description: "Curated reading lists across 9 canonical categories.",
 };
 
+const DEFAULT_MANGA_DISCOVERY_CONFIG: MangaDiscoveryConfig = {
+  badgeText: "INSTANT ARCHIVAL LOOKUP",
+  title: "FIND YOUR NEXT MANGA",
+  description: "Query across titles, authors, genres, or ISBN registry.",
+  searchPlaceholder: "Search manga, author, or series... (e.g. Eiichiro Oda, Dark Fantasy, Solo Leveling)",
+  catalogLinkText: "GO TO COMPLETE MANGA CATALOG",
+  defaultTab: "POPULAR",
+  displayCount: 4,
+};
+
 export type LiveEditTarget =
   | { type: "volume"; volumeId: string }
   | { type: "series"; seriesSlug: string }
@@ -197,7 +217,8 @@ export type LiveEditTarget =
   | { type: "featured-series-card" }
   | { type: "collection" }
   | { type: "shipping" }
-  | { type: "editorial" };
+  | { type: "editorial" }
+  | { type: "manga-discovery" };
 
 export interface StorefrontState {
   // Data
@@ -215,6 +236,7 @@ export interface StorefrontState {
   genreBentoConfig: GenreBentoConfig;
   trendingConfig: TrendingConfig;
   newReleasesConfig: NewReleasesConfig;
+  mangaDiscoveryConfig: MangaDiscoveryConfig;
 
   // Admin Access & Live Visual Editor
   isAdminAuthenticated: boolean;
@@ -252,6 +274,7 @@ export interface StorefrontState {
   updateGenreBentoConfig: (updates: Partial<GenreBentoConfig>) => void;
   updateTrendingConfig: (updates: Partial<TrendingConfig>) => void;
   updateNewReleasesConfig: (updates: Partial<NewReleasesConfig>) => void;
+  updateMangaDiscoveryConfig: (updates: Partial<MangaDiscoveryConfig>) => void;
   updateGenre: (id: string, updates: Partial<GenreInfo>) => void;
 
   // Admin Auth Actions
@@ -285,6 +308,7 @@ export const useStorefrontStore = create<StorefrontState>()(
       genreBentoConfig: DEFAULT_GENRE_BENTO,
       trendingConfig: DEFAULT_TRENDING_CONFIG,
       newReleasesConfig: DEFAULT_NEW_RELEASES_CONFIG,
+      mangaDiscoveryConfig: DEFAULT_MANGA_DISCOVERY_CONFIG,
       isAdminAuthenticated: false,
       isVisualEditorActive: true,
       activeLiveEditTarget: null,
@@ -468,6 +492,12 @@ export const useStorefrontStore = create<StorefrontState>()(
         }));
       },
 
+      updateMangaDiscoveryConfig: (updates) => {
+        set((state) => ({
+          mangaDiscoveryConfig: { ...state.mangaDiscoveryConfig, ...updates },
+        }));
+      },
+
       updateGenre: (id, updates) => {
         set((state) => ({
           genres: state.genres.map((g) => (g.id === id ? { ...g, ...updates } : g)),
@@ -548,6 +578,9 @@ export const useStorefrontStore = create<StorefrontState>()(
           featuredSeriesConfig: DEFAULT_FEATURED_SERIES,
           collectionConfig: DEFAULT_COLLECTION_CONFIG,
           genreBentoConfig: DEFAULT_GENRE_BENTO,
+          trendingConfig: DEFAULT_TRENDING_CONFIG,
+          newReleasesConfig: DEFAULT_NEW_RELEASES_CONFIG,
+          mangaDiscoveryConfig: DEFAULT_MANGA_DISCOVERY_CONFIG,
         });
       },
 
@@ -566,6 +599,9 @@ export const useStorefrontStore = create<StorefrontState>()(
           featuredSeriesConfig: state.featuredSeriesConfig,
           collectionConfig: state.collectionConfig,
           genreBentoConfig: state.genreBentoConfig,
+          trendingConfig: state.trendingConfig,
+          newReleasesConfig: state.newReleasesConfig,
+          mangaDiscoveryConfig: state.mangaDiscoveryConfig,
         };
         return JSON.stringify(exportPayload, null, 2);
       },
@@ -595,6 +631,9 @@ export const useStorefrontStore = create<StorefrontState>()(
             featuredSeriesConfig: { ...DEFAULT_FEATURED_SERIES, ...(parsed.featuredSeriesConfig || {}) },
             collectionConfig: { ...DEFAULT_COLLECTION_CONFIG, ...(parsed.collectionConfig || {}) },
             genreBentoConfig: { ...DEFAULT_GENRE_BENTO, ...(parsed.genreBentoConfig || {}) },
+            trendingConfig: { ...DEFAULT_TRENDING_CONFIG, ...(parsed.trendingConfig || {}) },
+            newReleasesConfig: { ...DEFAULT_NEW_RELEASES_CONFIG, ...(parsed.newReleasesConfig || {}) },
+            mangaDiscoveryConfig: { ...DEFAULT_MANGA_DISCOVERY_CONFIG, ...(parsed.mangaDiscoveryConfig || {}) },
           });
           return true;
         } catch {
@@ -618,6 +657,7 @@ export const useStorefrontStore = create<StorefrontState>()(
         genreBentoConfig: state.genreBentoConfig,
         trendingConfig: state.trendingConfig,
         newReleasesConfig: state.newReleasesConfig,
+        mangaDiscoveryConfig: state.mangaDiscoveryConfig,
         adminPinHash: state.adminPinHash,
         isAdminAuthenticated: state.isAdminAuthenticated,
         adminSessionToken: state.adminSessionToken,
@@ -631,6 +671,9 @@ export const useStorefrontStore = create<StorefrontState>()(
         }
         if (persisted?.newReleasesConfig) {
           merged.newReleasesConfig = { ...DEFAULT_NEW_RELEASES_CONFIG, ...persisted.newReleasesConfig };
+        }
+        if (persisted?.mangaDiscoveryConfig) {
+          merged.mangaDiscoveryConfig = { ...DEFAULT_MANGA_DISCOVERY_CONFIG, ...persisted.mangaDiscoveryConfig };
         }
         if (persisted?.genreBentoConfig) {
           const desc =

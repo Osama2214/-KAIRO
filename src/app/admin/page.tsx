@@ -80,6 +80,7 @@ export default function AdminPage() {
     genreBentoConfig,
     trendingConfig,
     newReleasesConfig,
+    mangaDiscoveryConfig,
     genres,
     isAdminAuthenticated,
     adminPin,
@@ -100,6 +101,7 @@ export default function AdminPage() {
     updateGenreBentoConfig,
     updateTrendingConfig,
     updateNewReleasesConfig,
+    updateMangaDiscoveryConfig,
     updateGenre,
     logoutAdmin,
     updateAdminPin,
@@ -127,6 +129,7 @@ export default function AdminPage() {
   const [genreBentoForm, setGenreBentoForm] = useState(genreBentoConfig);
   const [trendingForm, setTrendingForm] = useState(trendingConfig);
   const [newReleasesForm, setNewReleasesForm] = useState(newReleasesConfig);
+  const [mangaDiscoveryForm, setMangaDiscoveryForm] = useState(mangaDiscoveryConfig);
   const [selectedGenreId, setSelectedGenreId] = useState<string>(genres?.[0]?.id || "action");
   const [genreDrafts, setGenreDrafts] = useState<Record<string, GenreInfo>>({});
   const [currentPinInput, setCurrentPinInput] = useState("");
@@ -189,6 +192,12 @@ export default function AdminPage() {
       setGenreBentoForm(genreBentoConfig);
     }
   }, [genreBentoConfig]);
+
+  useEffect(() => {
+    if (mangaDiscoveryConfig) {
+      setMangaDiscoveryForm(mangaDiscoveryConfig);
+    }
+  }, [mangaDiscoveryConfig]);
 
   const handleGovRateChange = (govValue: string, price: number) => {
     setShippingForm((prev) => ({
@@ -2208,6 +2217,150 @@ export default function AdminPage() {
                     <Save className="w-3.5 h-3.5" />
                     <span>Save New Releases Header</span>
                   </button>
+                </div>
+              </div>
+
+              {/* 10. MANGA DISCOVERY & ARCHIVAL SEARCH */}
+              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-5">
+                <div className="flex items-center justify-between border-b border-ink-border/50 pb-3">
+                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                    <Search className="w-4 h-4 text-gold" />
+                    <span>10. Manga Discovery &amp; Archival Search</span>
+                  </h2>
+                  <span className="text-[10px] text-text-muted">
+                    Configure search section title, description, placeholder, default tab, and result count.
+                  </span>
+                </div>
+
+                <div className="space-y-4 font-mono text-xs">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex flex-col justify-end">
+                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                        Section Badge Text
+                      </label>
+                      <input
+                        type="text"
+                        value={mangaDiscoveryForm?.badgeText || ""}
+                        onChange={(e) =>
+                          setMangaDiscoveryForm({ ...mangaDiscoveryForm, badgeText: e.target.value })
+                        }
+                        placeholder="INSTANT ARCHIVAL LOOKUP"
+                        className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                      />
+                    </div>
+
+                    <div className="flex flex-col justify-end">
+                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                        Section Headline Title
+                      </label>
+                      <input
+                        type="text"
+                        value={mangaDiscoveryForm?.title || ""}
+                        onChange={(e) =>
+                          setMangaDiscoveryForm({ ...mangaDiscoveryForm, title: e.target.value })
+                        }
+                        placeholder="FIND YOUR NEXT MANGA"
+                        className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                        Section Descriptive Subtext
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={mangaDiscoveryForm?.description || ""}
+                        onChange={(e) =>
+                          setMangaDiscoveryForm({ ...mangaDiscoveryForm, description: e.target.value })
+                        }
+                        className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none text-xs font-mono"
+                      />
+                    </div>
+
+                    <div className="flex flex-col justify-end">
+                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                        Search Input Placeholder
+                      </label>
+                      <input
+                        type="text"
+                        value={mangaDiscoveryForm?.searchPlaceholder || ""}
+                        onChange={(e) =>
+                          setMangaDiscoveryForm({ ...mangaDiscoveryForm, searchPlaceholder: e.target.value })
+                        }
+                        className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                      />
+                    </div>
+
+                    <div className="flex flex-col justify-end">
+                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                        Catalog Link Text
+                      </label>
+                      <input
+                        type="text"
+                        value={mangaDiscoveryForm?.catalogLinkText || ""}
+                        onChange={(e) =>
+                          setMangaDiscoveryForm({ ...mangaDiscoveryForm, catalogLinkText: e.target.value })
+                        }
+                        className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                      />
+                    </div>
+
+                    <div className="flex flex-col justify-end">
+                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                        Default Active Tab
+                      </label>
+                      <CustomSelect
+                        fullWidth
+                        value={mangaDiscoveryForm?.defaultTab || "POPULAR"}
+                        onChange={(val) =>
+                          setMangaDiscoveryForm({ ...mangaDiscoveryForm, defaultTab: val as any })
+                        }
+                        options={[
+                          { value: "POPULAR", label: "POPULAR (Trending)" },
+                          { value: "TOP_RATED", label: "TOP RATED (4.9+ Stars)" },
+                          { value: "BEST_SELLERS", label: "BEST SELLERS" },
+                          { value: "RECENTLY_ADDED", label: "RECENTLY ADDED (Vol. 1)" },
+                        ]}
+                        buttonClassName="bg-ink rounded-sm h-10 px-3 text-xs"
+                      />
+                    </div>
+
+                    <div className="flex flex-col justify-end">
+                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                        Cards Display Count
+                      </label>
+                      <CustomSelect
+                        fullWidth
+                        value={String(mangaDiscoveryForm?.displayCount || 4)}
+                        onChange={(val) =>
+                          setMangaDiscoveryForm({
+                            ...mangaDiscoveryForm,
+                            displayCount: parseInt(val, 10) || 4,
+                          })
+                        }
+                        options={[
+                          { value: "4", label: "4 Cards (Single Row)" },
+                          { value: "8", label: "8 Cards (Two Rows)" },
+                        ]}
+                        buttonClassName="bg-ink rounded-sm h-10 px-3 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateMangaDiscoveryConfig(mangaDiscoveryForm);
+                        showToast("Manga discovery settings saved live.");
+                      }}
+                      className="flex items-center gap-1.5 px-5 py-2.5 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Save Discovery Settings</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
