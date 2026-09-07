@@ -3,17 +3,22 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, ShoppingBag, User, Menu, X, Compass, Heart, Sparkles } from "lucide-react";
+import { Search, ShoppingBag, User, Menu, X, Compass, Heart, Sparkles, Globe } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
 import { useUIStore } from "@/store/useUIStore";
 import { GlobalWelcomeOfferBar } from "@/components/GlobalWelcomeOfferBar";
 import { useWelcomeOffer } from "@/hooks/useWelcomeOffer";
 import { clearKairoSavedScroll } from "@/components/SmoothScrollProvider";
+import { useTranslation } from "@/hooks/useTranslation";
+import { useStorefrontStore } from "@/store/useStorefrontStore";
 
 export function Navbar() {
   const pathname = usePathname();
   const mounted = useMounted();
+  const { t, locale, toggleLanguage } = useTranslation();
+  const isArabic = locale === "ar";
+  const arabicLanguageEnabled = useStorefrontStore((state) => state.arabicLanguageEnabled ?? true);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeHash, setActiveHash] = useState("");
@@ -24,24 +29,12 @@ export function Navbar() {
   const { hasOffer: hasWelcomeOffer, currentUser } = useWelcomeOffer();
 
   useEffect(() => {
-    // If session is explicitly logged out and no user is active, purge any leftover cart/wishlist
-    if (typeof window !== "undefined" && localStorage.getItem("kairo_active_session") === "logged_out" && !currentUser) {
-      if (useCartStore.getState().items.length > 0) {
-        useCartStore.getState().clearCart();
-        localStorage.removeItem("kairo_cart_storage");
-      }
-      if (useWishlistStore.getState().items.length > 0) {
-        useWishlistStore.getState().clearWishlist();
-        localStorage.removeItem("kairo_wishlist_storage");
-      }
-    }
-
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [currentUser]);
+  }, []);
 
   // Track current URL hash on client
   useEffect(() => {
@@ -66,11 +59,11 @@ export function Navbar() {
   }, [openSearch]);
 
   const navLinks = [
-    { label: "MANGA", href: "/manga" },
-    { label: "SERIES", href: "/series" },
-    { label: "GENRES", href: "/#genres" },
-    { label: "NEW RELEASES", href: "/#new-releases" },
-    { label: "SALE", href: "/manga?sort=sale" },
+    { label: t.nav.manga, href: "/manga" },
+    { label: t.nav.series, href: "/series" },
+    { label: t.nav.genres, href: "/#genres" },
+    { label: t.nav.newReleases, href: "/#new-releases" },
+    { label: t.nav.sale, href: "/manga?sort=sale" },
   ];
 
   const handleLogoClick = (e: React.MouseEvent) => {
@@ -179,31 +172,31 @@ export function Navbar() {
         <GlobalWelcomeOfferBar />
 
         <div
-          className={`max-w-7xl mx-auto px-6 md:px-10 flex items-center justify-between transition-all duration-300 ${
-            isScrolled ? "py-3.5" : "py-5"
+          className={`max-w-7xl mx-auto px-4 sm:px-6 md:px-10 flex items-center justify-between transition-all duration-300 ${
+            isScrolled ? "py-2.5 sm:py-3.5" : "py-3 sm:py-5"
           }`}
         >
           {/* Brand Logo & Japanese Seal */}
           <Link
             href="/"
             onClick={handleLogoClick}
-            className="group flex items-center gap-3.5 tracking-tight focus:outline-none cursor-pointer"
+            className="group flex items-center gap-2.5 sm:gap-3.5 tracking-tight focus:outline-none cursor-pointer shrink-0"
           >
-            <div className="w-8 h-8 rounded-sm bg-vermilion/90 flex items-center justify-center text-paper font-serif font-bold text-xs border border-vermilion/50 shadow-sm transition-transform duration-300 group-hover:scale-105">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-sm bg-vermilion/90 flex items-center justify-center text-paper font-serif font-bold text-[11px] sm:text-xs border border-vermilion/50 shadow-sm transition-transform duration-300 group-hover:scale-105">
               回路
             </div>
             <div className="flex flex-col">
-              <span className="font-extrabold tracking-[0.25em] text-lg text-paper uppercase transition-colors group-hover:text-vermilion">
+              <span className="font-extrabold tracking-[0.2em] sm:tracking-[0.25em] text-base sm:text-lg text-paper uppercase transition-colors group-hover:text-vermilion">
                 KAIRO
               </span>
-              <span className="text-[9px] tracking-[0.2em] text-text-muted uppercase font-mono -mt-1">
+              <span className="text-[8px] sm:text-[9px] tracking-[0.18em] sm:tracking-[0.2em] text-text-muted uppercase font-mono -mt-1">
                 EDITORIAL MANGA
               </span>
             </div>
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-8 lg:gap-10">
+          <nav className="hidden lg:flex items-center gap-6 xl:gap-10">
             {navLinks.map((link) => {
               const active = isLinkActive(link.href);
               return (
@@ -227,15 +220,30 @@ export function Navbar() {
           </nav>
 
           {/* Right Action Icons */}
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-0.5 sm:gap-2">
+            {/* Language Switcher */}
+            {arabicLanguageEnabled && (
+              <button
+                onClick={toggleLanguage}
+                className="h-8 px-1.5 sm:px-2.5 flex items-center gap-1 text-paper-muted/90 hover:text-gold transition-all rounded-sm hover:bg-ink-surface/80 border border-ink-border/80 hover:border-gold/50 focus:outline-none cursor-pointer"
+                title={locale === "en" ? "تبديل إلى اللغة العربية" : "Switch to English"}
+                aria-label="Toggle language"
+              >
+                <Globe strokeWidth={1.5} className="w-3.5 h-3.5 text-gold" />
+                <span className="text-[11px] font-bold font-sans tracking-wide">
+                  {locale === "en" ? "العربية" : "EN"}
+                </span>
+              </button>
+            )}
+
             {/* Search Trigger */}
             <button
               onClick={openSearch}
-              className="h-9 px-2.5 flex items-center gap-2 text-paper-muted/80 hover:text-gold transition-all rounded-sm hover:bg-ink-surface/80 border border-transparent hover:border-ink-border/60 focus:outline-none cursor-pointer"
+              className="h-8 w-8 sm:h-9 sm:w-auto sm:px-2.5 flex items-center justify-center gap-2 text-paper-muted/80 hover:text-gold transition-all rounded-sm hover:bg-ink-surface/80 border border-transparent hover:border-ink-border/60 focus:outline-none cursor-pointer"
               title="Search (⌘K)"
               aria-label="Search manga catalog"
             >
-              <Search strokeWidth={1.5} className="w-[18px] h-[18px]" />
+              <Search strokeWidth={1.5} className="w-[17px] h-[17px] sm:w-[18px] sm:h-[18px]" />
               <span className="hidden lg:inline-flex items-center px-1.5 py-0.5 rounded-xs bg-ink-surface border border-ink-border/80 text-[10px] font-mono tracking-wider text-text-muted">
                 ⌘K
               </span>
@@ -244,18 +252,18 @@ export function Navbar() {
             {/* Wishlist */}
             <Link
               href="/account?tab=WISHLIST"
-              className="relative h-9 w-9 flex items-center justify-center text-paper-muted/80 hover:text-gold transition-all rounded-sm hover:bg-ink-surface/80 border border-transparent hover:border-ink-border/60"
+              className="relative h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center text-paper-muted/80 hover:text-gold transition-all rounded-sm hover:bg-ink-surface/80 border border-transparent hover:border-ink-border/60"
               title="Curated Wishlist"
               aria-label="View Wishlist"
             >
               <Heart
                 strokeWidth={1.5}
-                className={`w-[18px] h-[18px] transition-colors ${
+                className={`w-[17px] h-[17px] sm:w-[18px] sm:h-[18px] transition-colors ${
                   mounted && totalWishlistCount > 0 ? "text-gold fill-gold/20" : ""
                 }`}
               />
               {mounted && totalWishlistCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 bg-gold text-ink text-[9px] font-mono font-bold rounded-full flex items-center justify-center ring-2 ring-ink shadow-sm pointer-events-none animate-in zoom-in-50">
+                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 bg-gold text-ink text-[9px] font-mono font-bold rounded-full flex items-center justify-center ring-2 ring-ink shadow-sm pointer-events-none animate-in zoom-in-50">
                   {totalWishlistCount}
                 </span>
               )}
@@ -264,13 +272,13 @@ export function Navbar() {
             {/* Account / Dashboard */}
             <Link
               href="/account"
-              className="h-9 px-2.5 flex items-center gap-2 text-paper-muted/80 hover:text-gold transition-all rounded-sm hover:bg-ink-surface/80 border border-transparent hover:border-ink-border/60 cursor-pointer"
+              className="h-8 w-8 sm:h-9 sm:w-auto sm:px-2.5 flex items-center justify-center gap-2 text-paper-muted/80 hover:text-gold transition-all rounded-sm hover:bg-ink-surface/80 border border-transparent hover:border-ink-border/60 cursor-pointer"
               title={mounted && currentUser ? `Patron: ${currentUser.name} (${currentUser.id})` : "Sign In / Register"}
               aria-label="User Account"
             >
               <User
                 strokeWidth={1.5}
-                className={`w-[18px] h-[18px] transition-colors ${
+                className={`w-[17px] h-[17px] sm:w-[18px] sm:h-[18px] transition-colors ${
                   mounted && currentUser ? "text-gold" : ""
                 }`}
               />
@@ -284,13 +292,13 @@ export function Navbar() {
             {/* Cart Drawer Trigger */}
             <button
               onClick={openCart}
-              className="relative h-9 w-9 flex items-center justify-center text-paper-muted/80 hover:text-gold transition-all rounded-sm hover:bg-ink-surface/80 border border-transparent hover:border-ink-border/60 focus:outline-none cursor-pointer"
+              className="relative h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center text-paper-muted/80 hover:text-gold transition-all rounded-sm hover:bg-ink-surface/80 border border-transparent hover:border-ink-border/60 focus:outline-none cursor-pointer"
               title="View Cart"
               aria-label="Open Cart"
             >
-              <ShoppingBag strokeWidth={1.5} className="w-[18px] h-[18px]" />
+              <ShoppingBag strokeWidth={1.5} className="w-[17px] h-[17px] sm:w-[18px] sm:h-[18px]" />
               {mounted && totalCartCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 bg-vermilion text-white text-[9px] font-mono font-bold rounded-full flex items-center justify-center ring-2 ring-ink shadow-sm pointer-events-none animate-in zoom-in-50">
+                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 bg-vermilion text-white text-[9px] font-mono font-bold rounded-full flex items-center justify-center ring-2 ring-ink shadow-sm pointer-events-none animate-in zoom-in-50">
                   {totalCartCount}
                 </span>
               )}
@@ -299,7 +307,7 @@ export function Navbar() {
             {/* Mobile Menu Hamburger Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden h-9 w-9 flex items-center justify-center text-paper-muted/80 hover:text-paper transition-colors rounded-sm focus:outline-none"
+              className="lg:hidden h-8 w-8 flex items-center justify-center text-paper-muted/80 hover:text-paper transition-colors rounded-sm focus:outline-none cursor-pointer"
               aria-label="Toggle Navigation Menu"
             >
               {mobileMenuOpen ? (
@@ -312,14 +320,14 @@ export function Navbar() {
         </div>
       </header>
 
-      {/* Mobile Drawer Menu */}
+      {/* Mobile Drawer Menu with Smooth Touch Layout and Safe-Area Support */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-30 bg-ink/95 backdrop-blur-xl md:hidden pt-24 px-8 pb-10 flex flex-col justify-between animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-30 bg-ink/98 backdrop-blur-2xl md:hidden pt-24 px-6 sm:px-8 pb-8 pb-safe flex flex-col justify-between overflow-y-auto animate-in fade-in duration-300">
           <div className="space-y-6">
             <span className="text-[10px] tracking-[0.25em] text-text-muted font-mono uppercase">
-              Navigation
+              {isArabic ? "التنقل السريع" : "NAVIGATION"}
             </span>
-            <div className="flex flex-col space-y-5">
+            <div className="flex flex-col space-y-3">
               {navLinks.map((link) => {
                 const active = isLinkActive(link.href);
                 return (
@@ -327,8 +335,10 @@ export function Navbar() {
                     key={link.label}
                     href={link.href}
                     onClick={(e) => handleNavClick(e, link.href)}
-                    className={`text-lg font-bold tracking-[0.15em] transition-colors flex items-center justify-between cursor-pointer ${
-                      active ? "text-vermilion" : "text-paper hover:text-vermilion"
+                    className={`py-2 px-3 rounded-xs text-base sm:text-lg font-bold tracking-[0.12em] transition-colors flex items-center justify-between cursor-pointer ${
+                      active
+                        ? "bg-ink-surface text-vermilion border border-vermilion/30"
+                        : "text-paper hover:text-vermilion hover:bg-ink-surface/50"
                     }`}
                   >
                     <span>{link.label}</span>
@@ -339,45 +349,74 @@ export function Navbar() {
             </div>
           </div>
 
-          <div className="pt-8 border-t border-ink-border/80 flex items-center justify-between">
-            <div className="flex flex-col gap-2.5 w-full">
-              {hasWelcomeOffer && (
-                <div className="p-2.5 bg-gold/10 border border-gold/40 rounded-xs flex items-center justify-between gap-2 text-xs font-mono mb-1">
-                  <div className="flex items-center gap-1.5 text-gold truncate">
-                    <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">20% Grant: <strong>{currentUser?.welcomeDiscountCode}</strong></span>
-                  </div>
-                  <Link
-                    href="/account"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="px-2 py-0.5 bg-gold text-ink font-bold text-[10px] rounded-xs uppercase tracking-wider shrink-0"
-                  >
-                    View
-                  </Link>
+          <div className="pt-6 mt-6 border-t border-ink-border/80 flex flex-col gap-3">
+            {hasWelcomeOffer && (
+              <div className="p-3 bg-gold/10 border border-gold/40 rounded-xs flex items-center justify-between gap-2 text-xs font-mono">
+                <div className="flex items-center gap-1.5 text-gold truncate">
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">20% Grant: <strong>{currentUser?.welcomeDiscountCode}</strong></span>
                 </div>
-              )}
-              <Link
-                href="/account"
-                onClick={() => setMobileMenuOpen(false)}
-                className="text-xs font-mono tracking-wider text-text-muted hover:text-paper flex items-center gap-2"
-              >
-                <User strokeWidth={1.4} className={`w-3.5 h-3.5 ${mounted && currentUser ? "text-gold" : ""}`} />
-                <span>
+                <Link
+                  href="/account"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-2.5 py-1 bg-gold text-ink font-bold text-[10px] rounded-xs uppercase tracking-wider shrink-0"
+                >
+                  View
+                </Link>
+              </div>
+            )}
+            
+            <Link
+              href="/account"
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-2.5 px-3 rounded-xs bg-ink-surface/60 border border-ink-border text-xs font-mono tracking-wider text-paper hover:text-gold flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2">
+                <User strokeWidth={1.4} className={`w-4 h-4 ${mounted && currentUser ? "text-gold" : "text-text-muted"}`} />
+                <span className="font-semibold">
                   {mounted && currentUser
                     ? `PATRON: ${currentUser.name.split(" ")[0].toUpperCase()}`
-                    : "MY ACCOUNT / ORDERS"}
+                    : (isArabic ? "حسابي / تتبع الطلبات" : "MY ACCOUNT / ORDERS")}
                 </span>
-              </Link>
-              <Link
-                href="/account?tab=WISHLIST"
-                onClick={() => setMobileMenuOpen(false)}
-                className="text-xs font-mono tracking-wider text-gold hover:text-paper flex items-center gap-2"
+              </div>
+              <span className="text-[10px] text-text-muted font-serif">→</span>
+            </Link>
+
+            <Link
+              href="/account?tab=WISHLIST"
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-2.5 px-3 rounded-xs bg-ink-surface/60 border border-ink-border text-xs font-mono tracking-wider text-gold hover:text-paper flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2">
+                <Heart strokeWidth={1.4} className="w-4 h-4" />
+                <span>{isArabic ? "قائمة الرغبات" : "WISHLIST"} ({mounted ? totalWishlistCount : 0})</span>
+              </div>
+              <span className="text-[10px] text-text-muted font-serif">→</span>
+            </Link>
+
+            {arabicLanguageEnabled && (
+              <button
+                type="button"
+                onClick={() => {
+                  toggleLanguage();
+                  setMobileMenuOpen(false);
+                }}
+                className="py-2.5 px-3 rounded-xs bg-gold/10 border border-gold/30 text-xs font-bold text-gold hover:text-paper flex items-center justify-between font-sans cursor-pointer"
               >
-                <Heart strokeWidth={1.4} className="w-3.5 h-3.5" />
-                <span>WISHLIST ({mounted ? totalWishlistCount : 0})</span>
-              </Link>
+                <div className="flex items-center gap-2">
+                  <Globe strokeWidth={1.4} className="w-4 h-4" />
+                  <span>{locale === "en" ? "تغيير الواجهة إلى العربية" : "Switch Interface to English"}</span>
+                </div>
+                <span className="text-[11px] font-mono uppercase text-gold font-bold">
+                  {locale === "en" ? "العربية" : "EN"}
+                </span>
+              </button>
+            )}
+
+            <div className="pt-2 flex items-center justify-between text-[11px] text-text-muted font-mono">
+              <span>{isArabic ? "أرشيف مانجا كيرو الرسمي" : "KAIRO ARCHIVAL SYSTEM"}</span>
+              <span className="text-gold font-serif">回路アーカイブ</span>
             </div>
-            <span className="text-xs text-gold font-serif">回路アーカイブ</span>
           </div>
         </div>
       )}

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Manrope, Noto_Sans_JP, Shippori_Mincho, JetBrains_Mono, Cinzel, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 import { StorefrontShell } from "@/components/StorefrontShell";
@@ -47,6 +47,14 @@ const jetbrains = JetBrains_Mono({
   weight: ["400", "500"],
   display: "swap",
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: "#0D0D0F",
+};
 
 export const metadata: Metadata = {
   title: "KAIRO (回路) — High-End Japanese Manga & Editorial Storefront",

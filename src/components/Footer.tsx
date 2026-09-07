@@ -3,34 +3,36 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShieldCheck, Truck, RefreshCw, Copyright } from "lucide-react";
+import { Copyright } from "lucide-react";
 import { PolicyModal, PolicyTab } from "./PolicyModal";
 
 import { useAuthStore } from "@/store/useAuthStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { useMounted } from "@/store/useWishlistStore";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export function Footer() {
   const pathname = usePathname();
   const [policyOpen, setPolicyOpen] = useState(false);
   const [activePolicyTab, setActivePolicyTab] = useState<PolicyTab>("shipping");
   const currentUser = useAuthStore((state) => state.currentUser);
-  const shippingConfig = useStorefrontStore((state) => state.shippingConfig);
+  const { t, locale, isRTL } = useTranslation();
   const editorialConfig = useStorefrontStore((state) => state.editorialConfig);
+  const editorialArabicConfig = useStorefrontStore((state) => state.editorialArabicConfig);
   const mounted = useMounted();
 
-  const perk1Title = mounted && shippingConfig?.perk1Title ? shippingConfig.perk1Title : "EGYPT-WIDE EXPRESS DISPATCH";
-  const perk1Desc = mounted && shippingConfig?.perk1Desc ? shippingConfig.perk1Desc : "Central archive hub in 6th of October City. Direct delivery to all Egyptian governorates with protective reinforced slip-sleeves.";
+  const isAr = locale === "ar";
 
-  const perk2Title = mounted && shippingConfig?.perk2Title ? shippingConfig.perk2Title : "AUTHENTIC JAPANESE EDITIONS";
-  const perk2Desc = mounted && shippingConfig?.perk2Desc ? shippingConfig.perk2Desc : "100% licensed Tankōbon, Kanzenban, and oversized collector hardcovers.";
-
-  const perk3Title = mounted && shippingConfig?.perk3Title ? shippingConfig.perk3Title : "COLLECTOR REPLACEMENT GUARANTEE";
-  const perk3Desc = mounted && shippingConfig?.perk3Desc ? shippingConfig.perk3Desc : "Corner protection assurance. We replace any volume damaged during transit.";
-
-  const footerDescription = mounted && editorialConfig?.footerDescription ? editorialConfig.footerDescription : "An editorial archive celebrating sequential art, Japanese literary epics, and tactile physical printing craftsmanship.";
-  const hubCities = mounted && editorialConfig?.hubCities ? editorialConfig.hubCities : "6TH OF OCTOBER • CAIRO • ALEXANDRIA • ALL EGYPT";
+  const footerDescription = mounted
+    ? (isAr ? (editorialArabicConfig?.footerDescription || t.footer.description) : (editorialConfig?.footerDescription || t.footer.description))
+    : t.footer.description;
+  const hubCities = mounted
+    ? (isAr ? (editorialArabicConfig?.hubCities || t.footer.hubCities) : (editorialConfig?.hubCities || t.footer.hubCities))
+    : t.footer.hubCities;
+  const footerQuote = mounted
+    ? (isAr ? (editorialArabicConfig?.footerQuote || editorialConfig?.footerQuote) : editorialConfig?.footerQuote)
+    : "";
 
   const openPolicy = (tab: PolicyTab) => {
     setActivePolicyTab(tab);
@@ -49,65 +51,16 @@ export function Footer() {
   }
 
   return (
-    <footer className="bg-ink border-t border-ink-border/80 pt-20 pb-12 text-text-muted relative overflow-hidden">
+    <footer className="bg-ink border-t border-ink-border/80 pt-12 sm:pt-16 pb-12 pb-safe text-text-muted relative overflow-hidden">
       {/* Background Japanese Watermark */}
       <div className="absolute -bottom-10 right-4 font-serif text-[180px] font-bold text-white/[0.015] pointer-events-none select-none">
         回路
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 md:px-10">
-        {/* Value Props Bar & Logistics Edit */}
-        <div className="relative pb-12 border-b border-ink-border/60">
-          <div className="flex items-center justify-end mb-4">
-            <LiveEditButton target={{ type: "shipping" }} label="Edit Logistics & Shipping" variant="floating" size="xs" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-ink-surface border border-ink-border rounded-sm text-gold shrink-0">
-                <Truck strokeWidth={1.4} className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold tracking-widest text-paper uppercase">
-                  {perk1Title}
-                </h4>
-                <p className="text-xs text-text-muted mt-1 leading-relaxed">
-                  {perk1Desc}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-ink-surface border border-ink-border rounded-sm text-gold shrink-0">
-                <ShieldCheck strokeWidth={1.4} className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold tracking-widest text-paper uppercase">
-                  {perk2Title}
-                </h4>
-                <p className="text-xs text-text-muted mt-1 leading-relaxed">
-                  {perk2Desc}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-ink-surface border border-ink-border rounded-sm text-gold shrink-0">
-                <RefreshCw strokeWidth={1.4} className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold tracking-widest text-paper uppercase">
-                  {perk3Title}
-                </h4>
-                <p className="text-xs text-text-muted mt-1 leading-relaxed">
-                  {perk3Desc}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10">
 
         {/* Main Footer Links */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-10 py-16">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 sm:gap-10 py-12 sm:py-16">
           {/* Brand Info */}
           <div className="col-span-2 space-y-4">
             <div className="flex items-center justify-between">
@@ -131,36 +84,36 @@ export function Footer() {
 
           {/* Navigation Links */}
           <div>
-            <h5 className="text-[11px] font-mono tracking-[0.2em] uppercase text-paper font-semibold mb-4">
-              ARCHIVE
+            <h5 className="text-[11px] font-mono tracking-[0.2em] uppercase text-paper font-semibold mb-4 font-sans">
+              {locale === "ar" ? "الأرشيف" : "ARCHIVE"}
             </h5>
-            <ul className="space-y-2.5 text-xs">
+            <ul className="space-y-2.5 text-xs font-sans">
               <li>
                 <Link href="/manga" className="hover:text-paper transition-colors">
-                  All Volumes
+                  {locale === "ar" ? "كافة المجلدات" : "All Volumes"}
                 </Link>
               </li>
               <li>
                 <Link href="/manga?format=Deluxe+Edition" className="hover:text-paper transition-colors">
-                  Deluxe Hardcovers
+                  {locale === "ar" ? "طبعات فاخرة Deluxe" : "Deluxe Hardcovers"}
                 </Link>
               </li>
               <li>
                 <Link href="/manga?format=Box+Set" className="hover:text-paper transition-colors">
-                  Collector Box Sets
+                  {locale === "ar" ? "صناديق المجلدات Box Sets" : "Collector Box Sets"}
                 </Link>
               </li>
               <li>
                 <Link href="/#genres" className="hover:text-paper transition-colors">
-                  Explore by Genre
+                  {locale === "ar" ? "تصفح حسب التصنيف" : "Explore by Genre"}
                 </Link>
               </li>
             </ul>
           </div>
 
           <div>
-            <h5 className="text-[11px] font-mono tracking-[0.2em] uppercase text-paper font-semibold mb-4">
-              SERIES
+            <h5 className="text-[11px] font-mono tracking-[0.2em] uppercase text-paper font-semibold mb-4 font-sans">
+              {locale === "ar" ? "السلاسل" : "SERIES"}
             </h5>
             <ul className="space-y-2.5 text-xs">
               <li>
@@ -187,36 +140,31 @@ export function Footer() {
           </div>
 
           <div>
-            <h5 className="text-[11px] font-mono tracking-[0.2em] uppercase text-paper font-semibold mb-4">
-              CUSTOMER CARE
+            <h5 className="text-[11px] font-mono tracking-[0.2em] uppercase text-paper font-semibold mb-4 font-sans">
+              {locale === "ar" ? "خدمة المقتنين" : "CUSTOMER CARE"}
             </h5>
-            <ul className="space-y-2.5 text-xs">
+            <ul className="space-y-2.5 text-xs font-sans">
               <li>
                 <Link href="/account?tab=ORDERS" className="hover:text-gold transition-colors block">
-                  Order Tracking
-                </Link>
-              </li>
-              <li>
-                <Link href="/account?tab=LIBRARY" className="hover:text-gold transition-colors block">
-                  Digital Library
+                  {locale === "ar" ? "تتبع الشحنات والطلبات" : "Order Tracking"}
                 </Link>
               </li>
               <li>
                 <button
                   type="button"
                   onClick={() => openPolicy("shipping")}
-                  className="hover:text-gold transition-colors text-left text-text-muted cursor-pointer block"
+                  className="hover:text-gold transition-colors text-left rtl:text-right text-text-muted cursor-pointer block"
                 >
-                  Shipping Policies
+                  {locale === "ar" ? "سياسات الشحن والتوصيل" : "Shipping Policies"}
                 </button>
               </li>
               <li>
                 <button
                   type="button"
                   onClick={() => openPolicy("authenticity")}
-                  className="hover:text-gold transition-colors text-left text-text-muted cursor-pointer block"
+                  className="hover:text-gold transition-colors text-left rtl:text-right text-text-muted cursor-pointer block"
                 >
-                  Authenticity Certificate
+                  {locale === "ar" ? "ضمان وشهادة الأصالة" : "Authenticity Certificate"}
                 </button>
               </li>
             </ul>
@@ -225,27 +173,27 @@ export function Footer() {
 
         {/* Bottom Sub-bar */}
         <div className="pt-8 border-t border-ink-border/60 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] font-mono">
-          <div className="flex items-center gap-2 text-[11px] font-mono tracking-wider text-text-muted">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-[11px] font-mono tracking-wider text-text-muted font-sans text-center sm:text-left">
             <Copyright strokeWidth={1.6} className="w-3.5 h-3.5 text-gold shrink-0" />
             <span>{new Date().getFullYear()}</span>
             <span className="text-paper font-semibold">KAIRO PUBLISHING ARCHIVE.</span>
-            <span className="text-text-muted/75">ALL RIGHTS RESERVED.</span>
+            <span className="text-text-muted/75">{locale === "ar" ? "جميع الحقوق محفوظة." : "ALL RIGHTS RESERVED."}</span>
           </div>
-          <div className="flex flex-wrap items-center gap-6">
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-4 sm:gap-6 font-sans text-xs">
             <span className="text-gold font-serif">精神と物質の回路</span>
             <button
               type="button"
               onClick={() => openPolicy("privacy")}
-              className="text-text-muted hover:text-gold transition-colors cursor-pointer uppercase tracking-wider text-[11px] font-mono"
+              className="text-text-muted hover:text-gold transition-colors cursor-pointer uppercase tracking-wider text-[11px]"
             >
-              PRIVACY PROTOCOL
+              {locale === "ar" ? "سياسة الخصوصية" : "PRIVACY PROTOCOL"}
             </button>
             <button
               type="button"
               onClick={() => openPolicy("terms")}
-              className="text-text-muted hover:text-gold transition-colors cursor-pointer uppercase tracking-wider text-[11px] font-mono"
+              className="text-text-muted hover:text-gold transition-colors cursor-pointer uppercase tracking-wider text-[11px]"
             >
-              TERMS OF SALE
+              {locale === "ar" ? "شروط الشراء والاستبدال" : "TERMS OF SALE"}
             </button>
           </div>
         </div>

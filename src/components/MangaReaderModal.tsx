@@ -16,8 +16,11 @@ import { useCartStore } from "@/store/useCartStore";
 import { useReaderStore } from "@/store/useReaderStore";
 import { useAuthStore, SavedOrder, SavedOrderItem } from "@/store/useAuthStore";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export function MangaReaderModal() {
+  const { t, locale, isRTL } = useTranslation();
+  const isArabic = locale === "ar";
   const { isReaderOpen, activeReaderVolume, closeReader } = useUIStore();
   useModalScrollLock(isReaderOpen && Boolean(activeReaderVolume));
   const addItem = useCartStore((state) => state.addItem);
@@ -142,14 +145,16 @@ export function MangaReaderModal() {
               {isOwned ? (
                 <>
                   <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
-                  <span className="text-gold font-bold">DIGITAL ARCHIVE EDITION • UNLOCKED</span>
+                  <span className="text-gold font-bold">
+                    {isArabic ? "نسخة الأرشيف الرقمي • مفتوحة بالكامل" : "DIGITAL ARCHIVE EDITION • UNLOCKED"}
+                  </span>
                 </>
               ) : (
-                "OFFICIAL SAMPLER (JAPANESE RTL READER)"
+                isArabic ? "عينة رسمية (قارئ مانجا ياباني)" : "OFFICIAL SAMPLER (JAPANESE RTL READER)"
               )}
             </span>
             <h3 className="text-xs sm:text-sm font-bold text-paper line-clamp-1">
-              {activeReaderVolume.seriesTitle} — Vol. {activeReaderVolume.volumeNumber} ({activeReaderVolume.title})
+              {activeReaderVolume.seriesTitle} — {isArabic ? "المجلد" : "Vol."} {activeReaderVolume.volumeNumber} ({activeReaderVolume.title})
             </h3>
           </div>
         </div>
@@ -157,7 +162,7 @@ export function MangaReaderModal() {
         {/* Center: Page Status & Navigation Hint */}
         <div className="hidden sm:flex items-center gap-3 font-mono text-xs text-text-muted">
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-sm bg-ink-surface border border-ink-border">
-            <span className="text-text-muted">PAGE</span>
+            <span className="text-text-muted">{isArabic ? "صفحة" : "PAGE"}</span>
             <span className="text-paper font-bold">
               0{currentPageIndex + 1} / 0{pages.length}
             </span>
@@ -166,9 +171,9 @@ export function MangaReaderModal() {
           <span className="text-[11px] text-gold font-semibold">
             {isLastPage
               ? isOwned
-                ? "VOLUME CHAPTER COMPLETE"
-                : "END OF PREVIEW CHAPTER"
-              : "[← NEXT PAGE (RTL)]"}
+                ? (isArabic ? "اكتمل قراءة الفصل" : "VOLUME CHAPTER COMPLETE")
+                : (isArabic ? "نهاية فصل المعاينة" : "END OF PREVIEW CHAPTER")
+              : (isArabic ? "[← الصفحة التالية (RTL)]" : "[← NEXT PAGE (RTL)]")}
           </span>
         </div>
 
@@ -177,21 +182,21 @@ export function MangaReaderModal() {
           <button
             onClick={() => setZoomLevel((z) => Math.min(1.5, z + 0.15))}
             className="p-2 text-text-muted hover:text-paper transition-colors rounded-sm hover:bg-ink-surface cursor-pointer"
-            title="Zoom In"
+            title={isArabic ? "تكبير" : "Zoom In"}
           >
             <ZoomIn strokeWidth={1.4} className="w-4 h-4" />
           </button>
           <button
             onClick={() => setZoomLevel((z) => Math.max(0.85, z - 0.15))}
             className="p-2 text-text-muted hover:text-paper transition-colors rounded-sm hover:bg-ink-surface cursor-pointer"
-            title="Zoom Out"
+            title={isArabic ? "تصغير" : "Zoom Out"}
           >
             <ZoomOut strokeWidth={1.4} className="w-4 h-4" />
           </button>
           <button
             onClick={closeReader}
             className="p-2 text-text-muted hover:text-vermilion transition-colors rounded-sm hover:bg-ink-surface ml-1 cursor-pointer"
-            title="Close Viewer (ESC)"
+            title={isArabic ? "إغلاق القارئ (ESC)" : "Close Viewer (ESC)"}
           >
             <X strokeWidth={1.5} className="w-5 h-5" />
           </button>
@@ -212,10 +217,10 @@ export function MangaReaderModal() {
             className={`hidden md:flex absolute -left-16 lg:-left-20 top-1/2 -translate-y-1/2 z-20 w-12 h-20 rounded-sm bg-ink-surface/90 border border-ink-border flex-col items-center justify-center text-paper transition-all hover:border-gold hover:text-gold hover:scale-105 disabled:opacity-20 disabled:pointer-events-none shadow-2xl ${
               isLastPage ? "cursor-not-allowed" : "cursor-pointer"
             }`}
-            title="Next Page (RTL)"
+            title={isArabic ? "الصفحة التالية (RTL)" : "Next Page (RTL)"}
           >
             <ChevronLeft strokeWidth={1.5} className="w-6 h-6" />
-            <span className="text-[8px] font-mono tracking-wider mt-1 text-gold">NEXT</span>
+            <span className="text-[8px] font-mono tracking-wider mt-1 text-gold">{isArabic ? "التالي" : "NEXT"}</span>
           </button>
 
           {/* RTL Previous Page Button (On Right in RTL reading!) */}
@@ -225,10 +230,10 @@ export function MangaReaderModal() {
             className={`hidden md:flex absolute -right-16 lg:-right-20 top-1/2 -translate-y-1/2 z-20 w-12 h-20 rounded-sm bg-ink-surface/90 border border-ink-border flex-col items-center justify-center text-paper transition-all hover:border-gold hover:text-gold hover:scale-105 disabled:opacity-20 disabled:pointer-events-none shadow-2xl ${
               currentPageIndex <= 0 ? "cursor-not-allowed" : "cursor-pointer"
             }`}
-            title="Previous Page (RTL)"
+            title={isArabic ? "الصفحة السابقة (RTL)" : "Previous Page (RTL)"}
           >
             <ChevronRight strokeWidth={1.5} className="w-6 h-6" />
-            <span className="text-[8px] font-mono tracking-wider mt-1 text-text-muted">PREV</span>
+            <span className="text-[8px] font-mono tracking-wider mt-1 text-text-muted">{isArabic ? "السابق" : "PREV"}</span>
           </button>
 
           {/* Mobile Overlay Arrows */}
@@ -260,14 +265,16 @@ export function MangaReaderModal() {
             />
 
             {/* Authentic Japanese Inner Spine Shadow (Simulates Physical Binding) */}
-            <div className="absolute inset-y-0 left-0 w-8 bg-linear-to- from-black/45 via-black/15 to-transparent pointer-events-none" />
+            <div className="absolute inset-y-0 left-0 w-8 bg-linear-to-r from-black/45 via-black/15 to-transparent pointer-events-none" />
 
             {/* Top Chapter Header Stamp */}
             <div className="absolute top-3 left-4 px-2.5 py-1 rounded-xs bg-black/70 backdrop-blur-md border border-white/10 font-mono text-[9px] text-text-muted tracking-widest uppercase flex items-center gap-1.5">
               <span>第１話 // CHAPTER 01</span>
               <span className="text-gold">•</span>
               <span className="text-gold font-bold">
-                {isOwned ? "UNLOCKED ARCHIVE" : "SAMPLE PREVIEW"}
+                {isOwned
+                  ? (isArabic ? "أرشيف مفتوح" : "UNLOCKED ARCHIVE")
+                  : (isArabic ? "عينة مجانية" : "SAMPLE PREVIEW")}
               </span>
             </div>
 
@@ -282,19 +289,21 @@ export function MangaReaderModal() {
                 </div>
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-[11px] font-mono font-extrabold text-paper tracking-[0.16em] uppercase whitespace-nowrap">
-                    KAIRO ARCHIVE
+                    {isArabic ? "أرشيف كايرو" : "KAIRO ARCHIVE"}
                   </span>
                   <span className="text-ink-border hidden sm:inline">•</span>
                   <span className="text-[9px] font-mono text-gold tracking-widest uppercase truncate hidden sm:inline">
-                    {isOwned ? "LICENSED DIGITAL EDITION" : "OFFICIAL SAMPLER"}
+                    {isOwned
+                      ? (isArabic ? "نسخة رقمية مرخصة" : "LICENSED DIGITAL EDITION")
+                      : (isArabic ? "عينة رسمية" : "OFFICIAL SAMPLER")}
                   </span>
                   <span className="text-text-muted/60 text-[9px] font-mono hidden md:inline">
-                    {"// 6TH OF OCTOBER HUB"}
+                    {isArabic ? "// مستودع 6 أكتوبر" : "// 6TH OF OCTOBER HUB"}
                   </span>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 font-mono text-[10px] shrink-0 pl-3">
-                <span className="text-gold font-bold">PAGE</span>
+                <span className="text-gold font-bold">{isArabic ? "صفحة" : "PAGE"}</span>
                 <span className="text-paper font-semibold">
                   0{currentPageIndex + 1}
                 </span>
@@ -317,13 +326,17 @@ export function MangaReaderModal() {
                   <>
                     <div className="space-y-1.5 max-w-sm">
                       <span className="text-[10px] font-mono tracking-widest text-gold uppercase font-bold block">
-                        CHAPTER COMPLETE • VERIFIED PATRON
+                        {isArabic ? "اكتمل الفصل • عضو موثق" : "CHAPTER COMPLETE • VERIFIED PATRON"}
                       </span>
                       <h4 className="text-lg font-extrabold uppercase text-paper tracking-wide font-sans">
-                        VOLUME ARCHIVE COMPLETED
+                        {isArabic ? "اكتملت قراءة مجلد الأرشيف" : "VOLUME ARCHIVE COMPLETED"}
                       </h4>
                       <p className="text-xs text-text-muted leading-relaxed">
-                        You have completed reading this chapter of <span className="text-paper font-semibold">{activeReaderVolume.seriesTitle}</span>. This volume is permanently unlocked in your digital library.
+                        {isArabic ? (
+                          <>لقد أتممت قراءة هذا الفصل من <span className="text-paper font-semibold">{activeReaderVolume.seriesTitle}</span>. هذا المجلد مفتوح بصفة دائمة في مكتبتك الرقمية.</>
+                        ) : (
+                          <>You have completed reading this chapter of <span className="text-paper font-semibold">{activeReaderVolume.seriesTitle}</span>. This volume is permanently unlocked in your digital library.</>
+                        )}
                       </p>
                     </div>
 
@@ -333,14 +346,14 @@ export function MangaReaderModal() {
                         className="px-5 py-2.5 bg-paper text-ink font-bold text-xs font-mono tracking-wider uppercase rounded-xs hover:bg-gold transition-colors flex items-center gap-2 cursor-pointer shadow-lg active:scale-95"
                       >
                         <RotateCcw strokeWidth={1.4} className="w-3.5 h-3.5" />
-                        <span>READ AGAIN</span>
+                        <span>{isArabic ? "إعادة القراءة" : "READ AGAIN"}</span>
                       </button>
 
                       <button
                         onClick={closeReader}
                         className="px-5 py-2.5 bg-ink border border-ink-border hover:border-gold text-paper hover:text-gold font-bold text-xs font-mono tracking-wider uppercase rounded-xs transition-colors cursor-pointer active:scale-95"
                       >
-                        <span>RETURN TO ARCHIVE</span>
+                        <span>{isArabic ? "العودة للأرشيف" : "RETURN TO ARCHIVE"}</span>
                       </button>
                     </div>
                   </>
@@ -349,13 +362,15 @@ export function MangaReaderModal() {
                   <>
                     <div className="space-y-1">
                       <span className="text-[10px] font-mono tracking-widest text-gold uppercase">
-                        SAMPLE PREVIEW COMPLETE
+                        {isArabic ? "انتهت معاينة العينة" : "SAMPLE PREVIEW COMPLETE"}
                       </span>
                       <h4 className="text-base font-extrabold uppercase text-paper">
-                        UNLOCK THE FULL ADVENTURE
+                        {isArabic ? "احصل على النسخة الكاملة" : "UNLOCK THE FULL ADVENTURE"}
                       </h4>
                       <p className="text-xs text-text-muted max-w-xs">
-                        Get this pristine edition shipped directly to your doorstep in reinforced protective packaging.
+                        {isArabic
+                          ? "احصل على هذه النسخة الأصلية مع تغليف محكم وشحن فوري لكافة المحافظات لباب منزلك."
+                          : "Get this pristine edition shipped directly to your doorstep in reinforced protective packaging."}
                       </p>
                     </div>
                     <button
@@ -363,7 +378,7 @@ export function MangaReaderModal() {
                       className="px-6 py-3 bg-paper text-ink font-bold text-xs font-mono tracking-widest uppercase rounded-sm hover:bg-vermilion hover:text-white transition-all shadow-xl flex items-center gap-2 cursor-pointer"
                     >
                       <ShoppingBag strokeWidth={1.4} className="w-4 h-4" />
-                      <span>ADD TO CART & CHECKOUT</span>
+                      <span>{isArabic ? "أضف للسلة وأكمل الطلب" : "ADD TO CART & CHECKOUT"}</span>
                     </button>
                   </>
                 )}
@@ -374,7 +389,7 @@ export function MangaReaderModal() {
       </div>
 
       {/* Page Thumbnails Bar */}
-      <footer className="h-20 px-6 border-t border-ink-border bg-ink/95 flex items-center justify-center gap-4 shrink-0">
+      <footer className="h-20 px-4 sm:px-6 border-t border-ink-border bg-ink/95 flex items-center justify-start sm:justify-center gap-3 sm:gap-4 shrink-0 overflow-x-auto no-scrollbar pb-safe">
         {pages.map((page, idx) => {
           const isActive = currentPageIndex === idx;
           return (

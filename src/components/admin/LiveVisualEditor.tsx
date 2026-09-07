@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import {
   Edit2,
@@ -9,49 +9,50 @@ import {
   ExternalLink,
   LogOut,
   Sliders,
-  Sparkles,
   Eye,
   EyeOff,
   Minimize2,
   Maximize2,
   Save,
-  Truck,
-  BookOpen,
   Layers,
-  FileText,
-  Tag,
   Search,
   Check,
-  Clock,
-  ArrowRight,
-  Play,
-  Pause,
   Plus,
   Trash2,
 } from "lucide-react";
 import {
   useStorefrontStore,
   HeroContent,
+  HeroArabicContent,
   AnnouncementConfig,
+  AnnouncementArabicConfig,
   ShippingConfig,
+  ShippingArabicConfig,
   EditorialConfig,
+  EditorialArabicConfig,
   FeaturedSeriesConfig,
   CollectionConfig,
   TrendingConfig,
+  TrendingArabicConfig,
   NewReleasesConfig,
+  NewReleasesArabicConfig,
   GenreBentoConfig,
+  GenreBentoArabicConfig,
   MangaDiscoveryConfig,
+  MangaDiscoveryArabicConfig,
 } from "@/store/useStorefrontStore";
 import { useMounted } from "@/store/useWishlistStore";
+import { useLanguageStore } from "@/store/useLanguageStore";
 import { VolumeFormModal } from "./VolumeFormModal";
 import { SeriesFormModal } from "./SeriesFormModal";
 import { GenreFormModal } from "./GenreFormModal";
-import { GenreInfo, ALL_SERIES } from "@/data/manga";
+import { GenreInfo, ALL_SERIES, Series, MangaVolume } from "@/data/manga";
 import { CustomSelect } from "@/components/CustomSelect";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 
 export function LiveVisualEditor() {
   const mounted = useMounted();
+  const { locale, toggleLanguage } = useLanguageStore();
   const {
     isAdminAuthenticated,
     isVisualEditorActive,
@@ -62,15 +63,23 @@ export function LiveVisualEditor() {
     series,
     genres,
     heroContent,
+    heroArabicContent,
     announcement,
+    announcementArabic,
     shippingConfig,
+    shippingArabicConfig,
     editorialConfig,
+    editorialArabicConfig,
     featuredSeriesConfig,
     collectionConfig,
     trendingConfig,
+    trendingArabicConfig,
     newReleasesConfig,
+    newReleasesArabicConfig,
     genreBentoConfig,
+    genreBentoArabicConfig,
     mangaDiscoveryConfig,
+    mangaDiscoveryArabicConfig,
     updateVolume,
     addSeries,
     updateSeries,
@@ -79,15 +88,24 @@ export function LiveVisualEditor() {
     updateGenre,
     deleteGenre,
     updateHeroContent,
+    updateHeroArabicContent,
     updateAnnouncement,
+    updateAnnouncementArabic,
     updateShippingConfig,
+    updateShippingArabicConfig,
     updateEditorialConfig,
+    updateEditorialArabicConfig,
     updateFeaturedSeriesConfig,
     updateCollectionConfig,
     updateTrendingConfig,
+    updateTrendingArabicConfig,
     updateNewReleasesConfig,
+    updateNewReleasesArabicConfig,
     updateGenreBentoConfig,
+    updateGenreBentoArabicConfig,
     updateMangaDiscoveryConfig,
+    updateMangaDiscoveryArabicConfig,
+    arabicLanguageEnabled,
     logoutAdmin,
   } = useStorefrontStore();
 
@@ -200,6 +218,20 @@ export function LiveVisualEditor() {
               <ExternalLink className="w-3 h-3 text-text-muted" />
             </Link>
 
+            {/* Storefront Language Live Switch */}
+            {(arabicLanguageEnabled ?? true) && (
+              <button
+                type="button"
+                onClick={toggleLanguage}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-ink-surface hover:bg-ink-border border border-ink-border text-paper-muted hover:text-paper transition-colors text-[11px] font-mono font-bold tracking-wider cursor-pointer"
+                title="تبديل لغة المتصفح فورياً (Toggle Storefront Language)"
+              >
+                <span className={locale === "ar" ? "text-gold" : "text-text-muted"}>AR</span>
+                <span className="text-text-muted text-[10px]">/</span>
+                <span className={locale === "en" ? "text-gold" : "text-text-muted"}>EN</span>
+              </button>
+            )}
+
             {/* Actions: Minimize & Logout */}
             <div className="flex items-center gap-1 pl-1 border-l border-ink-border">
               <button
@@ -278,11 +310,18 @@ export function LiveVisualEditor() {
       {activeLiveEditTarget?.type === "hero" && (
         <HeroLiveEditModal
           initialContent={heroContent}
+          initialArabicContent={heroArabicContent}
+          currentLocale={locale}
           onClose={closeLiveEdit}
           onSave={(updated) => {
             updateHeroContent(updated);
             closeLiveEdit();
             showToast("Hero section updated and synced live!");
+          }}
+          onSaveArabic={(updated) => {
+            updateHeroArabicContent(updated);
+            closeLiveEdit();
+            showToast("تم تحديث قسم البانر الرئيسي بالعربية ومزامنته!");
           }}
         />
       )}
@@ -306,11 +345,18 @@ export function LiveVisualEditor() {
       {activeLiveEditTarget?.type === "announcement" && (
         <AnnouncementLiveEditModal
           initialConfig={announcement}
+          initialArabicConfig={announcementArabic}
+          currentLocale={locale}
           onClose={closeLiveEdit}
           onSave={(updated) => {
             updateAnnouncement(updated);
             closeLiveEdit();
             showToast("Announcement banner updated and synced live!");
+          }}
+          onSaveArabic={(updated) => {
+            updateAnnouncementArabic(updated);
+            closeLiveEdit();
+            showToast("تم تحديث شريط الإعلانات بالعربية ومزامنته!");
           }}
         />
       )}
@@ -369,11 +415,18 @@ export function LiveVisualEditor() {
       {activeLiveEditTarget?.type === "shipping" && (
         <ShippingLiveEditModal
           initialConfig={shippingConfig}
+          initialArabicConfig={shippingArabicConfig}
+          currentLocale={locale}
           onClose={closeLiveEdit}
           onSave={(updated) => {
             updateShippingConfig(updated);
             closeLiveEdit();
             showToast("Logistics & shipping configuration updated and synced live!");
+          }}
+          onSaveArabic={(updated) => {
+            updateShippingArabicConfig(updated);
+            closeLiveEdit();
+            showToast("تم تحديث قسم الشحن والمزايا بالعربية ومزامنته!");
           }}
         />
       )}
@@ -382,11 +435,18 @@ export function LiveVisualEditor() {
       {activeLiveEditTarget?.type === "editorial" && (
         <EditorialLiveEditModal
           initialConfig={editorialConfig}
+          initialArabicConfig={editorialArabicConfig}
+          currentLocale={locale}
           onClose={closeLiveEdit}
           onSave={(updated) => {
             updateEditorialConfig(updated);
             closeLiveEdit();
             showToast("Editorial quotes & store policies updated and synced live!");
+          }}
+          onSaveArabic={(updated) => {
+            updateEditorialArabicConfig(updated);
+            closeLiveEdit();
+            showToast("تم تحديث نصوص الفوتر والسياسات بالعربية ومزامنتها!");
           }}
         />
       )}
@@ -395,11 +455,18 @@ export function LiveVisualEditor() {
       {activeLiveEditTarget?.type === "trending" && (
         <TrendingLiveEditModal
           initialConfig={trendingConfig}
+          initialArabicConfig={trendingArabicConfig}
+          currentLocale={locale}
           onClose={closeLiveEdit}
           onSave={(updated) => {
             updateTrendingConfig(updated);
             closeLiveEdit();
             showToast("Trending carousel configuration updated and synced live!");
+          }}
+          onSaveArabic={(updated) => {
+            updateTrendingArabicConfig(updated);
+            closeLiveEdit();
+            showToast("تم تحديث قسم الأكثر رواجاً بالعربية ومزامنته!");
           }}
         />
       )}
@@ -408,11 +475,18 @@ export function LiveVisualEditor() {
       {activeLiveEditTarget?.type === "new-releases" && (
         <NewReleasesLiveEditModal
           initialConfig={newReleasesConfig}
+          initialArabicConfig={newReleasesArabicConfig}
+          currentLocale={locale}
           onClose={closeLiveEdit}
           onSave={(updated) => {
             updateNewReleasesConfig(updated);
             closeLiveEdit();
             showToast("New releases showcase updated and synced live!");
+          }}
+          onSaveArabic={(updated) => {
+            updateNewReleasesArabicConfig(updated);
+            closeLiveEdit();
+            showToast("تم تحديث قسم أحدث الإصدارات بالعربية ومزامنته!");
           }}
         />
       )}
@@ -421,12 +495,19 @@ export function LiveVisualEditor() {
       {activeLiveEditTarget?.type === "genre-bento" && (
         <GenreBentoLiveEditModal
           initialConfig={genreBentoConfig}
+          initialArabicConfig={genreBentoArabicConfig}
           genres={genres}
+          currentLocale={locale}
           onClose={closeLiveEdit}
           onSave={(updated) => {
             updateGenreBentoConfig(updated);
             closeLiveEdit();
             showToast("Genre Bento section updated and synced live!");
+          }}
+          onSaveArabic={(updated) => {
+            updateGenreBentoArabicConfig(updated);
+            closeLiveEdit();
+            showToast("تم تحديث نصوص دليل التصنيفات بالعربية ومزامنتها!");
           }}
           onAddGenre={(newGenre) => {
             addGenre(newGenre);
@@ -471,11 +552,18 @@ export function LiveVisualEditor() {
       {activeLiveEditTarget?.type === "manga-discovery" && (
         <MangaDiscoveryLiveEditModal
           initialConfig={mangaDiscoveryConfig}
+          initialArabicConfig={mangaDiscoveryArabicConfig}
+          currentLocale={locale}
           onClose={closeLiveEdit}
           onSave={(updated) => {
             updateMangaDiscoveryConfig(updated);
             closeLiveEdit();
             showToast("Manga Discovery section updated and synced live!");
+          }}
+          onSaveArabic={(updated) => {
+            updateMangaDiscoveryArabicConfig(updated);
+            closeLiveEdit();
+            showToast("تم تحديث قسم استكشاف المانجا بالعربية ومزامنته!");
           }}
         />
       )}
@@ -487,161 +575,377 @@ export function LiveVisualEditor() {
 /* LIGHTWEIGHT IN-PLACE EDIT MODALS                                            */
 /* ========================================================================== */
 
+function ModalLanguageSwitch({
+  activeLang,
+  onChange,
+}: {
+  activeLang: "en" | "ar";
+  onChange: (lang: "en" | "ar") => void;
+}) {
+  return (
+    <div className="flex items-center gap-1 bg-ink border border-ink-border p-0.5 rounded-sm shrink-0">
+      <button
+        type="button"
+        onClick={() => onChange("en")}
+        className={`px-2.5 py-1 text-[11px] font-mono font-bold uppercase tracking-wider rounded-xs transition-colors cursor-pointer ${
+          activeLang === "en"
+            ? "bg-gold text-ink shadow-xs"
+            : "text-text-muted hover:text-paper"
+        }`}
+      >
+        EN
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("ar")}
+        className={`px-2.5 py-1 text-[11px] font-mono font-bold uppercase tracking-wider rounded-xs transition-colors cursor-pointer ${
+          activeLang === "ar"
+            ? "bg-gold text-ink shadow-xs"
+            : "text-text-muted hover:text-paper"
+        }`}
+      >
+        العربية AR
+      </button>
+    </div>
+  );
+}
+
 function HeroLiveEditModal({
   initialContent,
+  initialArabicContent,
+  currentLocale = "en",
   onClose,
   onSave,
+  onSaveArabic,
 }: {
   initialContent: HeroContent;
+  initialArabicContent?: HeroArabicContent;
+  currentLocale?: "en" | "ar";
   onClose: () => void;
   onSave: (content: HeroContent) => void;
+  onSaveArabic: (content: HeroArabicContent) => void;
 }) {
   useModalScrollLock(true);
+  const [editLang, setEditLang] = useState<"en" | "ar">(currentLocale);
   const [form, setForm] = useState<HeroContent>(initialContent);
+  const [arabicForm, setArabicForm] = useState<HeroArabicContent>(
+    initialArabicContent || {
+      badgeText: "الفصل الأول — بداية الحكاية",
+      headlineLine1: "اكتشف",
+      headlineHighlight: "حكايتك",
+      headlineLine2: "القادمة",
+      subheadline:
+        "مانجا، وروايات خفيفة، وقصص تأخذك لعوالم استثنائية. من الطبعات الأولى الفاخرة والمجلدات الكبيرة المقوّاة، حتى بوكس سيت كاملة للمقتنين.",
+      primaryCtaText: "استكشف المانجا",
+      primaryCtaLink: "/manga",
+      secondaryCtaText: "أحدث الإصدارات",
+      secondaryCtaLink: "#new-releases",
+      stat1Value: "١,٤٠٠+",
+      stat1Label: "مجلد في الأرشيف",
+      stat2Value: "١٠٠%",
+      stat2Label: "إصدارات أصلية مرخصة",
+      stat3Value: "٢٤-٤٨ ساعة",
+      stat3Label: "شحن لجميع محافظات مصر",
+    }
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(form);
+    if (editLang === "ar") {
+      onSaveArabic(arabicForm);
+    } else {
+      onSave(form);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="w-full max-w-2xl max-h-[90vh] flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
-          <div>
-            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
+        {/* Header with Language Switch */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50 gap-4">
+          <div className="min-w-0">
+            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider truncate">
               Live Edit: Hero Headline &amp; Actions
             </h3>
-            <p className="text-[11px] font-mono text-text-muted">
-              Changes apply instantly to the homepage banner.
+            <p className="text-[11px] font-mono text-text-muted truncate">
+              {editLang === "ar"
+                ? "تعديل نصوص البانر الرئيسي باللغة العربية ومزامنتها فوراً"
+                : "Changes apply instantly to the homepage banner."}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-text-muted hover:text-paper p-1 cursor-pointer transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-3 shrink-0">
+            <ModalLanguageSwitch activeLang={editLang} onChange={setEditLang} />
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-text-muted hover:text-paper p-1 cursor-pointer transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Badge Text (Top of Hero)
-            </label>
-            <input
-              type="text"
-              value={form.badgeText || ""}
-              onChange={(e) => setForm({ ...form, badgeText: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-            />
-          </div>
+          {editLang === "ar" ? (
+            <div className="space-y-4" dir="rtl">
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  شارة الفصل العلوية (Badge Text)
+                </label>
+                <input
+                  type="text"
+                  value={arabicForm.badgeText || ""}
+                  onChange={(e) => setArabicForm({ ...arabicForm, badgeText: e.target.value })}
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                />
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Headline Line 1
-              </label>
-              <input
-                type="text"
-                value={form.headlineLine1 || ""}
-                onChange={(e) => setForm({ ...form, headlineLine1: e.target.value })}
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-gold uppercase tracking-wider">
-                Headline Highlight (Gold)
-              </label>
-              <input
-                type="text"
-                value={form.headlineHighlight || ""}
-                onChange={(e) => setForm({ ...form, headlineHighlight: e.target.value })}
-                className="w-full bg-ink-surface border border-gold/40 text-gold px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Headline Line 2
-              </label>
-              <input
-                type="text"
-                value={form.headlineLine2 || ""}
-                onChange={(e) => setForm({ ...form, headlineLine2: e.target.value })}
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-              />
-            </div>
-          </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    السطر الأول (Line 1)
+                  </label>
+                  <input
+                    type="text"
+                    value={arabicForm.headlineLine1 || ""}
+                    onChange={(e) => setArabicForm({ ...arabicForm, headlineLine1: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-gold uppercase tracking-wider">
+                    الكلمة الذهبية المميزة (Highlight)
+                  </label>
+                  <input
+                    type="text"
+                    value={arabicForm.headlineHighlight || ""}
+                    onChange={(e) => setArabicForm({ ...arabicForm, headlineHighlight: e.target.value })}
+                    className="w-full bg-ink-surface border border-gold/40 text-gold px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    السطر الثاني (Line 2)
+                  </label>
+                  <input
+                    type="text"
+                    value={arabicForm.headlineLine2 || ""}
+                    onChange={(e) => setArabicForm({ ...arabicForm, headlineLine2: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                  />
+                </div>
+              </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Subheadline Editorial Copy
-            </label>
-            <textarea
-              rows={3}
-              value={form.subheadline || ""}
-              onChange={(e) => setForm({ ...form, subheadline: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
-            />
-          </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  الوصف التحريري (Subheadline)
+                </label>
+                <textarea
+                  rows={3}
+                  value={arabicForm.subheadline || ""}
+                  onChange={(e) => setArabicForm({ ...arabicForm, subheadline: e.target.value })}
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none font-sans"
+                />
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Primary CTA Button Text
-              </label>
-              <input
-                type="text"
-                value={form.primaryCtaText || ""}
-                onChange={(e) => setForm({ ...form, primaryCtaText: e.target.value })}
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Primary CTA Link
-              </label>
-              <input
-                type="text"
-                value={form.primaryCtaLink || ""}
-                onChange={(e) => setForm({ ...form, primaryCtaLink: e.target.value })}
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-              />
-            </div>
-          </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    نص زر الإجراء الرئيسي (Primary CTA)
+                  </label>
+                  <input
+                    type="text"
+                    value={arabicForm.primaryCtaText || ""}
+                    onChange={(e) => setArabicForm({ ...arabicForm, primaryCtaText: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    نص زر الإجراء الثانوي (Secondary CTA)
+                  </label>
+                  <input
+                    type="text"
+                    value={arabicForm.secondaryCtaText || ""}
+                    onChange={(e) => setArabicForm({ ...arabicForm, secondaryCtaText: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                  />
+                </div>
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-mono text-paper-muted uppercase">Stat 1 (Volumes)</label>
-              <input
-                type="text"
-                value={form.stat1Value || ""}
-                onChange={(e) => setForm({ ...form, stat1Value: e.target.value })}
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs"
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-mono text-paper-muted uppercase">إحصائية 1 (المجلدات)</label>
+                  <input
+                    type="text"
+                    value={arabicForm.stat1Value || ""}
+                    onChange={(e) => setArabicForm({ ...arabicForm, stat1Value: e.target.value })}
+                    placeholder="١,٤٠٠+"
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs mb-1"
+                  />
+                  <input
+                    type="text"
+                    value={arabicForm.stat1Label || ""}
+                    onChange={(e) => setArabicForm({ ...arabicForm, stat1Label: e.target.value })}
+                    placeholder="مجلد في الأرشيف"
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-mono text-paper-muted uppercase">إحصائية 2 (الترخيص)</label>
+                  <input
+                    type="text"
+                    value={arabicForm.stat2Value || ""}
+                    onChange={(e) => setArabicForm({ ...arabicForm, stat2Value: e.target.value })}
+                    placeholder="١٠٠%"
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs mb-1"
+                  />
+                  <input
+                    type="text"
+                    value={arabicForm.stat2Label || ""}
+                    onChange={(e) => setArabicForm({ ...arabicForm, stat2Label: e.target.value })}
+                    placeholder="إصدارات أصلية مرخصة"
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-mono text-paper-muted uppercase">إحصائية 3 (الشحن)</label>
+                  <input
+                    type="text"
+                    value={arabicForm.stat3Value || ""}
+                    onChange={(e) => setArabicForm({ ...arabicForm, stat3Value: e.target.value })}
+                    placeholder="٢٤-٤٨ ساعة"
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs mb-1"
+                  />
+                  <input
+                    type="text"
+                    value={arabicForm.stat3Label || ""}
+                    onChange={(e) => setArabicForm({ ...arabicForm, stat3Label: e.target.value })}
+                    placeholder="شحن لجميع محافظات مصر"
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs"
+                  />
+                </div>
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-mono text-paper-muted uppercase">Stat 2 (Licensing)</label>
-              <input
-                type="text"
-                value={form.stat2Value || ""}
-                onChange={(e) => setForm({ ...form, stat2Value: e.target.value })}
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-mono text-paper-muted uppercase">Stat 3 (Delivery)</label>
-              <input
-                type="text"
-                value={form.stat3Value || ""}
-                onChange={(e) => setForm({ ...form, stat3Value: e.target.value })}
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs"
-              />
-            </div>
-          </div>
+          ) : (
+            <>
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  Badge Text (Top of Hero)
+                </label>
+                <input
+                  type="text"
+                  value={form.badgeText || ""}
+                  onChange={(e) => setForm({ ...form, badgeText: e.target.value })}
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    Headline Line 1
+                  </label>
+                  <input
+                    type="text"
+                    value={form.headlineLine1 || ""}
+                    onChange={(e) => setForm({ ...form, headlineLine1: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-gold uppercase tracking-wider">
+                    Headline Highlight (Gold)
+                  </label>
+                  <input
+                    type="text"
+                    value={form.headlineHighlight || ""}
+                    onChange={(e) => setForm({ ...form, headlineHighlight: e.target.value })}
+                    className="w-full bg-ink-surface border border-gold/40 text-gold px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    Headline Line 2
+                  </label>
+                  <input
+                    type="text"
+                    value={form.headlineLine2 || ""}
+                    onChange={(e) => setForm({ ...form, headlineLine2: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  Subheadline Editorial Copy
+                </label>
+                <textarea
+                  rows={3}
+                  value={form.subheadline || ""}
+                  onChange={(e) => setForm({ ...form, subheadline: e.target.value })}
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none font-sans"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    Primary CTA Button Text
+                  </label>
+                  <input
+                    type="text"
+                    value={form.primaryCtaText || ""}
+                    onChange={(e) => setForm({ ...form, primaryCtaText: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    Primary CTA Link
+                  </label>
+                  <input
+                    type="text"
+                    value={form.primaryCtaLink || ""}
+                    onChange={(e) => setForm({ ...form, primaryCtaLink: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-mono text-paper-muted uppercase">Stat 1 (Volumes)</label>
+                  <input
+                    type="text"
+                    value={form.stat1Value || ""}
+                    onChange={(e) => setForm({ ...form, stat1Value: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-mono text-paper-muted uppercase">Stat 2 (Licensing)</label>
+                  <input
+                    type="text"
+                    value={form.stat2Value || ""}
+                    onChange={(e) => setForm({ ...form, stat2Value: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-mono text-paper-muted uppercase">Stat 3 (Delivery)</label>
+                  <input
+                    type="text"
+                    value={form.stat3Value || ""}
+                    onChange={(e) => setForm({ ...form, stat3Value: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs"
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
             <button
@@ -649,14 +953,14 @@ function HeroLiveEditModal({
               onClick={onClose}
               className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
             >
-              Cancel
+              {editLang === "ar" ? "إلغاء" : "Cancel"}
             </button>
             <button
               type="submit"
               className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-transform hover:scale-105"
             >
               <Save className="w-4 h-4" />
-              Save &amp; Sync Live
+              {editLang === "ar" ? "حفظ ومزامنة فورية" : "Save & Sync Live"}
             </button>
           </div>
         </form>
@@ -667,37 +971,59 @@ function HeroLiveEditModal({
 
 function AnnouncementLiveEditModal({
   initialConfig,
+  initialArabicConfig,
+  currentLocale = "en",
   onClose,
   onSave,
+  onSaveArabic,
 }: {
   initialConfig: AnnouncementConfig;
+  initialArabicConfig?: AnnouncementArabicConfig;
+  currentLocale?: "en" | "ar";
   onClose: () => void;
   onSave: (config: AnnouncementConfig) => void;
+  onSaveArabic: (config: AnnouncementArabicConfig) => void;
 }) {
   useModalScrollLock(true);
+  const [editLang, setEditLang] = useState<"en" | "ar">(currentLocale);
   const [form, setForm] = useState<AnnouncementConfig>(initialConfig);
+  const [arabicForm, setArabicForm] = useState<AnnouncementArabicConfig>(
+    initialArabicConfig || { text: "استخدم كود KAIRO10 للحصول على خصم 10% عند أول طلب لك" }
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(form);
+    if (editLang === "ar") {
+      onSaveArabic(arabicForm);
+    } else {
+      onSave(form);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="w-full max-w-lg flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
-          <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
-            Live Edit: Welcome Voucher Bar
-          </h3>
-          <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
-            <X className="w-5 h-5" />
-          </button>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50 gap-3">
+          <div className="min-w-0">
+            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider truncate">
+              Live Edit: Welcome Voucher Bar
+            </h3>
+            <p className="text-[11px] font-mono text-text-muted truncate">
+              {editLang === "ar" ? "تعديل نص شريط الإعلانات بالعربية" : "Edit announcement banner text & coupon"}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <ModalLanguageSwitch activeLang={editLang} onChange={setEditLang} />
+            <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="flex items-center justify-between p-3 bg-ink-surface/60 border border-ink-border rounded-xs">
             <span className="text-xs font-mono font-semibold uppercase text-paper">
-              Announcement Banner Active
+              {editLang === "ar" ? "تفعيل شريط الإعلانات" : "Announcement Banner Active"}
             </span>
             <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
               <input
@@ -715,17 +1041,31 @@ function AnnouncementLiveEditModal({
             </label>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Announcement Promo Copy
-            </label>
-            <textarea
-              rows={2}
-              value={form.text || ""}
-              onChange={(e) => setForm({ ...form, text: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
-            />
-          </div>
+          {editLang === "ar" ? (
+            <div className="space-y-1.5" dir="rtl">
+              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                نص الإعلان الترويجي بالعربية
+              </label>
+              <textarea
+                rows={3}
+                value={arabicForm.text || ""}
+                onChange={(e) => setArabicForm({ ...arabicForm, text: e.target.value })}
+                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none font-sans"
+              />
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                Announcement Promo Copy
+              </label>
+              <textarea
+                rows={2}
+                value={form.text || ""}
+                onChange={(e) => setForm({ ...form, text: e.target.value })}
+                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -758,14 +1098,14 @@ function AnnouncementLiveEditModal({
               onClick={onClose}
               className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
             >
-              Cancel
+              {editLang === "ar" ? "إلغاء" : "Cancel"}
             </button>
             <button
               type="submit"
               className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-transform hover:scale-105"
             >
               <Save className="w-4 h-4" />
-              Save &amp; Sync Live
+              {editLang === "ar" ? "حفظ ومزامنة فورية" : "Save & Sync Live"}
             </button>
           </div>
         </form>
@@ -781,7 +1121,7 @@ function FeaturedSeriesLiveEditModal({
   onSave,
 }: {
   initialConfig: FeaturedSeriesConfig;
-  seriesList: any[];
+  seriesList: Series[];
   onClose: () => void;
   onSave: (config: FeaturedSeriesConfig) => void;
 }) {
@@ -893,7 +1233,7 @@ function CollectionLiveEditModal({
   onSave,
 }: {
   initialConfig: CollectionConfig;
-  volumes: any[];
+  volumes: MangaVolume[];
   onClose: () => void;
   onSave: (config: CollectionConfig) => void;
 }) {
@@ -1166,203 +1506,212 @@ function CollectionLiveEditModal({
 
 function ShippingLiveEditModal({
   initialConfig,
+  initialArabicConfig,
+  currentLocale = "en",
   onClose,
   onSave,
+  onSaveArabic,
 }: {
   initialConfig: ShippingConfig;
+  initialArabicConfig?: ShippingArabicConfig;
+  currentLocale?: "en" | "ar";
   onClose: () => void;
   onSave: (config: ShippingConfig) => void;
+  onSaveArabic: (config: ShippingArabicConfig) => void;
 }) {
   useModalScrollLock(true);
+  const [editLang, setEditLang] = useState<"en" | "ar">(currentLocale);
   const [form, setForm] = useState<ShippingConfig>(initialConfig);
+  const [arabicForm, setArabicForm] = useState<ShippingArabicConfig>(
+    initialArabicConfig || {
+      hubName: "مدينة 6 أكتوبر • مصر",
+      dispatchBadgeText: "شحن سريع لكافة المحافظات",
+      guaranteeBadgeText: "أصالة أرشيفية 100%",
+      deliveryEstimate: "خلال 24-48 ساعة",
+    }
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(form);
+    if (editLang === "ar") {
+      onSaveArabic(arabicForm);
+    } else {
+      onSave(form);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="w-full max-w-xl max-h-[90vh] flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
-          <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
-            Live Edit: Logistics, Shipping &amp; Perks
-          </h3>
-          <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
-            <X className="w-5 h-5" />
-          </button>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50 gap-3">
+          <div className="min-w-0">
+            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider truncate">
+              Live Edit: Logistics &amp; Shipping Settings
+            </h3>
+            <p className="text-[11px] font-mono text-text-muted truncate">
+              {editLang === "ar" ? "تعديل إعدادات ونصوص الشحن بالعربية" : "Configure dispatch hub, thresholds & delivery"}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <ModalLanguageSwitch activeLang={editLang} onChange={setEditLang} />
+            <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 overscroll-contain">
-          {/* Section 01: The 3 Value Props / Perks */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-mono font-bold text-gold uppercase tracking-wider border-b border-ink-border/60 pb-1">
-              01. Front-Facing Trust Perks (3 Footer Cards)
-            </h4>
+          {editLang === "ar" ? (
+            <div className="space-y-6" dir="rtl">
+              {/* نصوص المستودع والتقديرات */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-mono font-bold text-gold uppercase tracking-wider">
+                  نصوص المستودع وتقدير التوصيل بالعربية
+                </h4>
 
-            {/* Perk 1 */}
-            <div className="p-3 bg-ink-surface/50 border border-ink-border rounded-xs space-y-2">
-              <div className="text-[11px] font-mono font-semibold text-paper uppercase">
-                Perk 01: Express Dispatch
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-mono text-text-muted uppercase">Card Title</label>
-                <input
-                  type="text"
-                  value={form.perk1Title || ""}
-                  onChange={(e) => setForm({ ...form, perk1Title: e.target.value })}
-                  placeholder="EGYPT-WIDE EXPRESS DISPATCH"
-                  className="w-full bg-ink border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs focus:border-gold outline-none"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-mono text-text-muted uppercase">Card Description</label>
-                <textarea
-                  rows={2}
-                  value={form.perk1Desc || ""}
-                  onChange={(e) => setForm({ ...form, perk1Desc: e.target.value })}
-                  className="w-full bg-ink border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs focus:border-gold outline-none resize-none font-sans"
-                />
-              </div>
-            </div>
-
-            {/* Perk 2 */}
-            <div className="p-3 bg-ink-surface/50 border border-ink-border rounded-xs space-y-2">
-              <div className="text-[11px] font-mono font-semibold text-paper uppercase">
-                Perk 02: Authentic Editions
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-mono text-text-muted uppercase">Card Title</label>
-                <input
-                  type="text"
-                  value={form.perk2Title || ""}
-                  onChange={(e) => setForm({ ...form, perk2Title: e.target.value })}
-                  placeholder="AUTHENTIC JAPANESE EDITIONS"
-                  className="w-full bg-ink border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs focus:border-gold outline-none"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-mono text-text-muted uppercase">Card Description</label>
-                <textarea
-                  rows={2}
-                  value={form.perk2Desc || ""}
-                  onChange={(e) => setForm({ ...form, perk2Desc: e.target.value })}
-                  className="w-full bg-ink border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs focus:border-gold outline-none resize-none font-sans"
-                />
-              </div>
-            </div>
-
-            {/* Perk 3 */}
-            <div className="p-3 bg-ink-surface/50 border border-ink-border rounded-xs space-y-2">
-              <div className="text-[11px] font-mono font-semibold text-paper uppercase">
-                Perk 03: Replacement Guarantee
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-mono text-text-muted uppercase">Card Title</label>
-                <input
-                  type="text"
-                  value={form.perk3Title || ""}
-                  onChange={(e) => setForm({ ...form, perk3Title: e.target.value })}
-                  placeholder="COLLECTOR REPLACEMENT GUARANTEE"
-                  className="w-full bg-ink border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs focus:border-gold outline-none"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-mono text-text-muted uppercase">Card Description</label>
-                <textarea
-                  rows={2}
-                  value={form.perk3Desc || ""}
-                  onChange={(e) => setForm({ ...form, perk3Desc: e.target.value })}
-                  className="w-full bg-ink border border-ink-border text-paper px-3 py-1.5 text-xs rounded-xs focus:border-gold outline-none resize-none font-sans"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Section 02: Logistics & Thresholds */}
-          <div className="space-y-4 pt-2 border-t border-ink-border/60">
-            <h4 className="text-xs font-mono font-bold text-gold uppercase tracking-wider">
-              02. Logistics &amp; Free Delivery Threshold
-            </h4>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                  Dispatch Hub Name
-                </label>
-                <input
-                  type="text"
-                  value={form.hubName || ""}
-                  onChange={(e) => setForm({ ...form, hubName: e.target.value })}
-                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                  Delivery Estimate
-                </label>
-                <input
-                  type="text"
-                  value={form.deliveryEstimate || ""}
-                  onChange={(e) => setForm({ ...form, deliveryEstimate: e.target.value })}
-                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="p-4 bg-ink-surface/60 border border-ink-border rounded-xs space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-mono font-semibold uppercase text-paper block">
-                    Free Shipping Threshold
-                  </span>
-                  <span className="text-[10px] text-text-muted">
-                    Automatic zero shipping on reaching subtotal threshold
-                  </span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                      اسم مقر الشحن (Hub Name)
+                    </label>
+                    <input
+                      type="text"
+                      value={arabicForm.hubName || ""}
+                      onChange={(e) => setArabicForm({ ...arabicForm, hubName: e.target.value })}
+                      placeholder="مدينة 6 أكتوبر • مصر"
+                      className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                      تقدير مدة التوصيل
+                    </label>
+                    <input
+                      type="text"
+                      value={arabicForm.deliveryEstimate || ""}
+                      onChange={(e) => setArabicForm({ ...arabicForm, deliveryEstimate: e.target.value })}
+                      placeholder="خلال 24-48 ساعة"
+                      className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                    />
+                  </div>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-                  <input
-                    type="checkbox"
-                    checked={form.freeShippingEnabled}
-                    onChange={(e) => setForm({ ...form, freeShippingEnabled: e.target.checked })}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-ink border border-ink-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-paper after:border after:border-ink-border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold peer-checked:border-gold"></div>
-                  <span className={`ml-2.5 text-xs font-mono font-bold tracking-wider uppercase transition-colors ${
-                    form.freeShippingEnabled ? "text-gold" : "text-text-muted"
-                  }`}>
-                    {form.freeShippingEnabled ? "ACTIVE" : "DISABLED"}
-                  </span>
-                </label>
-              </div>
 
-              {form.freeShippingEnabled && (
-                <div className="space-y-1.5 pt-2 border-t border-ink-border/50">
-                  <label className="text-xs font-mono font-semibold text-gold uppercase tracking-wider">
-                    Minimum Subtotal for Free Delivery (EGP)
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                      شارة الشحن السريع
+                    </label>
+                    <input
+                      type="text"
+                      value={arabicForm.dispatchBadgeText || ""}
+                      onChange={(e) => setArabicForm({ ...arabicForm, dispatchBadgeText: e.target.value })}
+                      placeholder="شحن سريع لكافة المحافظات"
+                      className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                      شارة ضمان الأصالة
+                    </label>
+                    <input
+                      type="text"
+                      value={arabicForm.guaranteeBadgeText || ""}
+                      onChange={(e) => setArabicForm({ ...arabicForm, guaranteeBadgeText: e.target.value })}
+                      placeholder="أصالة أرشيفية 100%"
+                      className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Section: Logistics & Thresholds */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-mono font-bold text-gold uppercase tracking-wider">
+                  Logistics &amp; Free Delivery Threshold
+                </h4>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                      Dispatch Hub Name
+                    </label>
+                    <input
+                      type="text"
+                      value={form.hubName || ""}
+                      onChange={(e) => setForm({ ...form, hubName: e.target.value })}
+                      className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                      Delivery Estimate
+                    </label>
+                    <input
+                      type="text"
+                      value={form.deliveryEstimate || ""}
+                      onChange={(e) => setForm({ ...form, deliveryEstimate: e.target.value })}
+                      className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-4 bg-ink-surface/60 border border-ink-border rounded-xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-mono font-semibold uppercase text-paper block">
+                        Free Shipping Threshold
+                      </span>
+                      <span className="text-[10px] text-text-muted">
+                        Automatic zero shipping on reaching subtotal threshold
+                      </span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={form.freeShippingEnabled}
+                        onChange={(e) => setForm({ ...form, freeShippingEnabled: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-ink border border-ink-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-paper after:border after:border-ink-border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold peer-checked:border-gold"></div>
+                      <span className={`ml-2.5 text-xs font-mono font-bold tracking-wider uppercase transition-colors ${
+                        form.freeShippingEnabled ? "text-gold" : "text-text-muted"
+                      }`}>
+                        {form.freeShippingEnabled ? "ACTIVE" : "DISABLED"}
+                      </span>
+                    </label>
+                  </div>
+
+                  {form.freeShippingEnabled && (
+                    <div className="space-y-1.5 pt-2 border-t border-ink-border/50">
+                      <label className="text-xs font-mono font-semibold text-gold uppercase tracking-wider">
+                        Minimum Subtotal for Free Delivery (EGP)
+                      </label>
+                      <input
+                        type="number"
+                        value={form.freeShippingThreshold ?? 500}
+                        onChange={(e) => setForm({ ...form, freeShippingThreshold: Math.max(0, parseFloat(e.target.value) || 0) })}
+                        className="w-full bg-ink border border-gold/40 text-gold font-bold px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    Standard Baseline Shipping Cost (EGP)
                   </label>
                   <input
                     type="number"
-                    value={form.freeShippingThreshold ?? 500}
-                    onChange={(e) => setForm({ ...form, freeShippingThreshold: Math.max(0, parseFloat(e.target.value) || 0) })}
-                    className="w-full bg-ink border border-gold/40 text-gold font-bold px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                    value={form.standardShippingCost || 65}
+                    onChange={(e) => setForm({ ...form, standardShippingCost: Math.max(0, parseFloat(e.target.value) || 0) })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
                   />
                 </div>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Standard Baseline Shipping Cost (EGP)
-              </label>
-              <input
-                type="number"
-                value={form.standardShippingCost || 65}
-                onChange={(e) => setForm({ ...form, standardShippingCost: Math.max(0, parseFloat(e.target.value) || 0) })}
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-              />
-            </div>
-          </div>
+              </div>
+            </>
+          )}
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
             <button
@@ -1370,14 +1719,14 @@ function ShippingLiveEditModal({
               onClick={onClose}
               className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
             >
-              Cancel
+              {editLang === "ar" ? "إلغاء" : "Cancel"}
             </button>
             <button
               type="submit"
               className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-transform hover:scale-105"
             >
               <Save className="w-4 h-4" />
-              Save &amp; Sync Live
+              {editLang === "ar" ? "حفظ ومزامنة فورية" : "Save & Sync Live"}
             </button>
           </div>
         </form>
@@ -1388,145 +1737,279 @@ function ShippingLiveEditModal({
 
 function EditorialLiveEditModal({
   initialConfig,
+  initialArabicConfig,
+  currentLocale = "en",
   onClose,
   onSave,
+  onSaveArabic,
 }: {
   initialConfig: EditorialConfig;
+  initialArabicConfig?: EditorialArabicConfig;
+  currentLocale?: "en" | "ar";
   onClose: () => void;
   onSave: (config: EditorialConfig) => void;
+  onSaveArabic: (config: EditorialArabicConfig) => void;
 }) {
   useModalScrollLock(true);
+  const [editLang, setEditLang] = useState<"en" | "ar">(currentLocale);
   const [form, setForm] = useState<EditorialConfig>(initialConfig);
+  const [arabicForm, setArabicForm] = useState<EditorialArabicConfig>(
+    initialArabicConfig || {
+      siteTagline: "أرشيف المانجا اليابانية الفاخرة والطبعات الأصلية في مصر",
+      footerQuote: "كل صفحة تُقلب هي بوابة لعالم استثنائي، ومجلدات المقتنين تُصنع لتبقى حية عبر الأجيال.",
+      authenticityGuaranteeText: "نضمن أصالة 100% لجميع المجلدات والروايات المعروضة في KAIRO. طبعات يابانية رسمية ومرخصة بدون أي نسخ مقلدة.",
+      shippingPolicyText: "شحن مغلف بعناية فائقة ضد الصدمات والرطوبة، يصلك خلال 24-48 ساعة لجميع أنحاء مصر.",
+      returnPolicyText: "حق الاستبدال الفوري خلال 14 يوماً في حالة وجود أي عيب طباعي أو تلف ناتج عن الشحن.",
+      footerDescription: "دار KAIRO (回路) — الأرشيف التحريري الأول في مصر المتخصص في استيراد وتوفير أندر مجلدات المانجا والروايات الخفيفة وبوكس سيت المقتنين الأصلية بأعلى معايير الجودة.",
+      hubCities: "مدينة 6 أكتوبر • القاهرة • الإسكندرية • كافة المحافظات",
+    }
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(form);
+    if (editLang === "ar") {
+      onSaveArabic(arabicForm);
+    } else {
+      onSave(form);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="w-full max-w-xl max-h-[90vh] flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
-          <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
-            Live Edit: Editorial &amp; Footer Brand
-          </h3>
-          <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
-            <X className="w-5 h-5" />
-          </button>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50 gap-3">
+          <div className="min-w-0">
+            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider truncate">
+              Live Edit: Editorial &amp; Footer Brand
+            </h3>
+            <p className="text-[11px] font-mono text-text-muted truncate">
+              {editLang === "ar" ? "تعديل هوية الفوتر والسياسات بالعربية" : "Configure site narrative & customer policies"}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <ModalLanguageSwitch activeLang={editLang} onChange={setEditLang} />
+            <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 overscroll-contain">
-          {/* Section 01: Footer Brand Identity */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-mono font-bold text-gold uppercase tracking-wider border-b border-ink-border/60 pb-1">
-              01. Footer Brand Identity
-            </h4>
+          {editLang === "ar" ? (
+            <div className="space-y-6" dir="rtl">
+              {/* القسم الأول: هوية الفوتر التحريرية */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-mono font-bold text-gold uppercase tracking-wider border-b border-ink-border/60 pb-1">
+                  01. هوية وتوصيف دار كايرو (بالفوتر)
+                </h4>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Footer Brand Narrative / Description
-              </label>
-              <textarea
-                rows={3}
-                value={form.footerDescription || ""}
-                onChange={(e) => setForm({ ...form, footerDescription: e.target.value })}
-                placeholder="An editorial archive celebrating sequential art, Japanese literary epics, and tactile physical printing craftsmanship."
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
-              />
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    الوصف التحريري بالفوتر
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={arabicForm.footerDescription || ""}
+                    onChange={(e) => setArabicForm({ ...arabicForm, footerDescription: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none font-sans"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    سطر المدن ومناطق الشحن
+                  </label>
+                  <input
+                    type="text"
+                    value={arabicForm.hubCities || ""}
+                    onChange={(e) => setArabicForm({ ...arabicForm, hubCities: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    شعار الموقع (Site Tagline)
+                  </label>
+                  <input
+                    type="text"
+                    value={arabicForm.siteTagline || ""}
+                    onChange={(e) => setArabicForm({ ...arabicForm, siteTagline: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* القسم الثاني: السياسات والضمانات بالعربية */}
+              <div className="space-y-4 pt-2 border-t border-ink-border/60">
+                <h4 className="text-xs font-mono font-bold text-gold uppercase tracking-wider">
+                  02. السياسات والضمانات التحريرية
+                </h4>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    المقولة الفلسفية بالفوتر
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={arabicForm.footerQuote || ""}
+                    onChange={(e) => setArabicForm({ ...arabicForm, footerQuote: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none font-sans"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    سياسة ضمان الأصالة
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={arabicForm.authenticityGuaranteeText || ""}
+                    onChange={(e) => setArabicForm({ ...arabicForm, authenticityGuaranteeText: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none font-sans"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    سياسة الشحن والتوصيل
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={arabicForm.shippingPolicyText || ""}
+                    onChange={(e) => setArabicForm({ ...arabicForm, shippingPolicyText: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none font-sans"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    سياسة الاستبدال والاسترجاع
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={arabicForm.returnPolicyText || ""}
+                    onChange={(e) => setArabicForm({ ...arabicForm, returnPolicyText: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none font-sans"
+                  />
+                </div>
+              </div>
             </div>
+          ) : (
+            <>
+              {/* Section 01: Footer Brand Identity */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-mono font-bold text-gold uppercase tracking-wider border-b border-ink-border/60 pb-1">
+                  01. Footer Brand Identity
+                </h4>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Hub Cities Line
-              </label>
-              <input
-                type="text"
-                value={form.hubCities || ""}
-                onChange={(e) => setForm({ ...form, hubCities: e.target.value })}
-                placeholder="6TH OF OCTOBER • CAIRO • ALEXANDRIA • ALL EGYPT"
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-              />
-            </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    Footer Brand Narrative / Description
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={form.footerDescription || ""}
+                    onChange={(e) => setForm({ ...form, footerDescription: e.target.value })}
+                    placeholder="An editorial archive celebrating sequential art, Japanese literary epics, and tactile physical printing craftsmanship."
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
+                  />
+                </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Site Tagline
-              </label>
-              <input
-                type="text"
-                value={form.siteTagline || ""}
-                onChange={(e) => setForm({ ...form, siteTagline: e.target.value })}
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-              />
-            </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    Hub Cities Line
+                  </label>
+                  <input
+                    type="text"
+                    value={form.hubCities || ""}
+                    onChange={(e) => setForm({ ...form, hubCities: e.target.value })}
+                    placeholder="6TH OF OCTOBER • CAIRO • ALEXANDRIA • ALL EGYPT"
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                  />
+                </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Concierge Contact Email
-              </label>
-              <input
-                type="email"
-                value={form.contactEmail || ""}
-                onChange={(e) => setForm({ ...form, contactEmail: e.target.value })}
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-              />
-            </div>
-          </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    Site Tagline
+                  </label>
+                  <input
+                    type="text"
+                    value={form.siteTagline || ""}
+                    onChange={(e) => setForm({ ...form, siteTagline: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                  />
+                </div>
 
-          {/* Section 02: Canonical Store Policies */}
-          <div className="space-y-4 pt-2 border-t border-ink-border/60">
-            <h4 className="text-xs font-mono font-bold text-gold uppercase tracking-wider">
-              02. Canonical Store Policies &amp; Philosophy
-            </h4>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    Concierge Contact Email
+                  </label>
+                  <input
+                    type="email"
+                    value={form.contactEmail || ""}
+                    onChange={(e) => setForm({ ...form, contactEmail: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                  />
+                </div>
+              </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Footer Philosophical Quote
-              </label>
-              <textarea
-                rows={3}
-                value={form.footerQuote || ""}
-                onChange={(e) => setForm({ ...form, footerQuote: e.target.value })}
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
-              />
-            </div>
+              {/* Section 02: Canonical Store Policies */}
+              <div className="space-y-4 pt-2 border-t border-ink-border/60">
+                <h4 className="text-xs font-mono font-bold text-gold uppercase tracking-wider">
+                  02. Canonical Store Policies &amp; Philosophy
+                </h4>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Authenticity Guarantee Policy
-              </label>
-              <textarea
-                rows={3}
-                value={form.authenticityGuaranteeText || ""}
-                onChange={(e) => setForm({ ...form, authenticityGuaranteeText: e.target.value })}
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
-              />
-            </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    Footer Philosophical Quote
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={form.footerQuote || ""}
+                    onChange={(e) => setForm({ ...form, footerQuote: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
+                  />
+                </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Shipping Logistics Policy
-              </label>
-              <textarea
-                rows={3}
-                value={form.shippingPolicyText || ""}
-                onChange={(e) => setForm({ ...form, shippingPolicyText: e.target.value })}
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
-              />
-            </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    Authenticity Guarantee Policy
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={form.authenticityGuaranteeText || ""}
+                    onChange={(e) => setForm({ ...form, authenticityGuaranteeText: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
+                  />
+                </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Return &amp; Replacement Policy
-              </label>
-              <textarea
-                rows={3}
-                value={form.returnPolicyText || ""}
-                onChange={(e) => setForm({ ...form, returnPolicyText: e.target.value })}
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
-              />
-            </div>
-          </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    Shipping Logistics Policy
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={form.shippingPolicyText || ""}
+                    onChange={(e) => setForm({ ...form, shippingPolicyText: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    Return &amp; Replacement Policy
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={form.returnPolicyText || ""}
+                    onChange={(e) => setForm({ ...form, returnPolicyText: e.target.value })}
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
             <button
@@ -1534,14 +2017,14 @@ function EditorialLiveEditModal({
               onClick={onClose}
               className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
             >
-              Cancel
+              {editLang === "ar" ? "إلغاء" : "Cancel"}
             </button>
             <button
               type="submit"
               className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-transform hover:scale-105"
             >
               <Save className="w-4 h-4" />
-              Save &amp; Sync Live
+              {editLang === "ar" ? "حفظ ومزامنة فورية" : "Save & Sync Live"}
             </button>
           </div>
         </form>
@@ -1557,7 +2040,7 @@ function HeroCardLiveEditModal({
   onSave,
 }: {
   currentVolumeId: string;
-  volumes: any[];
+  volumes: MangaVolume[];
   onClose: () => void;
   onSave: (volumeId: string) => void;
 }) {
@@ -1759,7 +2242,7 @@ function FeaturedSeriesCardLiveEditModal({
   onSave,
 }: {
   currentSeriesSlug: string;
-  seriesList: any[];
+  seriesList: Series[];
   onClose: () => void;
   onSave: (seriesSlug: string) => void;
 }) {
@@ -1816,7 +2299,7 @@ function FeaturedSeriesCardLiveEditModal({
             <div className="flex items-center gap-3">
               <div className="w-10 h-14 bg-ink rounded-xs overflow-hidden border border-gold/40 shrink-0">
                 <img
-                  src={activeSeries.featuredImage || activeSeries.coverImage}
+                  src={activeSeries.featuredImage || activeSeries.bannerImage}
                   alt={activeSeries.title}
                   className="w-full h-full object-cover"
                 />
@@ -1878,7 +2361,7 @@ function FeaturedSeriesCardLiveEditModal({
                 >
                   <div className="relative aspect-[3/4] overflow-hidden rounded-xs bg-ink mb-2">
                     <img
-                      src={s.featuredImage || s.coverImage}
+                      src={s.featuredImage || s.bannerImage}
                       alt={s.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                     />
@@ -1937,19 +2420,36 @@ function FeaturedSeriesCardLiveEditModal({
 
 function TrendingLiveEditModal({
   initialConfig,
+  initialArabicConfig,
+  currentLocale = "en",
   onClose,
   onSave,
+  onSaveArabic,
 }: {
   initialConfig: TrendingConfig;
+  initialArabicConfig?: TrendingArabicConfig;
+  currentLocale?: "en" | "ar";
   onClose: () => void;
   onSave: (config: TrendingConfig) => void;
+  onSaveArabic: (config: TrendingArabicConfig) => void;
 }) {
   useModalScrollLock(true);
+  const [editLang, setEditLang] = useState<"en" | "ar">(currentLocale);
   const [form, setForm] = useState<TrendingConfig>(initialConfig);
+  const [arabicForm, setArabicForm] = useState<TrendingArabicConfig>(
+    initialArabicConfig || {
+      badgeText: "مختارات الأرشيف",
+      headline: "الأكثر رواجاً الآن",
+    }
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(form);
+    if (editLang === "ar") {
+      onSaveArabic(arabicForm);
+    } else {
+      onSave(form);
+    }
   };
 
   const speedInSeconds = (form.autoplaySpeed / 1000).toFixed(1);
@@ -1957,120 +2457,160 @@ function TrendingLiveEditModal({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="w-full max-w-lg flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
-          <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
-            Live Edit: Trending Now Carousel
-          </h3>
-          <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
-            <X className="w-5 h-5" />
-          </button>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50 gap-3">
+          <div className="min-w-0">
+            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider truncate">
+              Live Edit: Trending Now Carousel
+            </h3>
+            <p className="text-[11px] font-mono text-text-muted truncate">
+              {editLang === "ar" ? "تعديل نصوص الأكثر رواجاً بالعربية" : "Configure carousel speed & section headlines"}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <ModalLanguageSwitch activeLang={editLang} onChange={setEditLang} />
+            <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="flex items-center justify-between p-3 bg-ink-surface/60 border border-ink-border rounded-xs">
-            <div className="flex items-center gap-2">
-              <Layers className="w-4 h-4 text-gold" />
-              <div>
-                <div className="text-xs font-mono font-semibold uppercase text-paper">
-                  Automatic Card Flipping (Autoplay)
-                </div>
-                <div className="text-[11px] text-text-muted">
-                  Auto-advance carousel cards smoothly
-                </div>
+          {editLang === "ar" ? (
+            <div className="space-y-4" dir="rtl">
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  الشارة العلوية للسكشن (Badge Text)
+                </label>
+                <input
+                  type="text"
+                  value={arabicForm.badgeText || ""}
+                  onChange={(e) => setArabicForm({ ...arabicForm, badgeText: e.target.value })}
+                  placeholder="مختارات الأرشيف"
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  العنوان الرئيسي للسكشن (Headline)
+                </label>
+                <input
+                  type="text"
+                  value={arabicForm.headline || ""}
+                  onChange={(e) => setArabicForm({ ...arabicForm, headline: e.target.value })}
+                  placeholder="الأكثر رواجاً الآن"
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                />
               </div>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-              <input
-                type="checkbox"
-                checked={form.autoplayEnabled}
-                onChange={(e) => setForm({ ...form, autoplayEnabled: e.target.checked })}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-ink border border-ink-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-paper after:border after:border-ink-border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold peer-checked:border-gold"></div>
-              <span className={`ml-2.5 text-xs font-mono font-bold tracking-wider uppercase transition-colors ${
-                form.autoplayEnabled ? "text-gold" : "text-text-muted"
-              }`}>
-                {form.autoplayEnabled ? "ACTIVE" : "PAUSED"}
-              </span>
-            </label>
-          </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between p-3 bg-ink-surface/60 border border-ink-border rounded-xs">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-gold" />
+                  <div>
+                    <div className="text-xs font-mono font-semibold uppercase text-paper">
+                      Automatic Card Flipping (Autoplay)
+                    </div>
+                    <div className="text-[11px] text-text-muted">
+                      Auto-advance carousel cards smoothly
+                    </div>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={form.autoplayEnabled}
+                    onChange={(e) => setForm({ ...form, autoplayEnabled: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-ink border border-ink-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-paper after:border after:border-ink-border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold peer-checked:border-gold"></div>
+                  <span className={`ml-2.5 text-xs font-mono font-bold tracking-wider uppercase transition-colors ${
+                    form.autoplayEnabled ? "text-gold" : "text-text-muted"
+                  }`}>
+                    {form.autoplayEnabled ? "ACTIVE" : "PAUSED"}
+                  </span>
+                </label>
+              </div>
 
-          <div className="space-y-2 p-3 bg-ink-surface/40 border border-ink-border rounded-xs">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Card Flipping Speed / Transition Delay
-              </label>
-              <span className="text-xs font-mono font-bold text-gold px-2 py-0.5 bg-gold/10 border border-gold/30 rounded-xs">
-                {speedInSeconds}s ({form.autoplaySpeed} ms)
-              </span>
-            </div>
+              <div className="space-y-2 p-3 bg-ink-surface/40 border border-ink-border rounded-xs">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    Card Flipping Speed / Transition Delay
+                  </label>
+                  <span className="text-xs font-mono font-bold text-gold px-2 py-0.5 bg-gold/10 border border-gold/30 rounded-xs">
+                    {speedInSeconds}s ({form.autoplaySpeed} ms)
+                  </span>
+                </div>
 
-            <input
-              type="range"
-              min={1500}
-              max={8000}
-              step={100}
-              value={form.autoplaySpeed}
-              disabled={!form.autoplayEnabled}
-              onChange={(e) =>
-                setForm({ ...form, autoplaySpeed: parseInt(e.target.value) || 3800 })
-              }
-              className="w-full accent-gold cursor-pointer disabled:opacity-40"
-            />
+                <input
+                  type="range"
+                  min={1500}
+                  max={8000}
+                  step={100}
+                  value={form.autoplaySpeed}
+                  disabled={!form.autoplayEnabled}
+                  onChange={(e) =>
+                    setForm({ ...form, autoplaySpeed: parseInt(e.target.value) || 3800 })
+                  }
+                  className="w-full accent-gold cursor-pointer disabled:opacity-40"
+                />
 
-            <div className="flex items-center justify-between text-[10px] font-mono text-text-muted">
-              <span>1.5s (Fast)</span>
-              <span>3.8s (Balanced)</span>
-              <span>8.0s (Relaxed)</span>
-            </div>
+                <div className="flex items-center justify-between text-[10px] font-mono text-text-muted">
+                  <span>1.5s (Fast)</span>
+                  <span>3.8s (Balanced)</span>
+                  <span>8.0s (Relaxed)</span>
+                </div>
 
-            <div className="pt-2 flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] font-mono text-text-muted uppercase">Presets:</span>
-              {[
-                { label: "2.0s Fast", val: 2000 },
-                { label: "3.8s Standard", val: 3800 },
-                { label: "5.0s Gentle", val: 5000 },
-                { label: "6.5s Leisure", val: 6500 },
-              ].map((preset) => (
-                <button
-                  key={preset.val}
-                  type="button"
-                  onClick={() => setForm({ ...form, autoplaySpeed: preset.val })}
-                  className={`px-2 py-0.5 text-[10px] font-mono rounded-xs border transition-colors cursor-pointer ${
-                    form.autoplaySpeed === preset.val
-                      ? "bg-gold text-ink border-gold font-bold"
-                      : "bg-ink-surface text-paper-muted border-ink-border hover:text-paper hover:border-gold/50"
-                  }`}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-          </div>
+                <div className="pt-2 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] font-mono text-text-muted uppercase">Presets:</span>
+                  {[
+                    { label: "2.0s Fast", val: 2000 },
+                    { label: "3.8s Standard", val: 3800 },
+                    { label: "5.0s Gentle", val: 5000 },
+                    { label: "6.5s Leisure", val: 6500 },
+                  ].map((preset) => (
+                    <button
+                      key={preset.val}
+                      type="button"
+                      onClick={() => setForm({ ...form, autoplaySpeed: preset.val })}
+                      className={`px-2 py-0.5 text-[10px] font-mono rounded-xs border transition-colors cursor-pointer ${
+                        form.autoplaySpeed === preset.val
+                          ? "bg-gold text-ink border-gold font-bold"
+                          : "bg-ink-surface text-paper-muted border-ink-border hover:text-paper hover:border-gold/50"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Section Badge
-            </label>
-            <input
-              type="text"
-              value={form.badgeText || ""}
-              onChange={(e) => setForm({ ...form, badgeText: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-            />
-          </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  Section Badge
+                </label>
+                <input
+                  type="text"
+                  value={form.badgeText || ""}
+                  onChange={(e) => setForm({ ...form, badgeText: e.target.value })}
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                />
+              </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Section Headline
-            </label>
-            <input
-              type="text"
-              value={form.headline || ""}
-              onChange={(e) => setForm({ ...form, headline: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-            />
-          </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  Section Headline
+                </label>
+                <input
+                  type="text"
+                  value={form.headline || ""}
+                  onChange={(e) => setForm({ ...form, headline: e.target.value })}
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                />
+              </div>
+            </>
+          )}
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
             <button
@@ -2078,14 +2618,14 @@ function TrendingLiveEditModal({
               onClick={onClose}
               className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
             >
-              Cancel
+              {editLang === "ar" ? "إلغاء" : "Cancel"}
             </button>
             <button
               type="submit"
               className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-transform hover:scale-105"
             >
               <Save className="w-4 h-4" />
-              Save &amp; Sync Live
+              {editLang === "ar" ? "حفظ ومزامنة فورية" : "Save & Sync Live"}
             </button>
           </div>
         </form>
@@ -2096,69 +2636,140 @@ function TrendingLiveEditModal({
 
 function NewReleasesLiveEditModal({
   initialConfig,
+  initialArabicConfig,
+  currentLocale = "en",
   onClose,
   onSave,
+  onSaveArabic,
 }: {
   initialConfig: NewReleasesConfig;
+  initialArabicConfig?: NewReleasesArabicConfig;
+  currentLocale?: "en" | "ar";
   onClose: () => void;
   onSave: (config: NewReleasesConfig) => void;
+  onSaveArabic: (config: NewReleasesArabicConfig) => void;
 }) {
   useModalScrollLock(true);
+  const [editLang, setEditLang] = useState<"en" | "ar">(currentLocale);
   const [form, setForm] = useState<NewReleasesConfig>(initialConfig);
+  const [arabicForm, setArabicForm] = useState<NewReleasesArabicConfig>(
+    initialArabicConfig || {
+      badgeText: "وصل حديثاً للأرشيف",
+      headline: "أحدث الإصدارات",
+      viewAllText: "عرض الأرشيف الكامل",
+    }
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(form);
+    if (editLang === "ar") {
+      onSaveArabic(arabicForm);
+    } else {
+      onSave(form);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="w-full max-w-lg flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
-          <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
-            Live Edit: New Releases Section
-          </h3>
-          <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
-            <X className="w-5 h-5" />
-          </button>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50 gap-3">
+          <div className="min-w-0">
+            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider truncate">
+              Live Edit: New Releases Section
+            </h3>
+            <p className="text-[11px] font-mono text-text-muted truncate">
+              {editLang === "ar" ? "تعديل نصوص أحدث الإصدارات بالعربية" : "Configure new arrivals showcase"}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <ModalLanguageSwitch activeLang={editLang} onChange={setEditLang} />
+            <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Section Badge
-            </label>
-            <input
-              type="text"
-              value={form.badgeText || ""}
-              onChange={(e) => setForm({ ...form, badgeText: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-            />
-          </div>
+          {editLang === "ar" ? (
+            <div className="space-y-4" dir="rtl">
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  شارة السكشن العلوية (Badge Text)
+                </label>
+                <input
+                  type="text"
+                  value={arabicForm.badgeText || ""}
+                  onChange={(e) => setArabicForm({ ...arabicForm, badgeText: e.target.value })}
+                  placeholder="وصل حديثاً للأرشيف"
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                />
+              </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Section Headline
-            </label>
-            <input
-              type="text"
-              value={form.headline || ""}
-              onChange={(e) => setForm({ ...form, headline: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-            />
-          </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  عنوان السكشن الرئيسي (Headline)
+                </label>
+                <input
+                  type="text"
+                  value={arabicForm.headline || ""}
+                  onChange={(e) => setArabicForm({ ...arabicForm, headline: e.target.value })}
+                  placeholder="أحدث الإصدارات"
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                />
+              </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              View All Link Text
-            </label>
-            <input
-              type="text"
-              value={form.viewAllText || ""}
-              onChange={(e) => setForm({ ...form, viewAllText: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-            />
-          </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  نص رابط عرض الكل (View All Link Text)
+                </label>
+                <input
+                  type="text"
+                  value={arabicForm.viewAllText || ""}
+                  onChange={(e) => setArabicForm({ ...arabicForm, viewAllText: e.target.value })}
+                  placeholder="عرض الأرشيف الكامل"
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                />
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  Section Badge
+                </label>
+                <input
+                  type="text"
+                  value={form.badgeText || ""}
+                  onChange={(e) => setForm({ ...form, badgeText: e.target.value })}
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  Section Headline
+                </label>
+                <input
+                  type="text"
+                  value={form.headline || ""}
+                  onChange={(e) => setForm({ ...form, headline: e.target.value })}
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  View All Link Text
+                </label>
+                <input
+                  type="text"
+                  value={form.viewAllText || ""}
+                  onChange={(e) => setForm({ ...form, viewAllText: e.target.value })}
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                />
+              </div>
+            </>
+          )}
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
             <button
@@ -2166,14 +2777,14 @@ function NewReleasesLiveEditModal({
               onClick={onClose}
               className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
             >
-              Cancel
+              {editLang === "ar" ? "إلغاء" : "Cancel"}
             </button>
             <button
               type="submit"
               className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-transform hover:scale-105"
             >
               <Save className="w-4 h-4" />
-              Save &amp; Sync Live
+              {editLang === "ar" ? "حفظ ومزامنة فورية" : "Save & Sync Live"}
             </button>
           </div>
         </form>
@@ -2184,31 +2795,49 @@ function NewReleasesLiveEditModal({
 
 function GenreBentoLiveEditModal({
   initialConfig,
+  initialArabicConfig,
   genres,
+  currentLocale = "en",
   onClose,
   onSave,
+  onSaveArabic,
   onAddGenre,
   onUpdateGenre,
   onDeleteGenre,
 }: {
   initialConfig: GenreBentoConfig;
+  initialArabicConfig?: GenreBentoArabicConfig;
   genres: GenreInfo[];
+  currentLocale?: "en" | "ar";
   onClose: () => void;
   onSave: (config: GenreBentoConfig) => void;
+  onSaveArabic: (config: GenreBentoArabicConfig) => void;
   onAddGenre: (genre: GenreInfo) => void;
   onUpdateGenre: (id: string, updates: Partial<GenreInfo>) => void;
   onDeleteGenre: (id: string) => void;
 }) {
   useModalScrollLock(true);
   const [activeTab, setActiveTab] = useState<"header" | "categories">("categories");
+  const [editLang, setEditLang] = useState<"en" | "ar">(currentLocale);
   const [form, setForm] = useState<GenreBentoConfig>(initialConfig);
+  const [arabicForm, setArabicForm] = useState<GenreBentoArabicConfig>(
+    initialArabicConfig || {
+      badgeText: "دليل التصنيفات",
+      title: "استكشف تصنيفك المفضل",
+      description: "قوائم قراءة منتقاة بعناية عبر 9 تصنيفات رئيسية.",
+    }
+  );
   const [editingGenre, setEditingGenre] = useState<GenreInfo | null>(null);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [genreToDelete, setGenreToDelete] = useState<GenreInfo | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(form);
+    if (editLang === "ar") {
+      onSaveArabic(arabicForm);
+    } else {
+      onSave(form);
+    }
   };
 
   const handleOpenAdd = () => {
@@ -2250,29 +2879,36 @@ function GenreBentoLiveEditModal({
           </div>
 
           {/* Navigation Tabs */}
-          <div className="flex border-b border-ink-border bg-ink px-6 pt-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => setActiveTab("categories")}
-              className={`px-4 py-2.5 text-xs font-mono uppercase tracking-wider font-bold border-b-2 transition-all cursor-pointer ${
-                activeTab === "categories"
-                  ? "border-gold text-gold"
-                  : "border-transparent text-text-muted hover:text-paper"
-              }`}
-            >
-              Categories ({genres.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("header")}
-              className={`px-4 py-2.5 text-xs font-mono uppercase tracking-wider font-bold border-b-2 transition-all cursor-pointer ${
-                activeTab === "header"
-                  ? "border-gold text-gold"
-                  : "border-transparent text-text-muted hover:text-paper"
-              }`}
-            >
-              Section Header Copy
-            </button>
+          <div className="flex items-center justify-between border-b border-ink-border bg-ink px-6 pt-2 shrink-0">
+            <div className="flex">
+              <button
+                type="button"
+                onClick={() => setActiveTab("categories")}
+                className={`px-4 py-2.5 text-xs font-mono uppercase tracking-wider font-bold border-b-2 transition-all cursor-pointer ${
+                  activeTab === "categories"
+                    ? "border-gold text-gold"
+                    : "border-transparent text-text-muted hover:text-paper"
+                }`}
+              >
+                Categories ({genres.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("header")}
+                className={`px-4 py-2.5 text-xs font-mono uppercase tracking-wider font-bold border-b-2 transition-all cursor-pointer ${
+                  activeTab === "header"
+                    ? "border-gold text-gold"
+                    : "border-transparent text-text-muted hover:text-paper"
+                }`}
+              >
+                Section Header Copy
+              </button>
+            </div>
+            {activeTab === "header" && (
+              <div className="pb-2">
+                <ModalLanguageSwitch activeLang={editLang} onChange={setEditLang} />
+              </div>
+            )}
           </div>
 
           {/* Content Area */}
@@ -2351,41 +2987,86 @@ function GenreBentoLiveEditModal({
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                    Badge Text
-                  </label>
-                  <input
-                    type="text"
-                    value={form.badgeText || ""}
-                    onChange={(e) => setForm({ ...form, badgeText: e.target.value })}
-                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none font-mono"
-                  />
-                </div>
+                {editLang === "ar" ? (
+                  <div className="space-y-4" dir="rtl">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                        شارة السكشن العلوية (Badge Text)
+                      </label>
+                      <input
+                        type="text"
+                        value={arabicForm.badgeText || ""}
+                        onChange={(e) => setArabicForm({ ...arabicForm, badgeText: e.target.value })}
+                        placeholder="دليل التصنيفات"
+                        className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                      />
+                    </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                    Section Title
-                  </label>
-                  <input
-                    type="text"
-                    value={form.title || ""}
-                    onChange={(e) => setForm({ ...form, title: e.target.value })}
-                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none font-mono"
-                  />
-                </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                        عنوان السكشن الرئيسي (Section Title)
+                      </label>
+                      <input
+                        type="text"
+                        value={arabicForm.title || ""}
+                        onChange={(e) => setArabicForm({ ...arabicForm, title: e.target.value })}
+                        placeholder="استكشف تصنيفك المفضل"
+                        className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                      />
+                    </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                    Description / Caption
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={form.description || ""}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none font-mono"
-                  />
-                </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                        الوصف التوضيحي (Description)
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={arabicForm.description || ""}
+                        onChange={(e) => setArabicForm({ ...arabicForm, description: e.target.value })}
+                        placeholder="قوائم قراءة منتقاة بعناية عبر 9 تصنيفات رئيسية."
+                        className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                        Badge Text
+                      </label>
+                      <input
+                        type="text"
+                        value={form.badgeText || ""}
+                        onChange={(e) => setForm({ ...form, badgeText: e.target.value })}
+                        className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                        Section Title
+                      </label>
+                      <input
+                        type="text"
+                        value={form.title || ""}
+                        onChange={(e) => setForm({ ...form, title: e.target.value })}
+                        className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                        Description / Caption
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={form.description || ""}
+                        onChange={(e) => setForm({ ...form, description: e.target.value })}
+                        className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none font-mono"
+                      />
+                    </div>
+                  </>
+                )}
 
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
                   <button
@@ -2393,14 +3074,14 @@ function GenreBentoLiveEditModal({
                     onClick={onClose}
                     className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
                   >
-                    Cancel
+                    {editLang === "ar" ? "إلغاء" : "Cancel"}
                   </button>
                   <button
                     type="submit"
                     className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-transform hover:scale-105"
                   >
                     <Save className="w-4 h-4" />
-                    Save &amp; Sync Live
+                    {editLang === "ar" ? "حفظ ومزامنة فورية" : "Save & Sync Live"}
                   </button>
                 </div>
               </form>
@@ -2469,129 +3150,228 @@ function GenreBentoLiveEditModal({
 
 function MangaDiscoveryLiveEditModal({
   initialConfig,
+  initialArabicConfig,
+  currentLocale = "en",
   onClose,
   onSave,
+  onSaveArabic,
 }: {
   initialConfig: MangaDiscoveryConfig;
+  initialArabicConfig?: MangaDiscoveryArabicConfig;
+  currentLocale?: "en" | "ar";
   onClose: () => void;
   onSave: (config: MangaDiscoveryConfig) => void;
+  onSaveArabic: (config: MangaDiscoveryArabicConfig) => void;
 }) {
   useModalScrollLock(true);
+  const [editLang, setEditLang] = useState<"en" | "ar">(currentLocale);
   const [form, setForm] = useState<MangaDiscoveryConfig>(initialConfig);
+  const [arabicForm, setArabicForm] = useState<MangaDiscoveryArabicConfig>(
+    initialArabicConfig || {
+      badgeText: "البحث الفوري في الأرشيف",
+      title: "ابحث عن مجلدك القادم",
+      description: "ابحث مباشرة بين العناوين، والمؤلفين، والتصنيفات، أو الأرقام المعيارية.",
+      searchPlaceholder: "ابحث باسم المانجا، الكاتب، أو التصنيف... (مثل: Eiichiro Oda, Dark Fantasy)",
+      catalogLinkText: "الانتقال لكتالوج المانجا الكامل",
+    }
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(form);
+    if (editLang === "ar") {
+      onSaveArabic(arabicForm);
+    } else {
+      onSave(form);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="w-full max-w-lg flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
-          <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
-            Live Edit: Manga Discovery Section
-          </h3>
-          <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
-            <X className="w-5 h-5" />
-          </button>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50 gap-3">
+          <div className="min-w-0">
+            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider truncate">
+              Live Edit: Manga Discovery Section
+            </h3>
+            <p className="text-[11px] font-mono text-text-muted truncate">
+              {editLang === "ar" ? "تعديل نصوص استكشاف المانجا والبحث بالعربية" : "Configure discovery bar & catalog search"}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <ModalLanguageSwitch activeLang={editLang} onChange={setEditLang} />
+            <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto overscroll-contain">
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Badge Text
-            </label>
-            <input
-              type="text"
-              value={form.badgeText || ""}
-              onChange={(e) => setForm({ ...form, badgeText: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-            />
-          </div>
+          {editLang === "ar" ? (
+            <div className="space-y-4" dir="rtl">
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  شارة السكشن العلوية (Badge Text)
+                </label>
+                <input
+                  type="text"
+                  value={arabicForm.badgeText || ""}
+                  onChange={(e) => setArabicForm({ ...arabicForm, badgeText: e.target.value })}
+                  placeholder="البحث الفوري في الأرشيف"
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                />
+              </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Section Title
-            </label>
-            <input
-              type="text"
-              value={form.title || ""}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-            />
-          </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  عنوان السكشن الرئيسي (Title)
+                </label>
+                <input
+                  type="text"
+                  value={arabicForm.title || ""}
+                  onChange={(e) => setArabicForm({ ...arabicForm, title: e.target.value })}
+                  placeholder="ابحث عن مجلدك القادم"
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                />
+              </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Description / Caption
-            </label>
-            <textarea
-              rows={2}
-              value={form.description || ""}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
-            />
-          </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  الوصف التوضيحي (Description)
+                </label>
+                <textarea
+                  rows={2}
+                  value={arabicForm.description || ""}
+                  onChange={(e) => setArabicForm({ ...arabicForm, description: e.target.value })}
+                  placeholder="ابحث مباشرة بين العناوين، والمؤلفين، والتصنيفات، أو الأرقام المعيارية."
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
+                />
+              </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Search Input Placeholder
-            </label>
-            <input
-              type="text"
-              value={form.searchPlaceholder || ""}
-              onChange={(e) => setForm({ ...form, searchPlaceholder: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-            />
-          </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  نص حقل البحث التوضيحي (Search Placeholder)
+                </label>
+                <input
+                  type="text"
+                  value={arabicForm.searchPlaceholder || ""}
+                  onChange={(e) => setArabicForm({ ...arabicForm, searchPlaceholder: e.target.value })}
+                  placeholder="ابحث باسم المانجا، الكاتب، أو التصنيف... (مثل: Eiichiro Oda, Dark Fantasy)"
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                />
+              </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-              Catalog Link Text
-            </label>
-            <input
-              type="text"
-              value={form.catalogLinkText || ""}
-              onChange={(e) => setForm({ ...form, catalogLinkText: e.target.value })}
-              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Default Active Tab
-              </label>
-              <CustomSelect
-                fullWidth
-                value={form.defaultTab || "POPULAR"}
-                onChange={(val) => setForm({ ...form, defaultTab: val as MangaDiscoveryConfig["defaultTab"] })}
-                options={[
-                  { value: "POPULAR", label: "POPULAR (Trending)" },
-                  { value: "TOP_RATED", label: "TOP RATED (4.9+ Stars)" },
-                  { value: "BEST_SELLERS", label: "BEST SELLERS" },
-                  { value: "RECENTLY_ADDED", label: "RECENTLY ADDED (Vol. 1)" },
-                ]}
-                buttonClassName="bg-ink-surface rounded-xs h-10 px-3 text-xs"
-              />
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  نص رابط الكتالوج الكامل (Catalog Link Text)
+                </label>
+                <input
+                  type="text"
+                  value={arabicForm.catalogLinkText || ""}
+                  onChange={(e) => setArabicForm({ ...arabicForm, catalogLinkText: e.target.value })}
+                  placeholder="الانتقال لكتالوج المانجا الكامل"
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                />
+              </div>
             </div>
+          ) : (
+            <>
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  Badge Text
+                </label>
+                <input
+                  type="text"
+                  value={form.badgeText || ""}
+                  onChange={(e) => setForm({ ...form, badgeText: e.target.value })}
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                />
+              </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Cards Display Count
-              </label>
-              <CustomSelect
-                fullWidth
-                value={String(form.displayCount || 4)}
-                onChange={(val) => setForm({ ...form, displayCount: parseInt(val, 10) || 4 })}
-                options={[
-                  { value: "4", label: "4 Cards (Single Row)" },
-                  { value: "8", label: "8 Cards (Two Rows)" },
-                ]}
-                buttonClassName="bg-ink-surface rounded-xs h-10 px-3 text-xs"
-              />
-            </div>
-          </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  Section Title
+                </label>
+                <input
+                  type="text"
+                  value={form.title || ""}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  Description / Caption
+                </label>
+                <textarea
+                  rows={2}
+                  value={form.description || ""}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  Search Input Placeholder
+                </label>
+                <input
+                  type="text"
+                  value={form.searchPlaceholder || ""}
+                  onChange={(e) => setForm({ ...form, searchPlaceholder: e.target.value })}
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                  Catalog Link Text
+                </label>
+                <input
+                  type="text"
+                  value={form.catalogLinkText || ""}
+                  onChange={(e) => setForm({ ...form, catalogLinkText: e.target.value })}
+                  className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    Default Active Tab
+                  </label>
+                  <CustomSelect
+                    fullWidth
+                    value={form.defaultTab || "POPULAR"}
+                    onChange={(val) => setForm({ ...form, defaultTab: val as MangaDiscoveryConfig["defaultTab"] })}
+                    options={[
+                      { value: "POPULAR", label: "POPULAR (Trending)" },
+                      { value: "TOP_RATED", label: "TOP RATED (4.9+ Stars)" },
+                      { value: "BEST_SELLERS", label: "BEST SELLERS" },
+                      { value: "RECENTLY_ADDED", label: "RECENTLY ADDED (Vol. 1)" },
+                    ]}
+                    buttonClassName="bg-ink-surface rounded-xs h-10 px-3 text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                    Cards Display Count
+                  </label>
+                  <CustomSelect
+                    fullWidth
+                    value={String(form.displayCount || 4)}
+                    onChange={(val) => setForm({ ...form, displayCount: parseInt(val, 10) || 4 })}
+                    options={[
+                      { value: "4", label: "4 Cards (Single Row)" },
+                      { value: "8", label: "8 Cards (Two Rows)" },
+                    ]}
+                    buttonClassName="bg-ink-surface rounded-xs h-10 px-3 text-xs"
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
             <button
@@ -2599,14 +3379,14 @@ function MangaDiscoveryLiveEditModal({
               onClick={onClose}
               className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
             >
-              Cancel
+              {editLang === "ar" ? "إلغاء" : "Cancel"}
             </button>
             <button
               type="submit"
               className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-transform hover:scale-105"
             >
               <Save className="w-4 h-4" />
-              Save &amp; Sync Live
+              {editLang === "ar" ? "حفظ ومزامنة فورية" : "Save & Sync Live"}
             </button>
           </div>
         </form>

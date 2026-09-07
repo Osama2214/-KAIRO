@@ -1,4 +1,4 @@
-﻿/**
+/**
  * KAIRO Archive Server-Side Rate Limiter
  * Provides sliding-window IP and identifier rate limiting for security-sensitive API routes.
  */
@@ -37,17 +37,20 @@ if (typeof setInterval !== "undefined") {
  * Resolves client IP address from standard proxy headers
  */
 export function getClientIp(request: Request): string {
+  // 1. Cloudflare edge IP header (cannot be spoofed from client)
+  const cfIp = request.headers.get("cf-connecting-ip");
+  if (cfIp) return cfIp.trim();
+
+  // 2. Nginx / reverse-proxy real IP header
+  const realIp = request.headers.get("x-real-ip");
+  if (realIp) return realIp.trim();
+
+  // 3. Fallback to standard forwarded-for
   const forwardedFor = request.headers.get("x-forwarded-for");
   if (forwardedFor) {
     const ip = forwardedFor.split(",")[0].trim();
     if (ip) return ip;
   }
-
-  const realIp = request.headers.get("x-real-ip");
-  if (realIp) return realIp.trim();
-
-  const cfIp = request.headers.get("cf-connecting-ip");
-  if (cfIp) return cfIp.trim();
 
   return "127.0.0.1";
 }

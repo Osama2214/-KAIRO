@@ -12,9 +12,12 @@ import { useUIStore } from "@/store/useUIStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { formatPrice } from "@/lib/utils";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export function TheCollection() {
   const router = useRouter();
+  const { t, locale, isRTL } = useTranslation();
+  const isArabic = locale === "ar";
   const sectionRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const vol1Ref = useRef<HTMLDivElement>(null);
@@ -826,7 +829,7 @@ export function TheCollection() {
         {/* 01 — Top Editorial Header */}
         <div className="text-center z-10 pt-4 sm:pt-6 flex flex-col items-center gap-2">
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight uppercase text-paper font-cinzel">
-            {collectionConfig?.headline || "THE COLLECTION"}
+            {isArabic ? t.theCollection.headline : (collectionConfig?.headline || "THE COLLECTION")}
           </h2>
           <LiveEditButton target={{ type: "collection" }} label="Edit Collection" variant="floating" size="xs" />
         </div>
@@ -853,10 +856,10 @@ export function TheCollection() {
             {/* Top Bar of Slipcase - Calm & Refined */}
             <div className="flex items-center justify-between border-b border-gold/15 pb-2 px-1 relative z-10">
               <span className="text-[9px] sm:text-[10px] font-mono tracking-[0.22em] text-gold/80 uppercase font-medium">
-                KAIRO ARCHIVE BOXSET // SERIES 01
+                {isArabic ? "صندوق أرشيف كايرو // الإصدار 01" : "KAIRO ARCHIVE BOXSET // SERIES 01"}
               </span>
               <span className="text-[8px] sm:text-[9px] font-mono text-paper-muted/50 tracking-widest uppercase font-light">
-                FIRST PRINT • 2026
+                {isArabic ? "طبعة أولى • 2026" : "FIRST PRINT • 2026"}
               </span>
             </div>
 
@@ -871,7 +874,7 @@ export function TheCollection() {
                 第１巻 — 第３巻 豪華特装版
               </span>
               <span className="text-[8px] sm:text-[9px] font-mono text-gold/70 tracking-[0.22em] uppercase font-medium">
-                DELUXE ARCHIVAL SLIPCASE
+                {isArabic ? "صندوق حفظ فاخر" : "DELUXE ARCHIVAL SLIPCASE"}
               </span>
             </div>
           </div>
@@ -903,11 +906,11 @@ export function TheCollection() {
             {/* Volume Badge */}
             <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 z-20 pointer-events-none">
               <span className="px-2 py-0.5 rounded-xs bg-ink/80 backdrop-blur-md text-[8px] sm:text-[9px] font-mono tracking-wider text-gold/90 border border-gold/20 shadow-xs font-semibold">
-                {vol1.volumeNumber ? `VOL. ${String(vol1.volumeNumber).padStart(2, "0")}` : "VOL. 01"}
+                {vol1.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol1.volumeNumber).padStart(2, "0")}` : (isArabic ? "المجلد 01" : "VOL. 01")}
               </span>
               {vol1.stock <= 0 && (
                 <span className="px-2 py-0.5 rounded-xs bg-red-950/90 border border-red-800/80 text-[7px] sm:text-[8px] font-mono tracking-wider text-red-400 font-bold uppercase">
-                  OUT OF STOCK
+                  {isArabic ? "نفد" : "OUT OF STOCK"}
                 </span>
               )}
             </div>
@@ -919,19 +922,19 @@ export function TheCollection() {
                 e.stopPropagation();
                 openReader(vol1);
               }}
-              className="absolute top-2.5 right-2.5 p-1.5 rounded-xs bg-ink/85 backdrop-blur-md border border-ink-border text-paper hover:text-gold hover:border-gold transition-colors opacity-0 group-hover:opacity-100 z-30 shadow-md"
-              title="Preview Volume"
+              className="absolute top-2.5 right-2.5 p-1.5 rounded-xs bg-ink/85 backdrop-blur-md border border-ink-border text-paper hover:text-gold hover:border-gold transition-colors opacity-80 sm:opacity-0 sm:group-hover:opacity-100 z-30 shadow-md active:scale-90"
+              title={isArabic ? "معاينة المجلد" : "Preview Volume"}
             >
               <Eye strokeWidth={1.5} className="w-3.5 h-3.5" />
             </button>
 
-            {/* Bottom Title Bar (Reveals smoothly on hover) */}
-            <div className="absolute inset-x-0 bottom-0 p-3 bg-linear-to-t from-ink via-ink/95 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
+            {/* Bottom Title Bar (Reveals smoothly on hover, visible on mobile) */}
+            <div className="absolute inset-x-0 bottom-0 p-2.5 sm:p-3 bg-linear-to-t from-ink via-ink/95 to-transparent opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
               <span className="text-[9px] sm:text-[11px] font-bold text-paper line-clamp-1 uppercase tracking-wider block">
-                {vol1.volumeNumber ? `VOL. ${String(vol1.volumeNumber).padStart(2, "0")} // ${vol1.title}` : vol1.title}
+                {vol1.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol1.volumeNumber).padStart(2, "0")} // ${vol1.title}` : vol1.title}
               </span>
               <span className="text-[8px] font-mono text-gold tracking-widest uppercase block mt-0.5 opacity-90">
-                FIRST PRINT
+                {isArabic ? "طبعة أولى" : "FIRST PRINT"}
               </span>
             </div>
           </div>
@@ -963,11 +966,11 @@ export function TheCollection() {
             {/* Volume Badge */}
             <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 z-20 pointer-events-none">
               <span className="px-2 py-0.5 rounded-xs bg-ink/80 backdrop-blur-md text-[8px] sm:text-[9px] font-mono tracking-wider text-gold/90 border border-gold/20 shadow-xs font-semibold">
-                {vol2.volumeNumber ? `VOL. ${String(vol2.volumeNumber).padStart(2, "0")}` : "VOL. 02"}
+                {vol2.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol2.volumeNumber).padStart(2, "0")}` : (isArabic ? "المجلد 02" : "VOL. 02")}
               </span>
               {vol2.stock <= 0 && (
                 <span className="px-2 py-0.5 rounded-xs bg-red-950/90 border border-red-800/80 text-[7px] sm:text-[8px] font-mono tracking-wider text-red-400 font-bold uppercase">
-                  OUT OF STOCK
+                  {isArabic ? "نفد" : "OUT OF STOCK"}
                 </span>
               )}
             </div>
@@ -979,19 +982,19 @@ export function TheCollection() {
                 e.stopPropagation();
                 openReader(vol2);
               }}
-              className="absolute top-2.5 right-2.5 p-1.5 rounded-xs bg-ink/85 backdrop-blur-md border border-ink-border text-paper hover:text-gold hover:border-gold transition-colors opacity-0 group-hover:opacity-100 z-30 shadow-md"
-              title="Preview Volume"
+              className="absolute top-2.5 right-2.5 p-1.5 rounded-xs bg-ink/85 backdrop-blur-md border border-ink-border text-paper hover:text-gold hover:border-gold transition-colors opacity-80 sm:opacity-0 sm:group-hover:opacity-100 z-30 shadow-md active:scale-90"
+              title={isArabic ? "معاينة المجلد" : "Preview Volume"}
             >
               <Eye strokeWidth={1.5} className="w-3.5 h-3.5" />
             </button>
 
-            {/* Bottom Title Bar (Reveals smoothly on hover) */}
-            <div className="absolute inset-x-0 bottom-0 p-3 bg-linear-to-t from-ink via-ink/95 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
+            {/* Bottom Title Bar (Reveals smoothly on hover, visible on mobile) */}
+            <div className="absolute inset-x-0 bottom-0 p-2.5 sm:p-3 bg-linear-to-t from-ink via-ink/95 to-transparent opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
               <span className="text-[9px] sm:text-[11px] font-bold text-paper line-clamp-1 uppercase tracking-wider block">
-                {vol2.volumeNumber ? `VOL. ${String(vol2.volumeNumber).padStart(2, "0")} // ${vol2.title}` : vol2.title}
+                {vol2.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol2.volumeNumber).padStart(2, "0")} // ${vol2.title}` : vol2.title}
               </span>
               <span className="text-[8px] font-mono text-gold tracking-widest uppercase block mt-0.5 opacity-90">
-                FIRST PRINT
+                {isArabic ? "طبعة أولى" : "FIRST PRINT"}
               </span>
             </div>
           </div>
@@ -1023,11 +1026,11 @@ export function TheCollection() {
             {/* Volume Badge */}
             <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 z-20 pointer-events-none">
               <span className="px-2 py-0.5 rounded-xs bg-ink/80 backdrop-blur-md text-[8px] sm:text-[9px] font-mono tracking-wider text-gold/90 border border-gold/20 shadow-xs font-semibold">
-                {vol3.volumeNumber ? `VOL. ${String(vol3.volumeNumber).padStart(2, "0")}` : "VOL. 03"}
+                {vol3.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol3.volumeNumber).padStart(2, "0")}` : (isArabic ? "المجلد 03" : "VOL. 03")}
               </span>
               {vol3.stock <= 0 && (
                 <span className="px-2 py-0.5 rounded-xs bg-red-950/90 border border-red-800/80 text-[7px] sm:text-[8px] font-mono tracking-wider text-red-400 font-bold uppercase">
-                  OUT OF STOCK
+                  {isArabic ? "نفد" : "OUT OF STOCK"}
                 </span>
               )}
             </div>
@@ -1039,19 +1042,19 @@ export function TheCollection() {
                 e.stopPropagation();
                 openReader(vol3);
               }}
-              className="absolute top-2.5 right-2.5 p-1.5 rounded-xs bg-ink/85 backdrop-blur-md border border-ink-border text-paper hover:text-gold hover:border-gold transition-colors opacity-0 group-hover:opacity-100 z-30 shadow-md"
-              title="Preview Volume"
+              className="absolute top-2.5 right-2.5 p-1.5 rounded-xs bg-ink/85 backdrop-blur-md border border-ink-border text-paper hover:text-gold hover:border-gold transition-colors opacity-80 sm:opacity-0 sm:group-hover:opacity-100 z-30 shadow-md active:scale-90"
+              title={isArabic ? "معاينة المجلد" : "Preview Volume"}
             >
               <Eye strokeWidth={1.5} className="w-3.5 h-3.5" />
             </button>
 
-            {/* Bottom Title Bar (Reveals smoothly on hover) */}
-            <div className="absolute inset-x-0 bottom-0 p-3 bg-linear-to-t from-ink via-ink/95 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
+            {/* Bottom Title Bar (Reveals smoothly on hover, visible on mobile) */}
+            <div className="absolute inset-x-0 bottom-0 p-2.5 sm:p-3 bg-linear-to-t from-ink via-ink/95 to-transparent opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
               <span className="text-[9px] sm:text-[11px] font-bold text-paper line-clamp-1 uppercase tracking-wider block">
-                {vol3.volumeNumber ? `VOL. ${String(vol3.volumeNumber).padStart(2, "0")} // ${vol3.title}` : vol3.title}
+                {vol3.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol3.volumeNumber).padStart(2, "0")} // ${vol3.title}` : vol3.title}
               </span>
               <span className="text-[8px] font-mono text-gold tracking-widest uppercase block mt-0.5 opacity-90">
-                FIRST PRINT
+                {isArabic ? "طبعة أولى" : "FIRST PRINT"}
               </span>
             </div>
           </div>
@@ -1067,7 +1070,7 @@ export function TheCollection() {
             {/* Quiet Archival Metadata Bar */}
             <div className="inline-flex items-center gap-2.5 text-[10px] font-mono tracking-[0.22em] text-paper-muted/80 uppercase">
               <span className="text-gold font-medium">
-                {collectionConfig?.badgeText || "COMPLETE ARCHIVE • VOL. 01–03"}
+                {isArabic ? t.theCollection.badgeText : (collectionConfig?.badgeText || "COMPLETE ARCHIVE • VOL. 01–03")}
               </span>
               <span className="text-gold/30">•</span>
               <span className="text-paper/90 font-semibold">{formatPrice(bundlePrice)}</span>
@@ -1083,9 +1086,11 @@ export function TheCollection() {
                 >
                   <ShoppingBag strokeWidth={1.5} className="w-4 h-4 group-hover:scale-110 transition-transform" />
                   <span>
-                    {collectionConfig?.primaryCtaText
-                      ? `${collectionConfig.primaryCtaText} — ${formatPrice(bundlePrice)}`
-                      : `ADD SET TO CART — ${formatPrice(bundlePrice)}`}
+                    {isArabic
+                      ? `أضف المجموعة للسلة — ${formatPrice(bundlePrice)}`
+                      : (collectionConfig?.primaryCtaText
+                          ? `${collectionConfig.primaryCtaText} — ${formatPrice(bundlePrice)}`
+                          : `ADD SET TO CART — ${formatPrice(bundlePrice)}`)}
                   </span>
                 </button>
               ) : (
@@ -1094,15 +1099,15 @@ export function TheCollection() {
                   disabled
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 bg-ink-surface/90 text-text-muted border border-ink-border font-bold text-xs tracking-[0.2em] uppercase rounded-sm cursor-not-allowed opacity-80"
                 >
-                  <span>BUNDLE CURRENTLY OUT OF STOCK</span>
+                  <span>{isArabic ? "المجموعة غير متوفرة حالياً" : "BUNDLE CURRENTLY OUT OF STOCK"}</span>
                 </button>
               )}
               <Link
                 href={collectionConfig?.secondaryCtaLink || "/manga?format=Box+Set"}
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-ink/60 backdrop-blur-md text-paper border border-ink-border font-bold text-xs tracking-[0.16em] uppercase rounded-sm hover:border-gold hover:text-gold transition-all duration-300 cursor-pointer group"
               >
-                <span>{collectionConfig?.secondaryCtaText || "DISCOVER ALL BOXSETS"}</span>
-                <ArrowRight strokeWidth={1.5} className="w-3.5 h-3.5 group-hover:translate-x-1.5 transition-transform" />
+                <span>{isArabic ? "استكشف كافة المجموعات" : (collectionConfig?.secondaryCtaText || "DISCOVER ALL BOXSETS")}</span>
+                <ArrowRight strokeWidth={1.5} className={`w-3.5 h-3.5 group-hover:translate-x-1.5 transition-transform ${isRTL ? "rotate-180" : ""}`} />
               </Link>
             </div>
           </div>

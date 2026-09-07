@@ -6,8 +6,11 @@ import { ArrowRight } from "lucide-react";
 import { ALL_SERIES } from "@/data/manga";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export function FeaturedSeries() {
+  const { locale, isRTL } = useTranslation();
+  const isArabic = locale === "ar";
   const allSeries = useStorefrontStore((state) => state.series);
   const featuredConfig = useStorefrontStore((state) => state.featuredSeriesConfig);
 
@@ -15,12 +18,26 @@ export function FeaturedSeries() {
     (allSeries && allSeries.find((s) => s.slug === featuredConfig?.seriesSlug)) ||
     (allSeries && allSeries.length > 0 ? allSeries[0] : ALL_SERIES[0]);
 
-  const badgeText = featuredConfig?.badgeText || `FEATURED SERIES — ${series.japaneseTitle}`;
+  const badgeText =
+    featuredConfig?.badgeText && featuredConfig.badgeText !== `FEATURED SERIES — ${series.japaneseTitle}`
+      ? featuredConfig.badgeText
+      : isArabic
+      ? `سلسلة مميزة — ${series.japaneseTitle}`
+      : `FEATURED SERIES — ${series.japaneseTitle}`;
   const title = featuredConfig?.customTitle || series.title;
   const description = featuredConfig?.customDescription || series.description;
-  const ctaText = featuredConfig?.ctaText || "EXPLORE SERIES ARCHIVE";
+  const ctaText =
+    featuredConfig?.ctaText && featuredConfig.ctaText !== "EXPLORE SERIES ARCHIVE"
+      ? featuredConfig.ctaText
+      : isArabic
+      ? "استكشف أرشيف السلسلة"
+      : "EXPLORE SERIES ARCHIVE";
   const ctaLink = featuredConfig?.ctaLink || `/series/${series.slug}`;
   const image = featuredConfig?.customImage || series.featuredImage;
+
+  const metaText = isArabic
+    ? `تأليف ورسم ${series.author} • ${series.totalVolumes} مجلدات (${series.status === "Ongoing" ? "مستمرة" : "مكتملة"})`
+    : `Written & Illustrated by ${series.author} • ${series.totalVolumes} Volumes (${series.status})`;
 
   return (
     <section className="py-20 px-6 md:px-12 lg:px-16 bg-ink border-t border-ink-border/60 relative overflow-hidden">
@@ -54,7 +71,7 @@ export function FeaturedSeries() {
                   {title}
                 </h2>
                 <p className="text-xs font-mono tracking-widest text-text-muted uppercase">
-                  Written &amp; Illustrated by {series.author} • {series.totalVolumes} Volumes ({series.status})
+                  {metaText}
                 </p>
               </div>
 
@@ -70,7 +87,7 @@ export function FeaturedSeries() {
                   className="inline-flex items-center gap-3 px-8 sm:px-9 py-4 bg-paper text-ink font-extrabold text-xs sm:text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-vermilion hover:text-white transition-all duration-300 shadow-xl group cursor-pointer"
                 >
                   <span>{ctaText}</span>
-                  <ArrowRight strokeWidth={1.5} className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
+                  <ArrowRight strokeWidth={1.5} className={`w-4 h-4 group-hover:translate-x-1.5 rtl:group-hover:-translate-x-1.5 transition-transform ${isRTL ? "rotate-180" : ""}`} />
                 </Link>
               </div>
             </div>

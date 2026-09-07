@@ -21,10 +21,13 @@ import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { formatPrice } from "@/lib/utils";
 import { CustomSelect } from "@/components/CustomSelect";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
+import { useTranslation } from "@/hooks/useTranslation";
 
 function MangaCatalogContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t, locale, isRTL } = useTranslation();
+  const isArabic = locale === "ar";
   const initialGenre = searchParams.get("genre");
   const isSaleParam = searchParams.get("sort") === "sale";
 
@@ -118,24 +121,9 @@ function MangaCatalogContent() {
 
       // Genre filter
       if (selectedGenres.length > 0) {
-        const matchesGenre = volume.genre.some((g) => {
-          const gLower = g.toLowerCase();
-          const gSlug = gLower.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-          return selectedGenres.some((sel) => {
-            const selLower = sel.toLowerCase();
-            const selSlug = selLower.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-            return (
-              gLower === selLower ||
-              gSlug === selSlug ||
-              activeGenres.some(
-                (ag) =>
-                  (ag.id.toLowerCase() === selLower || ag.name.toLowerCase() === selLower) &&
-                  (ag.name.toLowerCase() === gLower || ag.id.toLowerCase() === gSlug)
-              )
-            );
-          });
-        });
-        if (!matchesGenre) return false;
+        const volumeGenreLower = volume.genre.map((g) => g.toLowerCase());
+        const hasMatch = selectedGenres.some((sg) => volumeGenreLower.includes(sg));
+        if (!hasMatch) return false;
       }
 
       // Format filter
@@ -143,22 +131,28 @@ function MangaCatalogContent() {
         if (!selectedFormats.includes(volume.format)) return false;
       }
 
-      // Stock filter
-      if (inStockOnly && volume.stock <= 0) return false;
+      // In-stock filter
+      if (inStockOnly && volume.stock <= 0) {
+        return false;
+      }
 
       // Price filter
-      if (volume.price > effectivePriceMax) return false;
+      if (volume.price > effectivePriceMax) {
+        return false;
+      }
 
       return true;
     }).sort((a, b) => {
-      if (sortBy === "POPULAR") return (b.isTrending ? 1 : 0) - (a.isTrending ? 1 : 0);
       if (sortBy === "NEWEST") return new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime();
       if (sortBy === "PRICE_ASC") return a.price - b.price;
       if (sortBy === "PRICE_DESC") return b.price - a.price;
       if (sortBy === "RATING") return b.rating - a.rating;
-      return 0;
+      // Default: POPULAR (trending first, then rating, then stock)
+      if (a.isTrending && !b.isTrending) return -1;
+      if (!a.isTrending && b.isTrending) return 1;
+      return b.rating - a.rating;
     });
-  }, [selectedGenres, selectedFormats, inStockOnly, onSaleOnly, effectivePriceMax, sortBy, activeVolumes]);
+  }, [selectedGenres, selectedFormats, inStockOnly, onSaleOnly, effectivePriceMax, sortBy, activeVolumes, activeGenres]);
 
   const activeFilterCount =
     selectedGenres.length +
@@ -174,12 +168,12 @@ function MangaCatalogContent() {
         <div className="mb-10 pb-6 border-b border-ink-border/70 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2 font-mono text-[11px] text-gold tracking-widest uppercase">
-              <span>ARCHIVE REPOSITORY</span>
+              <span>{isArabic ? "مستودع الأرشيف المعتمد" : "ARCHIVE REPOSITORY"}</span>
               <span>/</span>
-              <span>CATALOG</span>
+              <span>{isArabic ? "الكتالوج" : "CATALOG"}</span>
             </div>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight uppercase font-sans">
-              MANGA CATALOG
+              {isArabic ? "كتالوج المانجا" : "MANGA CATALOG"}
             </h1>
           </div>
 
@@ -190,21 +184,21 @@ function MangaCatalogContent() {
               className="md:hidden flex items-center gap-2 px-4 py-2.5 bg-ink-surface border border-ink-border rounded-xs text-xs font-mono tracking-widest uppercase hover:border-gold/60 transition-colors cursor-pointer"
             >
               <Filter strokeWidth={1.4} className="w-3.5 h-3.5 text-gold" />
-              <span>FILTERS ({activeFilterCount})</span>
+              <span>{isArabic ? `الفلاتر (${activeFilterCount})` : `FILTERS (${activeFilterCount})`}</span>
             </button>
 
             {/* Sort Dropdown */}
             <CustomSelect
               options={[
-                { value: "POPULAR", label: "POPULAR" },
-                { value: "NEWEST", label: "NEWEST" },
-                { value: "PRICE_ASC", label: "PRICE: LOW TO HIGH" },
-                { value: "PRICE_DESC", label: "PRICE: HIGH TO LOW" },
-                { value: "RATING", label: "RATING (HIGH TO LOW)" },
+                { value: "POPULAR", label: isArabic ? "الأكثر رواجاً" : "POPULAR" },
+                { value: "NEWEST", label: isArabic ? "أحدث المجلدات" : "NEWEST" },
+                { value: "PRICE_ASC", label: isArabic ? "السعر: من الأقل للأعلى" : "PRICE: LOW TO HIGH" },
+                { value: "PRICE_DESC", label: isArabic ? "السعر: من الأعلى للأقل" : "PRICE: HIGH TO LOW" },
+                { value: "RATING", label: isArabic ? "التقييم: الأعلى تقييماً" : "RATING (HIGH TO LOW)" },
               ]}
               value={sortBy}
               onChange={(val) => setSortBy(val as typeof sortBy)}
-              labelPrefix="SORT BY:"
+              labelPrefix={isArabic ? "ترتيب حسب:" : "SORT BY:"}
               className="w-56 sm:w-64"
             />
           </div>
@@ -213,7 +207,7 @@ function MangaCatalogContent() {
         {/* Active Filter Chips Bar */}
         {activeFilterCount > 0 && (
           <div className="flex items-center gap-2 flex-wrap mb-8 pb-4 border-b border-ink-border/50 text-xs font-mono">
-            <span className="text-text-muted text-[11px] mr-2">ACTIVE FILTERS:</span>
+            <span className="text-text-muted text-[11px] mr-2">{isArabic ? "الفلاتر النشطة:" : "ACTIVE FILTERS:"}</span>
             {selectedGenres.map((g) => (
               <span
                 key={g}
@@ -238,7 +232,7 @@ function MangaCatalogContent() {
             ))}
             {inStockOnly && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-gold/10 text-gold border border-gold/30 uppercase">
-                IN STOCK ONLY
+                {isArabic ? "المتوفر في المخزن فقط" : "IN STOCK ONLY"}
                 <button onClick={() => setInStockOnly(false)}>
                   <X strokeWidth={1.5} className="w-3 h-3 hover:text-white" />
                 </button>
@@ -246,7 +240,7 @@ function MangaCatalogContent() {
             )}
             {onSaleOnly && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-vermilion/20 text-vermilion border border-vermilion/40 uppercase font-semibold">
-                🔥 ON SALE ONLY
+                {isArabic ? "عروض وتخفيضات فقط" : "ON SALE ONLY"}
                 <button
                   onClick={() => {
                     setOnSaleOnly(false);
@@ -264,7 +258,7 @@ function MangaCatalogContent() {
               className="flex items-center gap-1 text-text-muted hover:text-vermilion transition-colors ml-3 underline underline-offset-4"
             >
               <RotateCcw strokeWidth={1.3} className="w-3 h-3" />
-              CLEAR ALL
+              {isArabic ? "مسح الكل" : "CLEAR ALL"}
             </button>
           </div>
         )}
@@ -272,20 +266,16 @@ function MangaCatalogContent() {
         {/* Main Catalog Layout (Sidebar Filters + Product Grid) */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
           {/* Filters Sidebar Desktop */}
-          <aside
-            className={`md:col-span-3 space-y-8 bg-ink-surface/40 border border-ink-border/80 p-6 rounded-sm ${
-              mobileFilterOpen ? "block" : "hidden md:block"
-            }`}
-          >
+          <aside className="hidden md:block md:col-span-3 space-y-8 bg-ink-surface/40 border border-ink-border/80 p-6 rounded-sm sticky top-28">
             <div className="flex items-center justify-between pb-3 border-b border-ink-border/80">
               <span className="font-mono text-xs font-bold tracking-widest text-paper uppercase flex items-center gap-2">
                 <SlidersHorizontal strokeWidth={1.4} className="w-3.5 h-3.5 text-gold" />
-                REFINE CATALOG
+                {isArabic ? "تصفية الكتالوج" : "REFINE CATALOG"}
               </span>
               {activeFilterCount > 0 && (
                 <button
                   onClick={resetFilters}
-                  className="text-[10px] font-mono text-text-muted hover:text-vermilion"
+                  className="text-[10px] font-mono text-text-muted hover:text-vermilion cursor-pointer"
                 >
                   RESET
                 </button>
@@ -295,7 +285,7 @@ function MangaCatalogContent() {
             {/* Genre Multi-select */}
             <div className="space-y-3">
               <h4 className="text-xs font-mono tracking-wider text-gold uppercase">
-                GENRE
+                {isArabic ? "التصنيف الأدبي" : "GENRE"}
               </h4>
               <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                 {activeGenres.map((genre) => {
@@ -327,50 +317,52 @@ function MangaCatalogContent() {
               </div>
             </div>
 
-            {/* Format Filter */}
+            {/* Format Multi-select */}
             <div className="space-y-3 pt-4 border-t border-ink-border/60">
               <h4 className="text-xs font-mono tracking-wider text-gold uppercase">
-                FORMAT
+                {isArabic ? "نوع الطبعة" : "FORMAT"}
               </h4>
               <div className="space-y-2">
-                {availableFormats.map((fmt) => {
-                  const isChecked = selectedFormats.includes(fmt);
+                {availableFormats.map((format) => {
+                  const isChecked = selectedFormats.includes(format);
                   return (
                     <label
-                      key={fmt}
-                      onClick={() => toggleFormat(fmt)}
-                      className="flex items-center gap-2.5 text-xs text-text-muted hover:text-paper cursor-pointer group select-none py-1"
+                      key={format}
+                      className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer group select-none py-1"
                     >
-                      <div
-                        className={`w-4 h-4 rounded-xs border flex items-center justify-center transition-colors ${
-                          isChecked
-                            ? "bg-gold border-gold text-ink"
-                            : "border-ink-border group-hover:border-paper/60"
-                        }`}
-                      >
-                        {isChecked && <Check strokeWidth={2.5} className="w-3 h-3" />}
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          onClick={() => toggleFormat(format)}
+                          className={`w-4 h-4 rounded-xs border flex items-center justify-center transition-colors ${
+                            isChecked
+                              ? "bg-gold border-gold text-ink"
+                              : "border-ink-border group-hover:border-paper/60"
+                          }`}
+                        >
+                          {isChecked && <Check strokeWidth={2.5} className="w-3 h-3" />}
+                        </div>
+                        <span>{format}</span>
                       </div>
-                      <span>{fmt}</span>
                     </label>
                   );
                 })}
               </div>
             </div>
 
-            {/* Price Max Slider */}
+            {/* Price Range Slider */}
             <div className="space-y-3 pt-4 border-t border-ink-border/60">
-              <div className="flex justify-between items-center text-xs font-mono">
-                <span className="tracking-wider text-gold uppercase">MAX PRICE</span>
+              <div className="flex items-center justify-between text-xs font-mono">
+                <span className="text-gold uppercase">{isArabic ? "الحد الأقصى للسعر" : "MAX PRICE"}</span>
                 <span className="text-paper font-bold">{formatPrice(effectivePriceMax)}</span>
               </div>
               <input
                 type="range"
                 min={10}
                 max={highestPrice}
-                step={5}
+                step={10}
                 value={effectivePriceMax}
                 onChange={(e) => setPriceMax(Number(e.target.value))}
-                className="w-full accent-gold cursor-pointer"
+                className="w-full accent-gold bg-ink-border h-1 rounded-lg appearance-none cursor-pointer"
               />
               <div className="flex justify-between text-[10px] font-mono text-text-muted">
                 <span>{formatPrice(10)}</span>
@@ -384,7 +376,7 @@ function MangaCatalogContent() {
                 onClick={() => setInStockOnly(!inStockOnly)}
                 className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer group select-none"
               >
-                <span>IN STOCK ONLY</span>
+                <span>{isArabic ? "المتوفر في المخزن فقط" : "IN STOCK ONLY"}</span>
                 <div
                   className={`w-9 h-5 rounded-full p-0.5 transition-colors ${
                     inStockOnly ? "bg-vermilion" : "bg-ink border border-ink-border"
@@ -392,7 +384,7 @@ function MangaCatalogContent() {
                 >
                   <div
                     className={`w-4 h-4 rounded-full bg-paper transition-transform ${
-                      inStockOnly ? "translate-x-4" : "translate-x-0"
+                      inStockOnly ? (isRTL ? "-translate-x-4" : "translate-x-4") : "translate-x-0"
                     }`}
                   />
                 </div>
@@ -412,9 +404,9 @@ function MangaCatalogContent() {
                 className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer group select-none"
               >
                 <span className="flex items-center gap-1.5 text-paper">
-                  <span>ON SALE ONLY</span>
+                  <span>{isArabic ? "عروض وتخفيضات فقط" : "ON SALE ONLY"}</span>
                   <span className="text-[9px] px-1.5 py-0.5 bg-vermilion/20 text-vermilion border border-vermilion/30 rounded-xs font-mono font-bold">
-                    SALE
+                    {isArabic ? "تخفيض" : "SALE"}
                   </span>
                 </span>
                 <div
@@ -424,7 +416,7 @@ function MangaCatalogContent() {
                 >
                   <div
                     className={`w-4 h-4 rounded-full bg-paper transition-transform ${
-                      onSaleOnly ? "translate-x-4" : "translate-x-0"
+                      onSaleOnly ? (isRTL ? "-translate-x-4" : "translate-x-4") : "translate-x-0"
                     }`}
                   />
                 </div>
@@ -432,26 +424,212 @@ function MangaCatalogContent() {
             </div>
           </aside>
 
+          {/* Mobile Filter Slide-over Sheet Modal */}
+          {mobileFilterOpen && (
+            <div className="fixed inset-0 z-50 md:hidden flex">
+              {/* Backdrop */}
+              <div
+                onClick={() => setMobileFilterOpen(false)}
+                className="fixed inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in"
+              />
+              
+              {/* Drawer Sheet */}
+              <div className={`relative z-10 w-5/6 max-w-sm bg-ink border-ink-border h-full flex flex-col justify-between p-6 shadow-2xl overflow-y-auto animate-in ${isRTL ? "slide-in-from-right mr-auto border-l" : "slide-in-from-left ml-auto border-r"}`}>
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between pb-4 border-b border-ink-border">
+                    <span className="font-mono text-sm font-bold tracking-widest text-paper uppercase flex items-center gap-2">
+                      <SlidersHorizontal strokeWidth={1.4} className="w-4 h-4 text-gold" />
+                      {isArabic ? "تصفية الكتالوج" : "REFINE CATALOG"}
+                    </span>
+                    <button
+                      onClick={() => setMobileFilterOpen(false)}
+                      className="p-1.5 rounded-sm bg-ink-surface border border-ink-border text-text-muted hover:text-paper cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Genre Multi-select */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-mono tracking-wider text-gold uppercase">
+                      {isArabic ? "التصنيف الأدبي" : "GENRE"}
+                    </h4>
+                    <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+                      {activeGenres.map((genre) => {
+                        const isChecked = selectedGenres.includes(genre.id.toLowerCase());
+                        return (
+                          <label
+                            key={genre.id}
+                            className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer py-1"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <div
+                                onClick={() => toggleGenre(genre.id.toLowerCase())}
+                                className={`w-4 h-4 rounded-xs border flex items-center justify-center transition-colors ${
+                                  isChecked
+                                    ? "bg-gold border-gold text-ink"
+                                    : "border-ink-border"
+                                }`}
+                              >
+                                {isChecked && <Check strokeWidth={2.5} className="w-3 h-3" />}
+                              </div>
+                              <span>{genre.name}</span>
+                            </div>
+                            <span className="font-serif text-[11px] text-text-muted/60">
+                              {genre.japanese}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Format Multi-select */}
+                  <div className="space-y-3 pt-4 border-t border-ink-border/60">
+                    <h4 className="text-xs font-mono tracking-wider text-gold uppercase">
+                      {isArabic ? "نوع الطبعة" : "FORMAT"}
+                    </h4>
+                    <div className="space-y-2.5">
+                      {availableFormats.map((format) => {
+                        const isChecked = selectedFormats.includes(format);
+                        return (
+                          <label
+                            key={format}
+                            className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer py-1"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <div
+                                onClick={() => toggleFormat(format)}
+                                className={`w-4 h-4 rounded-xs border flex items-center justify-center transition-colors ${
+                                  isChecked
+                                    ? "bg-gold border-gold text-ink"
+                                    : "border-ink-border"
+                                }`}
+                              >
+                                {isChecked && <Check strokeWidth={2.5} className="w-3 h-3" />}
+                              </div>
+                              <span>{format}</span>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Price Range Slider */}
+                  <div className="space-y-3 pt-4 border-t border-ink-border/60">
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="text-gold uppercase">{isArabic ? "الحد الأقصى للسعر" : "MAX PRICE"}</span>
+                      <span className="text-paper font-bold">{formatPrice(effectivePriceMax)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={10}
+                      max={highestPrice}
+                      step={10}
+                      value={effectivePriceMax}
+                      onChange={(e) => setPriceMax(Number(e.target.value))}
+                      className="w-full accent-gold bg-ink-border h-1.5 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="flex justify-between text-[10px] font-mono text-text-muted">
+                      <span>{formatPrice(10)}</span>
+                      <span>{formatPrice(highestPrice)}</span>
+                    </div>
+                  </div>
+
+                  {/* Stock & Sale Toggles */}
+                  <div className="space-y-3 pt-4 border-t border-ink-border/60">
+                    <label
+                      onClick={() => setInStockOnly(!inStockOnly)}
+                      className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer select-none"
+                    >
+                      <span>{isArabic ? "المتوفر في المخزن فقط" : "IN STOCK ONLY"}</span>
+                      <div
+                        className={`w-9 h-5 rounded-full p-0.5 transition-colors ${
+                          inStockOnly ? "bg-vermilion" : "bg-ink border border-ink-border"
+                        }`}
+                      >
+                        <div
+                          className={`w-4 h-4 rounded-full bg-paper transition-transform ${
+                            inStockOnly ? (isRTL ? "-translate-x-4" : "translate-x-4") : "translate-x-0"
+                          }`}
+                        />
+                      </div>
+                    </label>
+
+                    <label
+                      onClick={() => {
+                        const nextSale = !onSaleOnly;
+                        setOnSaleOnly(nextSale);
+                        if (!nextSale && searchParams.get("sort") === "sale") {
+                          router.push("/manga");
+                        }
+                      }}
+                      className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer select-none"
+                    >
+                      <span className="flex items-center gap-1.5 text-paper">
+                        <span>{isArabic ? "عروض وتخفيضات فقط" : "ON SALE ONLY"}</span>
+                        <span className="text-[9px] px-1.5 py-0.5 bg-vermilion/20 text-vermilion border border-vermilion/30 rounded-xs font-mono font-bold">
+                          {isArabic ? "تخفيض" : "SALE"}
+                        </span>
+                      </span>
+                      <div
+                        className={`w-9 h-5 rounded-full p-0.5 transition-colors ${
+                          onSaleOnly ? "bg-vermilion" : "bg-ink border border-ink-border"
+                        }`}
+                      >
+                        <div
+                          className={`w-4 h-4 rounded-full bg-paper transition-transform ${
+                            onSaleOnly ? (isRTL ? "-translate-x-4" : "translate-x-4") : "translate-x-0"
+                          }`}
+                        />
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Mobile Bottom Filter Actions */}
+                <div className="pt-6 mt-6 border-t border-ink-border flex gap-3">
+                  <button
+                    onClick={() => {
+                      resetFilters();
+                      setMobileFilterOpen(false);
+                    }}
+                    className="flex-1 py-3 bg-ink-surface hover:bg-ink-border border border-ink-border text-paper font-mono text-xs uppercase tracking-wider rounded-xs cursor-pointer font-bold text-center"
+                  >
+                    {isArabic ? "مسح" : "CLEAR"}
+                  </button>
+                  <button
+                    onClick={() => setMobileFilterOpen(false)}
+                    className="flex-1 py-3 bg-gold hover:bg-gold-muted text-ink font-mono text-xs uppercase tracking-wider rounded-xs cursor-pointer font-extrabold text-center shadow-lg"
+                  >
+                    {isArabic ? `عرض النتائج (${filteredVolumes.length})` : `APPLY (${filteredVolumes.length})`}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Product Grid Area */}
           <main className="md:col-span-9">
             <div className="mb-6 flex justify-between items-center text-xs font-mono text-text-muted">
-              <span>SHOWING {filteredVolumes.length} EDITIONS</span>
+              <span>{isArabic ? `عرض ${filteredVolumes.length} مجلداً أرشيفياً` : `SHOWING ${filteredVolumes.length} EDITIONS`}</span>
               <span className="text-gold font-serif">回路書庫</span>
             </div>
 
             {filteredVolumes.length === 0 ? (
               <div className="p-16 border border-ink-border/80 rounded-sm bg-ink-surface/30 text-center space-y-4">
                 <p className="font-mono text-sm uppercase text-paper">
-                  No volumes matched the refined criteria
+                  {isArabic ? "لم نجد أي مجلدات تطابق معايير التصفية" : "No volumes matched the refined criteria"}
                 </p>
                 <p className="text-xs text-text-muted">
-                  Try adjusting the price slider or resetting selected genre filters.
+                  {isArabic ? "جرّب تعديل نطاق السعر أو إلغاء بعض التصنيفات المحددة." : "Try adjusting the price slider or resetting selected genre filters."}
                 </p>
                 <button
                   onClick={resetFilters}
                   className="px-6 py-2.5 bg-paper text-ink text-xs font-bold font-mono tracking-widest uppercase rounded-sm hover:bg-vermilion hover:text-white transition-colors"
                 >
-                  RESET ALL FILTERS
+                  {isArabic ? "إلغاء كافة الفلاتر" : "RESET ALL FILTERS"}
                 </button>
               </div>
             ) : (
@@ -502,7 +680,7 @@ function MangaCatalogContent() {
                         )}
                         {volume.stock <= 0 && (
                           <span className="px-2 py-0.5 rounded-xs bg-red-950/90 border border-red-800/80 text-[8px] font-mono font-bold tracking-wider text-red-400 uppercase">
-                            OUT OF STOCK
+                            {isArabic ? "نفد من المخزن" : "OUT OF STOCK"}
                           </span>
                         )}
                       </div>
@@ -520,9 +698,9 @@ function MangaCatalogContent() {
                           className={`p-1.5 rounded-xs backdrop-blur-md border transition-all active:scale-90 ${
                             mounted && isInWishlist(volume.id)
                               ? "bg-ink/90 border-vermilion text-vermilion"
-                              : "bg-ink/80 border-ink-border text-paper-muted hover:text-gold hover:border-gold/60 opacity-0 group-hover:opacity-100"
+                              : "bg-ink/80 border-ink-border text-paper-muted hover:text-gold hover:border-gold/60 opacity-80 sm:opacity-0 sm:group-hover:opacity-100"
                           }`}
-                          title={mounted && isInWishlist(volume.id) ? "Saved in Wishlist" : "Save to Wishlist"}
+                          title={mounted && isInWishlist(volume.id) ? (isArabic ? "في قائمة الرغبات" : "Saved in Wishlist") : (isArabic ? "إضافة للرغبات" : "Save to Wishlist")}
                           aria-label="Wishlist"
                         >
                           <Heart
@@ -541,8 +719,8 @@ function MangaCatalogContent() {
                             e.stopPropagation();
                             openReader(volume);
                           }}
-                          className="p-1.5 rounded-xs bg-ink/80 backdrop-blur-md border border-ink-border text-paper-muted hover:text-gold hover:border-gold transition-colors opacity-0 group-hover:opacity-100 active:scale-90"
-                          title="Read Sample (RTL)"
+                          className="p-1.5 rounded-xs bg-ink/80 backdrop-blur-md border border-ink-border text-paper-muted hover:text-gold hover:border-gold transition-colors opacity-80 sm:opacity-0 sm:group-hover:opacity-100 active:scale-90"
+                          title={isArabic ? "معاينة عينة (RTL)" : "Read Sample (RTL)"}
                         >
                           <Eye strokeWidth={1.4} className="w-3.5 h-3.5" />
                         </button>
@@ -559,7 +737,7 @@ function MangaCatalogContent() {
                           {volume.title}
                         </h3>
                         <p className="text-[10px] text-text-muted mt-0.5 line-clamp-1">
-                          By {volume.author}
+                          {isArabic ? "تأليف: " : "By "} {volume.author}
                         </p>
 
                         <div className="flex items-center gap-1 mt-2 text-[11px] font-mono text-text-muted">
@@ -584,7 +762,7 @@ function MangaCatalogContent() {
                         </div>
                         {volume.stock <= 0 ? (
                           <span className="px-2.5 py-1 bg-ink-surface/90 border border-ink-border text-text-muted text-[9px] font-mono font-bold uppercase rounded-xs cursor-not-allowed opacity-80">
-                            OUT OF STOCK
+                            {isArabic ? "نفد" : "OUT OF STOCK"}
                           </span>
                         ) : (
                           <button
@@ -598,7 +776,7 @@ function MangaCatalogContent() {
                             className="px-3 py-1.5 bg-paper text-ink hover:bg-vermilion hover:text-white font-bold text-[10px] font-mono tracking-widest uppercase transition-colors rounded-xs flex items-center gap-1 z-10 active:scale-95"
                           >
                             <Plus strokeWidth={1.5} className="w-3 h-3" />
-                            ADD
+                            {isArabic ? "إضافة" : "ADD"}
                           </button>
                         )}
                       </div>

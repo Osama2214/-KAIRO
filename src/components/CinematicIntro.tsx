@@ -298,7 +298,7 @@ export function CinematicIntro() {
             }}
           >
             {/* FRONT COVER — 100% Solid Opaque Deluxe Hardcover (Zero clutter, zero bleed-through) */}
-            <div className="absolute inset-0 bg-[#121216] border border-gold/50 rounded-xs shadow-[0_30px_100px_rgba(0,0,0,0.98)] overflow-hidden flex flex-col justify-between p-4 bg-linear-to- from-[#1c1c24] via-[#121216] to-[#0a0a0d]">
+            <div className="absolute inset-0 bg-[#121216] border border-gold/50 rounded-xs shadow-[0_30px_100px_rgba(0,0,0,0.98)] overflow-hidden flex flex-col justify-between p-4 bg-linear-to-b from-[#1c1c24] via-[#121216] to-[#0a0a0d]">
               
               {/* Header inside cover */}
               <div className="flex items-center justify-between border-b border-gold/30 pb-2.5">
@@ -325,7 +325,7 @@ export function CinematicIntro() {
                 />
 
                 {/* Shimmer / Holographic Gold Light Beam passing diagonally across cover */}
-                <div className="absolute inset-0 -translate-x-full animate-shimmer-sweep bg-linear-to- from-transparent via-white/20 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 -translate-x-full animate-shimmer-sweep bg-linear-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
 
                 {/* Collector's Japanese Stamp */}
                 <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-black/90 backdrop-blur-sm border border-gold/40 rounded-xs text-[9px] font-serif text-gold tracking-widest shadow-md">
@@ -381,11 +381,11 @@ export function CinematicIntro() {
         {/* ELEGANT, UNCLUTTERED BRANDING BELOW THE CARD (Strictly isolated, Zero Overlap!) */}
         <div className="mt-7 text-center flex flex-col items-center">
           <div className="flex items-center justify-center gap-3 mb-1.5">
-            <span className="h-px w-10 bg-linear-to- from-transparent to-gold/60" />
+            <span className="h-px w-10 bg-linear-to-r from-transparent to-gold/60" />
             <span className="font-serif text-gold text-xs sm:text-sm tracking-[0.45em] uppercase">
               精神と物質の回路
             </span>
-            <span className="h-px w-10 bg-linear-to- from-transparent to-gold/60" />
+            <span className="h-px w-10 bg-linear-to-l from-transparent to-gold/60" />
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-[0.38em] uppercase text-paper font-sans">
@@ -401,7 +401,7 @@ export function CinematicIntro() {
       {/* Bottom Gold Laser Progress Bar */}
       <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-ink-border/40">
         <div
-          className="h-full bg-linear-to- from-gold via-vermilion to-gold transition-all duration-100 ease-linear shadow-[0_0_12px_rgba(199,167,108,0.9)]"
+          className="h-full bg-linear-to-r from-gold via-vermilion to-gold transition-all duration-100 ease-linear shadow-[0_0_12px_rgba(199,167,108,0.9)]"
           style={{ width: `${progress}%` }}
         />
       </div>

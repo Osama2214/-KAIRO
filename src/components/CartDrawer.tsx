@@ -10,11 +10,13 @@ import { formatPrice } from "@/lib/utils";
 import { useWelcomeOffer } from "@/hooks/useWelcomeOffer";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export function CartDrawer() {
   const mounted = useMounted();
   const { isCartOpen, closeCart } = useUIStore();
   useModalScrollLock(isCartOpen);
+  const { t, locale, isRTL } = useTranslation();
   const {
     items: cartItems,
     removeItem,
@@ -76,21 +78,25 @@ export function CartDrawer() {
       />
 
       {/* Drawer Panel with cubic-bezier silky slide in/out */}
-      <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
+      <div className={`absolute inset-y-0 ${isRTL ? "left-0 sm:pr-10" : "right-0 sm:pl-10"} max-w-full flex w-full sm:w-auto`}>
         <aside
           data-lenis-prevent
-          className={`w-screen max-w-md bg-ink border-l border-ink-border flex flex-col shadow-2xl overscroll-contain transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-            isCartOpen ? "translate-x-0" : "translate-x-full"
+          className={`w-full sm:w-screen sm:max-w-md bg-ink ${isRTL ? "border-r" : "border-l"} border-ink-border flex flex-col shadow-2xl overscroll-contain transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            isCartOpen
+              ? "translate-x-0"
+              : isRTL
+              ? "-translate-x-full"
+              : "translate-x-full"
           }`}
         >
           {/* Header */}
           <div className="px-6 py-5 border-b border-ink-border flex items-center justify-between bg-ink-surface/50">
             <div className="flex items-center gap-2.5">
-              <h2 className="font-extrabold tracking-[0.2em] text-sm uppercase text-paper">
-                YOUR CART
+              <h2 className="font-extrabold tracking-[0.2em] text-sm uppercase text-paper font-sans">
+                {t.cart.title}
               </h2>
               <span className="text-xs font-mono text-text-muted px-2 py-0.5 rounded bg-ink-surface border border-ink-border">
-                {totalCount} {totalCount === 1 ? "VOL" : "VOLS"}
+                {totalCount} {locale === "ar" ? (totalCount === 1 ? "مجلد" : "مجلدات") : (totalCount === 1 ? "VOL" : "VOLS")}
               </span>
             </div>
             <button
@@ -98,51 +104,57 @@ export function CartDrawer() {
               className="p-1.5 text-text-muted hover:text-paper rounded-sm hover:bg-ink-surface transition-colors cursor-pointer"
               aria-label="Close cart"
             >
-              <X strokeWidth={1.4} className="w-5 h-5" />
+              <X strokeWidth={1.5} className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Free Shipping Progress bar */}
-          {(freeShippingEnabled || freeShippingGranted) && (
-            <div className="px-6 py-3 bg-ink-surface/30 border-b border-ink-border text-xs">
-              <div className="flex items-center justify-between mb-1.5 font-mono text-[11px]">
-                <span className="flex items-center gap-1.5 text-paper-muted">
-                  <Truck strokeWidth={1.4} className="w-3.5 h-3.5 text-gold" />
-                  {remainingForFreeShipping > 0
-                    ? `Add ${formatPrice(remainingForFreeShipping)} for Free Shipping`
-                    : "Unlocked Free Express Shipping!"}
+          {/* Free Shipping Progress Meter */}
+          {freeShippingEnabled && items.length > 0 && (
+            <div className="px-6 py-3.5 bg-ink-surface border-b border-ink-border font-mono text-xs">
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <div className="flex items-center gap-1.5 text-gold font-medium font-sans">
+                  <Truck className="w-3.5 h-3.5 shrink-0" />
+                  <span className="text-[11px]">
+                    {isFreeShipping
+                      ? (locale === "ar" ? "شحن مجاني مفعّل لطلبك!" : "Free Express Shipping Unlocked!")
+                      : (locale === "ar"
+                          ? `أضف بقيمة ${formatPrice(remainingForFreeShipping)} للشحن المجاني`
+                          : `Add ${formatPrice(remainingForFreeShipping)} more for FREE shipping`)}
+                  </span>
+                </div>
+                <span className="text-[10px] text-text-muted font-bold">
+                  {Math.round(progressToFreeShipping)}%
                 </span>
-                <span className="text-gold font-semibold">{Math.round(progressToFreeShipping)}%</span>
               </div>
-              <div className="w-full h-1 bg-ink-border rounded-full overflow-hidden">
+              <div className="h-1.5 w-full bg-ink rounded-full overflow-hidden border border-ink-border/80">
                 <div
-                  className="h-full bg-gold transition-all duration-500 ease-out"
+                  className="h-full bg-linear-to-r from-gold/60 to-gold transition-all duration-500 rounded-full"
                   style={{ width: `${progressToFreeShipping}%` }}
                 />
               </div>
             </div>
           )}
 
-          {/* Cart Item List */}
-          <div data-lenis-prevent className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-6">
+          {/* Cart Items List */}
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
             {items.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center py-16 space-y-4">
+              <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-16">
                 <div className="w-16 h-16 rounded-full border border-ink-border flex items-center justify-center text-text-muted">
                   <span className="font-serif text-2xl">空</span>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold tracking-wider text-paper uppercase">
-                    Your collection is empty
+                  <p className="text-sm font-semibold tracking-wider text-paper uppercase font-sans">
+                    {t.cart.emptyTitle}
                   </p>
-                  <p className="text-xs text-text-muted mt-1">
-                    Discover legendary manga volumes and light novels.
+                  <p className="text-xs text-text-muted mt-1 font-sans">
+                    {t.cart.emptyDesc}
                   </p>
                 </div>
                 <button
                   onClick={closeCart}
-                  className="mt-4 px-6 py-2.5 bg-paper text-ink font-semibold text-xs tracking-[0.16em] uppercase hover:bg-vermilion hover:text-white transition-colors cursor-pointer"
+                  className="mt-4 px-6 py-2.5 bg-paper text-ink font-semibold text-xs tracking-[0.16em] uppercase hover:bg-vermilion hover:text-white transition-colors cursor-pointer font-sans"
                 >
-                  EXPLORE ARCHIVE
+                  {t.cart.exploreCatalog}
                 </button>
               </div>
             ) : (
@@ -256,13 +268,13 @@ export function CartDrawer() {
                   <div className="flex items-center gap-1.5">
                     <Tag className="w-3.5 h-3.5" />
                     <span className="font-bold tracking-wider">{appliedCoupon}</span>
-                    <span className="text-[10px] text-text-muted">(-{discountPercent}% & Free Delivery)</span>
+                    <span className="text-[10px] text-text-muted">(-{discountPercent}% {locale === "ar" ? "& شحن مجاني" : "& Free Delivery"})</span>
                   </div>
                   <button
                     type="button"
                     onClick={removeCoupon}
                     className="text-text-muted hover:text-vermilion transition-colors p-1 cursor-pointer"
-                    title="Remove voucher"
+                    title={locale === "ar" ? "إزالة كود الخصم" : "Remove voucher"}
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -272,13 +284,13 @@ export function CartDrawer() {
                   <div className="flex items-stretch gap-1.5 font-mono text-xs">
                     <input
                       type="text"
-                      placeholder="VOUCHER / PROMO CODE"
+                      placeholder={locale === "ar" ? "كود الخصم / القسيمة" : "VOUCHER / PROMO CODE"}
                       value={promoInput}
                       onChange={(e) => {
                         setPromoInput(e.target.value);
                         if (promoError) setPromoError("");
                       }}
-                      className="flex-1 bg-ink border border-ink-border px-3 py-1.5 text-xs text-paper uppercase placeholder:text-text-muted/40 focus:border-gold outline-none rounded-xs"
+                      className="flex-1 bg-ink border border-ink-border px-3 py-1.5 text-xs text-paper uppercase placeholder:text-text-muted/40 focus:border-gold outline-none rounded-xs font-sans"
                     />
                     <button
                       type="button"
@@ -293,9 +305,9 @@ export function CartDrawer() {
                           setPromoError(res.message);
                         }
                       }}
-                      className="px-3 py-1.5 bg-ink-surface hover:bg-gold hover:text-ink text-gold border border-gold/40 font-bold uppercase tracking-wider rounded-xs transition-colors cursor-pointer"
+                      className="px-3 py-1.5 bg-ink-surface hover:bg-gold hover:text-ink text-gold border border-gold/40 font-bold uppercase tracking-wider rounded-xs transition-colors cursor-pointer font-sans"
                     >
-                      APPLY
+                      {locale === "ar" ? "تطبيق" : "APPLY"}
                     </button>
                   </div>
                   {promoError && (
@@ -310,26 +322,26 @@ export function CartDrawer() {
               {/* Price Breakdown */}
               <div className="space-y-1.5 text-xs font-mono">
                 <div className="flex justify-between text-text-muted">
-                  <span>SUBTOTAL</span>
+                  <span className="font-sans">{locale === "ar" ? "المجموع الفرعي" : "SUBTOTAL"}</span>
                   <span className="text-paper font-semibold">{formatPrice(subtotal)}</span>
                 </div>
 
                 {discountAmount > 0 && (
                   <div className="flex justify-between text-gold">
-                    <span>PATRON PRIVILEGE (-{discountPercent}%)</span>
+                    <span className="font-sans">{locale === "ar" ? `خصم المقتنين (-${discountPercent}%)` : `PATRON PRIVILEGE (-${discountPercent}%)`}</span>
                     <span>-{formatPrice(discountAmount)}</span>
                   </div>
                 )}
 
                 <div className="flex justify-between text-text-muted">
-                  <span>SHIPPING</span>
+                  <span className="font-sans">{locale === "ar" ? "الشحن والتوصيل" : "SHIPPING"}</span>
                   <span>
                     {freeShippingGranted ? (
-                      <span className="text-gold font-semibold">FREE (PATRON GRANT)</span>
+                      <span className="text-gold font-semibold font-sans">{locale === "ar" ? "مجاني (منحة المقتنين)" : "FREE (PATRON GRANT)"}</span>
                     ) : remainingForFreeShipping === 0 ? (
-                      <span className="text-gold font-semibold">FREE</span>
+                      <span className="text-gold font-semibold font-sans">{locale === "ar" ? "مجاني" : "FREE"}</span>
                     ) : (
-                      "Calculated at checkout"
+                      <span className="font-sans">{locale === "ar" ? "يحسب عند الدفع" : "Calculated at checkout"}</span>
                     )}
                   </span>
                 </div>
@@ -337,8 +349,8 @@ export function CartDrawer() {
 
               {/* Total */}
               <div className="pt-3 border-t border-ink-border flex justify-between items-baseline font-mono">
-                <span className="text-xs tracking-wider text-paper font-bold uppercase">
-                  ESTIMATED TOTAL
+                <span className="text-xs tracking-wider text-paper font-bold uppercase font-sans">
+                  {locale === "ar" ? "الإجمالي النهائي" : "ESTIMATED TOTAL"}
                 </span>
                 <span className="text-lg font-bold text-gold">{formatPrice(grandTotal)}</span>
               </div>
@@ -346,15 +358,15 @@ export function CartDrawer() {
               <Link
                 href="/checkout"
                 onClick={closeCart}
-                className="w-full py-3.5 px-6 bg-paper text-ink font-extrabold text-xs tracking-[0.2em] uppercase flex items-center justify-center gap-2 hover:bg-vermilion hover:text-white transition-all duration-300 shadow-lg group"
+                className="w-full py-3.5 px-6 bg-paper text-ink font-extrabold text-xs tracking-[0.2em] uppercase flex items-center justify-center gap-2 hover:bg-vermilion hover:text-white transition-all duration-300 shadow-lg group font-sans active:scale-[0.99]"
               >
-                PROCEED TO CHECKOUT
-                <ArrowRight strokeWidth={1.5} className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                {t.cart.proceedToCheckout}
+                <ArrowRight strokeWidth={1.5} className="w-4 h-4 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 rtl:rotate-180 transition-transform" />
               </Link>
 
-              <div className="flex items-center justify-center gap-2 text-[10px] text-text-muted font-mono">
+              <div className="flex items-center justify-center gap-2 text-[10px] text-text-muted font-mono font-sans pb-1 pb-safe">
                 <ShieldCheck strokeWidth={1.2} className="w-3.5 h-3.5 text-gold" />
-                <span>Encrypted 256-Bit Editorial Checkout</span>
+                <span>{locale === "ar" ? "دفع مشفر وتأكيد آمن 256-Bit" : "Encrypted 256-Bit Editorial Checkout"}</span>
               </div>
             </div>
           )}

@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { X, Save, BookOpen, Plus, Check } from "lucide-react";
+import { X, Save, Plus, Check, Upload, Loader2 } from "lucide-react";
 import { MangaVolume, Series, GenreInfo } from "@/data/manga";
 import { CustomSelect } from "@/components/CustomSelect";
 import { CustomNumberInput } from "@/components/ui/CustomNumberInput";
+import { ImageUploadInput } from "@/components/ImageUploadInput";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { useStorefrontStore, DEFAULT_FORMATS } from "@/store/useStorefrontStore";
 
@@ -177,6 +178,70 @@ function VolumeFormDialog({
   };
 
   const [previewPagesInput, setPreviewPagesInput] = useState(() => (initialVolume?.previewPages || []).join("\n"));
+  const [isUploadingPreviews, setIsUploadingPreviews] = useState(false);
+  const [previewUploadProgress, setPreviewUploadProgress] = useState<{ total: number; done: number } | null>(null);
+  const [previewUploadError, setPreviewUploadError] = useState("");
+  const previewFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handlePreviewFilesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploadingPreviews(true);
+    setPreviewUploadError("");
+    setPreviewUploadProgress({ total: files.length, done: 0 });
+
+    const uploadedUrls: string[] = [];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const body = new FormData();
+        body.append("file", file);
+
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body,
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || `Failed to upload ${file.name}`);
+        }
+
+        uploadedUrls.push(data.url);
+        setPreviewUploadProgress({ total: files.length, done: i + 1 });
+      }
+
+      setPreviewPagesInput((prev) => {
+        const existing = prev.trim();
+        const addition = uploadedUrls.join("\n");
+        return existing ? `${existing}\n${addition}` : addition;
+      });
+    } catch (err: unknown) {
+      console.error("Preview batch upload error:", err);
+      const msg = err instanceof Error ? err.message : "Failed to upload preview pages";
+      setPreviewUploadError(msg);
+    } finally {
+      setIsUploadingPreviews(false);
+      setPreviewUploadProgress(null);
+      if (previewFileInputRef.current) {
+        previewFileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const currentPreviewUrls = useMemo(() => {
+    return previewPagesInput
+      .split("\n")
+      .map((p) => p.trim())
+      .filter(Boolean);
+  }, [previewPagesInput]);
+
+  const handleRemovePreviewPage = (indexToRemove: number) => {
+    const nextList = currentPreviewUrls.filter((_, idx) => idx !== indexToRemove);
+    setPreviewPagesInput(nextList.join("\n"));
+  };
 
   const handleSeriesChange = (slug: string) => {
     const selected = effectiveSeriesList.find((s) => s.slug === slug);
@@ -518,36 +583,123 @@ function VolumeFormDialog({
               <span>04. Cover Artwork & Manga Reader Preview</span>
             </h3>
             <div className="space-y-3">
-              <div>
-                <label className="block text-text-muted mb-1.5">Cover Image URL *</label>
-                <div className="flex gap-3 items-center">
-                  <input
-                    type="url"
-                    value={formData.coverImage}
-                    onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
-                    placeholder="https://..."
-                    className="flex-1 h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-sm font-sans"
-                    required
-                  />
-                  {formData.coverImage && (
-                    <div className="w-10 h-10 border border-ink-border overflow-hidden rounded-xs shrink-0 bg-ink">
-                      <img src={formData.coverImage} alt="Cover Preview" className="w-full h-full object-cover" />
-                    </div>
-                  )}
-                </div>
-              </div>
+              <ImageUploadInput
+                label="Volume Cover Artwork"
+                value={formData.coverImage}
+                onChange={(url) => setFormData({ ...formData, coverImage: url })}
+                placeholder="https://... or upload local image file (Rec: 800 × 1200 px)"
+                required
+                aspectRatio="cover"
+                recommendedDimensions="800 × 1200 px (2:3 or 3:4 Tankōbon)"
+                helpText="Upload from your PC or enter an external image URL"
+              />
 
-              <div>
-                <label className="block text-text-muted mb-1.5">
-                  Preview Reader Pages (One Image URL per line for RTL Reader)
-                </label>
+              {/* Preview Reader Pages (Multi-Image Upload or URL List) */}
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="block text-text-muted text-[11px] uppercase tracking-wider font-semibold">
+                      Preview Reader Pages (RTL Reader Chapter)
+                    </label>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono text-gold bg-gold/10 px-1.5 py-0.5 rounded-xs border border-gold/30 tracking-tight font-medium">
+                      <span className="text-gold/60 font-bold">REC:</span>
+                      <span>800 × 1200 px (2:3 Portrait per page)</span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      ref={previewFileInputRef}
+                      onChange={handlePreviewFilesUpload}
+                      multiple
+                      accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      disabled={isUploadingPreviews}
+                      onClick={() => previewFileInputRef.current?.click()}
+                      className="px-2.5 py-1 bg-ink-surface hover:bg-gold/15 border border-ink-border hover:border-gold/60 text-gold text-[11px] font-mono font-bold uppercase tracking-wider rounded-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isUploadingPreviews ? (
+                        <>
+                          <Loader2 className="w-3 h-3 animate-spin text-gold" />
+                          <span>
+                            Uploading ({previewUploadProgress ? `${previewUploadProgress.done}/${previewUploadProgress.total}` : "..."})
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-3 h-3 text-gold" />
+                          <span>Upload Pages from PC</span>
+                        </>
+                      )}
+                    </button>
+                    {currentPreviewUrls.length > 0 && (
+                      <span className="text-[10px] text-paper-muted font-mono">
+                        ({currentPreviewUrls.length} pages)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {previewUploadError && (
+                  <p className="text-[10px] text-vermilion font-mono bg-vermilion/10 p-2 rounded-xs border border-vermilion/20">
+                    {previewUploadError}
+                  </p>
+                )}
+
                 <textarea
                   rows={3}
                   value={previewPagesInput}
                   onChange={(e) => setPreviewPagesInput(e.target.value)}
-                  placeholder="https://images.../page-1.jpg&#10;https://images.../page-2.jpg&#10;https://images.../page-3.jpg"
+                  placeholder="https://images.../page-1.jpg&#10;https://images.../page-2.jpg&#10;https://images.../page-3.jpg (or click Upload Pages from PC above)"
                   className="w-full bg-ink border border-ink-border text-paper p-3 rounded-sm focus:border-gold outline-none font-mono text-[11px]"
                 />
+
+                {/* Visual Preview Gallery of Pages */}
+                {currentPreviewUrls.length > 0 && (
+                  <div className="bg-ink-surface/50 p-2.5 rounded-sm border border-ink-border space-y-1.5">
+                    <div className="flex items-center justify-between text-[10px] text-text-muted uppercase font-mono">
+                      <span>Preview Gallery ({currentPreviewUrls.length} Pages Loaded)</span>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewPagesInput("")}
+                        className="text-vermilion hover:underline cursor-pointer"
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto pb-1 max-h-28 scrollbar-thin">
+                      {currentPreviewUrls.map((url, idx) => (
+                        <div
+                          key={idx}
+                          className="relative shrink-0 w-16 h-22 bg-ink border border-ink-border rounded-xs overflow-hidden group"
+                        >
+                          <img
+                            src={url}
+                            alt={`Page ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = "none";
+                            }}
+                          />
+                          <div className="absolute bottom-0 inset-x-0 bg-ink/90 text-center text-[9px] font-mono text-paper-muted py-0.5">
+                            P.{idx + 1}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePreviewPage(idx)}
+                            className="absolute top-1 right-1 w-4 h-4 bg-vermilion/90 hover:bg-vermilion text-paper rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            title="Remove page"
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Category / Genres Selection & Quick Add */}

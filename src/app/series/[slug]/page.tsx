@@ -17,6 +17,7 @@ import { useUIStore } from "@/store/useUIStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { formatPrice } from "@/lib/utils";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface SeriesPageProps {
   params: Promise<{ slug: string }>;
@@ -25,6 +26,8 @@ interface SeriesPageProps {
 export default function SeriesPage({ params }: SeriesPageProps) {
   const router = useRouter();
   const resolvedParams = use(params);
+  const { t, locale, isRTL } = useTranslation();
+  const isArabic = locale === "ar";
 
   const allSeries = useStorefrontStore((state) => state.series);
   const allVolumes = useStorefrontStore((state) => state.volumes);
@@ -68,7 +71,7 @@ export default function SeriesPage({ params }: SeriesPageProps) {
             alt={series.title}
             className="w-full h-full object-cover object-center filter brightness-50"
           />
-          <div className="absolute inset-0 bg-linear-to- from-ink via-ink/60 to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-t from-ink via-ink/60 to-transparent" />
         </div>
 
         {/* Japanese Title Watermark */}
@@ -77,11 +80,11 @@ export default function SeriesPage({ params }: SeriesPageProps) {
         </div>
 
         {/* Hero Content */}
-        <div className="relative max-w-7xl mx-auto w-full px-6 md:px-12 pb-12 z-10 space-y-4">
+        <div className="relative max-w-7xl mx-auto w-full px-4 sm:px-6 md:px-12 pb-8 sm:pb-12 z-10 space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <span className="px-2.5 py-1 rounded-xs bg-vermilion/90 text-white font-mono text-[10px] tracking-widest uppercase">
-                {series.status}
+                {isArabic ? (series.status === "Ongoing" ? "مستمرة" : "مكتملة") : series.status}
               </span>
               <span className="text-xs font-serif text-gold tracking-widest">
                 {series.japaneseTitle}
@@ -95,14 +98,14 @@ export default function SeriesPage({ params }: SeriesPageProps) {
             />
           </div>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight uppercase font-sans">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight uppercase font-sans">
             {series.title}
           </h1>
 
-          <div className="flex flex-wrap items-center gap-6 text-xs font-mono text-paper-muted">
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs font-mono text-paper-muted">
             <div className="flex items-center gap-1.5">
               <User strokeWidth={1.4} className="w-4 h-4 text-gold" />
-              <span>Written & Illustrated by {series.author}</span>
+              <span>{isArabic ? `تأليف ورسم: ${series.author}` : `Written & Illustrated by ${series.author}`}</span>
             </div>
             <div className="flex items-center gap-1 text-gold">
               {[...Array(5)].map((_, i) => (
@@ -112,7 +115,7 @@ export default function SeriesPage({ params }: SeriesPageProps) {
             </div>
             <div className="flex items-center gap-1.5">
               <BookOpen strokeWidth={1.4} className="w-4 h-4 text-gold" />
-              <span>{series.totalVolumes} Total Volumes</span>
+              <span>{isArabic ? `${series.totalVolumes} مجلداً إجمالاً` : `${series.totalVolumes} Total Volumes`}</span>
             </div>
           </div>
 
@@ -120,41 +123,41 @@ export default function SeriesPage({ params }: SeriesPageProps) {
             {series.description}
           </p>
 
-          <div className="pt-2 flex flex-wrap items-center gap-4">
+          <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
             <a
               href="#volumes"
-              className="px-8 py-3.5 bg-paper text-ink font-bold text-xs tracking-[0.2em] uppercase rounded-sm hover:bg-vermilion hover:text-white transition-colors"
+              className="w-full sm:w-auto text-center px-6 sm:px-8 py-3.5 bg-paper text-ink font-bold text-xs tracking-[0.2em] uppercase rounded-sm hover:bg-vermilion hover:text-white transition-colors active:scale-95"
             >
-              EXPLORE VOLUMES
+              {isArabic ? "استعراض المجلدات" : "EXPLORE VOLUMES"}
             </a>
             <button
               onClick={handleAddAllVolumes}
-              className="px-6 py-3.5 bg-ink-surface border border-ink-border text-paper font-semibold text-xs tracking-[0.2em] uppercase rounded-sm hover:border-gold hover:text-gold transition-colors"
+              className="w-full sm:w-auto text-center px-6 py-3.5 bg-ink-surface border border-ink-border text-paper font-semibold text-xs tracking-[0.15em] sm:tracking-[0.2em] uppercase rounded-sm hover:border-gold hover:text-gold transition-colors active:scale-95"
             >
-              ADD ENTIRE SERIES TO CART
+              {isArabic ? "إضافة السلسلة كاملة للسلة" : "ADD ENTIRE SERIES TO CART"}
             </button>
           </div>
         </div>
       </div>
 
       {/* Volumes Section */}
-      <section id="volumes" className="py-20 px-6 md:px-12 max-w-7xl mx-auto">
-        <div className="mb-12 pb-4 border-b border-ink-border/70 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <section id="volumes" className="py-12 sm:py-20 px-4 sm:px-6 md:px-12 max-w-7xl mx-auto">
+        <div className="mb-10 sm:mb-12 pb-4 border-b border-ink-border/70 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <span className="text-[11px] font-mono tracking-[0.25em] text-gold uppercase block mb-1">
-              CHRONOLOGICAL CANON
+              {isArabic ? "التسلسل الزمني الرسمي" : "CHRONOLOGICAL CANON"}
             </span>
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight uppercase text-paper font-sans">
-              AVAILABLE VOLUMES
+              {isArabic ? "المجلدات المتوفرة" : "AVAILABLE VOLUMES"}
             </h2>
           </div>
           <span className="text-xs font-mono text-text-muted">
-            {seriesVolumes.length} Volumes in Archive
+            {isArabic ? `${seriesVolumes.length} مجلد في الأرشيف` : `${seriesVolumes.length} Volumes in Archive`}
           </span>
         </div>
 
         {/* Volumes Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
           {seriesVolumes.map((volume) => (
             <div
               key={volume.id}
@@ -187,11 +190,11 @@ export default function SeriesPage({ params }: SeriesPageProps) {
                 />
                 <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 pointer-events-none z-10">
                   <span className="px-2 py-0.5 rounded-xs bg-ink/90 backdrop-blur-md text-[9px] font-mono tracking-wider text-gold border border-ink-border">
-                    VOL. {volume.volumeNumber < 10 ? `0${volume.volumeNumber}` : volume.volumeNumber}
+                    {isArabic ? "المجلد" : "VOL."} {volume.volumeNumber < 10 ? `0${volume.volumeNumber}` : volume.volumeNumber}
                   </span>
                   {volume.stock <= 0 && (
                     <span className="px-2 py-0.5 rounded-xs bg-red-950/90 border border-red-800/80 text-[8px] font-mono font-bold tracking-wider text-red-400 uppercase">
-                      OUT OF STOCK
+                      {isArabic ? "نفد" : "OUT OF STOCK"}
                     </span>
                   )}
                 </div>
@@ -206,9 +209,9 @@ export default function SeriesPage({ params }: SeriesPageProps) {
                     className={`p-1.5 rounded-xs backdrop-blur-md border transition-all active:scale-90 ${
                       mounted && isInWishlist(volume.id)
                         ? "bg-ink/90 border-vermilion text-vermilion"
-                        : "bg-ink/80 border-ink-border text-paper-muted hover:text-gold hover:border-gold/60 opacity-0 group-hover:opacity-100"
+                        : "bg-ink/80 border-ink-border text-paper-muted hover:text-gold hover:border-gold/60 opacity-80 sm:opacity-0 sm:group-hover:opacity-100"
                     }`}
-                    title={mounted && isInWishlist(volume.id) ? "Saved in Wishlist" : "Save to Wishlist"}
+                    title={mounted && isInWishlist(volume.id) ? (isArabic ? "محفوظ في المفضلة" : "Saved in Wishlist") : (isArabic ? "إضافة للمفضلة" : "Save to Wishlist")}
                     aria-label="Wishlist"
                   >
                     <Heart
@@ -226,8 +229,8 @@ export default function SeriesPage({ params }: SeriesPageProps) {
                       e.stopPropagation();
                       openReader(volume);
                     }}
-                    className="p-1.5 rounded-xs bg-ink/80 backdrop-blur-md border border-ink-border text-paper-muted hover:text-gold hover:border-gold transition-colors opacity-0 group-hover:opacity-100 active:scale-95"
-                    title="Read Sample (RTL)"
+                    className="p-1.5 rounded-xs bg-ink/80 backdrop-blur-md border border-ink-border text-paper-muted hover:text-gold hover:border-gold transition-colors opacity-80 sm:opacity-0 sm:group-hover:opacity-100 active:scale-95"
+                    title={isArabic ? "قراءة عينة" : "Read Sample (RTL)"}
                   >
                     <Eye strokeWidth={1.4} className="w-3.5 h-3.5" />
                   </button>
@@ -238,10 +241,10 @@ export default function SeriesPage({ params }: SeriesPageProps) {
               <div className="p-4 flex flex-col justify-between flex-1">
                 <div>
                   <h4 className="text-xs sm:text-sm font-bold text-paper tracking-wide group-hover:text-gold transition-colors line-clamp-1">
-                    Vol. {volume.volumeNumber} — {volume.title}
+                    {isArabic ? "المجلد" : "Vol."} {volume.volumeNumber} — {volume.title}
                   </h4>
                   <p className="text-[10px] text-text-muted mt-1 font-mono">
-                    {volume.pages} pages • {volume.format}
+                    {volume.pages} {isArabic ? "صفحة" : "pages"} • {volume.format}
                   </p>
                 </div>
 
@@ -249,7 +252,7 @@ export default function SeriesPage({ params }: SeriesPageProps) {
                   <span className="text-paper font-bold">{formatPrice(volume.price)}</span>
                   {volume.stock <= 0 ? (
                     <span className="px-2.5 py-1 bg-ink-surface/90 border border-ink-border text-text-muted text-[9px] font-mono font-bold uppercase rounded-xs cursor-not-allowed opacity-80">
-                      OUT OF STOCK
+                      {isArabic ? "نفد من المخزن" : "OUT OF STOCK"}
                     </span>
                   ) : (
                     <button
@@ -263,7 +266,7 @@ export default function SeriesPage({ params }: SeriesPageProps) {
                       className="px-3 py-1.5 bg-paper text-ink hover:bg-vermilion hover:text-white font-bold text-[10px] uppercase transition-colors rounded-xs flex items-center gap-1 z-10 active:scale-95"
                     >
                       <Plus strokeWidth={1.5} className="w-3 h-3" />
-                      ADD
+                      {isArabic ? "أضف" : "ADD"}
                     </button>
                   )}
                 </div>

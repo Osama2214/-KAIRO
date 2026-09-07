@@ -33,8 +33,6 @@ import {
   SlidersHorizontal,
   Clock,
   Banknote,
-  Smartphone,
-  Zap,
   Lock,
 } from "lucide-react";
 import { ALL_VOLUMES, MangaVolume } from "@/data/manga";
@@ -44,9 +42,11 @@ import { useUIStore } from "@/store/useUIStore";
 import { useAuthStore, SavedOrder, SavedOrderItem } from "@/store/useAuthStore";
 import { useReaderStore } from "@/store/useReaderStore";
 import { formatPrice } from "@/lib/utils";
-import { escapeHtml, validateEmail, validatePassword, verifyEmailAddress, sendOtpEmail, verifyOtpCode } from "@/lib/security";
+import { escapeHtml, validateEmail, validatePassword, validateEgyptianPhone, verifyEmailAddress, sendOtpEmail, verifyOtpCode } from "@/lib/security";
 import { CustomSelect } from "@/components/CustomSelect";
+import { ImageUploadInput } from "@/components/ImageUploadInput";
 import { WelcomeOfferBanner } from "@/components/WelcomeOfferBanner";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface GoogleTokenResponse {
   access_token?: string;
@@ -148,6 +148,8 @@ function getCanonicalVolume(item: (SavedOrderItem & { volumeId?: string }) | Par
 function AccountContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t, locale, isRTL } = useTranslation();
+  const isArabic = locale === "ar";
   const newOrderId = searchParams.get("newOrder");
   const tabParam = searchParams.get("tab");
   const progressMap = useReaderStore((state) => state.progressMap);
@@ -461,13 +463,13 @@ function AccountContent() {
   };
 
   // Settings State
-  const [shippingAddress, setShippingAddress] = useState(
-    currentUser?.address || "Al Motamayez District, 6th of October City, Giza, Egypt"
-  );
-  const [patronName, setPatronName] = useState(currentUser?.name || "Karim El-Sayed");
-  const [patronPhone, setPatronPhone] = useState(currentUser?.phone || "+20 100 234 5678");
-  const [patronGovernorate, setPatronGovernorate] = useState(currentUser?.governorate || "Giza");
+  const [shippingAddress, setShippingAddress] = useState(currentUser?.address || "");
+  const [patronName, setPatronName] = useState(currentUser?.name || "");
+  const [patronPhone, setPatronPhone] = useState(currentUser?.phone || "");
+  const [patronGovernorate, setPatronGovernorate] = useState(currentUser?.governorate || "Cairo");
+  const [patronAvatar, setPatronAvatar] = useState(currentUser?.avatar || "");
   const [settingsSavedMessage, setSettingsSavedMessage] = useState("");
+  const [settingsErrorMessage, setSettingsErrorMessage] = useState("");
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
@@ -476,31 +478,84 @@ function AccountContent() {
         setShippingAddress(currentUser.address);
         setPatronPhone(currentUser.phone);
         setPatronGovernorate(currentUser.governorate);
+        setPatronAvatar(currentUser.avatar || "");
 
         const seen = new Set<string>();
         const uniqueOrders: SavedOrder[] = [];
         for (const ord of (currentUser.orders || [])) {
           if (!ord?.id || seen.has(ord.id)) continue;
           seen.add(ord.id);
-          uniqueOrders.push(ord);
+          uniqueOrders.push({
+            ...ord,
+            trackingNumber: ord.trackingNumber || "EG-OCT-9842-CAI",
+            courier: ord.courier || "Bosta Egypt Express — 6th of October Hub",
+            estimatedDelivery: ord.estimatedDelivery || "Sep 08 – Sep 09, 2026 (All Egypt Delivery)",
+            items: (ord.items || []).map((item) => {
+              const canonical = getCanonicalVolume(item);
+              return {
+                ...item,
+                volumeId: canonical?.id || item.volumeId || item.id,
+                title: canonical?.title || item.title,
+                seriesTitle: canonical?.seriesTitle || item.seriesTitle,
+                volumeNumber: canonical?.volumeNumber || item.volumeNumber,
+                coverImage: canonical?.coverImage || item.coverImage,
+                format: canonical?.format || item.format || "Tankōbon",
+                price: item.price || canonical?.price || 12.99,
+              };
+            }),
+          });
         }
         setOrders(uniqueOrders);
       } else {
-        setOrders([]);
-        setPatronName("");
-        setShippingAddress("");
-        setPatronPhone("");
-        setPatronGovernorate("Giza");
-
-        if (typeof window !== "undefined" && localStorage.getItem("kairo_active_session") === "logged_out") {
-          if (useCartStore.getState().items.length > 0) {
-            useCartStore.getState().clearCart();
-            localStorage.removeItem("kairo_cart_storage");
+        // Guest user: load authentic orders placed as guest from localStorage
+        const guestOrders: SavedOrder[] = [];
+        if (typeof window !== "undefined") {
+          try {
+            const raw = localStorage.getItem("kairo_orders");
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) {
+                const seen = new Set<string>();
+                for (const ord of parsed) {
+                  if (!ord?.id || seen.has(ord.id)) continue;
+                  seen.add(ord.id);
+                  guestOrders.push({
+                    ...ord,
+                    trackingNumber: ord.trackingNumber || "EG-OCT-9842-CAI",
+                    courier: ord.courier || "Bosta Egypt Express — 6th of October Hub",
+                    estimatedDelivery: ord.estimatedDelivery || "Sep 08 – Sep 09, 2026 (All Egypt Delivery)",
+                    items: (ord.items || []).map((item: SavedOrderItem) => {
+                      const canonical = getCanonicalVolume(item);
+                      return {
+                        ...item,
+                        volumeId: canonical?.id || item.volumeId || item.id,
+                        title: canonical?.title || item.title,
+                        seriesTitle: canonical?.seriesTitle || item.seriesTitle,
+                        volumeNumber: canonical?.volumeNumber || item.volumeNumber,
+                        coverImage: canonical?.coverImage || item.coverImage,
+                        format: canonical?.format || item.format || "Tankōbon",
+                        price: item.price || canonical?.price || 12.99,
+                      };
+                    }),
+                  });
+                }
+              }
+            }
+          } catch {
+            // ignore
           }
-          if (useWishlistStore.getState().items.length > 0) {
-            useWishlistStore.getState().clearWishlist();
-            localStorage.removeItem("kairo_wishlist_storage");
-          }
+        }
+        setOrders(guestOrders);
+        if (guestOrders.length > 0) {
+          setPatronName(guestOrders[0]?.customerName || "");
+          setShippingAddress(guestOrders[0]?.customerAddress || "");
+          setPatronPhone(guestOrders[0]?.customerPhone || "");
+          setPatronGovernorate(guestOrders[0]?.customerGovernorate || "Cairo");
+        } else {
+          setPatronName("");
+          setShippingAddress("");
+          setPatronPhone("");
+          setPatronGovernorate("Cairo");
         }
       }
     });
@@ -784,113 +839,6 @@ function AccountContent() {
   const addItem = useCartStore((state) => state.addItem);
   const { openCart, openReader } = useUIStore();
 
-  useEffect(() => {
-    let rafId: number;
-    // Load persisted orders from localStorage and self-heal any old image URLs
-    const saved = localStorage.getItem("kairo_orders");
-    if (saved) {
-      try {
-        const parsed: SavedOrder[] = JSON.parse(saved);
-        const seen = new Set<string>();
-        const sanitized: SavedOrder[] = [];
-
-        for (const order of parsed) {
-          if (!order?.id || seen.has(order.id)) continue;
-          seen.add(order.id);
-          sanitized.push({
-            ...order,
-            trackingNumber: order.trackingNumber || "EG-OCT-9842-CAI",
-            courier: order.courier || "Bosta Egypt Express — 6th of October Hub",
-            estimatedDelivery: order.estimatedDelivery || "Sep 08 – Sep 09, 2026 (All Egypt Delivery)",
-            items: (order.items || []).map((item) => {
-              const canonical = getCanonicalVolume(item);
-              return {
-                ...item,
-                volumeId: canonical?.id || item.volumeId || item.id,
-                title: canonical?.title || item.title,
-                seriesTitle: canonical?.seriesTitle || item.seriesTitle,
-                volumeNumber: canonical?.volumeNumber || item.volumeNumber,
-                coverImage: canonical?.coverImage || item.coverImage,
-                format: canonical?.format || item.format || "Tankōbon",
-                price: item.price || canonical?.price || 12.99,
-              };
-            }),
-          });
-        }
-        rafId = requestAnimationFrame(() => {
-          setOrders(sanitized);
-        });
-        localStorage.setItem("kairo_orders", JSON.stringify(sanitized));
-      } catch (e) {
-        console.error(e);
-      }
-    } else {
-      // Default initial mock order matching the 4 authentic items shown in screenshot
-      const initialMockOrder: SavedOrder = {
-        id: "KRO-1582",
-        date: "2026-09-06",
-        trackingNumber: "EG-OCT-9842-CAI",
-        courier: "Bosta Egypt Express — 6th of October Hub",
-        estimatedDelivery: "Sep 08 – Sep 09, 2026 (All Egypt Delivery)",
-        items: [
-          {
-            id: "csm-01",
-            volumeId: "csm-01",
-            title: "Dog & Chainsaw",
-            seriesTitle: "Chainsaw Man",
-            volumeNumber: 1,
-            price: 11.99,
-            coverImage: "https://dw9to29mmj727.cloudfront.net/products/1974709930.jpg",
-            format: "Manga",
-            quantity: 1,
-          },
-          {
-            id: "op-02",
-            volumeId: "op-02",
-            title: "Buggy the Clown",
-            seriesTitle: "One Piece",
-            volumeNumber: 2,
-            price: 12.99,
-            coverImage: "https://dw9to29mmj727.cloudfront.net/products/159116057X.jpg",
-            format: "Manga",
-            quantity: 1,
-          },
-          {
-            id: "berserk-01",
-            volumeId: "berserk-01",
-            title: "Deluxe Edition Vol. 01",
-            seriesTitle: "Berserk",
-            volumeNumber: 1,
-            price: 49.99,
-            coverImage: "https://images-na.ssl-images-amazon.com/images/P/1506711987.01._SX700_SCLZZZZZZZ_.jpg",
-            format: "Deluxe Edition",
-            quantity: 1,
-          },
-          {
-            id: "op-01",
-            volumeId: "op-01",
-            title: "Romance Dawn",
-            seriesTitle: "One Piece",
-            volumeNumber: 1,
-            price: 12.99,
-            coverImage: "https://dw9to29mmj727.cloudfront.net/products/1569319014.jpg",
-            format: "Manga",
-            quantity: 1,
-          },
-        ],
-        subtotal: 87.96,
-        shippingCost: 11.99,
-        total: 99.95,
-        status: "Preparing",
-        timeline: ["Confirmed", "Preparing"],
-      };
-      rafId = requestAnimationFrame(() => {
-        setOrders([initialMockOrder]);
-      });
-      localStorage.setItem("kairo_orders", JSON.stringify([initialMockOrder]));
-    }
-    return () => cancelAnimationFrame(rafId);
-  }, []);
 
   const handleResetIntro = () => {
     try {
@@ -915,11 +863,26 @@ function AccountContent() {
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
+    setSettingsErrorMessage("");
+    setSettingsSavedMessage("");
+
+    let normalizedPhone = patronPhone;
+    if (patronPhone.trim()) {
+      const phoneVal = validateEgyptianPhone(patronPhone);
+      if (!phoneVal.isValid) {
+        setSettingsErrorMessage(phoneVal.message || "Please enter a valid 11-digit Egyptian mobile number.");
+        return;
+      }
+      normalizedPhone = phoneVal.normalized || patronPhone;
+      setPatronPhone(normalizedPhone);
+    }
+
     updateProfile({
       name: patronName,
       address: shippingAddress,
-      phone: patronPhone,
+      phone: normalizedPhone,
       governorate: patronGovernorate,
+      avatar: patronAvatar || undefined,
     });
     setSettingsSavedMessage("Collector profile preferences successfully updated.");
     setTimeout(() => setSettingsSavedMessage(""), 4000);
@@ -975,6 +938,13 @@ function AccountContent() {
       if (!authAddress.trim()) {
         setAuthError("Please enter your Egypt delivery address.");
         return;
+      }
+      if (authPhone.trim()) {
+        const phoneVal = validateEgyptianPhone(authPhone);
+        if (!phoneVal.isValid) {
+          setAuthError(phoneVal.message || "Please enter a valid 11-digit Egyptian mobile number.");
+          return;
+        }
       }
       setIsSubmittingAuth(true);
       try {
@@ -1207,8 +1177,8 @@ function AccountContent() {
                   }}
                   className="text-text-muted hover:text-paper transition-colors cursor-pointer flex items-center gap-1.5"
                 >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Change Email</span>
+                  <ArrowLeft className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
+                  <span>{isArabic ? "تغيير البريد الإلكتروني" : "Change Email"}</span>
                 </button>
 
                 <button
@@ -1311,8 +1281,8 @@ function AccountContent() {
                     }}
                     className="text-text-muted hover:text-paper font-mono text-xs transition-colors cursor-pointer inline-flex items-center gap-1.5"
                   >
-                    <ArrowLeft className="w-3.5 h-3.5" />
-                    <span>Back to Sign In</span>
+                    <ArrowLeft className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
+                    <span>{isArabic ? "العودة لتسجيل الدخول" : "Back to Sign In"}</span>
                   </button>
                 </div>
               </form>
@@ -1421,8 +1391,8 @@ function AccountContent() {
                     }}
                     className="text-text-muted hover:text-paper transition-colors cursor-pointer flex items-center gap-1.5"
                   >
-                    <ArrowLeft className="w-3.5 h-3.5" />
-                    <span>Change Email</span>
+                    <ArrowLeft className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
+                    <span>{isArabic ? "تغيير البريد الإلكتروني" : "Change Email"}</span>
                   </button>
 
                   <button
@@ -1457,6 +1427,21 @@ function AccountContent() {
     }
 
     // 2. Standard Patron Authentication Portal
+    const activeGuestOrder = newOrderId
+      ? orders.find((o) => o.id === newOrderId) ||
+        (() => {
+          if (typeof window === "undefined") return null;
+          try {
+            const raw = localStorage.getItem("kairo_orders");
+            if (raw) {
+              const parsed: SavedOrder[] = JSON.parse(raw);
+              return Array.isArray(parsed) ? parsed.find((o) => o.id === newOrderId) || null : null;
+            }
+          } catch {}
+          return null;
+        })()
+      : null;
+
     return (
       <div className="min-h-[calc(100dvh-80px)] bg-transparent text-paper pt-24 pb-12 px-4 sm:px-6 md:px-12 flex items-center justify-center relative">
         <div className="max-w-md w-full bg-ink-surface/85 border border-gold/40 rounded-sm p-6 sm:p-8 backdrop-blur-md shadow-[0_25px_80px_rgba(0,0,0,0.95)] space-y-6 animate-in fade-in zoom-in-95 duration-300 relative z-10">
@@ -1470,6 +1455,42 @@ function AccountContent() {
               Sign in to access your archive.
             </p>
           </div>
+
+          {/* Guest Order Confirmation Banner */}
+          {newOrderId && (
+            <div className="p-4 bg-ink/90 border border-gold/50 rounded-sm space-y-3 font-mono animate-in fade-in">
+              <div className="flex items-center justify-between">
+                <span className="text-gold font-bold text-xs flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-gold" />
+                  ORDER RECEIVED: #{newOrderId}
+                </span>
+                <span className="text-[10px] px-2 py-0.5 bg-gold/15 text-gold border border-gold/30 rounded-xs uppercase font-bold">
+                  Confirmed
+                </span>
+              </div>
+              <p className="text-xs text-text-muted leading-relaxed">
+                Thank you for your order! Your volumes are being prepared for express delivery.
+              </p>
+              {activeGuestOrder && (
+                <div className="pt-2 border-t border-ink-border/60 flex items-center justify-between text-xs">
+                  <span className="text-paper">
+                    Total: <strong className="text-gold">{formatPrice(activeGuestOrder.total)}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handlePrintInvoice(activeGuestOrder)}
+                    className="px-2.5 py-1 bg-ink-surface hover:bg-gold hover:text-ink text-gold border border-gold/30 rounded-xs text-[10px] uppercase font-bold transition-colors cursor-pointer flex items-center gap-1"
+                  >
+                    <Printer className="w-3 h-3" />
+                    <span>Print Invoice</span>
+                  </button>
+                </div>
+              )}
+              <div className="text-[10px] text-text-muted/80 bg-ink-surface/50 p-2 rounded-xs border border-ink-border/40">
+                💡 Want to save and track all your orders? Create a patron account below to link your order.
+              </div>
+            </div>
+          )}
 
           {/* Mode Switcher Tabs */}
           <div className="grid grid-cols-2 gap-2 p-1 bg-ink rounded-xs border border-ink-border font-mono text-xs">
@@ -1803,7 +1824,7 @@ function AccountContent() {
                       osamahamad261981@gmail.com
                     </span>
                   </div>
-                  <ArrowRight className="w-3.5 h-3.5 text-text-muted group-hover:text-gold group-hover:translate-x-0.5 transition-all shrink-0" />
+                  <ArrowRight className={`w-3.5 h-3.5 text-text-muted group-hover:text-gold group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 ${isRTL ? "rotate-180" : ""} transition-all shrink-0`} />
                 </button>
 
                 {/* Custom Google Account Form */}
@@ -1868,8 +1889,16 @@ function AccountContent() {
         {/* Streamlined Clean Profile Header */}
         <div className="border-b border-ink-border/80 pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-linear-to-tr from-amber-600 to-gold text-ink font-bold font-sans flex items-center justify-center text-lg shadow-md shrink-0">
-              {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : "U"}
+            <div className="w-12 h-12 rounded-full bg-linear-to-tr from-amber-600 to-gold text-ink font-bold font-sans flex items-center justify-center text-lg shadow-md shrink-0 overflow-hidden border border-gold/40">
+              {currentUser.avatar ? (
+                <img
+                  src={currentUser.avatar}
+                  alt={currentUser.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span>{currentUser.name ? currentUser.name.charAt(0).toUpperCase() : "U"}</span>
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2.5">
@@ -1898,7 +1927,7 @@ function AccountContent() {
                 title="Enter Admin Management Dashboard"
               >
                 <SlidersHorizontal strokeWidth={1.4} className="w-3.5 h-3.5" />
-                <span>Curator Console</span>
+                <span>{isArabic ? "لوحة الإدارة" : "Curator Console"}</span>
               </Link>
             )}
             <button
@@ -1908,7 +1937,7 @@ function AccountContent() {
               title="Sign out of current account"
             >
               <LogOut strokeWidth={1.4} className="w-3.5 h-3.5" />
-              <span>Sign Out</span>
+              <span>{isArabic ? "تسجيل الخروج" : "Sign Out"}</span>
             </button>
           </div>
         </div>
@@ -1918,13 +1947,17 @@ function AccountContent() {
           <div className="p-4 bg-gold/10 border border-gold/40 rounded-sm text-gold text-xs font-mono flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <CheckCircle2 strokeWidth={1.8} className="w-5 h-5 text-gold shrink-0" />
-              <span>Order #{newOrderId} has been registered into our 6th of October Central Archive and is being prepared for dispatch across Egypt!</span>
+              <span>
+                {isArabic
+                  ? `تم تسجيل الطلب #${newOrderId} بنجاح في أرشيف مركز 6 أكتوبر المركزي وجاري تجهيزه للشحن!`
+                  : `Order #${newOrderId} has been registered into our 6th of October Central Archive and is being prepared for dispatch across Egypt!`}
+              </span>
             </div>
             <button
               onClick={() => router.replace("/account")}
               className="text-[11px] uppercase tracking-wider underline hover:text-paper"
             >
-              Dismiss
+              {isArabic ? "إغلاق" : "Dismiss"}
             </button>
           </div>
         )}
@@ -1933,12 +1966,12 @@ function AccountContent() {
         <WelcomeOfferBanner />
 
         {/* Dashboard Navigation Tabs */}
-        <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto border-b border-ink-border/60 pb-3 font-mono text-xs no-scrollbar">
+        <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto border-b border-ink-border/60 pb-3 font-mono text-xs no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
           {([
-            { id: "ORDERS", label: `My Orders (${orders.length})`, icon: Package },
-            { id: "LIBRARY", label: `My Library (${digitalLibraryVolumes.length})`, icon: BookOpen },
-            { id: "WISHLIST", label: `Wishlist (${wishlist.length})`, icon: Heart },
-            { id: "SETTINGS", label: "Settings", icon: Settings },
+            { id: "ORDERS", label: isArabic ? `طلباتي (${orders.length})` : `My Orders (${orders.length})`, icon: Package },
+            { id: "LIBRARY", label: isArabic ? `مكتبتي الرقمية (${digitalLibraryVolumes.length})` : `My Library (${digitalLibraryVolumes.length})`, icon: BookOpen },
+            { id: "WISHLIST", label: isArabic ? `قائمة الرغبات (${wishlist.length})` : `Wishlist (${wishlist.length})`, icon: Heart },
+            { id: "SETTINGS", label: isArabic ? "إعدادات الحساب" : "Settings", icon: Settings },
           ] as const).map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -1946,7 +1979,7 @@ function AccountContent() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xs tracking-wider uppercase transition-all whitespace-nowrap cursor-pointer ${
+                className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xs tracking-wider uppercase transition-all whitespace-nowrap cursor-pointer shrink-0 text-[11px] sm:text-xs ${
                   isActive
                     ? "bg-paper text-ink font-bold shadow-md shadow-black/30"
                     : "text-text-muted hover:text-paper hover:bg-ink-surface/60 border border-transparent"
@@ -1967,16 +2000,18 @@ function AccountContent() {
             {orders.length === 0 ? (
               <div className="p-16 border border-ink-border bg-ink-surface/30 rounded-sm text-center space-y-4">
                 <Package strokeWidth={1.2} className="w-12 h-12 text-text-muted mx-auto" />
-                <p className="font-mono text-sm text-paper">NO ORDERS PLACED IN THIS SESSION</p>
+                <p className="font-mono text-sm text-paper">{isArabic ? "لا توجد طلبات سابقة في هذه الجلسة" : "NO ORDERS PLACED IN THIS SESSION"}</p>
                 <p className="text-xs text-text-muted max-w-sm mx-auto">
-                  Explore our curated manga catalog and build your definitive collector box set with direct delivery across all Egyptian governorates.
+                  {isArabic
+                    ? "تصفح كتالوج المانجا المعتمد وابدأ بتكوين مكتبتك الورقية الفاخرة مع شحن سريع لكافة محافظات مصر."
+                    : "Explore our curated manga catalog and build your definitive collector box set with direct delivery across all Egyptian governorates."}
                 </p>
                 <Link
                   href="/manga"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-paper text-ink font-bold text-xs font-mono uppercase tracking-widest hover:bg-vermilion hover:text-white transition-colors rounded-xs"
                 >
-                  <span>BROWSE ARCHIVE</span>
-                  <ArrowRight strokeWidth={1.5} className="w-3.5 h-3.5" />
+                  <span>{isArabic ? "تصفح الأرشيف الكامل" : "BROWSE ARCHIVE"}</span>
+                  <ArrowRight strokeWidth={1.5} className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
                 </Link>
               </div>
             ) : (
@@ -1993,18 +2028,18 @@ function AccountContent() {
                 if (isElectronic) {
                   if (!isPaid) {
                     steps = [
-                      { key: "Placed", label: "ORDER PLACED", detail: "Cart Checked Out" },
-                      { key: "Verification", label: "PAYMENT PENDING", detail: "Awaiting Confirmation" },
-                      { key: "Preparing", label: "VAULT PACKAGING", detail: "Quality Inspection" },
-                      { key: "Delivered", label: "DELIVERED", detail: "Destination Arrival" },
+                      { key: "Placed", label: isArabic ? "تم تسجيل الطلب" : "ORDER PLACED", detail: isArabic ? "من السلة للأرشيف" : "Cart Checked Out" },
+                      { key: "Verification", label: isArabic ? "قيد تأكيد الدفع" : "PAYMENT PENDING", detail: isArabic ? "في انتظار المطابقة" : "Awaiting Confirmation" },
+                      { key: "Preparing", label: isArabic ? "تغليف مصفح للمقتنين" : "VAULT PACKAGING", detail: isArabic ? "فحص الجودة والسلامة" : "Quality Inspection" },
+                      { key: "Delivered", label: isArabic ? "تم التوصيل" : "DELIVERED", detail: isArabic ? "الاستلام في باب المنزل" : "Destination Arrival" },
                     ];
                     currentStepIndex = 1;
                   } else {
                     steps = [
-                      { key: "Paid", label: "PAYMENT VERIFIED", detail: "Transfer Approved" },
-                      { key: "Preparing", label: "VAULT PACKAGING", detail: "Inspection & Seal" },
-                      { key: "Shipped", label: "IN TRANSIT", detail: "Dispatched with Courier" },
-                      { key: "Delivered", label: "DELIVERED", detail: "Archival Delivery" },
+                      { key: "Paid", label: isArabic ? "تم تأكيد الدفع" : "PAYMENT VERIFIED", detail: isArabic ? "تم اعتماد التحويل" : "Transfer Approved" },
+                      { key: "Preparing", label: isArabic ? "تغليف مصفح للمقتنين" : "VAULT PACKAGING", detail: isArabic ? "الفحص والتغليف الآمن" : "Inspection & Seal" },
+                      { key: "Shipped", label: isArabic ? "مع شركة الشحن" : "IN TRANSIT", detail: isArabic ? "خرجت مع المندوب" : "Dispatched with Courier" },
+                      { key: "Delivered", label: isArabic ? "تم التوصيل" : "DELIVERED", detail: isArabic ? "وصول الطرد بنجاح" : "Archival Delivery" },
                     ];
                     if (order.status === "Delivered") currentStepIndex = 3;
                     else if (order.status === "Shipped") currentStepIndex = 2;
@@ -2013,10 +2048,10 @@ function AccountContent() {
                 } else {
                   // Cash on Delivery
                   steps = [
-                    { key: "Confirmed", label: "ORDER CONFIRMED", detail: "Scheduled with Hub" },
-                    { key: "Preparing", label: "VAULT PACKAGING", detail: "Inspection & Seal" },
-                    { key: "Shipped", label: "IN TRANSIT", detail: "Courier Doorstep Route" },
-                    { key: "Delivered", label: "COLLECTED & COMPLETE", detail: "Cash Received" },
+                    { key: "Confirmed", label: isArabic ? "تم تأكيد الطلب" : "ORDER CONFIRMED", detail: isArabic ? "مجدول بمركز الشحن" : "Scheduled with Hub" },
+                    { key: "Preparing", label: isArabic ? "تغليف مصفح للمقتنين" : "VAULT PACKAGING", detail: isArabic ? "الفحص والتغليف الآمن" : "Inspection & Seal" },
+                    { key: "Shipped", label: isArabic ? "مع مندوب التوصيل" : "IN TRANSIT", detail: isArabic ? "في الطريق لمنزلك" : "Courier Doorstep Route" },
+                    { key: "Delivered", label: isArabic ? "تم الاستلام والسداد" : "COLLECTED & COMPLETE", detail: isArabic ? "استلام المبلغ نقداً" : "Cash Received" },
                   ];
                   if (order.status === "Delivered") currentStepIndex = 3;
                   else if (order.status === "Shipped") currentStepIndex = 2;
@@ -2039,45 +2074,59 @@ function AccountContent() {
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="px-2 py-0.5 rounded-xs bg-ink border border-ink-border text-[10px] font-mono text-text-muted">
                               {order.paymentMethod === "wallet"
-                                ? "Mobile Wallet"
+                                ? (isArabic ? "محفظة إلكترونية" : "Mobile Wallet")
                                 : order.paymentMethod === "instapay"
-                                ? "InstaPay"
-                                : "Cash On Delivery"}
+                                ? (isArabic ? "إنستاباي" : "InstaPay")
+                                : (isArabic ? "دفع عند الاستلام" : "Cash On Delivery")}
                             </span>
 
                             {/* Payment Verification Status Badge */}
                             {isPaid ? (
                               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold flex items-center gap-1.5 border bg-emerald-500/10 border-emerald-500/30 text-emerald-400">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                <span>PAYMENT: VERIFIED & PAID</span>
+                                <span>{isArabic ? "حالة الدفع: تم التأكيد والسداد" : "PAYMENT: VERIFIED & PAID"}</span>
                               </span>
                             ) : isPendingVerification ? (
                               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold flex items-center gap-1.5 border bg-amber-500/10 border-amber-500/40 text-amber-400">
-                                <span>PAYMENT: PENDING VERIFICATION</span>
+                                <span>{isArabic ? "حالة الدفع: قيد تأكيد التحويل" : "PAYMENT: PENDING VERIFICATION"}</span>
                               </span>
                             ) : (
                               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold flex items-center gap-1.5 border bg-gold/10 border-gold/40 text-gold">
                                 <span className="w-1.5 h-1.5 rounded-full bg-gold" />
-                                <span>PAYMENT: DOORSTEP COLLECTION</span>
+                                <span>{isArabic ? "حالة الدفع: تحصيل عند الاستلام" : "PAYMENT: DOORSTEP COLLECTION"}</span>
                               </span>
                             )}
 
                             {/* Order Fulfillment Status Badge */}
                             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold flex items-center gap-1.5 border bg-ink border-ink-border text-paper">
-                              <span>ORDER: {order.status ? order.status.toUpperCase() : "PROCESSING"}</span>
+                              <span>
+                                {isArabic
+                                  ? `حالة الطلب: ${
+                                      order.status === "Delivered"
+                                        ? "تم التوصيل بنجاح"
+                                        : order.status === "Shipped"
+                                        ? "مع شركة الشحن"
+                                        : order.status === "Confirmed"
+                                        ? "تم التأكيد"
+                                        : order.status === "Cancelled"
+                                        ? "ملغي"
+                                        : "جاري التجهيز في الأرشيف"
+                                    }`
+                                  : `ORDER: ${order.status ? order.status.toUpperCase() : "PROCESSING"}`}
+                              </span>
                             </span>
                           </div>
                         </div>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
-                        <div className="text-right">
-                          <span className="text-[10px] text-text-muted block">TIMESTAMP</span>
+                        <div className={isRTL ? "text-left" : "text-right"}>
+                          <span className="text-[10px] text-text-muted block">{isArabic ? "تاريخ الطلب" : "TIMESTAMP"}</span>
                           <span className="text-paper">{order.date}</span>
                         </div>
                         <div className="h-8 w-px bg-ink-border hidden sm:block" />
-                        <div className="text-right">
-                          <span className="text-[10px] text-text-muted block">TOTAL AMOUNT</span>
+                        <div className={isRTL ? "text-left" : "text-right"}>
+                          <span className="text-[10px] text-text-muted block">{isArabic ? "إجمالي الفاتورة" : "TOTAL AMOUNT"}</span>
                           <span className="text-paper text-base font-bold">{formatPrice(order.total)}</span>
                         </div>
                       </div>
@@ -2089,14 +2138,16 @@ function AccountContent() {
                         <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                         <div className="space-y-1">
                           <div className="text-amber-400 font-bold uppercase tracking-wider flex items-center gap-2">
-                            <span>Payment Verification In Progress</span>
+                            <span>{isArabic ? "جاري مطابقة وتأكيد التحويل الإلكتروني" : "Payment Verification In Progress"}</span>
                           </div>
                           <p className="text-text-muted leading-relaxed">
-                            Thank you for your order. Our concierge team will contact you shortly via WhatsApp or Phone to provide our verified transfer coordinates ({order.paymentMethod === "wallet" ? "Mobile Wallet" : "InstaPay"}) and confirm receipt. Once verified by the administrator, your digital reader access will unlock immediately and your order will advance to vault packaging.
+                            {isArabic
+                              ? `شكراً لطلبك. يقوم فريق المتابعة بمطابقة واستلام التحويل عبر (${order.paymentMethod === "wallet" ? "المحفظة الإلكترونية" : "إنستاباي"}). فور اعتماد التحويل من الإدارة، يُفتح حسابك تلقائياً في القارئ الرقمي ويتحول الطلب للتجهيز والتغليف المصفح للشحن.`
+                              : `Thank you for your order. Our concierge team will contact you shortly via WhatsApp or Phone to provide our verified transfer coordinates (${order.paymentMethod === "wallet" ? "Mobile Wallet" : "InstaPay"}) and confirm receipt. Once verified by the administrator, your digital reader access will unlock immediately and your order will advance to vault packaging.`}
                           </p>
                           {order.paymentSenderDetail && (
                             <div className="text-[11px] text-text-muted pt-1">
-                              Registered Sender Reference: <strong className="text-paper">{order.paymentSenderDetail}</strong>
+                              {isArabic ? "بيانات التحويل المسجلة:" : "Registered Sender Reference:"} <strong className="text-paper">{order.paymentSenderDetail}</strong>
                             </div>
                           )}
                         </div>
@@ -2109,10 +2160,12 @@ function AccountContent() {
                         <Banknote className="w-4 h-4 text-gold shrink-0 mt-0.5" />
                         <div className="space-y-1">
                           <div className="text-gold font-bold uppercase tracking-wider flex items-center gap-2">
-                            <span>Doorstep Cash Collection</span>
+                            <span>{isArabic ? "الدفع نقدياً عند الاستلام" : "Doorstep Cash Collection"}</span>
                           </div>
                           <p className="text-text-muted leading-relaxed">
-                            Your order is confirmed and scheduled for packaging. Please ensure the exact cash amount ({formatPrice(order.total)}) is ready upon doorstep delivery. Digital reading access unlocks automatically once the parcel is delivered.
+                            {isArabic
+                              ? `طلبك مؤكد ومجدول للتجهيز والتغليف. يرجى تجهيز المبلغ المطلوب نقداً (${formatPrice(order.total)}) عند استلام الطرد من مندوب الشحن. تتاح ميزات القراءة الرقمية فور إتمام التوصيل.`
+                              : `Your order is confirmed and scheduled for packaging. Please ensure the exact cash amount (${formatPrice(order.total)}) is ready upon doorstep delivery. Digital reading access unlocks automatically once the parcel is delivered.`}
                           </p>
                         </div>
                       </div>
@@ -2122,7 +2175,7 @@ function AccountContent() {
                     <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-ink/70 rounded-xs border border-ink-border/60 text-xs font-mono">
                       <div className="flex items-center gap-2 text-text-muted">
                         <Truck strokeWidth={1.4} className="w-4 h-4 text-gold shrink-0" />
-                        <span>{order.courier || "Bosta Egypt Express — 6th of October Hub"}</span>
+                        <span>{order.courier || (isArabic ? "بوسطة إكسبريس مصر — مركز 6 أكتوبر" : "Bosta Egypt Express — 6th of October Hub")}</span>
                         <span className="text-paper font-semibold">({order.trackingNumber || "EG-OCT-9842-CAI"})</span>
                       </div>
                       <div className="flex items-center gap-3">
@@ -2133,27 +2186,27 @@ function AccountContent() {
                           {copiedTracking ? (
                             <>
                               <Check strokeWidth={1.5} className="w-3 h-3 text-gold" />
-                              <span className="text-gold font-bold">COPIED</span>
+                              <span className="text-gold font-bold">{isArabic ? "تم النسخ" : "COPIED"}</span>
                             </>
                           ) : (
                             <>
                               <Copy strokeWidth={1.4} className="w-3 h-3" />
-                              <span>COPY WAYBILL</span>
+                              <span>{isArabic ? "نسخ رقم التتبع" : "COPY WAYBILL"}</span>
                             </>
                           )}
                         </button>
                         <span className="text-text-muted">•</span>
                         <span className="text-text-muted text-[10px]">
-                          ETA: <span className="text-paper">{order.estimatedDelivery || "Sep 08 – Sep 09 (Egypt Express)"}</span>
+                          {isArabic ? "الموعد المتوقع:" : "ETA:"} <span className="text-paper">{order.estimatedDelivery || (isArabic ? "خلال 24-48 ساعة (شحن سريع)" : "Sep 08 – Sep 09 (Egypt Express)")}</span>
                         </span>
                       </div>
                     </div>
 
                     {/* Timeline Progression Line: Exact pixel-perfect alignment */}
-                    <div className="py-6 px-4 sm:px-8 bg-ink/50 rounded-sm border border-ink-border/50">
+                    <div className="py-5 sm:py-6 px-2 sm:px-8 bg-ink/50 rounded-sm border border-ink-border/50">
                       <div className="relative max-w-2xl mx-auto">
                         {/* Connecting Line Track */}
-                        <div className="absolute top-3 left-3 right-3 h-0.5 z-0 pointer-events-none">
+                        <div className="absolute top-3 left-4 right-4 h-0.5 z-0 pointer-events-none">
                           <div className="w-full h-full bg-ink-border" />
                           <div
                             className="absolute top-0 left-0 h-full bg-gold transition-all duration-500"
@@ -2161,13 +2214,13 @@ function AccountContent() {
                           />
                         </div>
 
-                        <div className="relative z-10 flex justify-between items-center">
+                        <div className="relative z-10 flex justify-between items-start">
                           {steps.map((step, idx) => {
                             const isDone = idx <= currentStepIndex;
                             const isCurrent = idx === currentStepIndex;
 
                             return (
-                              <div key={step.key} className="flex flex-col items-center">
+                              <div key={step.key} className="flex flex-col items-center max-w-[70px] sm:max-w-none text-center">
                                 {/* Step Circle with Clean Subtle Pulse on Active Point */}
                                 <div className="relative flex items-center justify-center">
                                   {isCurrent && (
@@ -2190,13 +2243,13 @@ function AccountContent() {
                                 </div>
 
                                 <span
-                                  className={`text-[10px] font-mono tracking-wider uppercase mt-2 text-center ${
+                                  className={`text-[9px] sm:text-[10px] font-mono tracking-wider uppercase mt-2 text-center leading-tight ${
                                     isCurrent ? "text-gold font-bold" : isDone ? "text-paper" : "text-text-muted"
                                   }`}
                                 >
                                   {step.label}
                                 </span>
-                                <span className="text-[9px] font-mono text-text-muted/70 hidden sm:block">
+                                <span className="text-[9px] font-mono text-text-muted/70 hidden sm:block mt-0.5">
                                   {step.detail}
                                 </span>
                               </div>
@@ -2351,16 +2404,20 @@ function AccountContent() {
             {digitalLibraryVolumes.length === 0 ? (
               <div className="p-16 border border-ink-border bg-ink-surface/30 rounded-sm text-center space-y-4">
                 <BookOpen strokeWidth={1.2} className="w-12 h-12 text-text-muted mx-auto" />
-                <p className="font-mono text-sm text-paper">NO DIGITAL EDITIONS UNLOCKED YET</p>
+                <p className="font-mono text-sm text-paper">
+                  {isArabic ? "لم يتم فتح أي طبعات رقمية بعد" : "NO DIGITAL EDITIONS UNLOCKED YET"}
+                </p>
                 <p className="text-xs text-text-muted max-w-md mx-auto leading-relaxed">
-                  Every physical manga volume you order from KAIRO automatically unlocks lifetime instant cloud reading access in your digital archive.
+                  {isArabic
+                    ? "كل مجلد مانجا ورقي تطلبه من كايرو يتيح لك تلقائياً وصولاً سحابياً فورياً للقراءة الرقمية في أرشيفك مدى الحياة."
+                    : "Every physical manga volume you order from KAIRO automatically unlocks lifetime instant cloud reading access in your digital archive."}
                 </p>
                 <Link
                   href="/manga"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-paper text-ink font-bold text-xs font-mono uppercase tracking-widest hover:bg-vermilion hover:text-white transition-colors rounded-xs"
                 >
-                  <span>BROWSE ARCHIVE</span>
-                  <ArrowRight strokeWidth={1.5} className="w-3.5 h-3.5" />
+                  <span>{isArabic ? "تصفح الأرشيف الكامل" : "BROWSE ARCHIVE"}</span>
+                  <ArrowRight strokeWidth={1.5} className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
                 </Link>
               </div>
             ) : (
@@ -2582,18 +2639,20 @@ function AccountContent() {
                     <Heart strokeWidth={1.3} className="w-6 h-6 text-gold" />
                   </div>
                   <h3 className="font-mono text-base font-bold text-paper tracking-wider uppercase">
-                    YOUR WISHLIST IS CURRENTLY EMPTY
+                    {isArabic ? "قائمة رغباتك فارغة حالياً" : "YOUR WISHLIST IS CURRENTLY EMPTY"}
                   </h3>
                   <p className="text-xs text-text-muted font-sans leading-relaxed">
-                    Bookmark collector editions, new releases, and upcoming volumes while browsing the catalog. Your saved titles will appear here with live stock tracking.
+                    {isArabic
+                      ? "احفظ طبعات المقتنين والإصدارات الجديدة أثناء تصفح الكتالوج. ستظهر عناوينك المحفوظة هنا مع تتبع فوري لحالة المخزون."
+                      : "Bookmark collector editions, new releases, and upcoming volumes while browsing the catalog. Your saved titles will appear here with live stock tracking."}
                   </p>
                   <div className="pt-2">
                     <Link
                       href="/manga"
                       className="inline-flex items-center gap-2 px-6 py-3 bg-paper text-ink font-bold text-xs font-mono uppercase tracking-widest hover:bg-vermilion hover:text-white transition-all rounded-xs shadow-xl active:scale-95"
                     >
-                      <span>EXPLORE ARCHIVE CATALOG</span>
-                      <ArrowRight strokeWidth={1.5} className="w-4 h-4" />
+                      <span>{isArabic ? "استكشف كتالوج الأرشيف" : "EXPLORE ARCHIVE CATALOG"}</span>
+                      <ArrowRight strokeWidth={1.5} className={`w-4 h-4 ${isRTL ? "rotate-180" : ""}`} />
                     </Link>
                   </div>
                 </div>
@@ -2648,7 +2707,7 @@ function AccountContent() {
                         <button
                           type="button"
                           onClick={() => openReader(volume)}
-                          className="p-1.5 rounded-xs bg-ink/80 backdrop-blur-md border border-ink-border text-paper-muted hover:text-gold hover:border-gold transition-colors opacity-0 group-hover:opacity-100 active:scale-90 cursor-pointer"
+                          className="p-1.5 rounded-xs bg-ink/80 backdrop-blur-md border border-ink-border text-paper-muted hover:text-gold hover:border-gold transition-colors opacity-80 sm:opacity-0 sm:group-hover:opacity-100 active:scale-90 cursor-pointer"
                           title="Read Sample (RTL)"
                         >
                           <Eye strokeWidth={1.4} className="w-3.5 h-3.5" />
@@ -2732,6 +2791,17 @@ function AccountContent() {
               </div>
 
               <div className="space-y-4 text-xs font-mono">
+                {/* Patron Avatar Custom Upload */}
+                <ImageUploadInput
+                  label="Patron Profile Avatar"
+                  value={patronAvatar}
+                  onChange={(url) => setPatronAvatar(url)}
+                  placeholder="https://... or upload local avatar from your PC (Rec: 400 × 400 px)"
+                  aspectRatio="avatar"
+                  recommendedDimensions="400 × 400 px (1:1 Square)"
+                  helpText="Displayed in the patron portal and archival stamps"
+                />
+
                 <div>
                   <label className="text-[10px] text-text-muted uppercase block mb-1.5 font-medium">
                     Full Name
@@ -2784,13 +2854,18 @@ function AccountContent() {
                 </div>
               </div>
 
-              <div className="pt-2 flex items-center justify-between">
+              <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <button
                   type="submit"
                   className="px-6 py-2.5 bg-paper text-ink hover:bg-gold font-mono font-bold text-xs uppercase tracking-wider rounded-xs transition-colors cursor-pointer"
                 >
                   Save Changes
                 </button>
+                {settingsErrorMessage && (
+                  <span className="text-xs text-vermilion font-mono animate-in fade-in flex items-center gap-1.5">
+                    <span>{settingsErrorMessage}</span>
+                  </span>
+                )}
                 {settingsSavedMessage && (
                   <span className="text-xs text-gold font-mono animate-in fade-in flex items-center gap-1.5">
                     <Check strokeWidth={1.8} className="w-3.5 h-3.5" />

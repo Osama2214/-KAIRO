@@ -1,5 +1,7 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import crypto from "crypto";
+import { checkRateLimitKey, getClientIp } from "@/lib/rateLimit";
+import { AUTHORIZED_ADMIN_EMAILS } from "@/config/adminConfig";
 
 const PATRON_SECRET =
   process.env.PATRON_SESSION_SECRET ||
@@ -14,6 +16,7 @@ function generatePatronToken(uid: string, email: string, request: Request): stri
   const payload = {
     uid,
     email: email.toLowerCase(),
+    role: "patron", // Strictly patron, never admin
     fp: computeClientFingerprint(request),
     iat: Date.now(),
     exp: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
@@ -68,14 +71,50 @@ function verifyPatronToken(token: string, request: Request): { valid: boolean; u
  */
 export async function POST(request: Request) {
   try {
+    const clientIp = getClientIp(request);
+
+    // 1. Rate limit session establishment: max 10 per 5 minutes per IP
+    const rateCheck = checkRateLimitKey(`session:ip:${clientIp}`, 10, 5 * 60 * 1000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { success: false, message: "Too many session attempts. Please wait." },
+        { status: 429 }
+      );
+    }
+
+    // 2. Strict Origin / Host verification
+    const origin = request.headers.get("origin");
+    const host = request.headers.get("host");
+    if (origin && host) {
+      const cleanOrigin = origin.replace(/^https?:\/\//, "");
+      if (cleanOrigin !== host && !cleanOrigin.startsWith(host)) {
+        return NextResponse.json(
+          { success: false, message: "Cross-origin session creation forbidden." },
+          { status: 403 }
+        );
+      }
+    }
+
     const body = await request.json().catch(() => ({}));
     const uid = (body.uid || "").toString().trim();
     const email = (body.email || "").toString().trim().toLowerCase();
 
-    if (!uid || !email) {
+    if (!uid || !email || !email.includes("@")) {
       return NextResponse.json(
-        { success: false, message: "User ID and email are required." },
+        { success: false, message: "Valid User ID and email are required." },
         { status: 400 }
+      );
+    }
+
+    // 3. Prevent Privilege Escalation: Admin emails CANNOT be claimed via patron session
+    const isAdminEmail = AUTHORIZED_ADMIN_EMAILS.some((e) => e.toLowerCase() === email);
+    if (isAdminEmail) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Curator administrator credentials cannot be issued through patron session endpoint. Please authenticate via /admin PIN.",
+        },
+        { status: 403 }
       );
     }
 

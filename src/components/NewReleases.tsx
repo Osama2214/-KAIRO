@@ -11,20 +11,30 @@ import { useUIStore } from "@/store/useUIStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { formatPrice } from "@/lib/utils";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export function NewReleases() {
   const router = useRouter();
+  const { t, locale, isRTL } = useTranslation();
+  const isArabic = locale === "ar";
   const addItem = useCartStore((state) => state.addItem);
   const { toggleWishlist, isInWishlist } = useWishlistStore();
   const mounted = useMounted();
   const { openCart, openReader } = useUIStore();
   const volumes = useStorefrontStore((state) => state.volumes);
   const newReleasesConfig = useStorefrontStore((state) => state.newReleasesConfig);
+  const newReleasesArabicConfig = useStorefrontStore((state) => state.newReleasesArabicConfig);
 
   const activeVolumes = volumes && volumes.length > 0 ? volumes : ALL_VOLUMES;
-  const badgeText = newReleasesConfig?.badgeText || "JUST ARCHIVED";
-  const headline = newReleasesConfig?.headline || "NEW RELEASES";
-  const viewAllText = newReleasesConfig?.viewAllText || "VIEW COMPLETE ARCHIVE";
+  const badgeText = isArabic
+    ? (newReleasesArabicConfig?.badgeText || "وصل حديثاً للأرشيف")
+    : (newReleasesConfig?.badgeText || "JUST ARCHIVED");
+  const headline = isArabic
+    ? (newReleasesArabicConfig?.headline || "أحدث الإصدارات")
+    : (newReleasesConfig?.headline || "NEW RELEASES");
+  const viewAllText = isArabic
+    ? (newReleasesArabicConfig?.viewAllText || "عرض الأرشيف الكامل")
+    : (newReleasesConfig?.viewAllText || "VIEW COMPLETE ARCHIVE");
 
   const newItems = React.useMemo(() => {
     const tagged = activeVolumes.filter((v) => v.isNewRelease);
@@ -62,7 +72,7 @@ export function NewReleases() {
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight uppercase text-paper font-sans">
                 {headline}
               </h2>
-              <LiveEditButton target={{ type: "new-releases" }} label="Edit Releases" variant="floating" size="xs" />
+              <LiveEditButton target={{ type: "new-releases" }} label={isArabic ? "تعديل الإصدارات" : "Edit Releases"} variant="floating" size="xs" />
             </div>
           </div>
           <Link
@@ -70,7 +80,7 @@ export function NewReleases() {
             className="flex items-center gap-2 text-xs font-mono tracking-widest text-text-muted hover:text-paper transition-colors group"
           >
             <span>{viewAllText}</span>
-            <ArrowRight strokeWidth={1.4} className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight strokeWidth={1.4} className={`w-3.5 h-3.5 transition-transform ${isRTL ? "rotate-180 group-hover:-translate-x-1" : "group-hover:translate-x-1"}`} />
           </Link>
         </div>
 
@@ -110,17 +120,17 @@ export function NewReleases() {
                 {/* Badges */}
                 <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 pointer-events-none z-10">
                   <span className="px-2 py-0.5 rounded-xs bg-ink/90 backdrop-blur-md text-[9px] font-mono tracking-wider text-gold border border-ink-border">
-                    VOL. {volume.volumeNumber < 10 ? `0${volume.volumeNumber}` : volume.volumeNumber}
+                    {isArabic ? "المجلد" : "VOL."} {volume.volumeNumber < 10 ? `0${volume.volumeNumber}` : volume.volumeNumber}
                   </span>
                   {volume.stock <= 0 && (
                     <span className="px-2 py-0.5 rounded-xs bg-red-950/90 border border-red-800/80 text-[8px] font-mono tracking-wider text-red-400 font-bold uppercase">
-                      OUT OF STOCK
+                      {isArabic ? "نفد" : "OUT OF STOCK"}
                     </span>
                   )}
                 </div>
 
                 {/* Floating Actions */}
-                <div className="absolute top-2.5 right-2.5 flex flex-col gap-1.5 z-10">
+                <div className="absolute top-2 sm:top-2.5 right-2 sm:right-2.5 flex flex-col gap-1.5 z-10">
                   {/* Wishlist Trigger */}
                   <button
                     type="button"
@@ -131,8 +141,8 @@ export function NewReleases() {
                     }}
                     className={`p-1.5 rounded-xs backdrop-blur-md border transition-all active:scale-90 ${
                       mounted && isInWishlist(volume.id)
-                        ? "bg-ink/90 border-vermilion text-vermilion"
-                        : "bg-ink/80 border-ink-border text-paper-muted hover:text-gold hover:border-gold/60 opacity-0 group-hover:opacity-100"
+                        ? "bg-ink/90 border-vermilion text-vermilion opacity-100"
+                        : "bg-ink/80 border-ink-border text-paper-muted hover:text-gold hover:border-gold/60 opacity-80 sm:opacity-0 sm:group-hover:opacity-100"
                     }`}
                     title={mounted && isInWishlist(volume.id) ? "Saved in Wishlist" : "Save to Wishlist"}
                     aria-label="Wishlist"
@@ -149,7 +159,7 @@ export function NewReleases() {
                   <button
                     type="button"
                     onClick={(e) => handlePreview(e, volume)}
-                    className="p-1.5 rounded-xs bg-ink/80 backdrop-blur-md border border-ink-border text-paper-muted hover:text-gold hover:border-gold transition-colors opacity-0 group-hover:opacity-100 active:scale-95"
+                    className="p-1.5 rounded-xs bg-ink/80 backdrop-blur-md border border-ink-border text-paper-muted hover:text-gold hover:border-gold transition-colors opacity-80 sm:opacity-0 sm:group-hover:opacity-100 active:scale-95"
                     title="Preview sample pages"
                   >
                     <Eye strokeWidth={1.4} className="w-3.5 h-3.5" />
@@ -193,7 +203,7 @@ export function NewReleases() {
                       disabled
                       className="w-full sm:w-auto px-3 py-2 bg-ink-surface/90 border border-ink-border text-text-muted text-[9px] font-mono font-bold tracking-widest uppercase rounded-sm cursor-not-allowed opacity-80"
                     >
-                      OUT OF STOCK
+                      {isArabic ? "نفد من المخزن" : "OUT OF STOCK"}
                     </button>
                   ) : (
                     <button
@@ -202,7 +212,7 @@ export function NewReleases() {
                       className="w-full sm:w-auto px-4 py-2 bg-ink-elevated border border-ink-border hover:border-vermilion hover:bg-vermilion hover:text-white text-paper text-[10px] font-mono font-bold tracking-widest uppercase transition-all rounded-sm flex items-center justify-center gap-1.5 shadow-sm active:scale-95 z-10"
                     >
                       <ShoppingBag strokeWidth={1.3} className="w-3 h-3" />
-                      ADD TO CART
+                      {isArabic ? "أضف للسلة" : "ADD TO CART"}
                     </button>
                   )}
                 </div>

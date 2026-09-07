@@ -101,14 +101,63 @@ export const useCartStore = create<CartState>()(
         if (!cleanCode) {
           return { success: false, message: "Please enter a valid voucher code." };
         }
+
+        // Validate against authorized promotion vouchers
+        const isWelcomeCode = cleanCode.endsWith("-FIRST20") || cleanCode === "WELCOME20" || cleanCode === "PATRON20";
+        const isKairoCode = cleanCode === "KAIRO20" || cleanCode === "KAIRO-PATRON20" || cleanCode === "KAIRO-FIRST20";
+
+        // Check if there is a custom voucher in stored storefront CMS announcement
+        let isCmsCode = false;
+        let effectivePercent = percent;
+        try {
+          const rawCms = typeof window !== "undefined" ? localStorage.getItem("kairo_storefront_cms") : null;
+          if (rawCms) {
+            const parsed = JSON.parse(rawCms);
+            const cmsVoucher = parsed?.state?.announcement?.voucherCode?.trim().toUpperCase();
+            if (cmsVoucher && cleanCode === cmsVoucher) {
+              isCmsCode = true;
+              if (parsed?.state?.announcement?.discountPercent) {
+                effectivePercent = parsed.state.announcement.discountPercent;
+              }
+            }
+          }
+        } catch {
+          // ignore
+        }
+
+        // Prevent repeated use of welcome/first-time vouchers
+        if (isWelcomeCode && typeof window !== "undefined") {
+          try {
+            const rawOrders = localStorage.getItem("kairo_orders");
+            if (rawOrders) {
+              const orders = JSON.parse(rawOrders);
+              if (Array.isArray(orders) && orders.length > 0) {
+                return {
+                  success: false,
+                  message: `Welcome voucher "${cleanCode}" is only valid for your first order.`,
+                };
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
+
+        if (!isWelcomeCode && !isKairoCode && !isCmsCode) {
+          return {
+            success: false,
+            message: `Invalid voucher code "${cleanCode}". Please verify your code.`,
+          };
+        }
+
         set({
           appliedCoupon: cleanCode,
-          discountPercent: percent,
+          discountPercent: effectivePercent,
           freeShippingGranted: freeShipping,
         });
         return {
           success: true,
-          message: `Voucher ${cleanCode} applied! ${percent}% OFF + Free Delivery.`,
+          message: `Voucher ${cleanCode} applied! ${effectivePercent}% OFF + Free Delivery.`,
         };
       },
       removeCoupon: () => {
@@ -132,8 +181,9 @@ export const useCartStore = create<CartState>()(
       getGrandTotal: (baseShipping = 0) => {
         const subtotal = get().getSubtotal();
         const discount = get().getDiscountAmount();
-        const shipping = get().freeShippingGranted ? 0 : baseShipping;
-        return Math.max(0, subtotal - discount + shipping);
+        const net = Math.max(0, subtotal - discount);
+        const shipping = (get().freeShippingGranted || net >= 500) ? 0 : baseShipping;
+        return Math.max(0, net + shipping);
       },
     }),
     {

@@ -8,8 +8,10 @@ import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { ALL_VOLUMES, MangaVolume } from "@/data/manga";
 import { formatPrice } from "@/lib/utils";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export function SearchModal() {
+  const { t, isRTL } = useTranslation();
   const { isSearchOpen, closeSearch } = useUIStore();
   useModalScrollLock(isSearchOpen);
   const [query, setQuery] = useState("");
@@ -51,12 +53,19 @@ export function SearchModal() {
     );
   }, [query, activeFilter, allVolumes]);
 
+  const filterTabs = [
+    { id: "ALL" as const, label: t.search.filterAll },
+    { id: "POPULAR" as const, label: t.search.filterPopular },
+    { id: "TOP_RATED" as const, label: t.search.filterTopRated },
+    { id: "BEST_SELLERS" as const, label: t.search.filterBestSellers },
+  ];
+
   return (
     <div
       role="dialog"
       aria-modal="true"
       data-lenis-prevent
-      className={`fixed inset-0 z-50 overflow-y-auto overscroll-contain p-4 sm:p-6 md:p-20 flex items-start justify-center transition-all duration-300 ${
+      className={`fixed inset-0 z-50 overflow-y-auto overscroll-contain p-2.5 sm:p-6 md:p-20 pt-14 sm:pt-20 flex items-start justify-center transition-all duration-300 ${
         isSearchOpen ? "visible pointer-events-auto" : "invisible pointer-events-none"
       }`}
     >
@@ -76,46 +85,41 @@ export function SearchModal() {
         }`}
       >
         {/* Search Input Bar */}
-        <div className="relative border-b border-ink-border flex items-center px-6 py-4 bg-ink">
-          <Search strokeWidth={1.5} className="w-5 h-5 text-gold shrink-0 mr-3" />
+        <div className="relative border-b border-ink-border flex items-center px-4 sm:px-6 py-3.5 sm:py-4 bg-ink">
+          <Search strokeWidth={1.5} className={`w-5 h-5 text-gold shrink-0 ${isRTL ? "ml-3" : "mr-3"}`} />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search manga, author, or series... (e.g. Jujutsu Kaisen, Oda, Berserk)"
+            placeholder={t.search.placeholder}
             className="w-full bg-transparent text-paper placeholder-text-muted/60 text-sm md:text-base focus:outline-none font-sans"
           />
           {query && (
             <button
               onClick={() => setQuery("")}
-              className="text-text-muted hover:text-paper text-xs font-mono mr-2 px-1.5 py-0.5 cursor-pointer"
+              className={`text-text-muted hover:text-paper text-xs font-mono px-1.5 py-0.5 cursor-pointer active:scale-95 ${isRTL ? "ml-2" : "mr-2"}`}
             >
-              CLEAR
+              {t.search.clear}
             </button>
           )}
           <button
             onClick={closeSearch}
-            className="p-1 text-text-muted hover:text-paper transition-colors cursor-pointer"
+            className="p-1 text-text-muted hover:text-paper transition-colors cursor-pointer active:scale-95"
           >
             <X strokeWidth={1.4} className="w-5 h-5" />
           </button>
         </div>
 
         {/* Quick Filter Tags */}
-        <div className="px-6 py-3 bg-ink/50 border-b border-ink-border/60 flex items-center gap-2 overflow-x-auto text-[11px] font-mono">
-          <span className="text-text-muted uppercase tracking-wider text-[10px] mr-2">
-            FILTERS:
+        <div className="px-4 sm:px-6 py-2.5 sm:py-3 bg-ink/50 border-b border-ink-border/60 flex items-center gap-2 overflow-x-auto no-scrollbar text-[11px] font-mono">
+          <span className={`text-text-muted uppercase tracking-wider text-[10px] shrink-0 ${isRTL ? "ml-2" : "mr-2"}`}>
+            {t.search.filtersLabel}
           </span>
-          {[
-            { id: "ALL" as const, label: "ALL TITLES" },
-            { id: "POPULAR" as const, label: "POPULAR" },
-            { id: "TOP_RATED" as const, label: "TOP RATED (4.9+)" },
-            { id: "BEST_SELLERS" as const, label: "BEST SELLERS" },
-          ].map((tab) => (
+          {filterTabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveFilter(tab.id)}
-              className={`px-2.5 py-1 rounded-sm transition-colors uppercase tracking-wider cursor-pointer ${
+              className={`px-2.5 py-1 rounded-sm transition-colors uppercase tracking-wider cursor-pointer shrink-0 active:scale-95 ${
                 activeFilter === tab.id
                   ? "bg-gold/20 text-gold border border-gold/40"
                   : "text-text-muted hover:text-paper hover:bg-ink-surface"
@@ -127,12 +131,12 @@ export function SearchModal() {
         </div>
 
         {/* Results Container */}
-        <div data-lenis-prevent className="max-h-96 overflow-y-auto p-6 space-y-4">
+        <div data-lenis-prevent className="max-h-[65vh] sm:max-h-96 overflow-y-auto p-3.5 sm:p-6 space-y-3 sm:space-y-4">
           {filteredVolumes.length === 0 ? (
             <div className="text-center py-12 text-text-muted space-y-2 font-mono text-xs">
-              <p>NO VOLUMES FOUND MATCHING &quot;{query}&quot;</p>
+              <p>{t.search.noVolumesFound} &quot;{query}&quot;</p>
               <p className="text-[11px] text-text-muted/60">
-                Try searching for &quot;One Piece&quot;, &quot;Eiichiro Oda&quot;, or &quot;Dark Fantasy&quot;
+                {t.search.trySearching}
               </p>
             </div>
           ) : (
@@ -151,16 +155,16 @@ export function SearchModal() {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
-                  <div className="flex-1 flex flex-col justify-between py-0.5">
+                  <div className="flex-1 flex flex-col justify-between py-0.5 min-w-0">
                     <div>
-                      <span className="text-[9px] font-mono tracking-widest text-gold uppercase block">
+                      <span className="text-[9px] font-mono tracking-widest text-gold uppercase block truncate">
                         {volume.seriesTitle}
                       </span>
-                      <h4 className="text-xs font-bold text-paper line-clamp-1 group-hover:text-gold transition-colors">
+                      <h4 className="text-xs font-bold text-paper truncate group-hover:text-gold transition-colors">
                         Vol. {volume.volumeNumber}: {volume.title}
                       </h4>
-                      <p className="text-[10px] text-text-muted line-clamp-1 mt-0.5">
-                        By {volume.author}
+                      <p className="text-[10px] text-text-muted truncate mt-0.5">
+                        {t.search.byAuthor} {volume.author}
                       </p>
                     </div>
 
@@ -182,14 +186,14 @@ export function SearchModal() {
 
         {/* Footer Hint */}
         <div className="px-6 py-3 bg-ink border-t border-ink-border flex items-center justify-between text-[11px] font-mono text-text-muted">
-          <span>Press ESC to exit</span>
+          <span>{t.search.escHint}</span>
           <Link
             href="/manga"
             onClick={closeSearch}
             className="flex items-center gap-1.5 text-paper hover:text-vermilion transition-colors font-semibold"
           >
-            VIEW FULL ARCHIVE CATALOG
-            <ArrowRight strokeWidth={1.4} className="w-3.5 h-3.5" />
+            {t.search.viewFullCatalog}
+            <ArrowRight strokeWidth={1.4} className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
           </Link>
         </div>
       </div>

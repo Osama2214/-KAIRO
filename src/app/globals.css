@@ -12,6 +12,8 @@ html.lenis body {
 
 html {
   scroll-behavior: auto !important;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 /* Luxury archive restore loader overlay */
@@ -39,6 +41,69 @@ html.kairo-loading #kairo-restore-loader {
 
 body {
   overflow-x: clip;
+  width: 100%;
+  max-width: 100vw;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Luxury Editorial Text Selection Style (Gold on Ink) */
+::selection {
+  background-color: #C7A76C !important;
+  color: #0D0D0F !important;
+}
+
+::-moz-selection {
+  background-color: #C7A76C !important;
+  color: #0D0D0F !important;
+}
+
+/* Safe area padding utilities for mobile notch and home indicator */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.pl-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+.pr-safe {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Touch device interaction enhancements: 
+   1. Fast response without 300ms double-tap delay 
+   2. Prevent accidental selection/magnification on UI elements 
+   3. Provide instant active feedback on mobile touches */
+@media (pointer: coarse) {
+  a, button, [role="button"], input, select, textarea {
+    touch-action: manipulation;
+  }
+
+  /* Prevent sticky hover backgrounds remaining active after tap on mobile */
+  @media (hover: none) {
+    button:active,
+    [role="button"]:active,
+    a:active {
+      opacity: 0.85;
+      transform: scale(0.985);
+      transition: transform 0.08s ease, opacity 0.08s ease;
+    }
+  }
+}
+
+/* Interactive elements should not trigger text selection magnifier on mobile drag/swipe */
+button,
+[role="button"],
+.select-none,
+nav,
+aside {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 @theme {

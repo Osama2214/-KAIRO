@@ -14,7 +14,6 @@ import {
   Edit2,
   Trash2,
   Copy,
-  ExternalLink,
   LogOut,
   Download,
   Upload,
@@ -30,6 +29,10 @@ import {
   UserCheck,
   Printer,
   Truck,
+  Filter,
+  RefreshCw,
+  Clock,
+  Globe,
 } from "lucide-react";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { useAuthStore, SavedOrder, UserProfile } from "@/store/useAuthStore";
@@ -42,8 +45,9 @@ import { GenreFormModal } from "@/components/admin/GenreFormModal";
 import { OrderDetailsModal } from "@/components/admin/OrderDetailsModal";
 import { CustomSelect } from "@/components/CustomSelect";
 import { CustomNumberInput } from "@/components/ui/CustomNumberInput";
+import { ImageUploadInput } from "@/components/ImageUploadInput";
 import { useMounted } from "@/store/useWishlistStore";
-import { hashAdminPin, changeAdminPinWithServer } from "@/lib/security";
+import { changeAdminPinWithServer } from "@/lib/security";
 import { EGYPT_GOVERNORATES, DEFAULT_GOVERNORATE_RATES } from "@/data/governorates";
 import { printCustomerInvoice } from "@/lib/invoicePrint";
 
@@ -56,6 +60,43 @@ export default function AdminPage() {
   const [seriesFilter, setSeriesFilter] = useState("all");
   const [formatFilter, setFormatFilter] = useState("all");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [serverOrders, setServerOrders] = useState<SavedOrder[]>([]);
+
+  // Orders Tab Filter & Search States
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orderStatusFilter, setOrderStatusFilter] = useState("all");
+  const [orderPaymentFilter, setOrderPaymentFilter] = useState("all");
+  const [orderGovFilter, setOrderGovFilter] = useState("all");
+  const [isRefreshingOrders, setIsRefreshingOrders] = useState(false);
+
+  const handleRefreshOrders = async () => {
+    setIsRefreshingOrders(true);
+    try {
+      const res = await fetch("/api/orders");
+      const data = await res.json();
+      if (data.success && Array.isArray(data.orders)) {
+        setServerOrders(data.orders);
+        showToast("Live orders synchronized successfully.");
+      }
+    } catch (err) {
+      console.error("Order sync error:", err);
+    } finally {
+      setIsRefreshingOrders(false);
+    }
+  };
+
+  useEffect(() => {
+    if (mounted) {
+      fetch("/api/orders")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && Array.isArray(data.orders)) {
+            setServerOrders(data.orders);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [mounted, activeTab]);
 
   // Modals state
   const [isVolumeModalOpen, setIsVolumeModalOpen] = useState(false);
@@ -85,11 +126,15 @@ export default function AdminPage() {
     trendingConfig,
     newReleasesConfig,
     mangaDiscoveryConfig,
+    heroArabicContent,
+    announcementArabic,
+    shippingArabicConfig,
+    editorialArabicConfig,
+    newReleasesArabicConfig,
+    mangaDiscoveryArabicConfig,
     genres,
     formats,
     isAdminAuthenticated,
-    adminPin,
-    adminPinHash,
     addVolume,
     updateVolume,
     deleteVolume,
@@ -107,6 +152,16 @@ export default function AdminPage() {
     updateTrendingConfig,
     updateNewReleasesConfig,
     updateMangaDiscoveryConfig,
+    updateHeroArabicContent,
+    updateAnnouncementArabic,
+    updateShippingArabicConfig,
+    updateEditorialArabicConfig,
+    updateNewReleasesArabicConfig,
+    updateMangaDiscoveryArabicConfig,
+    trendingArabicConfig,
+    updateTrendingArabicConfig,
+    arabicLanguageEnabled,
+    setArabicLanguageEnabled,
     addGenre,
     updateGenre,
     deleteGenre,
@@ -127,6 +182,7 @@ export default function AdminPage() {
   const updateOrderStatus = useAuthStore((state) => state.updateOrderStatus);
 
   // Local CMS Form States for smooth editing
+  const [cmsLanguage, setCmsLanguage] = useState<"en" | "ar">("en");
   const [heroForm, setHeroForm] = useState(heroContent);
   const [announcementForm, setAnnouncementForm] = useState(announcement);
   const [shippingForm, setShippingForm] = useState(shippingConfig);
@@ -137,6 +193,15 @@ export default function AdminPage() {
   const [trendingForm, setTrendingForm] = useState(trendingConfig);
   const [newReleasesForm, setNewReleasesForm] = useState(newReleasesConfig);
   const [mangaDiscoveryForm, setMangaDiscoveryForm] = useState(mangaDiscoveryConfig);
+
+  // Arabic CMS Form States
+  const [heroArabicForm, setHeroArabicForm] = useState(heroArabicContent);
+  const [announcementArabicForm, setAnnouncementArabicForm] = useState(announcementArabic);
+  const [shippingArabicForm, setShippingArabicForm] = useState(shippingArabicConfig);
+  const [editorialArabicForm, setEditorialArabicForm] = useState(editorialArabicConfig);
+  const [newReleasesArabicForm, setNewReleasesArabicForm] = useState(newReleasesArabicConfig);
+  const [mangaDiscoveryArabicForm, setMangaDiscoveryArabicForm] = useState(mangaDiscoveryArabicConfig);
+  const [trendingArabicForm, setTrendingArabicForm] = useState(trendingArabicConfig);
   const [selectedGenreId, setSelectedGenreId] = useState<string>(genres?.[0]?.id || "action");
   const [genreDrafts, setGenreDrafts] = useState<Record<string, GenreInfo>>({});
   const [currentPinInput, setCurrentPinInput] = useState("");
@@ -168,7 +233,9 @@ export default function AdminPage() {
     }
   }, [isAdminAuthenticated, logoutAdmin]);
 
-  useEffect(() => {
+  const [prevShipping, setPrevShipping] = useState(shippingConfig);
+  if (shippingConfig !== prevShipping) {
+    setPrevShipping(shippingConfig);
     if (shippingConfig) {
       setShippingForm({
         ...shippingConfig,
@@ -180,31 +247,39 @@ export default function AdminPage() {
         },
       });
     }
-  }, [shippingConfig]);
+  }
 
-  useEffect(() => {
+  const [prevTrending, setPrevTrending] = useState(trendingConfig);
+  if (trendingConfig !== prevTrending) {
+    setPrevTrending(trendingConfig);
     if (trendingConfig) {
       setTrendingForm(trendingConfig);
     }
-  }, [trendingConfig]);
+  }
 
-  useEffect(() => {
+  const [prevNewReleases, setPrevNewReleases] = useState(newReleasesConfig);
+  if (newReleasesConfig !== prevNewReleases) {
+    setPrevNewReleases(newReleasesConfig);
     if (newReleasesConfig) {
       setNewReleasesForm(newReleasesConfig);
     }
-  }, [newReleasesConfig]);
+  }
 
-  useEffect(() => {
+  const [prevGenreBento, setPrevGenreBento] = useState(genreBentoConfig);
+  if (genreBentoConfig !== prevGenreBento) {
+    setPrevGenreBento(genreBentoConfig);
     if (genreBentoConfig) {
       setGenreBentoForm(genreBentoConfig);
     }
-  }, [genreBentoConfig]);
+  }
 
-  useEffect(() => {
+  const [prevMangaDiscovery, setPrevMangaDiscovery] = useState(mangaDiscoveryConfig);
+  if (mangaDiscoveryConfig !== prevMangaDiscovery) {
+    setPrevMangaDiscovery(mangaDiscoveryConfig);
     if (mangaDiscoveryConfig) {
       setMangaDiscoveryForm(mangaDiscoveryConfig);
     }
-  }, [mangaDiscoveryConfig]);
+  }
 
   const handleGovRateChange = (govValue: string, price: number) => {
     setShippingForm((prev) => ({
@@ -280,8 +355,119 @@ export default function AdminPage() {
       }
     }
 
-    return list.sort((a, b) => new Date(b.order.date).getTime() - new Date(a.order.date).getTime());
-  }, [users, currentUser]);
+    // Merge central server orders across all devices and customers
+    serverOrders.forEach((o) => {
+      if (o && o.id && !seenIds.has(o.id)) {
+        seenIds.add(o.id);
+        list.push({
+          order: o,
+          customer: {
+            id: `PATRON-${o.id}`,
+            name: o.customerName || "Collector",
+            email: o.customerEmail || "patron@kairo.archive",
+            phone: o.customerPhone || "+20 100 000 0000",
+            governorate: o.customerGovernorate || "Cairo",
+            address: o.customerAddress || "Cairo, Egypt",
+            tier: "Collector",
+            joinedDate: o.date,
+            orders: [o],
+          },
+        });
+      }
+    });
+
+    return list.sort((a, b) => {
+      const timeA = a.order.createdAt || (a.order.date ? new Date(a.order.date).getTime() : 0);
+      const timeB = b.order.createdAt || (b.order.date ? new Date(b.order.date).getTime() : 0);
+      return timeB - timeA;
+    });
+  }, [users, currentUser, serverOrders]);
+
+  // Top recent orders preview (latest 4 orders)
+  const recentOrders = useMemo(() => {
+    return allOrders.slice(0, 4);
+  }, [allOrders]);
+
+  // Filtered Orders List based on search, status, payment, and governorate
+  const filteredOrders = useMemo(() => {
+    return allOrders.filter(({ order, customer }) => {
+      // 1. Search Query filter (matches order ID, customer name, phone, email, tracking number, item titles)
+      if (orderSearch.trim()) {
+        const query = orderSearch.trim().toLowerCase();
+        const matchesId = order.id.toLowerCase().includes(query);
+        const matchesCustomer = (customer.name || "").toLowerCase().includes(query);
+        const matchesEmail = (customer.email || order.customerEmail || "").toLowerCase().includes(query);
+        const matchesPhone = (customer.phone || order.customerPhone || "").toLowerCase().includes(query);
+        const matchesTracking = (order.trackingNumber || "").toLowerCase().includes(query);
+        const matchesItems = order.items.some((it) => (it.title || "").toLowerCase().includes(query));
+        if (!matchesId && !matchesCustomer && !matchesEmail && !matchesPhone && !matchesTracking && !matchesItems) {
+          return false;
+        }
+      }
+
+      // 2. Status Filter
+      if (orderStatusFilter !== "all") {
+        if (orderStatusFilter === "pending") {
+          if (!order.status.toLowerCase().includes("pending")) return false;
+        } else if (orderStatusFilter === "confirmed") {
+          if (order.status.toLowerCase() !== "confirmed") return false;
+        } else if (orderStatusFilter === "processing") {
+          if (order.status.toLowerCase() !== "processing") return false;
+        } else if (orderStatusFilter === "shipped") {
+          if (order.status.toLowerCase() !== "shipped") return false;
+        } else if (orderStatusFilter === "delivered") {
+          if (order.status.toLowerCase() !== "delivered") return false;
+        } else if (orderStatusFilter === "cancelled") {
+          if (!order.status.toLowerCase().includes("cancelled")) return false;
+        }
+      }
+
+      // 3. Payment Filter
+      if (orderPaymentFilter !== "all") {
+        const method = (order.paymentMethod || "cash").toLowerCase();
+        if (orderPaymentFilter === "cash" && method !== "cash") return false;
+        if (orderPaymentFilter === "wallet" && method !== "wallet") return false;
+        if (orderPaymentFilter === "instapay" && method !== "instapay") return false;
+        if (orderPaymentFilter === "unverified" && order.paymentStatus !== "Pending Verification") return false;
+        if (orderPaymentFilter === "paid" && order.paymentStatus !== "Verified & Paid") return false;
+      }
+
+      // 4. Governorate Filter
+      if (orderGovFilter !== "all") {
+        const gov = (customer.governorate || order.customerGovernorate || "").toLowerCase();
+        if (!gov.includes(orderGovFilter.toLowerCase())) return false;
+      }
+
+      return true;
+    });
+  }, [allOrders, orderSearch, orderStatusFilter, orderPaymentFilter, orderGovFilter]);
+
+  // Order Counts by Status
+  const orderStats = useMemo(() => {
+    let pendingCount = 0;
+    let processingCount = 0;
+    let shippedCount = 0;
+    let deliveredCount = 0;
+    let cancelledCount = 0;
+
+    allOrders.forEach(({ order }) => {
+      const s = (order.status || "").toLowerCase();
+      if (s.includes("pending")) pendingCount++;
+      else if (s === "processing" || s === "confirmed") processingCount++;
+      else if (s === "shipped") shippedCount++;
+      else if (s === "delivered") deliveredCount++;
+      else if (s.includes("cancelled")) cancelledCount++;
+    });
+
+    return {
+      total: allOrders.length,
+      pending: pendingCount,
+      processing: processingCount,
+      shipped: shippedCount,
+      delivered: deliveredCount,
+      cancelled: cancelledCount,
+    };
+  }, [allOrders]);
 
   // Key performance indicators
   const totalStockUnits = useMemo(() => {
@@ -452,10 +638,10 @@ export default function AdminPage() {
       {/* Main Layout Container */}
       <div className="flex-1 flex flex-col md:flex-row">
         {/* Sidebar Nav */}
-        <aside className="w-full md:w-64 bg-ink-surface/50 border-r border-ink-border p-4 shrink-0 flex flex-row md:flex-col gap-1 overflow-x-auto">
+        <aside className="w-full md:w-64 bg-ink-surface/50 border-b md:border-b-0 md:border-r border-ink-border p-2.5 sm:p-4 shrink-0 flex flex-row md:flex-col gap-1.5 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab("overview")}
-            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer ${
+            className={`flex items-center gap-2 sm:gap-2.5 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === "overview"
                 ? "bg-gold text-ink font-bold shadow-md shadow-gold/10"
                 : "text-text-muted hover:text-paper hover:bg-ink-elevated"
@@ -467,7 +653,7 @@ export default function AdminPage() {
 
           <button
             onClick={() => setActiveTab("volumes")}
-            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer ${
+            className={`flex items-center gap-2 sm:gap-2.5 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === "volumes"
                 ? "bg-gold text-ink font-bold shadow-md shadow-gold/10"
                 : "text-text-muted hover:text-paper hover:bg-ink-elevated"
@@ -479,7 +665,7 @@ export default function AdminPage() {
 
           <button
             onClick={() => setActiveTab("series")}
-            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer ${
+            className={`flex items-center gap-2 sm:gap-2.5 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === "series"
                 ? "bg-gold text-ink font-bold shadow-md shadow-gold/10"
                 : "text-text-muted hover:text-paper hover:bg-ink-elevated"
@@ -491,7 +677,7 @@ export default function AdminPage() {
 
           <button
             onClick={() => setActiveTab("cms")}
-            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer ${
+            className={`flex items-center gap-2 sm:gap-2.5 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === "cms"
                 ? "bg-gold text-ink font-bold shadow-md shadow-gold/10"
                 : "text-text-muted hover:text-paper hover:bg-ink-elevated"
@@ -503,7 +689,7 @@ export default function AdminPage() {
 
           <button
             onClick={() => setActiveTab("orders")}
-            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer ${
+            className={`flex items-center gap-2 sm:gap-2.5 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === "orders"
                 ? "bg-gold text-ink font-bold shadow-md shadow-gold/10"
                 : "text-text-muted hover:text-paper hover:bg-ink-elevated"
@@ -515,7 +701,7 @@ export default function AdminPage() {
 
           <button
             onClick={() => setActiveTab("settings")}
-            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer ${
+            className={`flex items-center gap-2 sm:gap-2.5 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === "settings"
                 ? "bg-gold text-ink font-bold shadow-md shadow-gold/10"
                 : "text-text-muted hover:text-paper hover:bg-ink-elevated"
@@ -527,7 +713,7 @@ export default function AdminPage() {
         </aside>
 
         {/* Content Area */}
-        <main className="flex-1 p-6 md:p-8 max-w-7xl">
+        <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-7xl overflow-x-hidden">
           {/* ======================================================== */}
           {/* TAB 1: OVERVIEW & KPIS                                   */}
           {/* ======================================================== */}
@@ -972,14 +1158,73 @@ export default function AdminPage() {
           {/* ======================================================== */}
           {activeTab === "cms" && (
             <div className="space-y-8 font-mono">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h1 className="font-cinzel text-2xl font-bold text-paper">Site Content & Editorial CMS</h1>
                   <p className="text-xs text-text-muted mt-1">
                     Live modification of all website text, headlines, promo banners, and shipping messages.
                   </p>
                 </div>
+                <div className="flex flex-wrap items-center gap-3 shrink-0">
+                  {/* Master Storefront Arabic Toggle */}
+                  <div className="flex items-center gap-2 bg-ink border border-ink-border px-3 py-1.5 rounded-sm">
+                    <span className="text-[11px] text-text-muted">Arabic Storefront:</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = !arabicLanguageEnabled;
+                        setArabicLanguageEnabled(next);
+                        showToast(
+                          next
+                            ? "Arabic language enabled storefront-wide."
+                            : "Arabic language disabled. Storefront reverted to English."
+                        );
+                      }}
+                      className={`px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-xs transition-colors cursor-pointer ${
+                        arabicLanguageEnabled
+                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                          : "bg-vermilion/20 text-vermilion border border-vermilion/40"
+                      }`}
+                      title={
+                        arabicLanguageEnabled
+                          ? "Click to disable Arabic on the entire storefront"
+                          : "Click to enable Arabic on the storefront"
+                      }
+                    >
+                      {arabicLanguageEnabled ? "Active" : "Disabled"}
+                    </button>
+                  </div>
+
+                  {/* CMS Language Switcher */}
+                  <div className="flex items-center gap-1 bg-ink border border-ink-border p-1 rounded-sm">
+                    <button
+                      type="button"
+                      onClick={() => setCmsLanguage("en")}
+                      className={`px-3.5 py-1.5 rounded-xs text-xs font-bold transition-all cursor-pointer ${
+                        cmsLanguage === "en"
+                          ? "bg-gold text-ink shadow-sm font-sans"
+                          : "text-text-muted hover:text-paper"
+                      }`}
+                    >
+                      English Content
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCmsLanguage("ar")}
+                      className={`px-3.5 py-1.5 rounded-xs text-xs font-bold transition-all cursor-pointer ${
+                        cmsLanguage === "ar"
+                          ? "bg-gold text-ink shadow-sm font-sans"
+                          : "text-text-muted hover:text-paper"
+                      }`}
+                    >
+                      المحتوى العربي
+                    </button>
+                  </div>
+                </div>
               </div>
+
+              {cmsLanguage === "en" ? (
+                <>
 
               {/* 1. HERO SECTION EDITOR */}
               <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-4">
@@ -1294,86 +1539,6 @@ export default function AdminPage() {
                       onChange={(e) => setShippingForm({ ...shippingForm, guaranteeBadgeText: e.target.value })}
                       className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
                     />
-                  </div>
-                </div>
-
-                {/* Front-Facing Trust Perks (3 Footer Cards) */}
-                <div className="pt-4 border-t border-ink-border/60 space-y-3 font-mono text-xs">
-                  <div className="text-[11px] uppercase tracking-wider text-paper font-bold">
-                    Front-Facing Trust Perks (3 Footer Cards)
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Perk 1 */}
-                    <div className="p-3 bg-ink border border-ink-border rounded-xs space-y-2">
-                      <div className="text-gold font-bold uppercase text-[10px]">Card 01: Express Dispatch</div>
-                      <div>
-                        <label className="block text-text-muted text-[10px] uppercase mb-1">Title</label>
-                        <input
-                          type="text"
-                          value={shippingForm.perk1Title || ""}
-                          onChange={(e) => setShippingForm({ ...shippingForm, perk1Title: e.target.value })}
-                          placeholder="EGYPT-WIDE EXPRESS DISPATCH"
-                          className="w-full bg-ink-surface border border-ink-border text-paper px-2.5 py-1.5 rounded-xs focus:border-gold outline-none text-xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-text-muted text-[10px] uppercase mb-1">Description</label>
-                        <textarea
-                          rows={2}
-                          value={shippingForm.perk1Desc || ""}
-                          onChange={(e) => setShippingForm({ ...shippingForm, perk1Desc: e.target.value })}
-                          className="w-full bg-ink-surface border border-ink-border text-paper px-2.5 py-1.5 rounded-xs focus:border-gold outline-none text-xs resize-none"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Perk 2 */}
-                    <div className="p-3 bg-ink border border-ink-border rounded-xs space-y-2">
-                      <div className="text-gold font-bold uppercase text-[10px]">Card 02: Authentic Editions</div>
-                      <div>
-                        <label className="block text-text-muted text-[10px] uppercase mb-1">Title</label>
-                        <input
-                          type="text"
-                          value={shippingForm.perk2Title || ""}
-                          onChange={(e) => setShippingForm({ ...shippingForm, perk2Title: e.target.value })}
-                          placeholder="AUTHENTIC JAPANESE EDITIONS"
-                          className="w-full bg-ink-surface border border-ink-border text-paper px-2.5 py-1.5 rounded-xs focus:border-gold outline-none text-xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-text-muted text-[10px] uppercase mb-1">Description</label>
-                        <textarea
-                          rows={2}
-                          value={shippingForm.perk2Desc || ""}
-                          onChange={(e) => setShippingForm({ ...shippingForm, perk2Desc: e.target.value })}
-                          className="w-full bg-ink-surface border border-ink-border text-paper px-2.5 py-1.5 rounded-xs focus:border-gold outline-none text-xs resize-none"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Perk 3 */}
-                    <div className="p-3 bg-ink border border-ink-border rounded-xs space-y-2">
-                      <div className="text-gold font-bold uppercase text-[10px]">Card 03: Replacement Guarantee</div>
-                      <div>
-                        <label className="block text-text-muted text-[10px] uppercase mb-1">Title</label>
-                        <input
-                          type="text"
-                          value={shippingForm.perk3Title || ""}
-                          onChange={(e) => setShippingForm({ ...shippingForm, perk3Title: e.target.value })}
-                          placeholder="COLLECTOR REPLACEMENT GUARANTEE"
-                          className="w-full bg-ink-surface border border-ink-border text-paper px-2.5 py-1.5 rounded-xs focus:border-gold outline-none text-xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-text-muted text-[10px] uppercase mb-1">Description</label>
-                        <textarea
-                          rows={2}
-                          value={shippingForm.perk3Desc || ""}
-                          onChange={(e) => setShippingForm({ ...shippingForm, perk3Desc: e.target.value })}
-                          className="w-full bg-ink-surface border border-ink-border text-paper px-2.5 py-1.5 rounded-xs focus:border-gold outline-none text-xs resize-none"
-                        />
-                      </div>
-                    </div>
                   </div>
                 </div>
 
@@ -1702,16 +1867,15 @@ export default function AdminPage() {
                   </div>
 
                   {/* Custom Artwork URL */}
-                  <div className="md:col-span-2 flex flex-col justify-end">
-                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                      Custom High-Resolution Artwork URL (Optional — overrides default cover)
-                    </label>
-                    <input
-                      type="text"
+                  <div className="md:col-span-2">
+                    <ImageUploadInput
+                      label="Custom High-Resolution Artwork URL (Optional — overrides default cover)"
                       value={featuredSeriesForm.customImage || ""}
-                      onChange={(e) => setFeaturedSeriesForm({ ...featuredSeriesForm, customImage: e.target.value })}
-                      placeholder="https://... (Leave blank to use default franchise artwork)"
-                      className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                      onChange={(url) => setFeaturedSeriesForm({ ...featuredSeriesForm, customImage: url })}
+                      placeholder="https://... or upload local image file (Rec: 900 × 1200 px)"
+                      aspectRatio="cover"
+                      recommendedDimensions="900 × 1200 px (3:4 Spotlight Cover)"
+                      helpText="Upload from PC or enter image URL"
                     />
                   </div>
 
@@ -2070,16 +2234,15 @@ export default function AdminPage() {
                         </div>
 
                         {/* Cover Image URL */}
-                        <div className="md:col-span-2 lg:col-span-3 flex flex-col justify-end">
-                          <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                            Card Background Cover Image URL
-                          </label>
-                          <input
-                            type="text"
+                        <div className="md:col-span-2 lg:col-span-3">
+                          <ImageUploadInput
+                            label="Card Background Cover Image"
                             value={currentGenre.coverImage}
-                            onChange={(e) => updateCurrentGenreDraft({ coverImage: e.target.value })}
-                            placeholder="https://images.unsplash.com/..."
-                            className="w-full h-10 bg-ink-surface border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                            onChange={(url) => updateCurrentGenreDraft({ coverImage: url })}
+                            placeholder="https://... or upload local image file (Rec: 1200 × 800 px)"
+                            aspectRatio="banner"
+                            recommendedDimensions="1200 × 800 px (3:2 / 16:9 Bento Card)"
+                            helpText="Displayed in the Bento Grid showcase"
                           />
                         </div>
 
@@ -2468,7 +2631,10 @@ export default function AdminPage() {
                         fullWidth
                         value={mangaDiscoveryForm?.defaultTab || "POPULAR"}
                         onChange={(val) =>
-                          setMangaDiscoveryForm({ ...mangaDiscoveryForm, defaultTab: val as any })
+                          setMangaDiscoveryForm({
+                            ...mangaDiscoveryForm,
+                            defaultTab: val as "POPULAR" | "TOP_RATED" | "BEST_SELLERS" | "RECENTLY_ADDED",
+                          })
                         }
                         options={[
                           { value: "POPULAR", label: "POPULAR (Trending)" },
@@ -2517,14 +2683,519 @@ export default function AdminPage() {
                   </div>
                 </div>
               </div>
+            </>
+          ) : (
+            <div className="space-y-8" dir="rtl">
+              {/* Arabic Mode Active Notification */}
+              <div className="p-4 bg-gold/10 border border-gold/30 rounded-sm text-xs text-gold flex items-center justify-between">
+                <div>
+                  <p className="font-bold font-sans text-sm">أنت الآن في وضع تخصيص نصوص الموقع باللغة العربية</p>
+                  <p className="text-text-muted text-[11px] mt-1 font-sans">
+                    جميع النصوص هنا تظهر مباشرة للمستخدم عند اختيار الواجهة العربية. أسماء المانجا والكتب وأوصافها محفوظة كما هي.
+                  </p>
+                </div>
+              </div>
+
+              {/* 1. HERO SECTION ARABIC */}
+              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-4">
+                <div className="flex items-center justify-between border-b border-ink-border/50 pb-2">
+                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2 font-sans">
+                    <FileText className="w-4 h-4" />
+                    <span>01. نصوص الواجهة الرئيسية (Hero Section Arabic)</span>
+                  </h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
+                  <div>
+                    <label className="block text-text-muted mb-1">شارة الفصل الترحيبية (Badge)</label>
+                    <input
+                      type="text"
+                      value={heroArabicForm.badgeText}
+                      onChange={(e) => setHeroArabicForm({ ...heroArabicForm, badgeText: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:col-span-2 bg-ink/60 p-3 border border-ink-border rounded-sm">
+                    <div>
+                      <label className="block text-text-muted mb-1 text-[11px]">السطر الأول من العنوان</label>
+                      <input
+                        type="text"
+                        value={heroArabicForm.headlineLine1}
+                        onChange={(e) => setHeroArabicForm({ ...heroArabicForm, headlineLine1: e.target.value })}
+                        className="w-full bg-ink border border-ink-border text-paper font-bold text-xs px-3 py-2 rounded-sm focus:border-gold outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gold mb-1 text-[11px]">الكلمة المميزة الذهبية</label>
+                      <input
+                        type="text"
+                        value={heroArabicForm.headlineHighlight}
+                        onChange={(e) => setHeroArabicForm({ ...heroArabicForm, headlineHighlight: e.target.value })}
+                        className="w-full bg-ink border border-gold/60 text-gold font-bold text-xs px-3 py-2 rounded-sm focus:border-gold outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-text-muted mb-1 text-[11px]">السطر الثاني من العنوان</label>
+                      <input
+                        type="text"
+                        value={heroArabicForm.headlineLine2}
+                        onChange={(e) => setHeroArabicForm({ ...heroArabicForm, headlineLine2: e.target.value })}
+                        className="w-full bg-ink border border-ink-border text-paper font-bold text-xs px-3 py-2 rounded-sm focus:border-gold outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-text-muted mb-1">الوصف والسرد الترحيبي (Subheadline)</label>
+                    <textarea
+                      rows={2}
+                      value={heroArabicForm.subheadline}
+                      onChange={(e) => setHeroArabicForm({ ...heroArabicForm, subheadline: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-text-muted mb-1">نص زر التصفح الرئيسي (Primary CTA)</label>
+                    <input
+                      type="text"
+                      value={heroArabicForm.primaryCtaText}
+                      onChange={(e) => setHeroArabicForm({ ...heroArabicForm, primaryCtaText: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-text-muted mb-1">نص زر الإصدارات الجديدة (Secondary CTA)</label>
+                    <input
+                      type="text"
+                      value={heroArabicForm.secondaryCtaText}
+                      onChange={(e) => setHeroArabicForm({ ...heroArabicForm, secondaryCtaText: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+
+                  {/* 3 Metrics */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:col-span-2 pt-2 border-t border-ink-border/40">
+                    <div>
+                      <label className="block text-text-muted mb-1 text-[11px]">الإحصائية 1 (قيمة / وصف)</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={heroArabicForm.stat1Value}
+                          onChange={(e) => setHeroArabicForm({ ...heroArabicForm, stat1Value: e.target.value })}
+                          className="w-24 bg-ink border border-ink-border text-paper px-2 py-1.5 rounded-sm text-xs font-bold"
+                        />
+                        <input
+                          type="text"
+                          value={heroArabicForm.stat1Label}
+                          onChange={(e) => setHeroArabicForm({ ...heroArabicForm, stat1Label: e.target.value })}
+                          className="flex-1 bg-ink border border-ink-border text-paper px-2 py-1.5 rounded-sm text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-text-muted mb-1 text-[11px]">الإحصائية 2 (قيمة / وصف)</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={heroArabicForm.stat2Value}
+                          onChange={(e) => setHeroArabicForm({ ...heroArabicForm, stat2Value: e.target.value })}
+                          className="w-24 bg-ink border border-ink-border text-paper px-2 py-1.5 rounded-sm text-xs font-bold"
+                        />
+                        <input
+                          type="text"
+                          value={heroArabicForm.stat2Label}
+                          onChange={(e) => setHeroArabicForm({ ...heroArabicForm, stat2Label: e.target.value })}
+                          className="flex-1 bg-ink border border-ink-border text-paper px-2 py-1.5 rounded-sm text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-gold mb-1 text-[11px]">الإحصائية 3 (قيمة / سرعة التوصيل)</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={heroArabicForm.stat3Value}
+                          onChange={(e) => setHeroArabicForm({ ...heroArabicForm, stat3Value: e.target.value })}
+                          className="w-24 bg-ink border border-ink-border text-gold px-2 py-1.5 rounded-sm text-xs font-bold"
+                        />
+                        <input
+                          type="text"
+                          value={heroArabicForm.stat3Label}
+                          onChange={(e) => setHeroArabicForm({ ...heroArabicForm, stat3Label: e.target.value })}
+                          className="flex-1 bg-ink border border-ink-border text-paper px-2 py-1.5 rounded-sm text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateHeroArabicContent(heroArabicForm);
+                      showToast("تم حفظ المحتوى العربي للواجهة الرئيسية بنجاح.");
+                    }}
+                    className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer font-sans"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>حفظ نصوص الهيرو بالعربي</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 2. GLOBAL ANNOUNCEMENT BAR ARABIC */}
+              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-4">
+                <div className="flex items-center justify-between border-b border-ink-border/50 pb-2">
+                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2 font-sans">
+                    <Sparkles className="w-4 h-4" />
+                    <span>02. شريط الإعلان الترويجي العربي (Top Announcement Bar)</span>
+                  </h2>
+                </div>
+
+                <div className="text-xs font-sans">
+                  <label className="block text-text-muted mb-1.5">نص الإعلان الترويجي أعلى الموقع</label>
+                  <input
+                    type="text"
+                    value={announcementArabicForm.text}
+                    onChange={(e) => setAnnouncementArabicForm({ ...announcementArabicForm, text: e.target.value })}
+                    className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-sm font-sans"
+                  />
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateAnnouncementArabic(announcementArabicForm);
+                      showToast("تم حفظ نص الإعلان الترويجي العربي بنجاح.");
+                    }}
+                    className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer font-sans"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>حفظ الإعلان بالعربي</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. LOGISTICS & SHIPPING PERKS ARABIC */}
+              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-6">
+                <div className="flex items-center justify-between border-b border-ink-border/50 pb-2">
+                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2 font-sans">
+                    <Package className="w-4 h-4" />
+                    <span>03. اللوجستيات ومميزات الشحن بالعربي (Shipping Perks)</span>
+                  </h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-sans">
+                  <div>
+                    <label className="block text-text-muted mb-1">اسم مستودع الشحن الرئيسي</label>
+                    <input
+                      type="text"
+                      value={shippingArabicForm.hubName}
+                      onChange={(e) => setShippingArabicForm({ ...shippingArabicForm, hubName: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-text-muted mb-1">شارة الشحن السريع</label>
+                    <input
+                      type="text"
+                      value={shippingArabicForm.dispatchBadgeText}
+                      onChange={(e) => setShippingArabicForm({ ...shippingArabicForm, dispatchBadgeText: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-text-muted mb-1">شارة ضمان الأصالة</label>
+                    <input
+                      type="text"
+                      value={shippingArabicForm.guaranteeBadgeText}
+                      onChange={(e) => setShippingArabicForm({ ...shippingArabicForm, guaranteeBadgeText: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateShippingArabicConfig(shippingArabicForm);
+                      showToast("تم حفظ مميزات الشحن العربية بنجاح.");
+                    }}
+                    className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer font-sans"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>حفظ مميزات الشحن بالعربي</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 4. EDITORIAL POLICIES ARABIC */}
+              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-4">
+                <div className="flex items-center justify-between border-b border-ink-border/50 pb-2">
+                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2 font-sans">
+                    <FileText className="w-4 h-4" />
+                    <span>04. السياسات والبيان التحريري بالعربي (Policies & Guarantees)</span>
+                  </h2>
+                </div>
+
+                <div className="space-y-3 text-xs font-sans">
+                  <div>
+                    <label className="block text-text-muted mb-1">شعار وهوية الموقع (Site Tagline)</label>
+                    <input
+                      type="text"
+                      value={editorialArabicForm.siteTagline}
+                      onChange={(e) => setEditorialArabicForm({ ...editorialArabicForm, siteTagline: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-text-muted mb-1">وصف المتجر في الفوتر (Footer Description)</label>
+                    <textarea
+                      rows={2}
+                      value={editorialArabicForm.footerDescription}
+                      onChange={(e) => setEditorialArabicForm({ ...editorialArabicForm, footerDescription: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-text-muted mb-1">سطر المدن والمحافظات (تحت اللوجو)</label>
+                    <input
+                      type="text"
+                      value={editorialArabicForm.hubCities}
+                      onChange={(e) => setEditorialArabicForm({ ...editorialArabicForm, hubCities: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-text-muted mb-1">اقتباس الفوتر (Footer Quote)</label>
+                    <textarea
+                      rows={2}
+                      value={editorialArabicForm.footerQuote}
+                      onChange={(e) => setEditorialArabicForm({ ...editorialArabicForm, footerQuote: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-text-muted mb-1">بيان ضمان الأصالة 100%</label>
+                    <textarea
+                      rows={2}
+                      value={editorialArabicForm.authenticityGuaranteeText}
+                      onChange={(e) => setEditorialArabicForm({ ...editorialArabicForm, authenticityGuaranteeText: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-text-muted mb-1">بروتوكول الشحن والتغليف الأرشيفي</label>
+                    <textarea
+                      rows={2}
+                      value={editorialArabicForm.shippingPolicyText}
+                      onChange={(e) => setEditorialArabicForm({ ...editorialArabicForm, shippingPolicyText: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-text-muted mb-1">بيان ضمان الاستبدال خلال 14 يوماً</label>
+                    <textarea
+                      rows={2}
+                      value={editorialArabicForm.returnPolicyText}
+                      onChange={(e) => setEditorialArabicForm({ ...editorialArabicForm, returnPolicyText: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateEditorialArabicConfig(editorialArabicForm);
+                      showToast("تم حفظ السياسات والبيانات التحريرية بالعربي بنجاح.");
+                    }}
+                    className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer font-sans"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>حفظ السياسات بالعربي</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 4. TRENDING NOW ARABIC */}
+              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-4">
+                <div className="flex items-center justify-between border-b border-ink-border/50 pb-2">
+                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2 font-sans">
+                    <Sparkles className="w-4 h-4 text-vermilion" />
+                    <span>04. نصوص قسم الأكثر رواجاً (Trending Now Arabic)</span>
+                  </h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
+                  <div>
+                    <label className="block text-text-muted mb-1">شارة القسم العلوية (Badge)</label>
+                    <input
+                      type="text"
+                      value={trendingArabicForm?.badgeText || ""}
+                      onChange={(e) => setTrendingArabicForm({ ...trendingArabicForm, badgeText: e.target.value })}
+                      placeholder="مختارات الأرشيف"
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-text-muted mb-1">عنوان القسم الرئيسي (Headline)</label>
+                    <input
+                      type="text"
+                      value={trendingArabicForm?.headline || ""}
+                      onChange={(e) => setTrendingArabicForm({ ...trendingArabicForm, headline: e.target.value })}
+                      placeholder="الأكثر رواجاً الآن"
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateTrendingArabicConfig(trendingArabicForm);
+                      showToast("تم حفظ نصوص قسم الأكثر تداولاً بالعربي بنجاح.");
+                    }}
+                    className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer font-sans"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>حفظ قسم الأكثر رواجاً</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 5. NEW RELEASES & MANGA DISCOVERY ARABIC */}
+              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-4">
+                <div className="flex items-center justify-between border-b border-ink-border/50 pb-2">
+                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2 font-sans">
+                    <Sparkles className="w-4 h-4 text-gold" />
+                    <span>05. عناوين أحدث الإصدارات والبحث بالأرشيف (New Releases & Discovery)</span>
+                  </h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
+                  <div>
+                    <label className="block text-text-muted mb-1">شارة قسم أحدث الإصدارات</label>
+                    <input
+                      type="text"
+                      value={newReleasesArabicForm.badgeText}
+                      onChange={(e) => setNewReleasesArabicForm({ ...newReleasesArabicForm, badgeText: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-text-muted mb-1">عنوان قسم أحدث الإصدارات</label>
+                    <input
+                      type="text"
+                      value={newReleasesArabicForm.headline}
+                      onChange={(e) => setNewReleasesArabicForm({ ...newReleasesArabicForm, headline: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-text-muted mb-1">نص زر تصفح الأرشيف الكامل</label>
+                    <input
+                      type="text"
+                      value={newReleasesArabicForm.viewAllText}
+                      onChange={(e) => setNewReleasesArabicForm({ ...newReleasesArabicForm, viewAllText: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 pt-2 border-t border-ink-border/40">
+                    <label className="block text-gold font-bold mb-2">إعدادات قسم البحث الفوري بالأرشيف (Instant Lookup)</label>
+                  </div>
+
+                  <div>
+                    <label className="block text-text-muted mb-1">شارة قسم البحث</label>
+                    <input
+                      type="text"
+                      value={mangaDiscoveryArabicForm.badgeText}
+                      onChange={(e) => setMangaDiscoveryArabicForm({ ...mangaDiscoveryArabicForm, badgeText: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-text-muted mb-1">عنوان قسم البحث</label>
+                    <input
+                      type="text"
+                      value={mangaDiscoveryArabicForm.title}
+                      onChange={(e) => setMangaDiscoveryArabicForm({ ...mangaDiscoveryArabicForm, title: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-text-muted mb-1">وصف قسم البحث</label>
+                    <textarea
+                      rows={2}
+                      value={mangaDiscoveryArabicForm.description}
+                      onChange={(e) => setMangaDiscoveryArabicForm({ ...mangaDiscoveryArabicForm, description: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-text-muted mb-1">النص التوضيحي داخل حقل البحث (Placeholder)</label>
+                    <input
+                      type="text"
+                      value={mangaDiscoveryArabicForm.searchPlaceholder}
+                      onChange={(e) => setMangaDiscoveryArabicForm({ ...mangaDiscoveryArabicForm, searchPlaceholder: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-text-muted mb-1">نص رابط الانتقال للكتالوج</label>
+                    <input
+                      type="text"
+                      value={mangaDiscoveryArabicForm.catalogLinkText}
+                      onChange={(e) => setMangaDiscoveryArabicForm({ ...mangaDiscoveryArabicForm, catalogLinkText: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateNewReleasesArabicConfig(newReleasesArabicForm);
+                      updateMangaDiscoveryArabicConfig(mangaDiscoveryArabicForm);
+                      showToast("تم حفظ نصوص أحدث الإصدارات والبحث الفوري بالعربي بنجاح.");
+                    }}
+                    className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer font-sans"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>حفظ نصوص الإصدارات والبحث بالعربي</span>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
+        </div>
+      )}
 
           {/* ======================================================== */}
           {/* TAB 5: ORDERS & CUSTOMER CRM                             */}
           {/* ======================================================== */}
           {activeTab === "orders" && (
             <div className="space-y-6 font-mono">
+              {/* Header with Title & Live Refresh */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h1 className="font-cinzel text-2xl font-bold text-paper">Orders & Patron CRM</h1>
@@ -2532,12 +3203,266 @@ export default function AdminPage() {
                     Live customer checkout orders, fulfillment state, and delivery tracking.
                   </p>
                 </div>
-                <div className="text-xs text-gold">
-                  Total Orders: <strong>{allOrders.length}</strong>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleRefreshOrders}
+                    disabled={isRefreshingOrders}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-ink-surface border border-ink-border hover:border-gold/60 text-text-muted hover:text-gold rounded-sm text-xs cursor-pointer transition-colors disabled:opacity-50"
+                    title="Refresh orders from central server database"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingOrders ? "animate-spin text-gold" : ""}`} />
+                    <span>Sync Orders</span>
+                  </button>
+                  <div className="text-xs text-gold border border-gold/30 bg-gold/10 px-3 py-1.5 rounded-sm">
+                    Total: <strong>{allOrders.length}</strong>
+                  </div>
                 </div>
               </div>
 
-              {/* Orders Table */}
+              {/* 1. LATEST ORDERS SPOTLIGHT */}
+              {allOrders.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-gold font-bold uppercase tracking-wider flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-gold" />
+                      <span>Latest Real-Time Orders</span>
+                    </div>
+                    <span className="text-[11px] text-text-muted">Most recent customer submissions</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {recentOrders.map(({ order, customer }) => {
+                      return (
+                        <div
+                          key={`recent-${order.id}`}
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setSelectedCustomer(customer);
+                            setIsOrderModalOpen(true);
+                          }}
+                          className="bg-ink-surface border border-ink-border hover:border-gold/60 p-4 rounded-sm cursor-pointer transition-all hover:-translate-y-0.5 shadow-sm group"
+                        >
+                          <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-ink-border/50">
+                            <span className="text-gold font-bold text-xs group-hover:text-gold-light">
+                              #{order.id}
+                            </span>
+                            <span className="text-[10px] text-text-muted">{order.date}</span>
+                          </div>
+
+                          <div className="text-paper font-bold text-xs truncate mb-1">
+                            {customer.name || "Collector"}
+                          </div>
+
+                          <div className="flex items-center justify-between text-[11px] text-text-muted mb-3">
+                            <span>{order.items.length} vol{order.items.length > 1 ? "s" : ""}</span>
+                            <span className="text-gold font-bold">{formatPrice(order.total)}</span>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-1 pt-1 border-t border-ink-border/30">
+                            <span
+                              className={`text-[9px] px-1.5 py-0.5 rounded-xs font-semibold ${
+                                order.status === "Delivered"
+                                  ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                                  : order.status === "Shipped"
+                                  ? "bg-sky-500/15 text-sky-400 border border-sky-500/30"
+                                  : order.status === "Processing" || order.status === "Confirmed"
+                                  ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                                  : order.status.includes("Pending")
+                                  ? "bg-rose-500/15 text-rose-400 border border-rose-500/30 animate-pulse"
+                                  : "bg-ink border border-ink-border text-paper"
+                              }`}
+                            >
+                              {order.status}
+                            </span>
+
+                            <span className="text-[9px] text-text-muted truncate">
+                              {order.paymentMethod === "wallet"
+                                ? "Wallet"
+                                : order.paymentMethod === "instapay"
+                                ? "InstaPay"
+                                : "COD"}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* 2. STATUS QUICK PILLS / COUNTERS */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setOrderStatusFilter("all")}
+                  className={`p-2.5 rounded-sm border text-left transition-all cursor-pointer ${
+                    orderStatusFilter === "all"
+                      ? "bg-gold text-ink border-gold font-bold shadow-md shadow-gold/10"
+                      : "bg-ink-surface border-ink-border text-text-muted hover:text-paper hover:border-gold/40"
+                  }`}
+                >
+                  <div className="text-[10px] uppercase">All Orders</div>
+                  <div className="text-base font-extrabold">{orderStats.total}</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setOrderStatusFilter("pending")}
+                  className={`p-2.5 rounded-sm border text-left transition-all cursor-pointer ${
+                    orderStatusFilter === "pending"
+                      ? "bg-rose-500 text-white border-rose-500 font-bold"
+                      : "bg-ink-surface border-ink-border text-rose-400 hover:border-rose-400/50"
+                  }`}
+                >
+                  <div className="text-[10px] uppercase">Pending</div>
+                  <div className="text-base font-extrabold">{orderStats.pending}</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setOrderStatusFilter("processing")}
+                  className={`p-2.5 rounded-sm border text-left transition-all cursor-pointer ${
+                    orderStatusFilter === "processing"
+                      ? "bg-amber-500 text-ink border-amber-500 font-bold"
+                      : "bg-ink-surface border-ink-border text-amber-400 hover:border-amber-400/50"
+                  }`}
+                >
+                  <div className="text-[10px] uppercase">Processing</div>
+                  <div className="text-base font-extrabold">{orderStats.processing}</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setOrderStatusFilter("shipped")}
+                  className={`p-2.5 rounded-sm border text-left transition-all cursor-pointer ${
+                    orderStatusFilter === "shipped"
+                      ? "bg-sky-500 text-white border-sky-500 font-bold"
+                      : "bg-ink-surface border-ink-border text-sky-400 hover:border-sky-400/50"
+                  }`}
+                >
+                  <div className="text-[10px] uppercase">Shipped</div>
+                  <div className="text-base font-extrabold">{orderStats.shipped}</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setOrderStatusFilter("delivered")}
+                  className={`p-2.5 rounded-sm border text-left transition-all cursor-pointer ${
+                    orderStatusFilter === "delivered"
+                      ? "bg-emerald-500 text-white border-emerald-500 font-bold"
+                      : "bg-ink-surface border-ink-border text-emerald-400 hover:border-emerald-400/50"
+                  }`}
+                >
+                  <div className="text-[10px] uppercase">Delivered</div>
+                  <div className="text-base font-extrabold">{orderStats.delivered}</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setOrderStatusFilter("cancelled")}
+                  className={`p-2.5 rounded-sm border text-left transition-all cursor-pointer ${
+                    orderStatusFilter === "cancelled"
+                      ? "bg-zinc-600 text-white border-zinc-500 font-bold"
+                      : "bg-ink-surface border-ink-border text-zinc-400 hover:border-zinc-400/50"
+                  }`}
+                >
+                  <div className="text-[10px] uppercase">Cancelled</div>
+                  <div className="text-base font-extrabold">{orderStats.cancelled}</div>
+                </button>
+              </div>
+
+              {/* 3. ADVANCED FILTERS & SEARCH TOOLBAR */}
+              <div className="p-4 bg-ink-surface border border-ink-border rounded-sm space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                  {/* Search by Order ID / Customer / Phone / Tracking */}
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={orderSearch}
+                      onChange={(e) => setOrderSearch(e.target.value)}
+                      placeholder="Search ID, customer, phone..."
+                      className="w-full h-9 bg-ink border border-ink-border text-paper pl-9 pr-3 rounded-sm focus:border-gold outline-none text-xs placeholder:text-text-muted/60"
+                    />
+                  </div>
+
+                  {/* Status Dropdown */}
+                  <CustomSelect
+                    value={orderStatusFilter}
+                    onChange={(val) => setOrderStatusFilter(val)}
+                    options={[
+                      { value: "all", label: "All Statuses" },
+                      { value: "pending", label: "Pending Payment" },
+                      { value: "confirmed", label: "Confirmed" },
+                      { value: "processing", label: "Processing" },
+                      { value: "shipped", label: "Shipped" },
+                      { value: "delivered", label: "Delivered" },
+                      { value: "cancelled", label: "Cancelled" },
+                    ]}
+                    buttonClassName="h-9 bg-ink border-ink-border py-1 px-3 text-xs"
+                    className="w-full"
+                  />
+
+                  {/* Payment Method Dropdown */}
+                  <CustomSelect
+                    value={orderPaymentFilter}
+                    onChange={(val) => setOrderPaymentFilter(val)}
+                    options={[
+                      { value: "all", label: "All Payment Methods" },
+                      { value: "cash", label: "Cash on Delivery (COD)" },
+                      { value: "wallet", label: "Mobile Wallet (Vodafone...)" },
+                      { value: "instapay", label: "InstaPay" },
+                      { value: "unverified", label: "Pending Verification" },
+                      { value: "paid", label: "Verified & Paid" },
+                    ]}
+                    buttonClassName="h-9 bg-ink border-ink-border py-1 px-3 text-xs"
+                    className="w-full"
+                  />
+
+                  {/* Governorate Filter */}
+                  <CustomSelect
+                    value={orderGovFilter}
+                    onChange={(val) => setOrderGovFilter(val)}
+                    options={[
+                      { value: "all", label: "All Governorates" },
+                      ...EGYPT_GOVERNORATES.map((g) => ({
+                        value: g.value,
+                        label: g.label,
+                      })),
+                    ]}
+                    buttonClassName="h-9 bg-ink border-ink-border py-1 px-3 text-xs"
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Filter Active Indicator & Reset Button */}
+                {(orderSearch || orderStatusFilter !== "all" || orderPaymentFilter !== "all" || orderGovFilter !== "all") && (
+                  <div className="flex items-center justify-between pt-2 border-t border-ink-border/40 text-[11px] text-text-muted">
+                    <div className="flex items-center gap-2">
+                      <Filter className="w-3.5 h-3.5 text-gold" />
+                      <span>
+                        Showing <strong>{filteredOrders.length}</strong> of {allOrders.length} orders
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOrderSearch("");
+                        setOrderStatusFilter("all");
+                        setOrderPaymentFilter("all");
+                        setOrderGovFilter("all");
+                      }}
+                      className="text-gold hover:underline cursor-pointer flex items-center gap-1 font-semibold"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Reset Filters</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* 4. ORDERS DATA TABLE */}
               <div className="border border-ink-border rounded-sm overflow-x-auto bg-ink-surface">
                 <table className="w-full text-left text-xs min-w-[750px]">
                   <thead className="bg-ink text-text-muted text-[10px] uppercase border-b border-ink-border">
@@ -2554,14 +3479,28 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-ink-border/50">
-                    {allOrders.length === 0 ? (
+                    {filteredOrders.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="px-4 py-12 text-center text-text-muted">
-                          No orders logged yet. Orders placed at checkout will appear here in real-time.
+                        <td colSpan={9} className="px-4 py-12 text-center text-text-muted space-y-2">
+                          <p>No orders match the selected filters or search criteria.</p>
+                          {(orderSearch || orderStatusFilter !== "all" || orderPaymentFilter !== "all" || orderGovFilter !== "all") && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOrderSearch("");
+                                setOrderStatusFilter("all");
+                                setOrderPaymentFilter("all");
+                                setOrderGovFilter("all");
+                              }}
+                              className="text-xs text-gold hover:underline cursor-pointer"
+                            >
+                              Clear active filters
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ) : (
-                      allOrders.map(({ order, customer }) => (
+                      filteredOrders.map(({ order, customer }) => (
                         <tr key={order.id} className="hover:bg-ink-elevated/40 transition-colors">
                           <td className="px-4 py-3 font-bold text-gold">#{order.id}</td>
                           <td className="px-4 py-3 text-text-muted">{order.date}</td>
@@ -2596,6 +3535,10 @@ export default function AdminPage() {
                               className={`px-2 py-0.5 border rounded-xs text-[10px] font-mono ${
                                 order.status === "Delivered"
                                   ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                                  : order.status === "Shipped"
+                                  ? "bg-sky-500/10 border-sky-500/30 text-sky-400"
+                                  : order.status === "Processing" || order.status === "Confirmed"
+                                  ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
                                   : order.status === "Pending Payment"
                                   ? "bg-rose-500/10 border-rose-500/30 text-rose-400 animate-pulse"
                                   : "bg-ink border-ink-border text-paper"
@@ -2648,8 +3591,56 @@ export default function AdminPage() {
               <div>
                 <h1 className="font-cinzel text-2xl font-bold text-paper">Settings & Data Integrity</h1>
                 <p className="text-xs text-text-muted mt-1">
-                  Configure administrative credentials, export database snapshots, and restore factory defaults.
+                  Configure storefront localization, administrative credentials, export database snapshots, and restore factory defaults.
                 </p>
+              </div>
+
+              {/* 1. Storefront Arabic Language Control */}
+              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                    <Globe className="w-3.5 h-3.5" />
+                    <span>Storefront Arabic Language Support</span>
+                  </h2>
+                  <span
+                    className={`text-[10px] px-2 py-0.5 uppercase tracking-wider rounded-xs font-bold ${
+                      arabicLanguageEnabled
+                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                        : "bg-vermilion/15 text-vermilion border border-vermilion/30"
+                    }`}
+                  >
+                    {arabicLanguageEnabled ? "Enabled" : "Disabled"}
+                  </span>
+                </div>
+                <p className="text-xs text-text-muted leading-relaxed">
+                  Toggle Arabic language availability across the public storefront. When disabled, the language switch buttons disappear from the navigation bar, mobile menu, and live editor toolbar, and any patron currently viewing in Arabic is instantly returned to English.
+                </p>
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !arabicLanguageEnabled;
+                      setArabicLanguageEnabled(next);
+                      showToast(
+                        next
+                          ? "Storefront Arabic language support has been enabled."
+                          : "Storefront Arabic language support has been disabled. All visitors reverted to English."
+                      );
+                    }}
+                    className={`px-4 py-2.5 text-xs uppercase tracking-wider rounded-sm transition-colors border cursor-pointer font-bold inline-flex items-center gap-2 ${
+                      arabicLanguageEnabled
+                        ? "bg-ink-elevated hover:bg-vermilion/20 hover:text-vermilion hover:border-vermilion/50 text-paper border-ink-border"
+                        : "bg-gold hover:bg-gold-muted text-ink border-transparent"
+                    }`}
+                  >
+                    <Globe className="w-3.5 h-3.5" />
+                    <span>
+                      {arabicLanguageEnabled
+                        ? "Disable Arabic Language System"
+                        : "Enable Arabic Language System"}
+                    </span>
+                  </button>
+                </div>
               </div>
 
               {/* 1. Admin PIN */}
@@ -2927,6 +3918,26 @@ export default function AdminPage() {
         customer={selectedCustomer}
         onUpdateOrder={(orderId, updates) => {
           updateOrderStatus(orderId, updates);
+          const fullOrderPayload = selectedOrder
+            ? {
+                ...selectedOrder,
+                customerEmail: selectedCustomer?.email || selectedOrder.customerEmail,
+                customerName: selectedCustomer?.name || selectedOrder.customerName,
+                customerPhone: selectedCustomer?.phone || selectedOrder.customerPhone,
+                customerAddress: selectedCustomer?.address || selectedOrder.customerAddress,
+                customerGovernorate: selectedCustomer?.governorate || selectedOrder.customerGovernorate,
+                ...updates,
+              }
+            : undefined;
+
+          fetch("/api/orders", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orderId, updates, fullOrder: fullOrderPayload }),
+          }).catch((err) => console.error("Server order patch error:", err));
+          setServerOrders((prev) =>
+            prev.map((o) => (o.id === orderId ? { ...o, ...updates } : o))
+          );
           if (selectedOrder && selectedOrder.id === orderId) {
             setSelectedOrder({ ...selectedOrder, ...updates });
           }
@@ -2934,6 +3945,26 @@ export default function AdminPage() {
         }}
         onUpdateStatus={(orderId, newStatus) => {
           updateOrderStatus(orderId, { status: newStatus });
+          const fullOrderPayload = selectedOrder
+            ? {
+                ...selectedOrder,
+                customerEmail: selectedCustomer?.email || selectedOrder.customerEmail,
+                customerName: selectedCustomer?.name || selectedOrder.customerName,
+                customerPhone: selectedCustomer?.phone || selectedOrder.customerPhone,
+                customerAddress: selectedCustomer?.address || selectedOrder.customerAddress,
+                customerGovernorate: selectedCustomer?.governorate || selectedOrder.customerGovernorate,
+                status: newStatus,
+              }
+            : undefined;
+
+          fetch("/api/orders", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orderId, updates: { status: newStatus }, fullOrder: fullOrderPayload }),
+          }).catch((err) => console.error("Server order patch error:", err));
+          setServerOrders((prev) =>
+            prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+          );
           if (selectedOrder && selectedOrder.id === orderId) {
             setSelectedOrder({ ...selectedOrder, status: newStatus });
           }

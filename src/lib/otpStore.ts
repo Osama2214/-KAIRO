@@ -50,7 +50,10 @@ export function saveOtp(email: string, code: string): { success: boolean; messag
     lastSentAt: now,
   });
 
-  console.log(`[OTP STORE] Generated OTP for ${key}: code=${code}, previousCode=${previousCode || "none"}`);
+  // Masked log for security
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[OTP STORE] Generated OTP for ${key} (Code dispatched securely)`);
+  }
   return { success: true };
 }
 
@@ -94,8 +97,6 @@ export function verifyOtp(email: string, inputCode: string): { success: boolean;
     entry.previousCode === cleanInput &&
     Date.now() < (entry.previousCodeExpiresAt || 0)
   );
-
-  console.log(`[OTP STORE] Verification attempt for ${key}: input=${cleanInput}, matchCurrent=${isCurrentMatch}, matchPrevious=${isPreviousMatch}`);
 
   if (!isCurrentMatch && !isPreviousMatch) {
     const remaining = Math.max(0, 5 - entry.attempts);

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { X, Save, Trash2, AlertTriangle, ArrowUpRight } from "lucide-react";
 import { GenreInfo } from "@/data/manga";
+import { ImageUploadInput } from "@/components/ImageUploadInput";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 
 interface GenreFormModalProps {
@@ -171,16 +172,15 @@ export function GenreFormModal({
               />
             </div>
 
-            <div className="sm:col-span-2 space-y-1.5">
-              <label className="text-xs font-semibold text-paper uppercase tracking-wider">
-                Cover Image URL
-              </label>
-              <input
-                type="text"
+            <div className="sm:col-span-2">
+              <ImageUploadInput
+                label="Category Bento Cover Artwork"
                 value={formData.coverImage}
-                onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
-                placeholder="https://images.unsplash.com/..."
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                onChange={(url) => setFormData({ ...formData, coverImage: url })}
+                placeholder="https://... or upload local category image (Rec: 1200 × 800 px)"
+                aspectRatio="banner"
+                recommendedDimensions="1200 × 800 px (3:2 / 16:9 Bento Card)"
+                helpText="Background image used on the homepage Genre Bento Grid"
               />
             </div>
 

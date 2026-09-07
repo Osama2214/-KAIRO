@@ -42,12 +42,12 @@ export interface ShippingConfig {
   governorateRates: Record<string, number>;
   freeShippingEnabled: boolean;
   freeShippingThreshold: number;
-  perk1Title: string;
-  perk1Desc: string;
-  perk2Title: string;
-  perk2Desc: string;
-  perk3Title: string;
-  perk3Desc: string;
+  perk1Title?: string;
+  perk1Desc?: string;
+  perk2Title?: string;
+  perk2Desc?: string;
+  perk3Title?: string;
+  perk3Desc?: string;
 }
 
 export interface EditorialConfig {
@@ -110,6 +110,77 @@ export interface MangaDiscoveryConfig {
   catalogLinkText: string;
   defaultTab: "POPULAR" | "TOP_RATED" | "BEST_SELLERS" | "RECENTLY_ADDED";
   displayCount: number;
+}
+
+export interface HeroArabicContent {
+  badgeText: string;
+  headlineLine1: string;
+  headlineHighlight: string;
+  headlineLine2: string;
+  headline?: string;
+  subheadline: string;
+  primaryCtaText: string;
+  primaryCtaLink: string;
+  secondaryCtaText: string;
+  secondaryCtaLink: string;
+  stat1Value: string;
+  stat1Label: string;
+  stat2Value: string;
+  stat2Label: string;
+  stat3Value: string;
+  stat3Label: string;
+}
+
+export interface AnnouncementArabicConfig {
+  text: string;
+}
+
+export interface ShippingArabicConfig {
+  hubName: string;
+  dispatchBadgeText: string;
+  guaranteeBadgeText: string;
+  deliveryEstimate: string;
+  perk1Title?: string;
+  perk1Desc?: string;
+  perk2Title?: string;
+  perk2Desc?: string;
+  perk3Title?: string;
+  perk3Desc?: string;
+}
+
+export interface EditorialArabicConfig {
+  siteTagline: string;
+  footerQuote: string;
+  authenticityGuaranteeText: string;
+  shippingPolicyText: string;
+  returnPolicyText: string;
+  footerDescription: string;
+  hubCities: string;
+}
+
+export interface NewReleasesArabicConfig {
+  badgeText: string;
+  headline: string;
+  viewAllText: string;
+}
+
+export interface MangaDiscoveryArabicConfig {
+  badgeText: string;
+  title: string;
+  description: string;
+  searchPlaceholder: string;
+  catalogLinkText: string;
+}
+
+export interface GenreBentoArabicConfig {
+  badgeText: string;
+  title: string;
+  description: string;
+}
+
+export interface TrendingArabicConfig {
+  badgeText: string;
+  headline: string;
 }
 
 const DEFAULT_TRENDING_CONFIG: TrendingConfig = {
@@ -220,6 +291,77 @@ const DEFAULT_MANGA_DISCOVERY_CONFIG: MangaDiscoveryConfig = {
   displayCount: 4,
 };
 
+const DEFAULT_HERO_ARABIC_CONTENT: HeroArabicContent = {
+  badgeText: "الفصل الأول — بداية الحكاية",
+  headlineLine1: "اكتشف",
+  headlineHighlight: "حكايتك",
+  headlineLine2: "القادمة",
+  headline: "اكتشف حكايتك القادمة",
+  subheadline: "مانجا، وروايات خفيفة، وقصص تأخذك لعوالم استثنائية. من الطبعات الأولى الفاخرة والمجلدات الكبيرة المقواة، حتى بوكس سيت كاملة للمقتنين.",
+  primaryCtaText: "استكشف المانجا",
+  primaryCtaLink: "/manga",
+  secondaryCtaText: "أحدث الإصدارات",
+  secondaryCtaLink: "#new-releases",
+  stat1Value: "+١,٤٠٠",
+  stat1Label: "مجلد في الأرشيف",
+  stat2Value: "١٠٠٪",
+  stat2Label: "إصدارات أصلية مرخصة",
+  stat3Value: "٢٤-٤٨ ساعة",
+  stat3Label: "شحن لجميع محافظات مصر",
+};
+
+const DEFAULT_ANNOUNCEMENT_ARABIC: AnnouncementArabicConfig = {
+  text: "منحة الافتتاح للأعضاء — احصل على خصم 20% على طلبك الأول باستخدام كود الخصم",
+};
+
+const DEFAULT_SHIPPING_ARABIC_CONFIG: ShippingArabicConfig = {
+  hubName: "مدينة 6 أكتوبر • مصر",
+  dispatchBadgeText: "يتم الشحن من مستودع 6 أكتوبر (لكافة المحافظات)",
+  guaranteeBadgeText: "طبعات أصلية مضمونة 100%",
+  deliveryEstimate: "٢٤-٤٨ ساعة",
+  perk1Title: "شحن سريع لجميع محافظات مصر",
+  perk1Desc: "مستودع الأرشيف الرئيسي بمدينة 6 أكتوبر. شحن مباشر وآمن لكافة المحافظات مع تغليف مدعّم لحماية زوايا المجلدات.",
+  perk2Title: "طبعات يابانية أصلية معتمدة",
+  perk2Desc: "طبعات أصلية 100% Tankōbon و Kanzenban ومجلدات فاخرة غلاف مقوى مباشرة من دور النشر الرسمية.",
+  perk3Title: "ضمان الاستبدال الفوري للمقتنين",
+  perk3Desc: "حماية فائقة للأغلفة والزوايا. نقوم باستبدال أي مجلد قد يتعرض لأي ضرر أثناء الشحن فوراً.",
+};
+
+const DEFAULT_EDITORIAL_ARABIC: EditorialArabicConfig = {
+  siteTagline: "متجر وأرشيف المانجا اليابانية الفاخرة",
+  footerQuote: "في السكون بين كادرات الصفحات، تسكن الحكايات وتخلد المشاعر. كايْرو هو محراب للفن التسلسلي والطباعة اليابانية المتقنة.",
+  authenticityGuaranteeText: "كل مجلد في أرشيف كايْرو مستورد مباشرة من دور النشر الرسمية في طوكيو وكيوتو. نضمن طبعات أصلية 100% من Kodansha و Shueisha و Shogakukan و Dark Horse.",
+  shippingPolicyText: "تغليف يدوي أرشيفي فائق العناية مع حواجز صدمات لحماية الزوايا وغلاف مقاوم للرطوبة. شحن يومي مباشر للقاهرة، الجيزة، الإسكندرية، وكافة محافظات مصر.",
+  returnPolicyText: "نلتزم بفحص الأمانة الأرشيفية لمدة 14 يوماً. إذا وصلك أي مجلد به عيب مصنعي في التجليد أو أثر صدمة أثناء الشحن، نقوم باستبداله فوراً.",
+  footerDescription: "أرشيف أدبي يحتفي بالفن القصصي المصور، والملاحم اليابانية، وإتقان الطباعة الورقية الأصيلة.",
+  hubCities: "مدينة 6 أكتوبر • القاهرة • الإسكندرية • كافة المحافظات",
+};
+
+const DEFAULT_NEW_RELEASES_ARABIC_CONFIG: NewReleasesArabicConfig = {
+  badgeText: "وصل حديثاً للأرشيف",
+  headline: "أحدث الإصدارات",
+  viewAllText: "تصفح الأرشيف الكامل",
+};
+
+const DEFAULT_MANGA_DISCOVERY_ARABIC_CONFIG: MangaDiscoveryArabicConfig = {
+  badgeText: "البحث الفوري في الأرشيف",
+  title: "ابحث عن مجلدك القادم",
+  description: "ابحث مباشرة بين العناوين، والمؤلفين، والتصنيفات، أو الأرقام المعيارية.",
+  searchPlaceholder: "ابحث باسم المانجا، الكاتب، أو التصنيف... (مثل: Eiichiro Oda, Dark Fantasy)",
+  catalogLinkText: "الانتقال لكتالوج المانجا الكامل",
+};
+
+const DEFAULT_TRENDING_ARABIC_CONFIG: TrendingArabicConfig = {
+  badgeText: "مختارات الأرشيف",
+  headline: "الأكثر رواجاً الآن",
+};
+
+const DEFAULT_GENRE_BENTO_ARABIC_CONFIG: GenreBentoArabicConfig = {
+  badgeText: "دليل التصنيفات",
+  title: "استكشف تصنيفك المفضل",
+  description: "قوائم قراءة منتقاة بعناية عبر 9 تصنيفات رئيسية.",
+};
+
 export const DEFAULT_FORMATS: string[] = [
   "Manga",
   "Deluxe Edition",
@@ -264,6 +406,18 @@ export interface StorefrontState {
   newReleasesConfig: NewReleasesConfig;
   mangaDiscoveryConfig: MangaDiscoveryConfig;
 
+  // Arabic CMS Content Overrides
+  heroArabicContent: HeroArabicContent;
+  announcementArabic: AnnouncementArabicConfig;
+  shippingArabicConfig: ShippingArabicConfig;
+  editorialArabicConfig: EditorialArabicConfig;
+  newReleasesArabicConfig: NewReleasesArabicConfig;
+  mangaDiscoveryArabicConfig: MangaDiscoveryArabicConfig;
+  trendingArabicConfig: TrendingArabicConfig;
+  genreBentoArabicConfig: GenreBentoArabicConfig;
+  arabicLanguageEnabled: boolean;
+  setArabicLanguageEnabled: (enabled: boolean) => void;
+
   // Admin Access & Live Visual Editor
   isAdminAuthenticated: boolean;
   isVisualEditorActive: boolean;
@@ -301,6 +455,16 @@ export interface StorefrontState {
   updateTrendingConfig: (updates: Partial<TrendingConfig>) => void;
   updateNewReleasesConfig: (updates: Partial<NewReleasesConfig>) => void;
   updateMangaDiscoveryConfig: (updates: Partial<MangaDiscoveryConfig>) => void;
+
+  // Arabic CMS Content Actions
+  updateHeroArabicContent: (updates: Partial<HeroArabicContent>) => void;
+  updateAnnouncementArabic: (updates: Partial<AnnouncementArabicConfig>) => void;
+  updateShippingArabicConfig: (updates: Partial<ShippingArabicConfig>) => void;
+  updateEditorialArabicConfig: (updates: Partial<EditorialArabicConfig>) => void;
+  updateNewReleasesArabicConfig: (updates: Partial<NewReleasesArabicConfig>) => void;
+  updateMangaDiscoveryArabicConfig: (updates: Partial<MangaDiscoveryArabicConfig>) => void;
+  updateTrendingArabicConfig: (updates: Partial<TrendingArabicConfig>) => void;
+  updateGenreBentoArabicConfig: (updates: Partial<GenreBentoArabicConfig>) => void;
   addGenre: (genre: GenreInfo) => void;
   updateGenre: (id: string, updates: Partial<GenreInfo>) => void;
   deleteGenre: (id: string) => void;
@@ -339,6 +503,16 @@ export const useStorefrontStore = create<StorefrontState>()(
       trendingConfig: DEFAULT_TRENDING_CONFIG,
       newReleasesConfig: DEFAULT_NEW_RELEASES_CONFIG,
       mangaDiscoveryConfig: DEFAULT_MANGA_DISCOVERY_CONFIG,
+      heroArabicContent: DEFAULT_HERO_ARABIC_CONTENT,
+      announcementArabic: DEFAULT_ANNOUNCEMENT_ARABIC,
+      shippingArabicConfig: DEFAULT_SHIPPING_ARABIC_CONFIG,
+      editorialArabicConfig: DEFAULT_EDITORIAL_ARABIC,
+      newReleasesArabicConfig: DEFAULT_NEW_RELEASES_ARABIC_CONFIG,
+      mangaDiscoveryArabicConfig: DEFAULT_MANGA_DISCOVERY_ARABIC_CONFIG,
+      trendingArabicConfig: DEFAULT_TRENDING_ARABIC_CONFIG,
+      genreBentoArabicConfig: DEFAULT_GENRE_BENTO_ARABIC_CONFIG,
+      arabicLanguageEnabled: true,
+      setArabicLanguageEnabled: (enabled) => set({ arabicLanguageEnabled: enabled }),
       isAdminAuthenticated: false,
       isVisualEditorActive: true,
       activeLiveEditTarget: null,
@@ -540,6 +714,54 @@ export const useStorefrontStore = create<StorefrontState>()(
         }));
       },
 
+      updateHeroArabicContent: (updates) => {
+        set((state) => ({
+          heroArabicContent: { ...state.heroArabicContent, ...updates },
+        }));
+      },
+
+      updateAnnouncementArabic: (updates) => {
+        set((state) => ({
+          announcementArabic: { ...state.announcementArabic, ...updates },
+        }));
+      },
+
+      updateShippingArabicConfig: (updates) => {
+        set((state) => ({
+          shippingArabicConfig: { ...state.shippingArabicConfig, ...updates },
+        }));
+      },
+
+      updateEditorialArabicConfig: (updates) => {
+        set((state) => ({
+          editorialArabicConfig: { ...state.editorialArabicConfig, ...updates },
+        }));
+      },
+
+      updateNewReleasesArabicConfig: (updates) => {
+        set((state) => ({
+          newReleasesArabicConfig: { ...state.newReleasesArabicConfig, ...updates },
+        }));
+      },
+
+      updateMangaDiscoveryArabicConfig: (updates) => {
+        set((state) => ({
+          mangaDiscoveryArabicConfig: { ...state.mangaDiscoveryArabicConfig, ...updates },
+        }));
+      },
+
+      updateTrendingArabicConfig: (updates) => {
+        set((state) => ({
+          trendingArabicConfig: { ...state.trendingArabicConfig, ...updates },
+        }));
+      },
+
+      updateGenreBentoArabicConfig: (updates) => {
+        set((state) => ({
+          genreBentoArabicConfig: { ...state.genreBentoArabicConfig, ...updates },
+        }));
+      },
+
       addGenre: (newGenre) => {
         set((state) => {
           const rawId = newGenre.id?.trim() || newGenre.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
@@ -653,6 +875,15 @@ export const useStorefrontStore = create<StorefrontState>()(
           trendingConfig: DEFAULT_TRENDING_CONFIG,
           newReleasesConfig: DEFAULT_NEW_RELEASES_CONFIG,
           mangaDiscoveryConfig: DEFAULT_MANGA_DISCOVERY_CONFIG,
+          heroArabicContent: DEFAULT_HERO_ARABIC_CONTENT,
+          announcementArabic: DEFAULT_ANNOUNCEMENT_ARABIC,
+          shippingArabicConfig: DEFAULT_SHIPPING_ARABIC_CONFIG,
+          editorialArabicConfig: DEFAULT_EDITORIAL_ARABIC,
+          newReleasesArabicConfig: DEFAULT_NEW_RELEASES_ARABIC_CONFIG,
+          mangaDiscoveryArabicConfig: DEFAULT_MANGA_DISCOVERY_ARABIC_CONFIG,
+          trendingArabicConfig: DEFAULT_TRENDING_ARABIC_CONFIG,
+          genreBentoArabicConfig: DEFAULT_GENRE_BENTO_ARABIC_CONFIG,
+          arabicLanguageEnabled: true,
         });
       },
 
@@ -675,6 +906,15 @@ export const useStorefrontStore = create<StorefrontState>()(
           trendingConfig: state.trendingConfig,
           newReleasesConfig: state.newReleasesConfig,
           mangaDiscoveryConfig: state.mangaDiscoveryConfig,
+          heroArabicContent: state.heroArabicContent,
+          announcementArabic: state.announcementArabic,
+          shippingArabicConfig: state.shippingArabicConfig,
+          editorialArabicConfig: state.editorialArabicConfig,
+          newReleasesArabicConfig: state.newReleasesArabicConfig,
+          mangaDiscoveryArabicConfig: state.mangaDiscoveryArabicConfig,
+          trendingArabicConfig: state.trendingArabicConfig,
+          genreBentoArabicConfig: state.genreBentoArabicConfig,
+          arabicLanguageEnabled: state.arabicLanguageEnabled ?? true,
         };
         return JSON.stringify(exportPayload, null, 2);
       },
@@ -708,6 +948,15 @@ export const useStorefrontStore = create<StorefrontState>()(
             trendingConfig: { ...DEFAULT_TRENDING_CONFIG, ...(parsed.trendingConfig || {}) },
             newReleasesConfig: { ...DEFAULT_NEW_RELEASES_CONFIG, ...(parsed.newReleasesConfig || {}) },
             mangaDiscoveryConfig: { ...DEFAULT_MANGA_DISCOVERY_CONFIG, ...(parsed.mangaDiscoveryConfig || {}) },
+            heroArabicContent: { ...DEFAULT_HERO_ARABIC_CONTENT, ...(parsed.heroArabicContent || {}) },
+            announcementArabic: { ...DEFAULT_ANNOUNCEMENT_ARABIC, ...(parsed.announcementArabic || {}) },
+            shippingArabicConfig: { ...DEFAULT_SHIPPING_ARABIC_CONFIG, ...(parsed.shippingArabicConfig || {}) },
+            editorialArabicConfig: { ...DEFAULT_EDITORIAL_ARABIC, ...(parsed.editorialArabicConfig || {}) },
+            newReleasesArabicConfig: { ...DEFAULT_NEW_RELEASES_ARABIC_CONFIG, ...(parsed.newReleasesArabicConfig || {}) },
+            mangaDiscoveryArabicConfig: { ...DEFAULT_MANGA_DISCOVERY_ARABIC_CONFIG, ...(parsed.mangaDiscoveryArabicConfig || {}) },
+            trendingArabicConfig: { ...DEFAULT_TRENDING_ARABIC_CONFIG, ...(parsed.trendingArabicConfig || {}) },
+            genreBentoArabicConfig: { ...DEFAULT_GENRE_BENTO_ARABIC_CONFIG, ...(parsed.genreBentoArabicConfig || {}) },
+            arabicLanguageEnabled: typeof parsed.arabicLanguageEnabled === "boolean" ? parsed.arabicLanguageEnabled : true,
           });
           return true;
         } catch {
@@ -732,6 +981,15 @@ export const useStorefrontStore = create<StorefrontState>()(
         trendingConfig: state.trendingConfig,
         newReleasesConfig: state.newReleasesConfig,
         mangaDiscoveryConfig: state.mangaDiscoveryConfig,
+        heroArabicContent: state.heroArabicContent,
+        announcementArabic: state.announcementArabic,
+        shippingArabicConfig: state.shippingArabicConfig,
+        editorialArabicConfig: state.editorialArabicConfig,
+        newReleasesArabicConfig: state.newReleasesArabicConfig,
+        mangaDiscoveryArabicConfig: state.mangaDiscoveryArabicConfig,
+        trendingArabicConfig: state.trendingArabicConfig,
+        genreBentoArabicConfig: state.genreBentoArabicConfig,
+        arabicLanguageEnabled: state.arabicLanguageEnabled ?? true,
         adminPinHash: state.adminPinHash,
         isAdminAuthenticated: state.isAdminAuthenticated,
         adminSessionToken: state.adminSessionToken,
@@ -740,6 +998,51 @@ export const useStorefrontStore = create<StorefrontState>()(
       merge: (persistedState: unknown, currentState: StorefrontState): StorefrontState => {
         const persisted = persistedState as Partial<StorefrontState> | undefined;
         const merged: StorefrontState = { ...currentState, ...(persisted || {}) };
+        if (persisted?.heroArabicContent) {
+          merged.heroArabicContent = { ...DEFAULT_HERO_ARABIC_CONTENT, ...persisted.heroArabicContent };
+        } else {
+          merged.heroArabicContent = DEFAULT_HERO_ARABIC_CONTENT;
+        }
+        if (persisted?.announcementArabic) {
+          merged.announcementArabic = { ...DEFAULT_ANNOUNCEMENT_ARABIC, ...persisted.announcementArabic };
+        } else {
+          merged.announcementArabic = DEFAULT_ANNOUNCEMENT_ARABIC;
+        }
+        if (persisted?.shippingArabicConfig) {
+          merged.shippingArabicConfig = { ...DEFAULT_SHIPPING_ARABIC_CONFIG, ...persisted.shippingArabicConfig };
+        } else {
+          merged.shippingArabicConfig = DEFAULT_SHIPPING_ARABIC_CONFIG;
+        }
+        if (persisted?.editorialArabicConfig) {
+          merged.editorialArabicConfig = { ...DEFAULT_EDITORIAL_ARABIC, ...persisted.editorialArabicConfig };
+        } else {
+          merged.editorialArabicConfig = DEFAULT_EDITORIAL_ARABIC;
+        }
+        if (persisted?.newReleasesArabicConfig) {
+          merged.newReleasesArabicConfig = { ...DEFAULT_NEW_RELEASES_ARABIC_CONFIG, ...persisted.newReleasesArabicConfig };
+        } else {
+          merged.newReleasesArabicConfig = DEFAULT_NEW_RELEASES_ARABIC_CONFIG;
+        }
+        if (persisted?.mangaDiscoveryArabicConfig) {
+          merged.mangaDiscoveryArabicConfig = { ...DEFAULT_MANGA_DISCOVERY_ARABIC_CONFIG, ...persisted.mangaDiscoveryArabicConfig };
+        } else {
+          merged.mangaDiscoveryArabicConfig = DEFAULT_MANGA_DISCOVERY_ARABIC_CONFIG;
+        }
+        if (persisted?.trendingArabicConfig) {
+          merged.trendingArabicConfig = { ...DEFAULT_TRENDING_ARABIC_CONFIG, ...persisted.trendingArabicConfig };
+        } else {
+          merged.trendingArabicConfig = DEFAULT_TRENDING_ARABIC_CONFIG;
+        }
+        if (persisted?.genreBentoArabicConfig) {
+          merged.genreBentoArabicConfig = { ...DEFAULT_GENRE_BENTO_ARABIC_CONFIG, ...persisted.genreBentoArabicConfig };
+        } else {
+          merged.genreBentoArabicConfig = DEFAULT_GENRE_BENTO_ARABIC_CONFIG;
+        }
+        if (typeof persisted?.arabicLanguageEnabled === "boolean") {
+          merged.arabicLanguageEnabled = persisted.arabicLanguageEnabled;
+        } else {
+          merged.arabicLanguageEnabled = true;
+        }
         if (persisted?.trendingConfig) {
           merged.trendingConfig = { ...DEFAULT_TRENDING_CONFIG, ...persisted.trendingConfig };
         }

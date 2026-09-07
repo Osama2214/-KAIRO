@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Lock, CreditCard, LogIn, Tag, Sparkles, X, Banknote, Smartphone, Zap, Clock, AlertCircle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Lock, LogIn, Tag, Sparkles, X, Banknote, Smartphone, Zap, Clock, AlertCircle } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
 import { useAuthStore, SavedOrder } from "@/store/useAuthStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
@@ -12,11 +12,14 @@ import { formatPrice } from "@/lib/utils";
 import { CustomSelect } from "@/components/CustomSelect";
 import { useWelcomeOffer } from "@/hooks/useWelcomeOffer";
 import { EGYPT_GOVERNORATES, DEFAULT_GOVERNORATE_RATES } from "@/data/governorates";
-import { sanitizeInput } from "@/lib/security";
+import { sanitizeInput, validateEgyptianPhone } from "@/lib/security";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function CheckoutPage() {
   const router = useRouter();
   const mounted = useMounted();
+  const { t, locale, isRTL } = useTranslation();
+  const isArabic = locale === "ar";
   const {
     items: cartItems,
     getSubtotal,
@@ -37,18 +40,19 @@ export default function CheckoutPage() {
   const [checkoutPromoInput, setCheckoutPromoInput] = useState("");
   const [checkoutPromoError, setCheckoutPromoError] = useState("");
   const [checkoutPromoSuccess, setCheckoutPromoSuccess] = useState("");
+  const [orderError, setOrderError] = useState("");
 
-  // Form Fields State
+  // Form Fields State (clean defaults for guests, populated from profile if authenticated)
   const [formData, setFormData] = useState({
-    name: currentUser?.name || "Karim El-Sayed",
-    email: currentUser?.email || "karim@kairo.archive",
-    phone: currentUser?.phone || "+20 100 234 5678",
+    name: currentUser?.name || "",
+    email: currentUser?.email || "",
+    phone: currentUser?.phone || "",
     governorate: currentUser?.governorate
-      ? EGYPT_GOVERNORATES.find((g) => g.value.toLowerCase().includes((currentUser.governorate || "").toLowerCase()))?.value || "Giza / 6th of October"
-      : "Giza / 6th of October",
-    city: "6th of October City",
-    address: currentUser?.address || "Al Motamayez District, Building 14",
-    postal: "12588",
+      ? EGYPT_GOVERNORATES.find((g) => g.value.toLowerCase().includes((currentUser.governorate || "").toLowerCase()))?.value || "Cairo"
+      : "Cairo",
+    city: "",
+    address: currentUser?.address || "",
+    postal: "",
     country: "Egypt",
     cardNumber: "•••• •••• •••• 4242",
     cardExp: "12/28",
@@ -93,23 +97,42 @@ export default function CheckoutPage() {
 
   const freeShippingEnabled = shippingConfig?.freeShippingEnabled ?? true;
   const freeShippingThreshold = shippingConfig?.freeShippingThreshold ?? 500;
-  const isFreeShipping = freeShippingGranted || (freeShippingEnabled && subtotal >= freeShippingThreshold);
+  const netMerchandise = Math.max(0, subtotal - discountAmount);
+  const isFreeShipping = freeShippingGranted || (freeShippingEnabled && netMerchandise >= freeShippingThreshold);
   const shippingCost = isFreeShipping ? 0 : govShippingRate;
-  const total = Math.max(0, subtotal - discountAmount + shippingCost);
+  const total = Math.max(0, netMerchandise + shippingCost);
 
   const governorateOptions = useMemo(() => {
     return EGYPT_GOVERNORATES.map((g) => {
       const rate = govRates[g.value] ?? g.defaultRate;
       return {
-        ...g,
-        badge: isFreeShipping ? "FREE" : `${rate} EGP`,
+        value: g.value,
+        label: isArabic ? (g.labelAr || g.label) : g.label,
+        badge: isFreeShipping
+          ? (isArabic ? "شحن مجاني" : "FREE")
+          : isArabic
+          ? `${rate} ج.م`
+          : `${rate} EGP`,
       };
     });
-  }, [govRates, isFreeShipping]);
+  }, [govRates, isFreeShipping, isArabic]);
 
   const handlePlaceOrder = (e: React.FormEvent) => {
     e.preventDefault();
+    setOrderError("");
     if (items.length === 0) return;
+
+    // Validate Egyptian Mobile Number strictly (11 digits, valid prefix 010/011/012/015)
+    const phoneValidation = validateEgyptianPhone(formData.phone);
+    if (!phoneValidation.isValid) {
+      setOrderError(
+        isArabic
+          ? "يرجى إدخال رقم هاتف مصري صحيح مكون من 11 رقماً (مثال: 01012345678)"
+          : (phoneValidation.message || "Please enter a valid 11-digit Egyptian mobile number (e.g. 01012345678).")
+      );
+      return;
+    }
+    const validatedPhone = phoneValidation.normalized || formData.phone;
 
     setIsProcessing(true);
 
@@ -138,7 +161,7 @@ export default function CheckoutPage() {
       paymentSenderDetail: sanitizeInput(senderIdentifier.trim()) || undefined,
       customerName: sanitizeInput(formData.name),
       customerEmail: sanitizeInput(formData.email).toLowerCase(),
-      customerPhone: sanitizeInput(formData.phone),
+      customerPhone: sanitizeInput(validatedPhone),
       customerAddress: sanitizeInput(formData.address),
       customerGovernorate: sanitizeInput(formData.governorate),
       timeline: isPendingPayment
@@ -165,6 +188,13 @@ export default function CheckoutPage() {
         localStorage.setItem("kairo_orders", JSON.stringify([newOrder, ...filtered]));
       }
 
+      // Persist order to central server database asynchronously
+      fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newOrder),
+      }).catch((err) => console.error("Central order sync error:", err));
+
       clearCart();
       removeCoupon();
       setIsProcessing(false);
@@ -173,16 +203,16 @@ export default function CheckoutPage() {
   };
 
   return (
-    <div className="min-h-screen bg-transparent text-paper pt-28 pb-20 px-6 md:px-12 relative z-10">
+    <div className="min-h-screen bg-transparent text-paper pt-24 sm:pt-28 pb-20 px-4 sm:px-6 md:px-12 relative z-10">
       <div className="max-w-6xl mx-auto">
         {/* Back Link */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <Link
             href="/manga"
             className="inline-flex items-center gap-2 text-xs font-mono tracking-widest text-text-muted hover:text-paper transition-colors"
           >
-            <ArrowLeft strokeWidth={1.4} className="w-3.5 h-3.5" />
-            <span>CONTINUE BROWSING ARCHIVE</span>
+            <ArrowLeft strokeWidth={1.4} className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
+            <span>{isArabic ? "العودة لتصفح الأرشيف" : "CONTINUE BROWSING ARCHIVE"}</span>
           </Link>
         </div>
 
@@ -191,10 +221,10 @@ export default function CheckoutPage() {
           <div className="lg:col-span-7 space-y-8">
             <div className="border-b border-ink-border/80 pb-4">
               <span className="text-[10px] font-mono tracking-[0.25em] text-gold uppercase block mb-1">
-                TRANSACTION PROTOCOL
+                {isArabic ? "بروتوكول المعاملة الأرشيفية" : "TRANSACTION PROTOCOL"}
               </span>
               <h1 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-tight font-sans">
-                CHECKOUT
+                {t.checkout.pageTitle}
               </h1>
             </div>
 
@@ -204,22 +234,22 @@ export default function CheckoutPage() {
                 <div className="p-3.5 bg-ink-surface/70 border border-gold/40 rounded-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono">
                   <div className="flex items-center gap-2.5">
                     <span className="w-2 h-2 rounded-full bg-gold animate-pulse" />
-                    <span className="text-gold font-bold">PATRON ARCHIVE:</span>
+                    <span className="text-gold font-bold">{isArabic ? "ملف المقتني الأرشيفي:" : "PATRON ARCHIVE:"}</span>
                     <span className="text-paper">{currentUser.name} ({currentUser.email})</span>
                   </div>
-                  <span className="text-[10px] text-text-muted">ID: {currentUser.id} • AUTO-SAVING ORDER</span>
+                  <span className="text-[10px] text-text-muted">ID: {currentUser.id} • {isArabic ? "حفظ تلقائي للطلب" : "AUTO-SAVING ORDER"}</span>
                 </div>
               ) : (
                 <div className="p-3.5 bg-ink-surface/50 border border-ink-border rounded-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono">
                   <div className="flex items-center gap-2 text-text-muted">
-                    <LogIn strokeWidth={1.4} className="w-4 h-4 text-gold" />
-                    <span>Checking out as Guest. Want this order saved to your patron archive?</span>
+                    <LogIn strokeWidth={1.4} className="w-4 h-4 text-gold shrink-0" />
+                    <span>{isArabic ? "طلب بصفتك زائر. هل ترغب في تسجيل وحفظ الطلب في حسابك؟" : "Checking out as Guest. Want this order saved to your patron archive?"}</span>
                   </div>
                   <Link
                     href="/account"
-                    className="text-gold hover:underline font-bold text-[11px] uppercase tracking-wider"
+                    className="text-gold hover:underline font-bold text-[11px] uppercase tracking-wider shrink-0"
                   >
-                    Sign In / Register →
+                    {isArabic ? "تسجيل الدخول / إنشاء حساب ←" : "Sign In / Register →"}
                   </Link>
                 </div>
               )
@@ -227,31 +257,40 @@ export default function CheckoutPage() {
 
             {items.length === 0 ? (
               <div className="p-12 border border-ink-border/80 bg-ink-surface/40 rounded-sm text-center space-y-4">
-                <p className="font-mono text-sm text-paper">YOUR CART IS CURRENTLY EMPTY</p>
+                <p className="font-mono text-sm text-paper">{isArabic ? "سلة المقتنيات فارغة حالياً" : "YOUR CART IS CURRENTLY EMPTY"}</p>
                 <Link
                   href="/manga"
                   className="inline-block px-6 py-3 bg-paper text-ink font-bold text-xs font-mono uppercase tracking-widest hover:bg-vermilion hover:text-white transition-colors"
                 >
-                  RETURN TO ARCHIVE
+                  {isArabic ? "تصفح الأرشيف الكامل" : "RETURN TO ARCHIVE"}
                 </Link>
               </div>
             ) : (
               <form onSubmit={handlePlaceOrder} className="space-y-8">
+                {/* Order Validation Error Banner */}
+                {orderError && (
+                  <div className="p-4 bg-vermilion/15 border border-vermilion/60 rounded-xs flex items-center gap-3 text-xs font-mono text-vermilion animate-in fade-in duration-200">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{orderError}</span>
+                  </div>
+                )}
+
                 {/* 1. Contact Information */}
                 <div className="space-y-4 bg-ink-surface/30 border border-ink-border/70 p-6 rounded-sm">
                   <h3 className="text-xs font-mono tracking-widest text-gold uppercase flex items-center gap-2">
                     <span>01</span>
-                    <span>CONTACT INFORMATION</span>
+                    <span>{isArabic ? "بيانات التواصل والبريد" : "CONTACT INFORMATION"}</span>
                   </h3>
                   <div>
                     <label className="block text-[11px] font-mono text-text-muted mb-1.5 uppercase">
-                      Email Address
+                      {t.checkout.email}
                     </label>
                     <input
                       type="email"
                       required
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder={t.checkout.emailPlaceholder}
                       className="w-full bg-ink border border-ink-border rounded-xs px-3.5 py-2.5 text-xs text-paper focus:outline-none focus:border-gold font-sans"
                     />
                   </div>
@@ -261,41 +300,42 @@ export default function CheckoutPage() {
                 <div className="space-y-4 bg-ink-surface/30 border border-ink-border/70 p-6 rounded-sm">
                   <h3 className="text-xs font-mono tracking-widest text-gold uppercase flex items-center gap-2">
                     <span>02</span>
-                    <span>SHIPPING DESTINATION</span>
+                    <span>{isArabic ? "عنوان التوصيل (كافة محافظات مصر)" : "SHIPPING DESTINATION"}</span>
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[11px] font-mono text-text-muted mb-1.5 uppercase">
-                        Full Legal Name
+                        {t.checkout.fullName}
                       </label>
                       <input
                         type="text"
                         required
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder={t.checkout.fullNamePlaceholder}
                         className="w-full bg-ink border border-ink-border rounded-xs px-3.5 py-2.5 text-xs text-paper focus:outline-none focus:border-gold font-sans"
                       />
                     </div>
                     <div>
                       <label className="block text-[11px] font-mono text-text-muted mb-1.5 uppercase">
-                        Egyptian Mobile Number
+                        {t.checkout.phone}
                       </label>
                       <input
                         type="tel"
                         required
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        placeholder="+20 1X XXXX XXXX"
+                        placeholder={t.checkout.phonePlaceholder}
                         className="w-full bg-ink border border-ink-border rounded-xs px-3.5 py-2.5 text-xs text-paper focus:outline-none focus:border-gold font-mono"
                       />
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="block text-[11px] font-mono text-text-muted uppercase">
-                          Governorate
+                          {t.checkout.governorate}
                         </label>
                         <span className="text-[10px] font-mono text-gold">
-                          Shipping: {isFreeShipping ? "FREE" : formatPrice(shippingCost)}
+                          {isArabic ? "الشحن:" : "Shipping:"} {isFreeShipping ? (isArabic ? "مجاناً" : "FREE") : formatPrice(shippingCost)}
                         </span>
                       </div>
                       <CustomSelect
@@ -308,32 +348,33 @@ export default function CheckoutPage() {
                     </div>
                     <div>
                       <label className="block text-[11px] font-mono text-text-muted mb-1.5 uppercase">
-                        City / District
+                        {isArabic ? "المدينة / الحي / المنطقة" : "City / District"}
                       </label>
                       <input
                         type="text"
                         required
                         value={formData.city}
                         onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                        placeholder="e.g. 6th of October, Sheikh Zayed, Dokki, Nasr City"
+                        placeholder={isArabic ? "مثال: 6 أكتوبر، الشيخ زايد، الدقي، المعادي" : "e.g. 6th of October, Sheikh Zayed, Dokki, Nasr City"}
                         className="w-full bg-ink border border-ink-border rounded-xs px-3.5 py-2.5 text-xs text-paper focus:outline-none focus:border-gold font-sans"
                       />
                     </div>
                     <div className="sm:col-span-2">
                       <label className="block text-[11px] font-mono text-text-muted mb-1.5 uppercase">
-                        Street Address & Building / Apartment
+                        {t.checkout.address}
                       </label>
                       <input
                         type="text"
                         required
                         value={formData.address}
                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        placeholder={t.checkout.addressPlaceholder}
                         className="w-full bg-ink border border-ink-border rounded-xs px-3.5 py-2.5 text-xs text-paper focus:outline-none focus:border-gold font-sans"
                       />
                     </div>
                     <div className="sm:col-span-2 pt-2 flex items-center justify-between text-[10px] font-mono text-text-muted border-t border-ink-border/40">
-                      <span>Dispatch Hub: {shippingConfig?.hubName || "6th of October • Egypt"}</span>
-                      <span>Delivery Estimate: {shippingConfig?.deliveryEstimate || "24-48h"}</span>
+                      <span>{isArabic ? "مركز التجهيز والشحن: مدينة 6 أكتوبر • مصر" : `Dispatch Hub: ${shippingConfig?.hubName || "6th of October • Egypt"}`}</span>
+                      <span>{isArabic ? `المدة المتوقعة: ${shippingConfig?.deliveryEstimate || "24-48 ساعة"}` : `Delivery Estimate: ${shippingConfig?.deliveryEstimate || "24-48h"}`}</span>
                     </div>
                   </div>
                 </div>
@@ -343,11 +384,11 @@ export default function CheckoutPage() {
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-mono tracking-widest text-gold uppercase flex items-center gap-2">
                       <span>03</span>
-                      <span>PAYMENT METHOD</span>
+                      <span>{isArabic ? "طريقة الدفع والتأكيد" : "PAYMENT METHOD"}</span>
                     </h3>
                     <div className="flex items-center gap-1.5 text-[10px] font-mono text-text-muted">
                       <Lock strokeWidth={1.2} className="w-3 h-3 text-gold" />
-                      <span>Encrypted Transaction</span>
+                      <span>{isArabic ? "معاملة مشفرة وآمنة" : "Encrypted Transaction"}</span>
                     </div>
                   </div>
 
@@ -374,13 +415,17 @@ export default function CheckoutPage() {
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <Banknote className="w-4 h-4 text-gold" />
-                            <span className="text-xs font-bold text-paper">Cash on Delivery (Cash with Courier)</span>
+                            <span className="text-xs font-bold text-paper">
+                              {isArabic ? "الدفع نقدياً عند الاستلام (مع مندوب الشحن)" : "Cash on Delivery (Cash with Courier)"}
+                            </span>
                             <span className="text-[9px] font-mono px-2 py-0.5 bg-gold/10 text-gold border border-gold/20 rounded-xs uppercase">
-                              Doorstep Collection
+                              {isArabic ? "تحصيل عند الباب" : "Doorstep Collection"}
                             </span>
                           </div>
                           <p className="text-[11px] text-text-muted">
-                            Pay in cash directly to the delivery courier upon receiving your archival parcel at your doorstep.
+                            {isArabic
+                              ? "سدد قيمة الطلب نقداً مباشرة لمندوب شركة الشحن فور استلام وفحص الطرد الأرشيفي عند باب منزلك."
+                              : "Pay in cash directly to the delivery courier upon receiving your archival parcel at your doorstep."}
                           </p>
                         </div>
                       </div>
@@ -408,13 +453,17 @@ export default function CheckoutPage() {
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <Smartphone className="w-4 h-4 text-gold" />
-                            <span className="text-xs font-bold text-paper">Mobile Wallet (Vodafone Cash / Orange / WE)</span>
+                            <span className="text-xs font-bold text-paper">
+                              {isArabic ? "المحافظ الإلكترونية (فودافون كاش / أورنج / اتصالات / WE)" : "Mobile Wallet (Vodafone Cash / Orange / WE)"}
+                            </span>
                             <span className="text-[9px] font-mono px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-xs uppercase">
-                              Verification Required
+                              {isArabic ? "يتطلب التأكيد" : "Verification Required"}
                             </span>
                           </div>
                           <p className="text-[11px] text-text-muted">
-                            Transfer directly from your Vodafone Cash, Orange Cash, Etisalat Cash, or WE Pay mobile wallet.
+                            {isArabic
+                              ? "حوّل مباشرة من محفظتك الإلكترونية إلى رقم المتجر، وسيتم تأكيد الطلب فور مطابقة رقم التحويل."
+                              : "Transfer directly from your Vodafone Cash, Orange Cash, Etisalat Cash, or WE Pay mobile wallet."}
                           </p>
                         </div>
                       </div>
@@ -442,13 +491,17 @@ export default function CheckoutPage() {
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <Zap className="w-4 h-4 text-gold" />
-                            <span className="text-xs font-bold text-paper">InstaPay Transfer (Instant Bank / IPA)</span>
+                            <span className="text-xs font-bold text-paper">
+                              {isArabic ? "تحويل إنستاباي InstaPay (تحويل بنكي لحظي)" : "InstaPay Transfer (Instant Bank / IPA)"}
+                            </span>
                             <span className="text-[9px] font-mono px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-xs uppercase">
-                              Verification Required
+                              {isArabic ? "يتطلب التأكيد" : "Verification Required"}
                             </span>
                           </div>
                           <p className="text-[11px] text-text-muted">
-                            Instant transfer via the official InstaPay Egypt electronic payment network (IPA address or account).
+                            {isArabic
+                              ? "تحويل لحظي عبر شبكة المدفوعات اللحظية المصرية الرسمية إنستاباي إلى عنوان IPA الخاص بالمتجر."
+                              : "Instant transfer via the official InstaPay Egypt electronic payment network (IPA address or account)."}
                           </p>
                         </div>
                       </div>
@@ -462,23 +515,27 @@ export default function CheckoutPage() {
                         <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                         <div>
                           <h4 className="text-xs font-bold font-mono text-amber-400 uppercase tracking-wider">
-                            Payment Pending Verification Protocol
+                            {isArabic ? "تأكيد الدفع الإلكتروني ومهلة حجز المخزون (36 ساعة)" : "Electronic Payment Verification & 36-Hour Hold Protocol"}
                           </h4>
                           <p className="text-xs text-text-muted mt-1 leading-relaxed">
-                            Once you place this order, our concierge team will immediately contact you via WhatsApp or Phone to provide our verified transfer details and confirm receipt before processing. The order status will remain <strong className="text-amber-300">Pending Verification</strong> until confirmed by the administrator.
+                            {isArabic
+                              ? <>بمجرد تسجيل هذا الطلب، سيقوم فريق خدمة العملاء بالتواصل معك لمطابقة التحويل وتأكيده. تظل حالة الطلب <strong className="text-amber-300">«قيد تأكيد الدفع»</strong>. الطلبات التي لا يتم تأكيد سدادها خلال <strong className="text-amber-300">36 ساعة (يوم ونصف)</strong> تُحذف تلقائياً لإتاحة المجلدات المحجوزة للمقتنين الآخرين.</>
+                              : <>Once you place this order, our concierge team will contact you to confirm transfer details. The order status remains <strong className="text-amber-300">Pending Verification</strong>. Orders with unverified payment after <strong className="text-amber-300">36 hours (1.5 days)</strong> will be automatically cancelled to release reserved stock.</>}
                           </p>
                         </div>
                       </div>
 
                       <div>
                         <label className="block text-[11px] font-mono text-text-muted mb-1 uppercase">
-                          {paymentMethod === "wallet" ? "Sender Mobile Wallet Number (Optional)" : "Sender InstaPay IPA / Account Name (Optional)"}
+                          {paymentMethod === "wallet"
+                            ? (isArabic ? "رقم المحفظة الإلكترونية المحول منها (اختياري)" : "Sender Mobile Wallet Number (Optional)")
+                            : (isArabic ? "عنوان إنستاباي IPA أو اسم الحساب المحول منه (اختياري)" : "Sender InstaPay IPA / Account Name (Optional)")}
                         </label>
                         <input
                           type="text"
                           value={senderIdentifier}
                           onChange={(e) => setSenderIdentifier(e.target.value)}
-                          placeholder={paymentMethod === "wallet" ? "e.g. +20 10X XXXX XXXX" : "e.g. yourname@instapay"}
+                          placeholder={paymentMethod === "wallet" ? (isArabic ? "مثال: 01012345678" : "e.g. +20 10X XXXX XXXX") : (isArabic ? "مثال: yourname@instapay" : "e.g. yourname@instapay")}
                           className="w-full bg-ink border border-ink-border rounded-xs px-3.5 py-2 text-xs text-paper focus:outline-none focus:border-gold font-mono"
                         />
                       </div>
@@ -494,7 +551,9 @@ export default function CheckoutPage() {
                 >
                   <Lock strokeWidth={1.4} className="w-4 h-4" />
                   <span>
-                    {isProcessing ? "DISPATCHING FROM OCTOBER HUB..." : `PLACE ORDER — ${formatPrice(total)}`}
+                    {isProcessing
+                      ? (isArabic ? "جاري التجهيز والإرسال من مركز أكتوبر..." : "DISPATCHING FROM OCTOBER HUB...")
+                      : (isArabic ? `تأكيد وإتمام الطلب — ${formatPrice(total)}` : `PLACE ORDER — ${formatPrice(total)}`)}
                   </span>
                 </button>
               </form>
@@ -504,7 +563,7 @@ export default function CheckoutPage() {
           {/* Right Column: Order Summary */}
           <aside className="lg:col-span-5 bg-ink-surface/40 border border-ink-border/80 p-6 rounded-sm space-y-6">
             <h2 className="text-xs font-mono tracking-widest text-gold uppercase pb-3 border-b border-ink-border/70">
-              ORDER SUMMARY ({items.length} ITEMS)
+              {isArabic ? `ملخص الطلب (${items.length} عناصر)` : `ORDER SUMMARY (${items.length} ITEMS)`}
             </h2>
 
             {/* Items list */}
@@ -520,7 +579,7 @@ export default function CheckoutPage() {
                         {item.seriesTitle} — Vol. {item.volumeNumber}
                       </p>
                       <p className="text-[10px] font-mono text-text-muted">
-                        Qty: {item.quantity} • {item.format}
+                        {isArabic ? `الكمية: ${item.quantity} • ${item.format}` : `Qty: ${item.quantity} • ${item.format}`}
                       </p>
                     </div>
                     <span className="font-mono text-paper font-semibold">
@@ -538,14 +597,14 @@ export default function CheckoutPage() {
                 <div className="p-2.5 bg-gold/10 border border-gold/40 rounded-xs flex items-center justify-between gap-2 animate-in fade-in">
                   <div className="flex items-center gap-1.5 text-gold text-[11px] min-w-0">
                     <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">Inaugural Grant: <strong className="text-paper">{welcomeCode}</strong></span>
+                    <span className="truncate">{isArabic ? "منحة المقتنين الترحيبية:" : "Inaugural Grant:"} <strong className="text-paper">{welcomeCode}</strong></span>
                   </div>
                   <button
                     type="button"
                     onClick={() => applyCoupon(welcomeCode, 20, true)}
                     className="px-2.5 py-1 bg-gold text-ink font-bold text-[10px] rounded-xs uppercase tracking-wider hover:bg-paper transition-colors shrink-0 cursor-pointer shadow-xs"
                   >
-                    APPLY 20%
+                    {isArabic ? "تطبيق 20%" : "APPLY 20%"}
                   </button>
                 </div>
               )}
@@ -555,7 +614,9 @@ export default function CheckoutPage() {
                   <div className="flex items-center gap-2">
                     <Tag className="w-3.5 h-3.5 text-gold" />
                     <span className="font-bold tracking-wider">{appliedCoupon}</span>
-                    <span className="text-[10px] text-text-muted">(-{discountPercent}% & Free Express Delivery)</span>
+                    <span className="text-[10px] text-text-muted">
+                      {isArabic ? `(خصم ${discountPercent}% وشحن سريع مجاني)` : `(-${discountPercent}% & Free Express Delivery)`}
+                    </span>
                   </div>
                   <button
                     type="button"
@@ -571,7 +632,7 @@ export default function CheckoutPage() {
                   <div className="flex items-stretch gap-1.5">
                     <input
                       type="text"
-                      placeholder="VOUCHER / PROMO CODE"
+                      placeholder={isArabic ? "كود الخصم أو القسيمة" : "VOUCHER / PROMO CODE"}
                       value={checkoutPromoInput}
                       onChange={(e) => {
                         setCheckoutPromoInput(e.target.value);
@@ -594,7 +655,7 @@ export default function CheckoutPage() {
                       }}
                       className="px-3.5 py-2 bg-ink hover:bg-gold hover:text-ink text-gold border border-gold/40 font-bold uppercase tracking-wider rounded-xs transition-colors cursor-pointer"
                     >
-                      APPLY
+                      {isArabic ? "تطبيق" : "APPLY"}
                     </button>
                   </div>
                   {checkoutPromoError && (
@@ -610,29 +671,33 @@ export default function CheckoutPage() {
             {/* Calculations */}
             <div className="space-y-2 pt-4 border-t border-ink-border/60 text-xs font-mono">
               <div className="flex justify-between text-text-muted">
-                <span>SUBTOTAL</span>
+                <span>{isArabic ? "المجموع الفرعي" : "SUBTOTAL"}</span>
                 <span className="text-paper">{formatPrice(subtotal)}</span>
               </div>
               {discountAmount > 0 && (
                 <div className="flex justify-between text-gold">
-                  <span>PATRON PRIVILEGE (-{discountPercent}%)</span>
+                  <span>{isArabic ? `خصم المقتنين (${discountPercent}-%)` : `PATRON PRIVILEGE (-${discountPercent}%)`}</span>
                   <span>-{formatPrice(discountAmount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-text-muted">
-                <span>SHIPPING ({formData.governorate ? formData.governorate.split("/")[0].trim() : "Standard"})</span>
+                <span>
+                  {isArabic
+                    ? `الشحن (${formData.governorate ? (governorateOptions.find((o) => o.value === formData.governorate)?.label || formData.governorate) : "القياسي"})`
+                    : `SHIPPING (${formData.governorate ? formData.governorate.split("/")[0].trim() : "Standard"})`}
+                </span>
                 <span className="text-paper">
                   {freeShippingGranted ? (
-                    <span className="text-gold font-semibold">FREE (PATRON PRIVILEGE)</span>
+                    <span className="text-gold font-semibold">{isArabic ? "مجاناً (ميزة ترحيبية)" : "FREE (PATRON PRIVILEGE)"}</span>
                   ) : isFreeShipping ? (
-                    <span className="text-emerald-400 font-semibold">FREE</span>
+                    <span className="text-emerald-400 font-semibold">{isArabic ? "مجاناً" : "FREE"}</span>
                   ) : (
                     formatPrice(shippingCost)
                   )}
                 </span>
               </div>
               <div className="flex justify-between text-sm font-bold text-paper pt-3 border-t border-ink-border/60">
-                <span>TOTAL DUE</span>
+                <span>{isArabic ? "الإجمالي المستحق" : "TOTAL DUE"}</span>
                 <span className="text-gold text-base">{formatPrice(total)}</span>
               </div>
             </div>

@@ -36,6 +36,8 @@ export interface SavedOrder {
   items: SavedOrderItem[];
   subtotal: number;
   shippingCost: number;
+  discountAmount?: number;
+  appliedCoupon?: string;
   total: number;
   status: string;
   paymentMethod?: "cash" | "wallet" | "instapay" | string;
@@ -48,8 +50,10 @@ export interface SavedOrder {
   customerGovernorate?: string;
   timeline: string[];
   trackingNumber?: string;
+  trackingUrl?: string;
   courier?: string;
   estimatedDelivery?: string;
+  createdAt?: number;
 }
 
 export interface UserProfile {
@@ -101,21 +105,6 @@ interface AuthState {
   updateOrderStatus: (orderId: string, updates: Partial<SavedOrder>) => void;
   loginDemo: () => void;
 }
-
-const MASTER_ADMIN: UserProfile = {
-  id: "KRO-00001",
-  name: INITIAL_ADMIN_ACCOUNTS[0]?.name || "Master Curator",
-  email: (INITIAL_ADMIN_ACCOUNTS[0]?.email || "admin@kairo.archive").toLowerCase(),
-  password: INITIAL_ADMIN_ACCOUNTS[0]?.password || "password123",
-  role: "admin",
-  phone: INITIAL_ADMIN_ACCOUNTS[0]?.phone || "+20 100 000 0000",
-  governorate: INITIAL_ADMIN_ACCOUNTS[0]?.governorate || "Cairo",
-  address: "KAIRO Archival Headquarters, Zamalek, Cairo, Egypt",
-  tier: "Archive Master",
-  joinedDate: "2026-01-01",
-  orders: [],
-};
-
 const SECOND_ADMIN = INITIAL_ADMIN_ACCOUNTS[1] || INITIAL_ADMIN_ACCOUNTS[0];
 
 const DEMO_USER: UserProfile = {
@@ -269,18 +258,9 @@ function getStoredActiveUser(users: Record<string, UserProfile>): UserProfile | 
   if (typeof window === "undefined") return null;
   try {
     const activeEmail = localStorage.getItem("kairo_active_session");
-    
-    // Explicitly logged out: never fall back to DEMO_USER and purge leftover state
-    if (activeEmail === "logged_out") {
-      try {
-        localStorage.removeItem("kairo_orders");
-        localStorage.removeItem("kairo_cart_storage");
-        localStorage.removeItem("kairo_wishlist_storage");
-        useCartStore.getState().clearCart();
-        useWishlistStore.getState().clearWishlist();
-      } catch {
-        // ignore
-      }
+
+    // If session is logged out or unassigned, remain as unauthenticated guest
+    if (!activeEmail || activeEmail === "logged_out") {
       return null;
     }
 
@@ -290,14 +270,8 @@ function getStoredActiveUser(users: Record<string, UserProfile>): UserProfile | 
       return ensureWelcomeOffer(users[sessionCookie.email.toLowerCase()]);
     }
 
-    if (activeEmail && users[activeEmail.toLowerCase()]) {
+    if (users[activeEmail.toLowerCase()]) {
       return ensureWelcomeOffer(users[activeEmail.toLowerCase()]);
-    }
-
-    // Default fallback to DEMO_USER only on initial brand new visit if never logged in or out
-    if (activeEmail === null && !sessionCookie) {
-      const demoUser = users[DEMO_USER.email.toLowerCase()] || DEMO_USER;
-      return ensureWelcomeOffer(demoUser);
     }
 
     return null;
@@ -435,7 +409,28 @@ export const useAuthStore = create<AuthState>((set, get) => {
           useWishlistStore.getState().clearWishlist();
         }
       } catch (e) {
-        console.error("Failed to restore cart/wishlist", e);
+        console.error(e);
+      }
+
+      // Merge any guest orders placed while unauthenticated into user account
+      try {
+        const rawLocalOrders = localStorage.getItem("kairo_orders");
+        if (rawLocalOrders) {
+          const localOrders: SavedOrder[] = JSON.parse(rawLocalOrders);
+          if (Array.isArray(localOrders) && localOrders.length > 0) {
+            const seen = new Set((user.orders || []).map((o) => o.id));
+            const merged = [...(user.orders || [])];
+            for (const ord of localOrders) {
+              if (ord && ord.id && !seen.has(ord.id)) {
+                seen.add(ord.id);
+                merged.unshift(ord);
+              }
+            }
+            user.orders = merged;
+          }
+        }
+      } catch (e) {
+        console.error("Failed to merge guest orders", e);
       }
 
       const userWithOffer = ensureWelcomeOffer(user);
@@ -507,7 +502,23 @@ export const useAuthStore = create<AuthState>((set, get) => {
       const newId = `KRO-${randomDigits}`;
       const cleanFirstName = (cleanName.trim().split(" ")[0] || "PATRON")
         .toUpperCase()
-        .replace(/[^A-Z0-9]/g, "");
+      // Inherit existing guest orders from localStorage
+      let initialOrders: SavedOrder[] = [];
+      try {
+        const rawLocalOrders = localStorage.getItem("kairo_orders");
+        if (rawLocalOrders) {
+          const parsedOrders = JSON.parse(rawLocalOrders);
+          if (Array.isArray(parsedOrders)) {
+            initialOrders = parsedOrders;
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+
+      // Inherit existing active cart and wishlist
+      const activeCart = useCartStore.getState().items;
+      const activeWishlist = useWishlistStore.getState().items;
 
       const newUser: UserProfile = {
         id: newId,
@@ -520,11 +531,11 @@ export const useAuthStore = create<AuthState>((set, get) => {
         address: cleanAddress,
         tier: "Collector",
         joinedDate: new Date().toISOString().split("T")[0],
-        orders: [],
-        cart: [],
-        wishlist: [],
+        orders: initialOrders,
+        cart: activeCart,
+        wishlist: activeWishlist,
         welcomeOfferExpiresAt: Date.now() + 24 * 60 * 60 * 1000,
-        welcomeOfferClaimed: false,
+        welcomeOfferClaimed: initialOrders.length > 0,
         welcomeDiscountCode: `${cleanFirstName || "PATRON"}-FIRST20`,
       };
 
@@ -536,11 +547,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       try {
         localStorage.setItem("kairo_users_db", JSON.stringify(updatedUsers));
         localStorage.setItem("kairo_active_session", normalizedEmail);
-        localStorage.setItem("kairo_orders", JSON.stringify([]));
-        localStorage.removeItem("kairo_cart_storage");
-        localStorage.removeItem("kairo_wishlist_storage");
-        useCartStore.getState().clearCart();
-        useWishlistStore.getState().clearWishlist();
+        localStorage.setItem("kairo_orders", JSON.stringify(initialOrders));
       } catch (e) {
         console.error(e);
       }

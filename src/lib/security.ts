@@ -160,6 +160,39 @@ export function validatePassword(password: string): { isValid: boolean; valid: b
 }
 
 /**
+ * Validates Egyptian Mobile Number strictly:
+ * Must be an official Egyptian carrier (Vodafone: 010, Orange: 012, Etisalat: 011, WE: 015)
+ * Exactly 11 digits when starting with 01X, or 10 digits without leading zero, or +201X with 12 characters.
+ */
+export function validateEgyptianPhone(phone: string): { isValid: boolean; normalized?: string; message?: string } {
+  if (!phone || typeof phone !== "string") {
+    return { isValid: false, message: "Please enter a valid mobile number." };
+  }
+
+  // Remove spaces, hyphens, parentheses, dots
+  const clean = phone.replace(/[\s\-\(\)\.]/g, "");
+
+  // Strict regex:
+  // Starts with optional (+20, 0020, 20)
+  // Followed by 01[0125] then exactly 8 digits
+  // OR 1[0125] then exactly 8 digits (if without leading 0)
+  const egRegex = /^(?:(?:\+20|0020|20)?0?)(1[0125]\d{8})$/;
+  const match = clean.match(egRegex);
+
+  if (!match) {
+    return {
+      isValid: false,
+      message: "Please enter a valid 11-digit Egyptian mobile number (e.g. 01012345678, 011..., 012..., 015...).",
+    };
+  }
+
+  const coreNumber = match[1]; // 10 digits starting with 1[0125]
+  const normalized = `0${coreNumber}`; // Canonical 11-digit Egyptian format: 01X XXXXXXXX
+
+  return { isValid: true, normalized };
+}
+
+/**
  * Validates RFC-compliant email address format
  */
 export function validateEmail(email: string): boolean {
@@ -364,8 +397,7 @@ export interface AdminPinVerificationResult {
  */
 export async function verifyAdminPinWithServer(
   email: string,
-  pin: string,
-  _deprecatedHash?: string
+  pin: string
 ): Promise<AdminPinVerificationResult> {
   try {
     const res = await fetch("/api/admin/verify-pin", {

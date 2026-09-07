@@ -1,0 +1,192 @@
+[
+  {
+    "id": "KRO-9077",
+    "date": "2026-09-07",
+    "items": [
+      {
+        "id": "jjk-01",
+        "volumeId": "jjk-01",
+        "title": "Ryomen Sukuna",
+        "seriesTitle": "Jujutsu Kaisen",
+        "volumeNumber": 1,
+        "coverImage": "https://dw9to29mmj727.cloudfront.net/products/1974710025.jpg",
+        "format": "Manga",
+        "price": 11.99,
+        "quantity": 1
+      },
+      {
+        "id": "jjk-02",
+        "volumeId": "jjk-02",
+        "title": "Fearsome Womb",
+        "seriesTitle": "Jujutsu Kaisen",
+        "volumeNumber": 2,
+        "coverImage": "https://dw9to29mmj727.cloudfront.net/products/1974710033.jpg",
+        "format": "Manga",
+        "price": 11.99,
+        "quantity": 1
+      },
+      {
+        "id": "jjk-03",
+        "volumeId": "jjk-03",
+        "title": "Young Fish and Reverse Punishment",
+        "seriesTitle": "Jujutsu Kaisen",
+        "volumeNumber": 3,
+        "coverImage": "https://dw9to29mmj727.cloudfront.net/products/1974710041.jpg",
+        "format": "Manga",
+        "price": 11.99,
+        "quantity": 1
+      }
+    ],
+    "subtotal": 35.97,
+    "shippingCost": 50,
+    "discountAmount": 0,
+    "total": 85.97,
+    "status": "Confirmed",
+    "paymentMethod": "cash",
+    "paymentStatus": "Pending Collection",
+    "customerName": "Karim El-Sayed",
+    "customerPhone": "01002345678",
+    "customerEmail": "karim@kairo.archive",
+    "customerAddress": "Al Motamayez District, 6th of October City, Giza, Egypt",
+    "customerGovernorate": "Giza / 6th of October",
+    "timeline": [
+      "Order Placed",
+      "Confirmed",
+      "Preparing Dispatch"
+    ],
+    "trackingNumber": "EG-OCT-22394-CAI",
+    "courier": "Egypt Nationwide Tracked Courier",
+    "estimatedDelivery": "24-48h (Giza / 6th of October)",
+    "createdAt": 1788821555159,
+    "updatedAt": 1788821555159
+  },
+  {
+    "id": "KRO-7044",
+    "date": "2026-09-07",
+    "items": [
+      {
+        "id": "vol-1788773755257-1788773789618",
+        "volumeId": "vol-1788773755257",
+        "title": "111111111111111111111",
+        "seriesTitle": "Jujutsu Kaisen",
+        "coverImage": "https://images-na.ssl-images-amazon.com/images/P/1974700526.01._SX700_SCLZZZZZZZ_.jpg",
+        "price": 11.99,
+        "quantity": 1,
+        "volumeNumber": 1,
+        "format": "Manga"
+      }
+    ],
+    "subtotal": 11.99,
+    "shippingCost": 65,
+    "total": 76.99,
+    "status": "Delivered",
+    "paymentMethod": "cash",
+    "paymentStatus": "Verified & Paid",
+    "customerName": "OSAMA",
+    "customerPhone": "+20 100 000 0000",
+    "customerEmail": "osamahamad2681@gmail.com",
+    "customerAddress": "Central Archival Hub, Cairo",
+    "customerGovernorate": "Cairo",
+    "timeline": [
+      "Confirmed",
+      "Preparing"
+    ],
+    "trackingNumber": "EG-OCT-69152-CAI",
+    "trackingUrl": "",
+    "courier": "Egypt Nationwide Courier (All Governorates)",
+    "estimatedDelivery": "2–3 Business Days (All Governorates)",
+    "createdAt": 1788815680922,
+    "updatedAt": 1788815737719
+  },
+  {
+    "id": "KRO-2213",
+    "date": "2026-09-07",
+    "items": [
+      {
+        "id": "dandadan-01",
+        "volumeId": "dandadan-01",
+        "title": "That's How Love Begins, Ya Know!",
+        "seriesTitle": "Dandadan",
+        "volumeNumber": 1,
+        "coverImage": "https://dw9to29mmj727.cloudfront.net/products/1974734633.jpg",
+        "format": "Manga",
+        "price": 11.99,
+        "quantity": 1
+      },
+      {
+        "id": "frieren-01",
+        "volumeId": "frieren-01",
+        "title": "Journey's End",
+        "seriesTitle": "Frieren: Beyond Journey's End",
+        "volumeNumber": 1,
+        "coverImage": "https://dw9to29mmj727.cloudfront.net/products/1974725766.jpg",
+        "format": "Manga",
+        "price": 14.99,
+        "quantity": 1
+      }
+    ],
+    "subtotal": 26.98,
+    "shippingCost": 50,
+    "discountAmount": 0,
+    "total": 76.98,
+    "status": "Shipped",
+    "paymentMethod": "cash",
+    "paymentStatus": "Verified & Paid",
+    "customerName": "OSAMA",
+    "customerPhone": "01142520095",
+    "customerEmail": "osamahamad2681@gmail.com",
+    "customerAddress": "Central Archival Hub, Cairo",
+    "customerGovernorate": "Cairo",
+    "timeline": [
+      "Order Placed",
+      "Confirmed",
+      "Preparing Dispatch"
+    ],
+    "trackingNumber": "EG-OCT-65252-CAI",
+    "trackingUrl": "https://github.com/Osama2214/-KAIRO",
+    "courier": "Egypt Nationwide Tracked Courier",
+    "estimatedDelivery": "24-48h (Cairo)",
+    "createdAt": 1788815353427,
+    "updatedAt": 1788816075873
+  },
+  {
+    "id": "KRO-2788",
+    "date": "2026-09-07",
+    "items": [
+      {
+        "id": "fragrant-flower-01-1788779342154",
+        "volumeId": "fragrant-flower-01",
+        "title": "The Fragrant Flower Blooms With Dignity Vol. 01",
+        "seriesTitle": "The Fragrant Flower Blooms With Dignity",
+        "coverImage": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx140475-QEGtrmdvbpOv.jpg",
+        "price": 12.99,
+        "quantity": 1,
+        "volumeNumber": 1,
+        "format": "Manga"
+      }
+    ],
+    "subtotal": 12.99,
+    "shippingCost": 50,
+    "total": 62.99,
+    "status": "Processing",
+    "paymentMethod": "wallet",
+    "paymentStatus": "Verified & Paid",
+    "paymentSenderDetail": "+201142520095",
+    "customerName": "OSAMA",
+    "customerPhone": "+20 100 000 0000",
+    "customerEmail": "osamahamad2681@gmail.com",
+    "customerAddress": "Central Archival Hub, Cairo",
+    "customerGovernorate": "Cairo",
+    "timeline": [
+      "Order Placed",
+      "Pending Payment Verification"
+    ],
+    "trackingNumber": "EG-OCT-48513-CAI",
+    "trackingUrl": "",
+    "courier": "Egypt Nationwide Tracked Courier",
+    "estimatedDelivery": "24-48h (Cairo)",
+    "createdAt": 1788815236779,
+    "expiresAt": 1788944836779,
+    "updatedAt": 1788815236779
+  }
+]

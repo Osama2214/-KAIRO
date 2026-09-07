@@ -24,22 +24,14 @@ export function AdminLoginOverlay() {
   const { currentUser, login, logout, loginDemo, isLoading } = useAuthStore();
   const loginAdmin = useStorefrontStore((state) => state.loginAdmin);
   const loginAdminWithToken = useStorefrontStore((state) => state.loginAdminWithToken);
-  const adminPinHash = useStorefrontStore((state) => state.adminPinHash);
   const isAuthorizedAdmin = useStorefrontStore((state) => state.isAuthorizedAdmin);
 
   const isCurrentAuthorized = currentUser ? isAuthorizedAdmin(currentUser.email) : false;
 
   // Step state: "account" (Step 1) or "pin" (Step 2)
-  // Safely initialize to "account" and synchronize via useEffect to prevent SSR/Client hydration divergence
-  const [step, setStep] = useState<"account" | "pin">("account");
-
-  useEffect(() => {
-    if (currentUser && isCurrentAuthorized) {
-      setStep("pin");
-    } else {
-      setStep("account");
-    }
-  }, [currentUser, isCurrentAuthorized]);
+  const [userSelectedStep, setUserSelectedStep] = useState<"account" | "pin" | null>(null);
+  const step = userSelectedStep ?? (currentUser && isCurrentAuthorized ? "pin" : "account");
+  const setStep = (s: "account" | "pin") => setUserSelectedStep(s);
 
   // Account form fields
   const [email, setEmail] = useState("");

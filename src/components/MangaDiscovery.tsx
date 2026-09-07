@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search, ArrowRight, Heart } from "lucide-react";
@@ -11,10 +11,14 @@ import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
 import { useUIStore } from "@/store/useUIStore";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export function MangaDiscovery() {
   const router = useRouter();
+  const { t, locale, isRTL } = useTranslation();
+  const isArabic = locale === "ar";
   const mangaDiscoveryConfig = useStorefrontStore((state) => state.mangaDiscoveryConfig);
+  const mangaDiscoveryArabicConfig = useStorefrontStore((state) => state.mangaDiscoveryArabicConfig);
   const storeVolumes = useStorefrontStore((state) => state.volumes);
   const addItem = useCartStore((state) => state.addItem);
   const { toggleWishlist, isInWishlist } = useWishlistStore();
@@ -22,19 +26,25 @@ export function MangaDiscovery() {
   const { openCart } = useUIStore();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState<"POPULAR" | "TOP_RATED" | "BEST_SELLERS" | "RECENTLY_ADDED">("POPULAR");
+  const [userSelectedTab, setUserSelectedTab] = useState<"POPULAR" | "TOP_RATED" | "BEST_SELLERS" | "RECENTLY_ADDED" | null>(null);
+  const activeTab = userSelectedTab ?? mangaDiscoveryConfig?.defaultTab ?? "POPULAR";
+  const setActiveTab = (tab: "POPULAR" | "TOP_RATED" | "BEST_SELLERS" | "RECENTLY_ADDED") => setUserSelectedTab(tab);
 
-  useEffect(() => {
-    if (mangaDiscoveryConfig?.defaultTab) {
-      setActiveTab(mangaDiscoveryConfig.defaultTab);
-    }
-  }, [mangaDiscoveryConfig?.defaultTab]);
-
-  const badgeText = mounted && mangaDiscoveryConfig?.badgeText ? mangaDiscoveryConfig.badgeText : "INSTANT ARCHIVAL LOOKUP";
-  const title = mounted && mangaDiscoveryConfig?.title ? mangaDiscoveryConfig.title : "FIND YOUR NEXT MANGA";
-  const description = mounted && mangaDiscoveryConfig?.description ? mangaDiscoveryConfig.description : "Query across titles, authors, genres, or ISBN registry.";
-  const searchPlaceholder = mounted && mangaDiscoveryConfig?.searchPlaceholder ? mangaDiscoveryConfig.searchPlaceholder : "Search manga, author, or series... (e.g. Eiichiro Oda, Dark Fantasy, Solo Leveling)";
-  const catalogLinkText = mounted && mangaDiscoveryConfig?.catalogLinkText ? mangaDiscoveryConfig.catalogLinkText : "GO TO COMPLETE MANGA CATALOG";
+  const badgeText = isArabic
+    ? (mangaDiscoveryArabicConfig?.badgeText || "بحث سريع في الأرشيف")
+    : (mounted && mangaDiscoveryConfig?.badgeText ? mangaDiscoveryConfig.badgeText : "INSTANT ARCHIVAL LOOKUP");
+  const title = isArabic
+    ? (mangaDiscoveryArabicConfig?.title || "ابحث عن مجلدك التالي")
+    : (mounted && mangaDiscoveryConfig?.title ? mangaDiscoveryConfig.title : "FIND YOUR NEXT MANGA");
+  const description = isArabic
+    ? (mangaDiscoveryArabicConfig?.description || "ابحث بالعناوين أو المؤلفين أو التصنيفات أو رقم التسجيل.")
+    : (mounted && mangaDiscoveryConfig?.description ? mangaDiscoveryConfig.description : "Query across titles, authors, genres, or ISBN registry.");
+  const searchPlaceholder = isArabic
+    ? (mangaDiscoveryArabicConfig?.searchPlaceholder || "ابحث عن مانجا أو مؤلف أو سلسلة...")
+    : (mounted && mangaDiscoveryConfig?.searchPlaceholder ? mangaDiscoveryConfig.searchPlaceholder : "Search manga, author, or series... (e.g. Eiichiro Oda, Dark Fantasy, Solo Leveling)");
+  const catalogLinkText = isArabic
+    ? (mangaDiscoveryArabicConfig?.catalogLinkText || "الانتقال إلى الكتالوج الكامل")
+    : (mounted && mangaDiscoveryConfig?.catalogLinkText ? mangaDiscoveryConfig.catalogLinkText : "GO TO COMPLETE MANGA CATALOG");
   const displayCount = mangaDiscoveryConfig?.displayCount || 4;
 
   const handleCardClick = (volumeId: string) => {
@@ -106,7 +116,7 @@ export function MangaDiscovery() {
                 onClick={() => setSearchTerm("")}
                 className="mr-4 text-xs font-mono text-text-muted hover:text-paper"
               >
-                RESET
+                {isArabic ? "مسح" : "RESET"}
               </button>
             )}
           </div>
@@ -115,10 +125,10 @@ export function MangaDiscovery() {
         {/* Tabs Below Search */}
         <div className="flex justify-center items-center gap-2 sm:gap-3 flex-wrap mb-12">
           {[
-            { id: "POPULAR" as const, label: "POPULAR" },
-            { id: "TOP_RATED" as const, label: "TOP RATED" },
-            { id: "BEST_SELLERS" as const, label: "BEST SELLERS" },
-            { id: "RECENTLY_ADDED" as const, label: "RECENTLY ADDED" },
+            { id: "POPULAR" as const, label: isArabic ? "الأكثر شعبية" : "POPULAR" },
+            { id: "TOP_RATED" as const, label: isArabic ? "الأعلى تقييماً" : "TOP RATED" },
+            { id: "BEST_SELLERS" as const, label: isArabic ? "الأكثر مبيعاً" : "BEST SELLERS" },
+            { id: "RECENTLY_ADDED" as const, label: isArabic ? "وصل حديثاً" : "RECENTLY ADDED" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -167,11 +177,11 @@ export function MangaDiscovery() {
                 />
                 <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 pointer-events-none z-10">
                   <span className="px-2 py-0.5 rounded-xs bg-ink/90 text-[9px] font-mono tracking-wider text-gold border border-ink-border">
-                    VOL. {volume.volumeNumber < 10 ? `0${volume.volumeNumber}` : volume.volumeNumber}
+                    {isArabic ? "المجلد" : "VOL."} {volume.volumeNumber < 10 ? `0${volume.volumeNumber}` : volume.volumeNumber}
                   </span>
                   {volume.stock <= 0 && (
                     <span className="px-2 py-0.5 rounded-xs bg-red-950/90 border border-red-800/80 text-[8px] font-mono tracking-wider text-red-400 font-bold uppercase">
-                      OUT OF STOCK
+                      {isArabic ? "نفد" : "OUT OF STOCK"}
                     </span>
                   )}
                 </div>
@@ -185,9 +195,9 @@ export function MangaDiscovery() {
                   className={`absolute top-2.5 right-2.5 p-1.5 rounded-xs backdrop-blur-md border transition-all z-10 active:scale-90 ${
                     mounted && isInWishlist(volume.id)
                       ? "bg-ink/90 border-vermilion text-vermilion"
-                      : "bg-ink/80 border-ink-border text-paper-muted hover:text-gold hover:border-gold/60 opacity-0 group-hover:opacity-100"
+                      : "bg-ink/80 border-ink-border text-paper-muted hover:text-gold hover:border-gold/60 opacity-80 sm:opacity-0 sm:group-hover:opacity-100"
                   }`}
-                  title={mounted && isInWishlist(volume.id) ? "Saved in Wishlist" : "Save to Wishlist"}
+                  title={mounted && isInWishlist(volume.id) ? (isArabic ? "محفوظ في المفضلة" : "Saved in Wishlist") : (isArabic ? "إضافة للمفضلة" : "Save to Wishlist")}
                   aria-label="Wishlist"
                 >
                   <Heart
@@ -207,14 +217,14 @@ export function MangaDiscovery() {
                   <h3 className="text-xs font-bold text-paper tracking-wide group-hover:text-gold transition-colors line-clamp-1 mt-1 block">
                     {volume.title}
                   </h3>
-                  <p className="text-[10px] text-text-muted mt-0.5">By {volume.author}</p>
+                  <p className="text-[10px] text-text-muted mt-0.5">{isArabic ? "تأليف" : "By"} {volume.author}</p>
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-ink-border/50 flex items-center justify-between font-mono text-xs">
                   <span className="text-paper font-bold">{formatPrice(volume.price)}</span>
                   {volume.stock <= 0 ? (
                     <span className="px-2 py-1 bg-ink-surface/80 border border-ink-border text-text-muted text-[9px] font-mono uppercase rounded-xs">
-                      OUT OF STOCK
+                      {isArabic ? "نفد" : "OUT OF STOCK"}
                     </span>
                   ) : (
                     <button
@@ -227,7 +237,7 @@ export function MangaDiscovery() {
                       }}
                       className="px-3 py-1 bg-ink border border-ink-border hover:border-vermilion hover:bg-vermilion hover:text-white text-[10px] font-bold uppercase transition-colors rounded-xs z-10 active:scale-95"
                     >
-                      + ADD
+                      {isArabic ? "+ أضف" : "+ ADD"}
                     </button>
                   )}
                 </div>
@@ -243,7 +253,7 @@ export function MangaDiscovery() {
             className="inline-flex items-center gap-2 text-xs font-mono tracking-widest text-text-muted hover:text-gold transition-colors"
           >
             <span>{catalogLinkText}</span>
-            <ArrowRight strokeWidth={1.4} className="w-3.5 h-3.5" />
+            <ArrowRight strokeWidth={1.4} className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
           </Link>
         </div>
       </div>

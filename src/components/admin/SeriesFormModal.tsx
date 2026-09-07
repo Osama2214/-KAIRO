@@ -5,6 +5,7 @@ import { X, Save, Layers, Plus, Check, Trash2 } from "lucide-react";
 import { Series, GenreInfo } from "@/data/manga";
 import { CustomSelect } from "@/components/CustomSelect";
 import { CustomNumberInput } from "@/components/ui/CustomNumberInput";
+import { ImageUploadInput } from "@/components/ImageUploadInput";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 
@@ -150,7 +151,7 @@ function SeriesFormDialog({
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto overscroll-contain"
     >
-      <div className="relative w-full max-w-2xl bg-ink-surface border border-ink-border rounded-sm shadow-2xl my-8 overflow-hidden">
+      <div className="relative w-full max-w-3xl bg-ink-surface border border-ink-border rounded-sm shadow-2xl my-8 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink">
           <div className="flex items-center gap-2.5">
@@ -425,28 +426,26 @@ function SeriesFormDialog({
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-text-muted mb-1">Banner Artwork URL</label>
-              <input
-                type="url"
-                value={formData.bannerImage}
-                onChange={(e) => setFormData({ ...formData, bannerImage: e.target.value })}
-                placeholder="https://..."
-                className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
-              />
-            </div>
+          <div className="space-y-4">
+            <ImageUploadInput
+              label="Banner Artwork"
+              value={formData.bannerImage}
+              onChange={(url) => setFormData({ ...formData, bannerImage: url })}
+              placeholder="https://... or upload local banner from PC (Rec: 1920 × 800 px)"
+              aspectRatio="banner"
+              recommendedDimensions="1920 × 800 px (16:9 / 2.4:1 Header)"
+              helpText="Panoramic header artwork for series page"
+            />
 
-            <div>
-              <label className="block text-text-muted mb-1">Featured Cover URL</label>
-              <input
-                type="url"
-                value={formData.featuredImage}
-                onChange={(e) => setFormData({ ...formData, featuredImage: e.target.value })}
-                placeholder="https://..."
-                className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
-              />
-            </div>
+            <ImageUploadInput
+              label="Featured Cover / Poster"
+              value={formData.featuredImage}
+              onChange={(url) => setFormData({ ...formData, featuredImage: url })}
+              placeholder="https://... or upload local cover from PC (Rec: 800 × 1200 px)"
+              aspectRatio="cover"
+              recommendedDimensions="800 × 1200 px (3:4 or 2:3 Poster)"
+              helpText="Vertical poster for catalog cards"
+            />
           </div>
 
           {/* Footer Actions */}
