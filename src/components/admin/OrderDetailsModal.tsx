@@ -194,10 +194,10 @@ function OrderDetailsDialog({
                   <button
                     type="button"
                     onClick={handleConfirmPaid}
-                    className="px-3.5 py-1.5 bg-gold hover:bg-gold-light text-ink font-mono font-bold text-xs uppercase tracking-wider rounded-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-gold/25 ring-2 ring-gold/60 hover:ring-gold hover:scale-105 active:scale-95"
+                    className="px-2.5 py-1 bg-gold hover:bg-gold-light text-ink font-mono font-bold text-[10px] uppercase tracking-wider rounded-xs transition-all inline-flex items-center gap-1 cursor-pointer border border-gold shadow-xs hover:brightness-105 active:scale-95"
                     title="Confirm payment received and mark verified"
                   >
-                    <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+                    <CheckCircle2 className="w-3 h-3 stroke-[2.5]" />
                     <span>Confirm Paid</span>
                   </button>
                 )}
