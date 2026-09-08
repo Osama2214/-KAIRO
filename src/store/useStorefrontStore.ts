@@ -834,6 +834,8 @@ export const useStorefrontStore = create<StorefrontState>()(
         }
         try {
           localStorage.removeItem("kairo_storefront_cms_v3");
+          // Notify other open tabs to immediately remove curator-only UI.
+          localStorage.setItem("kairo_admin_logout", String(Date.now()));
         } catch {}
       },
 
@@ -1016,10 +1018,6 @@ export const useStorefrontStore = create<StorefrontState>()(
         trendingArabicConfig: state.trendingArabicConfig,
         genreBentoArabicConfig: state.genreBentoArabicConfig,
         arabicLanguageEnabled: false,
-        adminPinHash: state.adminPinHash,
-        isAdminAuthenticated: state.isAdminAuthenticated,
-        adminSessionToken: state.adminSessionToken,
-        isVisualEditorActive: state.isVisualEditorActive,
       }),
       merge: (persistedState: unknown, currentState: StorefrontState): StorefrontState => {
         const persisted = persistedState as Partial<StorefrontState> | undefined;
@@ -1085,15 +1083,6 @@ export const useStorefrontStore = create<StorefrontState>()(
             ...persisted.genreBentoConfig,
             description: desc,
           };
-        }
-        if (typeof persisted?.isAdminAuthenticated === "boolean") {
-          merged.isAdminAuthenticated = persisted.isAdminAuthenticated;
-        }
-        if (typeof persisted?.isVisualEditorActive === "boolean") {
-          merged.isVisualEditorActive = persisted.isVisualEditorActive;
-        }
-        if (persisted?.adminSessionToken !== undefined) {
-          merged.adminSessionToken = persisted.adminSessionToken;
         }
         if (persisted?.shippingConfig) {
           merged.shippingConfig = {

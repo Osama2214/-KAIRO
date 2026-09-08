@@ -120,6 +120,10 @@ export function LiveVisualEditor() {
     if (!isAdminAuthenticated) {
       return;
     }
+    // Do not reuse a previous verified result when a curator signs in again.
+    void Promise.resolve().then(() => {
+      if (active) setSessionChecked(false);
+    });
     fetch("/api/admin/verify-session", { method: "POST", cache: "no-store" })
       .then((response) => response.json())
       .then((payload) => {
@@ -132,12 +136,21 @@ export function LiveVisualEditor() {
       })
       .catch(() => {
         if (active) logoutAdmin();
-      })
-      .finally(() => {
-        if (active) setSessionChecked(true);
       });
     return () => { active = false; };
   }, [isAdminAuthenticated, logoutAdmin]);
+
+  // Logging out of the curator console in any other tab also hides this
+  // toolbar immediately in the current tab.
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === "kairo_admin_logout" && useStorefrontStore.getState().isAdminAuthenticated) {
+        logoutAdmin();
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [logoutAdmin]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
