@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
-import { KeyRound, ShieldCheck, Sparkles } from "lucide-react";
+import { KeyRound, ShieldCheck } from "lucide-react";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { verifyAdminPinWithServer } from "@/lib/security";
 
@@ -15,7 +15,7 @@ export function AdminLoginOverlay() {
   const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pin.trim()) {
-      setPinError("يرجى إدخال كود الـ PIN السري");
+      setPinError("PIN is required.");
       return;
     }
 
@@ -23,25 +23,23 @@ export function AdminLoginOverlay() {
     setPinError("");
 
     try {
-      // Direct verification via server API with authorized admin identity
       const res = await verifyAdminPinWithServer("admin@kairo.archive", pin.trim());
       setIsSubmittingPin(false);
 
       if (res.locked) {
-        setPinError(res.message || "تم قفل لوحة التحكم مؤقتاً بسبب المحاولات الخاطئة.");
+        setPinError(res.message || "Console locked due to too many failed attempts.");
         return;
       }
 
       if (!res.success) {
-        setPinError(res.message || "كود الـ PIN غير صحيح، تأكد من الكود وحاول مجدداً.");
+        setPinError(res.message || "Incorrect PIN. Please try again.");
         return;
       }
 
-      // Success! Sign in directly to console
       loginAdmin(pin.trim(), "admin@kairo.archive");
     } catch {
       setIsSubmittingPin(false);
-      setPinError("حدث خطأ أثناء الاتصال بالسيرفر للتحقق من الـ PIN.");
+      setPinError("Server error while verifying PIN. Please try again.");
     }
   };
 
@@ -60,14 +58,14 @@ export function AdminLoginOverlay() {
             KAIRO ARCHIVE CONSOLE
           </span>
           <h1 className="text-xl font-bold font-sans text-paper uppercase tracking-wider">
-            لوحة تحكم الإدارة
+            Curator Access
           </h1>
           <p className="text-xs text-text-muted mt-1.5 font-mono">
-            أدخل كود الـ PIN الرئيسي للدخول المباشر
+            Enter your master PIN to access the console
           </p>
         </div>
 
-        {/* PIN ONLY FORM */}
+        {/* PIN Form */}
         <form onSubmit={handlePinSubmit} className="space-y-5">
           <div>
             <div className="relative">
@@ -80,7 +78,7 @@ export function AdminLoginOverlay() {
                   setPin(e.target.value);
                   setPinError("");
                 }}
-                placeholder="أدخل كود الـ PIN هنا..."
+                placeholder="Enter PIN..."
                 className="w-full bg-ink border border-ink-border focus:border-gold px-10 py-3.5 text-center text-lg font-mono tracking-[0.3em] text-paper rounded-sm outline-none transition-colors"
                 autoFocus
               />
@@ -98,16 +96,9 @@ export function AdminLoginOverlay() {
             className="w-full py-3.5 bg-gold hover:bg-gold-muted disabled:opacity-50 text-ink font-mono text-xs font-bold uppercase tracking-widest rounded-sm transition-all duration-200 cursor-pointer shadow-lg shadow-gold/15 active:scale-[0.99] flex items-center justify-center gap-2"
           >
             <ShieldCheck className="w-4 h-4" />
-            <span>{isSubmittingPin ? "جاري التحقق من السيرفر..." : "دخول لوحة التحكم (Access Console)"}</span>
+            <span>{isSubmittingPin ? "Verifying..." : "Access Console"}</span>
           </button>
         </form>
-
-        <div className="mt-6 pt-4 border-t border-ink-border/50 text-center">
-          <span className="text-[10px] font-mono text-text-muted tracking-wider uppercase flex items-center justify-center gap-1.5">
-            <Sparkles className="w-3 h-3 text-gold" />
-            <span>محمي بنظام التشفير المركزي — Neon DB</span>
-          </span>
-        </div>
       </div>
     </div>
   );
