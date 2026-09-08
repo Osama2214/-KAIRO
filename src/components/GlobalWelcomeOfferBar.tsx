@@ -83,31 +83,8 @@ export function GlobalWelcomeOfferBar() {
 
   const pad = (n: number) => String(n).padStart(2, "0");
 
-  // If user dismissed the top bar, show a compact floating gold privilege pill in bottom-right
-  if (isDismissed) {
-    return (
-      <aside
-        aria-label="Floating Welcome Offer"
-        className="fixed bottom-5 right-5 z-40 animate-in fade-in slide-in-from-bottom-3 duration-300"
-      >
-        <button
-          type="button"
-          onClick={() => setIsDismissed(false)}
-          className="flex items-center gap-2.5 px-3.5 py-2 bg-ink-surface/95 hover:bg-ink border border-gold/50 hover:border-gold rounded-full shadow-[0_8px_30px_rgba(212,175,55,0.25)] backdrop-blur-md text-gold text-xs font-mono transition-all cursor-pointer group"
-          title="Open your exclusive welcome offer"
-        >
-          <Sparkles className="w-3.5 h-3.5 animate-pulse text-gold" />
-          <span className="font-bold tracking-wider">{voucherCode}</span>
-          <span className="text-paper text-[11px] font-sans font-bold">• 20% OFF</span>
-          {timeLeft && (
-            <span className="text-text-muted text-[10px] hidden sm:inline">
-              ({pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)})
-            </span>
-          )}
-        </button>
-      </aside>
-    );
-  }
+  // User dismissed — hide completely, no floating pill
+  if (isDismissed) return null;
 
   return (
     <aside

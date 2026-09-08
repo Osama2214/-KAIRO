@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, ShoppingBag, User, Menu, X, Heart, Sparkles, Globe, ArrowRight } from "lucide-react";
@@ -27,6 +27,18 @@ export function Navbar() {
   const totalWishlistCount = useWishlistStore((state) => state.getTotalItems());
   const { openCart, openSearch } = useUIStore();
   const { hasOffer: hasWelcomeOffer, currentUser } = useWelcomeOffer();
+  const headerRef = useRef<HTMLElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+
+  useEffect(() => {
+    const measure = () => {
+      if (headerRef.current) setHeaderHeight(headerRef.current.offsetHeight);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (headerRef.current) ro.observe(headerRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -162,6 +174,7 @@ export function Navbar() {
   return (
     <>
       <header
+        ref={headerRef}
         className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 ${
           isScrolled
             ? "bg-ink/85 backdrop-blur-md border-b border-ink-border/80 shadow-2xl"
@@ -319,6 +332,9 @@ export function Navbar() {
           </div>
         </div>
       </header>
+
+      {/* Dynamic spacer — always matches the fixed header height */}
+      <div style={{ height: headerHeight }} aria-hidden="true" />
 
       {/* Mobile Drawer Menu with Smooth Touch Layout and Safe-Area Support */}
       {mobileMenuOpen && (
