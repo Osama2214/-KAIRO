@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     response.cookies.set("kairo_patron_session", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       path: "/",
       maxAge: 7 * 24 * 60 * 60,
     });
@@ -85,3 +85,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, message: "Failed to authenticate." }, { status: 500 });
   }
 }
+

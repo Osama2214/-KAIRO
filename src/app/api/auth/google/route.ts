@@ -15,10 +15,11 @@ export async function POST(request: Request) {
     const token = createVerifiedPatronToken(String(uid).slice(0, 80), String(profile.email));
     if (!token) return NextResponse.json({ success: false }, { status: 503 });
     const response = NextResponse.json({ success: true, profile: { email: profile.email, name: profile.name, picture: profile.picture } });
-    response.cookies.set("kairo_patron_session", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict", path: "/", maxAge: 7 * 24 * 60 * 60 });
+    response.cookies.set("kairo_patron_session", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 7 * 24 * 60 * 60 });
     return response;
   } catch (error) {
     console.error("Google sign-in verification error:", error);
     return NextResponse.json({ success: false }, { status: 503 });
   }
 }
+
