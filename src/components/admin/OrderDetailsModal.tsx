@@ -143,26 +143,26 @@ function OrderDetailsDialog({
       data-lenis-prevent
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto overscroll-contain"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto overscroll-contain"
     >
-      <div className="bg-ink-surface border border-ink-border rounded-sm w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+      <div className="bg-ink-surface border border-ink-border rounded-sm w-full max-w-2xl max-h-[94vh] sm:max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink">
-          <div className="flex items-center gap-3">
-            <Package className="w-5 h-5 text-gold" />
-            <div>
-              <h2 className="font-serif text-lg text-paper font-bold flex items-center gap-2">
-                Order #{order.id}
-                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${getStatusBadgeClass(selectedStatus)}`}>
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-ink-border bg-ink">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <Package className="w-4 h-4 sm:w-5 sm:h-5 text-gold shrink-0" />
+            <div className="min-w-0">
+              <h2 className="font-serif text-base sm:text-lg text-paper font-bold flex items-center gap-2">
+                <span>Order #{order.id}</span>
+                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border shrink-0 ${getStatusBadgeClass(selectedStatus)}`}>
                   {selectedStatus}
                 </span>
               </h2>
-              <p className="text-xs text-text-muted font-mono">
-                Placed on {new Date(order.date).toLocaleDateString()}
+              <p className="text-[11px] sm:text-xs text-text-muted font-mono">
+                {new Date(order.date).toLocaleDateString()}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={() => printCustomerInvoice(order, customer)}
@@ -170,7 +170,8 @@ function OrderDetailsDialog({
               className="px-2.5 py-1 text-gold bg-gold/10 hover:bg-gold hover:text-ink border border-gold/30 rounded-xs transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-mono font-bold"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Print Slip</span>
+              <span className="hidden sm:inline">Print Slip</span>
+              <span className="sm:hidden">Slip</span>
             </button>
             <button
               onClick={onClose}
@@ -184,7 +185,7 @@ function OrderDetailsDialog({
         {/* Content */}
         <div
           data-lenis-prevent
-          className="p-6 overflow-y-auto space-y-5 flex-1 text-xs overscroll-contain"
+          className="p-3.5 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 flex-1 text-xs overscroll-contain"
         >
           {/* 36-Hour Payment Expiration Hold Alert */}
           {isElectronic && isPendingVerification && (
@@ -481,21 +482,21 @@ function OrderDetailsDialog({
         </div>
 
         {/* Footer */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-6 py-3 border-t border-ink-border bg-ink">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 px-4 sm:px-6 py-3 border-t border-ink-border bg-ink">
           <button
             type="button"
             onClick={() => printCustomerInvoice(order, customer)}
             className="px-4 py-2 bg-paper text-ink hover:bg-gold font-mono font-bold text-xs uppercase tracking-wider rounded-sm transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-95"
           >
             <Printer strokeWidth={1.6} className="w-4 h-4 text-ink" />
-            <span>Print Customer Invoice / Packing Slip</span>
+            <span>Print Invoice &amp; Slip</span>
           </button>
           <button
             type="button"
             onClick={onClose}
             className="px-5 py-2 border border-ink-border text-paper hover:bg-ink-elevated rounded-sm uppercase tracking-wider transition-colors cursor-pointer text-xs font-mono text-center"
           >
-            Close Window
+            Close
           </button>
         </div>
       </div>

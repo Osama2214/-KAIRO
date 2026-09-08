@@ -15,7 +15,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 
 export function MangaDiscovery() {
   const router = useRouter();
-  const { t, locale, isRTL } = useTranslation();
+  const { locale, isRTL } = useTranslation();
   const isArabic = locale === "ar";
   const mangaDiscoveryConfig = useStorefrontStore((state) => state.mangaDiscoveryConfig);
   const mangaDiscoveryArabicConfig = useStorefrontStore((state) => state.mangaDiscoveryArabicConfig);
@@ -77,12 +77,12 @@ export function MangaDiscovery() {
   }, [searchTerm, activeTab, storeVolumes, displayCount]);
 
   return (
-    <section className="py-24 px-6 md:px-12 bg-ink border-t border-ink-border/60">
+    <section className="py-14 sm:py-24 px-4 sm:px-8 md:px-12 bg-ink border-t border-ink-border/60">
       <div className="max-w-7xl mx-auto">
         {/* Section Title */}
-        <div className="relative text-center max-w-2xl mx-auto mb-10 space-y-2">
+        <div className="relative text-center max-w-2xl mx-auto mb-6 sm:mb-10 space-y-1.5 sm:space-y-2">
           <div className="inline-flex items-center justify-center gap-2">
-            <span className="text-[11px] font-mono tracking-[0.25em] text-gold uppercase">
+            <span className="text-[10px] sm:text-[11px] font-mono tracking-[0.22em] sm:tracking-[0.25em] text-gold uppercase">
               {badgeText}
             </span>
             <LiveEditButton
@@ -92,29 +92,29 @@ export function MangaDiscovery() {
               size="xs"
             />
           </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight uppercase text-paper font-sans">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight uppercase text-paper font-sans">
             {title}
           </h2>
-          <p className="text-xs text-text-muted">
+          <p className="text-[11px] sm:text-xs text-text-muted">
             {description}
           </p>
         </div>
 
-        {/* Large Search Bar */}
-        <div className="max-w-3xl mx-auto relative mb-6">
-          <div className="relative flex items-center bg-ink-surface border border-ink-border rounded-sm shadow-2xl focus-within:border-gold transition-colors">
-            <Search strokeWidth={1.5} className="w-5 h-5 text-gold ml-5 shrink-0" />
+        {/* Search Bar */}
+        <div className="max-w-3xl mx-auto relative mb-5 sm:mb-6">
+          <div className="relative flex items-center bg-ink-surface border border-ink-border rounded-sm shadow-2xl focus-within:border-gold transition-colors px-3 sm:px-4">
+            <Search strokeWidth={1.5} className="w-4 h-4 sm:w-5 sm:h-5 text-gold shrink-0 rtl:ml-2 rtl:mr-0" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={searchPlaceholder}
-              className="w-full py-4.5 px-4 bg-transparent text-paper placeholder-text-muted/60 text-sm focus:outline-none font-sans"
+              className="w-full py-3 sm:py-4.5 px-2.5 sm:px-3 bg-transparent text-paper placeholder-text-muted/60 text-xs sm:text-sm focus:outline-none font-sans"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm("")}
-                className="mr-4 text-xs font-mono text-text-muted hover:text-paper"
+                className="text-[10px] sm:text-xs font-mono text-text-muted hover:text-paper shrink-0 ml-2"
               >
                 {isArabic ? "مسح" : "RESET"}
               </button>
@@ -123,7 +123,7 @@ export function MangaDiscovery() {
         </div>
 
         {/* Tabs Below Search */}
-        <div className="flex justify-center items-center gap-2 sm:gap-3 flex-wrap mb-12">
+        <div className="flex justify-center items-center gap-1.5 sm:gap-3 flex-wrap mb-8 sm:mb-12">
           {[
             { id: "POPULAR" as const, label: isArabic ? "الأكثر شعبية" : "POPULAR" },
             { id: "TOP_RATED" as const, label: isArabic ? "الأعلى تقييماً" : "TOP RATED" },
@@ -133,7 +133,7 @@ export function MangaDiscovery() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-sm text-xs font-mono tracking-widest uppercase transition-all ${
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-sm text-[10px] sm:text-xs font-mono tracking-wider sm:tracking-widest uppercase transition-all ${
                 activeTab === tab.id
                   ? "bg-paper text-ink font-bold shadow-md"
                   : "bg-ink-surface text-text-muted hover:text-paper border border-ink-border"
@@ -144,8 +144,8 @@ export function MangaDiscovery() {
           ))}
         </div>
 
-        {/* 4 Preview Cards Results */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Preview Cards Results (2-column on mobile, 4-column on desktop) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           {filteredItems.map((volume) => (
             <div
               key={volume.id}
@@ -209,21 +209,21 @@ export function MangaDiscovery() {
                 </button>
               </div>
 
-              <div className="p-4 flex flex-col justify-between flex-1">
+              <div className="p-3 sm:p-4 pb-3.5 sm:pb-4 flex flex-col justify-between flex-1">
                 <div>
-                  <span className="text-[10px] font-mono tracking-widest text-gold uppercase block">
+                  <span className="text-[9px] sm:text-[10px] font-mono tracking-widest text-gold uppercase block truncate">
                     {volume.seriesTitle}
                   </span>
-                  <h3 className="text-xs font-bold text-paper tracking-wide group-hover:text-gold transition-colors line-clamp-1 mt-1 block">
+                  <h3 className="text-[11px] sm:text-xs font-bold text-paper tracking-wide group-hover:text-gold transition-colors line-clamp-1 mt-0.5 sm:mt-1 block">
                     {volume.title}
                   </h3>
-                  <p className="text-[10px] text-text-muted mt-0.5">{isArabic ? "تأليف" : "By"} {volume.author}</p>
+                  <p className="text-[9px] sm:text-[10px] text-text-muted mt-0.5 truncate">{isArabic ? "تأليف" : "By"} {volume.author}</p>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-ink-border/50 flex items-center justify-between font-mono text-xs">
+                <div className="mt-3 sm:mt-4 pt-2.5 sm:pt-3 pb-0.5 border-t border-ink-border/50 flex items-center justify-between font-mono text-[11px] sm:text-xs">
                   <span className="text-paper font-bold">{formatPrice(volume.price)}</span>
                   {volume.stock <= 0 ? (
-                    <span className="px-2 py-1 bg-ink-surface/80 border border-ink-border text-text-muted text-[9px] font-mono uppercase rounded-xs">
+                    <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-ink-surface/80 border border-ink-border text-text-muted text-[8px] sm:text-[9px] font-mono uppercase rounded-xs">
                       {isArabic ? "نفد" : "OUT OF STOCK"}
                     </span>
                   ) : (
@@ -235,7 +235,7 @@ export function MangaDiscovery() {
                         addItem(volume, 1);
                         openCart();
                       }}
-                      className="px-3 py-1 bg-ink border border-ink-border hover:border-vermilion hover:bg-vermilion hover:text-white text-[10px] font-bold uppercase transition-colors rounded-xs z-10 active:scale-95"
+                      className="px-2.5 sm:px-3 py-1 bg-ink border border-ink-border hover:border-vermilion hover:bg-vermilion hover:text-white text-[9px] sm:text-[10px] font-bold uppercase transition-colors rounded-xs z-10 active:scale-95"
                     >
                       {isArabic ? "+ أضف" : "+ ADD"}
                     </button>
@@ -247,7 +247,7 @@ export function MangaDiscovery() {
         </div>
 
         {/* Link to full catalog */}
-        <div className="text-center mt-12">
+        <div className="text-center mt-8 sm:mt-12">
           <Link
             href="/manga"
             className="inline-flex items-center gap-2 text-xs font-mono tracking-widest text-text-muted hover:text-gold transition-colors"

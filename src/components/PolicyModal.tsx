@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { useTranslation } from "@/hooks/useTranslation";
-import { useStorefrontStore } from "@/store/useStorefrontStore";
 
 export type PolicyTab = "shipping" | "authenticity" | "privacy" | "terms";
 
@@ -36,8 +35,6 @@ export function PolicyModal({
   useModalScrollLock(isOpen);
   const { locale, isRTL } = useTranslation();
   const isArabic = locale === "ar";
-  const shippingArabicConfig = useStorefrontStore((state) => state.shippingArabicConfig);
-  const editorialArabicConfig = useStorefrontStore((state) => state.editorialArabicConfig);
 
   // Close on Escape key
   useEffect(() => {

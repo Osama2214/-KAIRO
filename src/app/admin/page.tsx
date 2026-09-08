@@ -48,7 +48,7 @@ import { CustomNumberInput } from "@/components/ui/CustomNumberInput";
 import { ImageUploadInput } from "@/components/ImageUploadInput";
 import { useMounted } from "@/store/useWishlistStore";
 import { changeAdminPinWithServer } from "@/lib/security";
-import { EGYPT_GOVERNORATES, DEFAULT_GOVERNORATE_RATES } from "@/data/governorates";
+import { EGYPT_GOVERNORATES, DEFAULT_GOVERNORATE_RATES, EgyptGovernorate } from "@/data/governorates";
 import { printCustomerInvoice } from "@/lib/invoicePrint";
 
 type AdminTab = "overview" | "volumes" | "series" | "cms" | "orders" | "settings";
@@ -185,7 +185,14 @@ export default function AdminPage() {
   const [cmsLanguage, setCmsLanguage] = useState<"en" | "ar">("en");
   const [heroForm, setHeroForm] = useState(heroContent);
   const [announcementForm, setAnnouncementForm] = useState(announcement);
-  const [shippingForm, setShippingForm] = useState(shippingConfig);
+  const [shippingForm, setShippingForm] = useState(() => ({
+    ...shippingConfig,
+    governoratesList: shippingConfig.governoratesList || EGYPT_GOVERNORATES,
+    governorateRates: {
+      ...DEFAULT_GOVERNORATE_RATES,
+      ...(shippingConfig.governorateRates || {}),
+    },
+  }));
   const [editorialForm, setEditorialForm] = useState(editorialConfig);
   const [featuredSeriesForm, setFeaturedSeriesForm] = useState(featuredSeriesConfig);
   const [collectionForm, setCollectionForm] = useState(collectionConfig);
@@ -241,6 +248,10 @@ export default function AdminPage() {
         ...shippingConfig,
         freeShippingEnabled: shippingConfig.freeShippingEnabled ?? true,
         freeShippingThreshold: shippingConfig.freeShippingThreshold ?? 500,
+        governoratesList:
+          shippingConfig.governoratesList && shippingConfig.governoratesList.length > 0
+            ? shippingConfig.governoratesList
+            : EGYPT_GOVERNORATES,
         governorateRates: {
           ...DEFAULT_GOVERNORATE_RATES,
           ...(shippingConfig.governorateRates || {}),
@@ -290,6 +301,81 @@ export default function AdminPage() {
         [govValue]: Math.max(0, isNaN(price) ? 0 : price),
       },
     }));
+  };
+
+  const handleGovNameChange = (index: number, field: "label" | "labelAr" | "badge", value: string) => {
+    setShippingForm((prev) => {
+      const activeList = [...(prev.governoratesList || EGYPT_GOVERNORATES)];
+      if (!activeList[index]) return prev;
+      const current = activeList[index];
+      const oldVal = current.value;
+      const newVal = field === "label" && (!current.value || current.value === current.label) ? value : current.value;
+      const updated: EgyptGovernorate = {
+        ...current,
+        [field]: value,
+        value: newVal,
+      };
+      activeList[index] = updated;
+
+      const rates = { ...(prev.governorateRates || {}) };
+      if (oldVal !== newVal && rates[oldVal] !== undefined) {
+        rates[newVal] = rates[oldVal];
+        delete rates[oldVal];
+      }
+
+      return {
+        ...prev,
+        governoratesList: activeList,
+        governorateRates: rates,
+      };
+    });
+  };
+
+  const handleAddCustomGov = () => {
+    const activeList = shippingForm.governoratesList || EGYPT_GOVERNORATES;
+    const newCount = activeList.length + 1;
+    const newGov: EgyptGovernorate = {
+      value: `Custom Zone ${newCount}`,
+      label: `Custom Zone ${newCount}`,
+      labelAr: `منطقة مخصصة ${newCount}`,
+      defaultRate: shippingForm.standardShippingCost || 65,
+    };
+    const updatedList = [...activeList, newGov];
+    setShippingForm((prev) => ({
+      ...prev,
+      governoratesList: updatedList,
+      governorateRates: {
+        ...(prev.governorateRates || {}),
+        [newGov.value]: newGov.defaultRate,
+      },
+    }));
+    showToast("New custom delivery zone added. You can now edit its name and rate.");
+  };
+
+  const handleDeleteGov = (index: number) => {
+    setShippingForm((prev) => {
+      const activeList = [...(prev.governoratesList || EGYPT_GOVERNORATES)];
+      const removed = activeList.splice(index, 1)[0];
+      const rates = { ...(prev.governorateRates || {}) };
+      if (removed) {
+        delete rates[removed.value];
+      }
+      return {
+        ...prev,
+        governoratesList: activeList,
+        governorateRates: rates,
+      };
+    });
+    showToast("Governorate / delivery zone removed.");
+  };
+
+  const handleResetGovernorates = () => {
+    setShippingForm((prev) => ({
+      ...prev,
+      governoratesList: EGYPT_GOVERNORATES,
+      governorateRates: { ...DEFAULT_GOVERNORATE_RATES },
+    }));
+    showToast("Reset all governorates to 27 official Egyptian governorates.");
   };
 
   const currentGenre = useMemo(() => {
@@ -592,252 +678,259 @@ export default function AdminPage() {
       )}
 
       {/* Top Bar */}
-      <header className="h-16 bg-ink-surface border-b border-ink-border px-6 flex items-center justify-between sticky top-0 z-40">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2 group">
-            <span className="font-serif text-gold text-lg font-bold group-hover:scale-105 transition-transform">
+      <header className="h-14 sm:h-16 bg-ink-surface border-b border-ink-border px-3 sm:px-6 flex items-center justify-between sticky top-0 z-40">
+        <div className="flex items-center gap-2.5 sm:gap-4">
+          <Link href="/" className="flex items-center gap-1.5 sm:gap-2 group">
+            <span className="font-serif text-gold text-base sm:text-lg font-bold group-hover:scale-105 transition-transform">
               回路
             </span>
-            <span className="font-cinzel text-base font-bold text-paper tracking-wider">
-              KAIRO ADMIN
+            <span className="font-cinzel text-sm sm:text-base font-bold text-paper tracking-wider">
+              KAIRO
             </span>
           </Link>
-          <span className="text-[11px] font-mono text-gold bg-gold/10 px-2.5 py-0.5 rounded uppercase tracking-wider border border-gold/30">
-            Master Console
+          <span className="text-[9px] sm:text-[11px] font-mono text-gold bg-gold/10 px-2 py-0.5 rounded uppercase tracking-wider border border-gold/30">
+            Console
           </span>
         </div>
 
-        <div className="flex items-center gap-3 font-mono text-xs">
+        <div className="flex items-center gap-2 sm:gap-3 font-mono text-xs">
           {currentUser && (
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-ink/70 border border-gold/30 rounded-sm">
-              <div className="w-5 h-5 rounded-full bg-gold/20 text-gold font-bold flex items-center justify-center text-[10px]">
+            <div className="hidden md:flex items-center gap-2 px-2.5 py-1 bg-ink/70 border border-gold/30 rounded-sm">
+              <div className="w-4 h-4 rounded-full bg-gold/20 text-gold font-bold flex items-center justify-center text-[9px]">
                 {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : "A"}
               </div>
-              <span className="text-paper text-[11px] font-medium">{currentUser.name}</span>
+              <span className="text-paper text-[11px] font-medium truncate max-w-[100px]">{currentUser.name}</span>
             </div>
           )}
 
           <Link
             href="/"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-gold/10 hover:bg-gold text-gold hover:text-ink border border-gold/40 hover:border-gold rounded-sm transition-all font-semibold"
-            title="Browse storefront with Live Visual Editor mode enabled"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-gold/10 hover:bg-gold text-gold hover:text-ink border border-gold/40 hover:border-gold rounded-sm transition-all font-semibold text-[11px] sm:text-xs"
+            title="Browse storefront in Live Mode"
           >
             <Edit2 className="w-3.5 h-3.5" />
-            <span>Live On-Site Mode</span>
+            <span className="hidden sm:inline">Live Mode</span>
+            <span className="sm:hidden">Store</span>
           </Link>
           <button
             onClick={logoutAdmin}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-ink-elevated hover:bg-vermilion/20 hover:text-vermilion border border-ink-border rounded-sm text-text-muted transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-ink-elevated hover:bg-vermilion/20 hover:text-vermilion border border-ink-border rounded-sm text-text-muted transition-colors cursor-pointer text-[11px] sm:text-xs"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span>Exit Console</span>
+            <span>Exit</span>
           </button>
         </div>
       </header>
 
       {/* Main Layout Container */}
       <div className="flex-1 flex flex-col md:flex-row">
-        {/* Sidebar Nav */}
-        <aside className="w-full md:w-64 bg-ink-surface/50 border-b md:border-b-0 md:border-r border-ink-border p-2.5 sm:p-4 shrink-0 flex flex-row md:flex-col gap-1.5 overflow-x-auto no-scrollbar">
+        {/* Sidebar Nav with smooth mobile horizontal scrolling */}
+        <aside className="w-full md:w-64 bg-ink-surface/50 border-b md:border-b-0 md:border-r border-ink-border p-2 sm:p-4 shrink-0 flex flex-row md:flex-col gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar scroll-smooth">
           <button
             onClick={() => setActiveTab("overview")}
-            className={`flex items-center gap-2 sm:gap-2.5 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+            className={`flex items-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === "overview"
                 ? "bg-gold text-ink font-bold shadow-md shadow-gold/10"
                 : "text-text-muted hover:text-paper hover:bg-ink-elevated"
             }`}
           >
             <LayoutDashboard className="w-4 h-4 shrink-0" />
-            <span>Overview & KPIs</span>
+            <span className="hidden sm:inline">Overview &amp; KPIs</span>
+            <span className="sm:hidden">Overview</span>
           </button>
 
           <button
             onClick={() => setActiveTab("volumes")}
-            className={`flex items-center gap-2 sm:gap-2.5 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+            className={`flex items-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === "volumes"
                 ? "bg-gold text-ink font-bold shadow-md shadow-gold/10"
                 : "text-text-muted hover:text-paper hover:bg-ink-elevated"
             }`}
           >
             <BookOpen className="w-4 h-4 shrink-0" />
-            <span>Books & Volumes ({volumes.length})</span>
+            <span className="hidden sm:inline">Books &amp; Volumes ({volumes.length})</span>
+            <span className="sm:hidden">Books ({volumes.length})</span>
           </button>
 
           <button
             onClick={() => setActiveTab("series")}
-            className={`flex items-center gap-2 sm:gap-2.5 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+            className={`flex items-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === "series"
                 ? "bg-gold text-ink font-bold shadow-md shadow-gold/10"
                 : "text-text-muted hover:text-paper hover:bg-ink-elevated"
             }`}
           >
             <Layers className="w-4 h-4 shrink-0" />
-            <span>Series Franchises ({series.length})</span>
+            <span className="hidden sm:inline">Series Franchises ({series.length})</span>
+            <span className="sm:hidden">Series ({series.length})</span>
           </button>
 
           <button
             onClick={() => setActiveTab("cms")}
-            className={`flex items-center gap-2 sm:gap-2.5 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+            className={`flex items-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === "cms"
                 ? "bg-gold text-ink font-bold shadow-md shadow-gold/10"
                 : "text-text-muted hover:text-paper hover:bg-ink-elevated"
             }`}
           >
             <FileText className="w-4 h-4 shrink-0" />
-            <span>Site Content CMS</span>
+            <span className="hidden sm:inline">Site Content CMS</span>
+            <span className="sm:hidden">CMS</span>
           </button>
 
           <button
             onClick={() => setActiveTab("orders")}
-            className={`flex items-center gap-2 sm:gap-2.5 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+            className={`flex items-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === "orders"
                 ? "bg-gold text-ink font-bold shadow-md shadow-gold/10"
                 : "text-text-muted hover:text-paper hover:bg-ink-elevated"
             }`}
           >
             <ShoppingBag className="w-4 h-4 shrink-0" />
-            <span>Orders & CRM ({allOrders.length})</span>
+            <span className="hidden sm:inline">Orders &amp; CRM ({allOrders.length})</span>
+            <span className="sm:hidden">Orders ({allOrders.length})</span>
           </button>
 
           <button
             onClick={() => setActiveTab("settings")}
-            className={`flex items-center gap-2 sm:gap-2.5 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+            className={`flex items-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === "settings"
                 ? "bg-gold text-ink font-bold shadow-md shadow-gold/10"
                 : "text-text-muted hover:text-paper hover:bg-ink-elevated"
             }`}
           >
             <Settings className="w-4 h-4 shrink-0" />
-            <span>Backup & Settings</span>
+            <span className="hidden sm:inline">Backup &amp; Settings</span>
+            <span className="sm:hidden">Settings</span>
           </button>
         </aside>
 
         {/* Content Area */}
-        <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-7xl overflow-x-hidden">
+        <main className="flex-1 p-3 sm:p-6 md:p-8 max-w-7xl overflow-x-hidden">
           {/* ======================================================== */}
           {/* TAB 1: OVERVIEW & KPIS                                   */}
           {/* ======================================================== */}
           {activeTab === "overview" && (
-            <div className="space-y-8">
+            <div className="space-y-6 sm:space-y-8">
               <div>
-                <h1 className="font-cinzel text-2xl font-bold text-paper">Executive Overview</h1>
+                <h1 className="font-cinzel text-xl sm:text-2xl font-bold text-paper">Executive Overview</h1>
                 <p className="text-xs font-mono text-text-muted mt-1">
-                  Live archival inventory metrics, sales performance, and hub alerts.
+                  Live store performance, stock levels, and revenue metrics.
                 </p>
               </div>
 
-              {/* KPI Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-mono">
-                <div className="p-5 bg-ink-surface border border-ink-border rounded-sm">
-                  <div className="flex items-center justify-between text-text-muted mb-2 text-xs">
-                    <span>TOTAL VOLUMES</span>
-                    <BookOpen className="w-4 h-4 text-gold" />
+              {/* KPI Cards: 2-col on mobile, 4-col on desktop */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 font-mono">
+                <div className="p-3.5 sm:p-5 bg-ink-surface border border-ink-border rounded-sm">
+                  <div className="flex items-center justify-between text-text-muted mb-1 sm:mb-2 text-[10px] sm:text-xs">
+                    <span>VOLUMES</span>
+                    <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gold" />
                   </div>
-                  <div className="text-3xl font-extrabold text-paper">{volumes.length}</div>
-                  <div className="text-[11px] text-text-muted mt-1">Across {series.length} franchises</div>
+                  <div className="text-2xl sm:text-3xl font-extrabold text-paper">{volumes.length}</div>
+                  <div className="text-[10px] sm:text-[11px] text-text-muted mt-1 truncate">{series.length} series</div>
                 </div>
 
-                <div className="p-5 bg-ink-surface border border-ink-border rounded-sm">
-                  <div className="flex items-center justify-between text-text-muted mb-2 text-xs">
-                    <span>PHYSICAL STOCK</span>
-                    <Package className="w-4 h-4 text-gold" />
+                <div className="p-3.5 sm:p-5 bg-ink-surface border border-ink-border rounded-sm">
+                  <div className="flex items-center justify-between text-text-muted mb-1 sm:mb-2 text-[10px] sm:text-xs">
+                    <span>STOCK UNITS</span>
+                    <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gold" />
                   </div>
-                  <div className="text-3xl font-extrabold text-paper">{totalStockUnits}</div>
-                  <div className="text-[11px] text-text-muted mt-1">Units logged in 6th of October Hub</div>
+                  <div className="text-2xl sm:text-3xl font-extrabold text-paper">{totalStockUnits}</div>
+                  <div className="text-[10px] sm:text-[11px] text-text-muted mt-1 truncate">Hub inventory</div>
                 </div>
 
-                <div className="p-5 bg-ink-surface border border-ink-border rounded-sm">
-                  <div className="flex items-center justify-between text-text-muted mb-2 text-xs">
-                    <span>TOTAL ORDERS</span>
-                    <ShoppingBag className="w-4 h-4 text-gold" />
+                <div className="p-3.5 sm:p-5 bg-ink-surface border border-ink-border rounded-sm">
+                  <div className="flex items-center justify-between text-text-muted mb-1 sm:mb-2 text-[10px] sm:text-xs">
+                    <span>ORDERS</span>
+                    <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gold" />
                   </div>
-                  <div className="text-3xl font-extrabold text-paper">{allOrders.length}</div>
-                  <div className="text-[11px] text-text-muted mt-1">
-                    Revenue: <strong className="text-gold">{formatPrice(totalRevenue)}</strong>
+                  <div className="text-2xl sm:text-3xl font-extrabold text-paper">{allOrders.length}</div>
+                  <div className="text-[10px] sm:text-[11px] text-text-muted mt-1 truncate">
+                    <strong className="text-gold">{formatPrice(totalRevenue)}</strong>
                   </div>
                 </div>
 
-                <div className="p-5 bg-ink-surface border border-ink-border rounded-sm">
-                  <div className="flex items-center justify-between text-text-muted mb-2 text-xs">
-                    <span>LOW STOCK ALERTS</span>
-                    <AlertTriangle className="w-4 h-4 text-vermilion" />
+                <div className="p-3.5 sm:p-5 bg-ink-surface border border-ink-border rounded-sm">
+                  <div className="flex items-center justify-between text-text-muted mb-1 sm:mb-2 text-[10px] sm:text-xs">
+                    <span>LOW STOCK</span>
+                    <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-vermilion" />
                   </div>
-                  <div className="text-3xl font-extrabold text-vermilion">{lowStockVolumes.length}</div>
-                  <div className="text-[11px] text-text-muted mt-1">Volumes with ≤ 5 units left</div>
+                  <div className="text-2xl sm:text-3xl font-extrabold text-vermilion">{lowStockVolumes.length}</div>
+                  <div className="text-[10px] sm:text-[11px] text-text-muted mt-1 truncate">≤ 5 units left</div>
                 </div>
               </div>
 
               {/* Quick Navigation Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4 font-mono text-xs">
                 <button
                   onClick={() => {
                     setEditingVolume(null);
                     setIsVolumeModalOpen(true);
                   }}
-                  className="p-5 bg-ink-surface border border-ink-border hover:border-gold/60 rounded-sm text-left transition-colors flex items-center justify-between cursor-pointer group"
+                  className="p-3.5 sm:p-5 bg-ink-surface border border-ink-border hover:border-gold/60 rounded-sm text-left transition-colors flex items-center justify-between cursor-pointer group shadow-xs"
                 >
                   <div>
-                    <span className="text-gold font-bold block mb-1">+ Add New Book</span>
-                    <span className="text-text-muted">Insert a new volume into the catalog</span>
+                    <span className="text-gold font-bold block mb-0.5 sm:mb-1">+ Add Book</span>
+                    <span className="text-text-muted text-[11px]">Add volume to catalog</span>
                   </div>
-                  <Plus className="w-5 h-5 text-gold group-hover:scale-110 transition-transform" />
+                  <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-gold group-hover:scale-110 transition-transform shrink-0" />
                 </button>
 
                 <button
                   onClick={() => setActiveTab("cms")}
-                  className="p-5 bg-ink-surface border border-ink-border hover:border-gold/60 rounded-sm text-left transition-colors flex items-center justify-between cursor-pointer group"
+                  className="p-3.5 sm:p-5 bg-ink-surface border border-ink-border hover:border-gold/60 rounded-sm text-left transition-colors flex items-center justify-between cursor-pointer group shadow-xs"
                 >
                   <div>
-                    <span className="text-gold font-bold block mb-1">Edit Site Copy & Hero</span>
-                    <span className="text-text-muted">Modify headlines, announcements & shipping text</span>
+                    <span className="text-gold font-bold block mb-0.5 sm:mb-1">Edit Site Content</span>
+                    <span className="text-text-muted text-[11px]">Headlines, banners &amp; shipping</span>
                   </div>
-                  <FileText className="w-5 h-5 text-gold group-hover:scale-110 transition-transform" />
+                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-gold group-hover:scale-110 transition-transform shrink-0" />
                 </button>
 
                 <button
                   onClick={handleExport}
-                  className="p-5 bg-ink-surface border border-ink-border hover:border-gold/60 rounded-sm text-left transition-colors flex items-center justify-between cursor-pointer group"
+                  className="p-3.5 sm:p-5 bg-ink-surface border border-ink-border hover:border-gold/60 rounded-sm text-left transition-colors flex items-center justify-between cursor-pointer group shadow-xs"
                 >
                   <div>
-                    <span className="text-gold font-bold block mb-1">Export JSON Backup</span>
-                    <span className="text-text-muted">Download complete store snapshot</span>
+                    <span className="text-gold font-bold block mb-0.5 sm:mb-1">Export Backup</span>
+                    <span className="text-text-muted text-[11px]">Download store snapshot</span>
                   </div>
-                  <Download className="w-5 h-5 text-gold group-hover:scale-110 transition-transform" />
+                  <Download className="w-4 h-4 sm:w-5 sm:h-5 text-gold group-hover:scale-110 transition-transform shrink-0" />
                 </button>
               </div>
 
               {/* Low Stock Table */}
               {lowStockVolumes.length > 0 && (
-                <div className="space-y-3 font-mono">
+                <div className="space-y-2.5 sm:space-y-3 font-mono">
                   <h3 className="text-xs uppercase tracking-wider text-vermilion font-bold flex items-center gap-1.5">
                     <AlertTriangle className="w-4 h-4" />
-                    <span>Inventory Low Stock Alerts</span>
+                    <span>Low Stock Alerts</span>
                   </h3>
-                  <div className="border border-ink-border rounded-sm overflow-hidden bg-ink-surface">
-                    <table className="w-full text-left text-xs">
+                  <div className="border border-ink-border rounded-sm overflow-x-auto bg-ink-surface">
+                    <table className="w-full text-left text-xs min-w-[550px]">
                       <thead className="bg-ink text-text-muted text-[10px] uppercase border-b border-ink-border">
                         <tr>
-                          <th className="px-4 py-3">Book Title</th>
-                          <th className="px-4 py-3">Series</th>
-                          <th className="px-4 py-3">Format</th>
-                          <th className="px-4 py-3 text-right">Price</th>
-                          <th className="px-4 py-3 text-center">Remaining Stock</th>
-                          <th className="px-4 py-3 text-right">Action</th>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3">Book Title</th>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3">Series</th>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3">Format</th>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-right">Price</th>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center">Remaining</th>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-right">Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-ink-border/50">
                         {lowStockVolumes.slice(0, 5).map((vol) => (
                           <tr key={vol.id} className="hover:bg-ink-elevated/40">
-                            <td className="px-4 py-3 font-bold text-paper">{vol.title}</td>
-                            <td className="px-4 py-3 text-text-muted">{vol.seriesTitle}</td>
-                            <td className="px-4 py-3 text-text-muted">{vol.format}</td>
-                            <td className="px-4 py-3 text-right text-gold font-bold">{formatPrice(vol.price)}</td>
-                            <td className="px-4 py-3 text-center">
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 font-bold text-paper">{vol.title}</td>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-text-muted">{vol.seriesTitle}</td>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-text-muted">{vol.format}</td>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-right text-gold font-bold">{formatPrice(vol.price)}</td>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center">
                               <span className="px-2 py-0.5 bg-vermilion/20 text-vermilion font-bold rounded-xs">
                                 {vol.stock} units
                               </span>
                             </td>
-                            <td className="px-4 py-3 text-right">
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-right">
                               <button
                                 onClick={() => {
                                   setEditingVolume(vol);
@@ -862,12 +955,12 @@ export default function AdminPage() {
           {/* TAB 2: BOOKS & VOLUMES CATALOG                           */}
           {/* ======================================================== */}
           {activeTab === "volumes" && (
-            <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-4 sm:space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                 <div>
-                  <h1 className="font-cinzel text-2xl font-bold text-paper">Books & Volumes Catalog</h1>
-                  <p className="text-xs font-mono text-text-muted mt-1">
-                    Manage prices, stock levels, editorial descriptions, and preview reader assets.
+                  <h1 className="font-cinzel text-xl sm:text-2xl font-bold text-paper">Books Catalog</h1>
+                  <p className="text-xs font-mono text-text-muted mt-0.5 sm:mt-1">
+                    Manage catalog pricing, inventory stock, and volume details.
                   </p>
                 </div>
                 <button
@@ -875,22 +968,22 @@ export default function AdminPage() {
                     setEditingVolume(null);
                     setIsVolumeModalOpen(true);
                   }}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-gold hover:bg-gold-muted text-ink font-mono text-xs font-bold uppercase tracking-wider rounded-sm transition-all cursor-pointer shadow-lg shadow-gold/15 shrink-0"
+                  className="flex items-center justify-center gap-2 px-4 py-2 sm:py-2.5 bg-gold hover:bg-gold-muted text-ink font-mono text-xs font-bold uppercase tracking-wider rounded-sm transition-all cursor-pointer shadow-lg shadow-gold/15 shrink-0"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Add New Volume</span>
+                  <span>Add Volume</span>
                 </button>
               </div>
 
               {/* Filters & Search Toolbar */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 font-mono text-xs">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 sm:gap-3 font-mono text-xs">
                 <div className="md:col-span-6 relative">
                   <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by title, series, author, or ISBN..."
+                    placeholder="Search title, series, or ISBN..."
                     className="w-full bg-ink-surface border border-ink-border pl-9 pr-3 py-2 text-paper rounded-sm outline-none focus:border-gold"
                   />
                 </div>
@@ -901,7 +994,7 @@ export default function AdminPage() {
                     value={seriesFilter}
                     onChange={setSeriesFilter}
                     options={[
-                      { value: "all", label: "All Series Franchises" },
+                      { value: "all", label: "All Series" },
                       ...series.map((s) => ({ value: s.slug, label: s.title })),
                     ]}
                     buttonClassName="bg-ink-surface border-ink-border py-2 px-3 text-xs"
@@ -922,8 +1015,91 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Volumes Table */}
-              <div className="border border-ink-border rounded-sm overflow-x-auto bg-ink-surface font-mono">
+              {/* Mobile Volumes Card View (Visible on mobile screens) */}
+              <div className="grid grid-cols-1 gap-2.5 md:hidden font-mono text-xs">
+                {filteredVolumes.length === 0 ? (
+                  <div className="p-8 text-center text-text-muted bg-ink-surface border border-ink-border rounded-sm">
+                    No manga volumes match your search.
+                  </div>
+                ) : (
+                  filteredVolumes.map((vol) => (
+                    <div
+                      key={`mob-${vol.id}`}
+                      className="p-3 bg-ink-surface border border-ink-border rounded-sm flex gap-3 items-start shadow-xs"
+                    >
+                      <div className="w-13 h-18 border border-ink-border overflow-hidden rounded-xs shrink-0 bg-ink">
+                        <img src={vol.coverImage} alt={vol.title} className="w-full h-full object-cover" />
+                      </div>
+
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-start justify-between gap-1">
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-paper text-xs truncate">{vol.title}</h4>
+                            <span className="text-[10px] text-gold">Vol. {vol.volumeNumber}</span>
+                          </div>
+                          <span className="font-bold text-gold shrink-0">{formatPrice(vol.price)}</span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 flex-wrap text-[10px] text-text-muted">
+                          <span className="truncate max-w-[120px]">{vol.seriesTitle}</span>
+                          <span>•</span>
+                          <span>{vol.format}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1.5 border-t border-ink-border/40">
+                          <span
+                            className={`px-1.5 py-0.2 rounded-xs font-bold text-[10px] ${
+                              vol.stock <= 5
+                                ? "bg-vermilion/20 text-vermilion border border-vermilion/30"
+                                : "bg-ink border border-ink-border text-paper"
+                            }`}
+                          >
+                            {vol.stock} in stock
+                          </span>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => {
+                                setEditingVolume(vol);
+                                setIsVolumeModalOpen(true);
+                              }}
+                              title="Edit"
+                              className="p-1.5 text-text-muted hover:text-paper bg-ink border border-ink-border rounded-xs"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                const dup = duplicateVolume(vol.id);
+                                if (dup) showToast(`Duplicated "${dup.title}"`);
+                              }}
+                              title="Duplicate"
+                              className="p-1.5 text-text-muted hover:text-gold bg-ink border border-ink-border rounded-xs"
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (confirm(`Delete "${vol.title}"?`)) {
+                                  deleteVolume(vol.id);
+                                  showToast(`Deleted "${vol.title}"`);
+                                }
+                              }}
+                              title="Delete"
+                              className="p-1.5 text-text-muted hover:text-vermilion bg-ink border border-ink-border rounded-xs"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop Volumes Table (Hidden on mobile) */}
+              <div className="hidden md:block border border-ink-border rounded-sm overflow-x-auto bg-ink-surface font-mono">
                 <table className="w-full text-left text-xs min-w-[800px]">
                   <thead className="bg-ink text-text-muted text-[10px] uppercase border-b border-ink-border">
                     <tr>
@@ -1080,7 +1256,7 @@ export default function AdminPage() {
                     setEditingSeries(null);
                     setIsSeriesModalOpen(true);
                   }}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-gold hover:bg-gold-muted text-ink font-mono text-xs font-bold uppercase tracking-wider rounded-sm transition-all cursor-pointer shadow-lg shadow-gold/15 shrink-0"
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gold hover:bg-gold-muted text-ink font-mono text-xs font-bold uppercase tracking-wider rounded-sm transition-all cursor-pointer shadow-lg shadow-gold/15 shrink-0"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Create New Series</span>
@@ -1160,9 +1336,9 @@ export default function AdminPage() {
             <div className="space-y-8 font-mono">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h1 className="font-cinzel text-2xl font-bold text-paper">Site Content & Editorial CMS</h1>
+                  <h1 className="font-cinzel text-2xl font-bold text-paper">Site Content CMS</h1>
                   <p className="text-xs text-text-muted mt-1">
-                    Live modification of all website text, headlines, promo banners, and shipping messages.
+                    Edit storefront text, banners &amp; shipping.
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 shrink-0">
@@ -1227,7 +1403,7 @@ export default function AdminPage() {
                 <>
 
               {/* 1. HERO SECTION EDITOR */}
-              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-4">
+              <div className="p-4 sm:p-6 bg-ink-surface border border-ink-border rounded-sm space-y-4">
                 <div className="flex items-center justify-between border-b border-ink-border/50 pb-2">
                   <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                     <FileText className="w-4 h-4" />
@@ -1237,7 +1413,7 @@ export default function AdminPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                   <div>
-                    <label className="block text-text-muted mb-1">Badge Callout Text</label>
+                    <label className="block text-text-muted mb-1">Badge Text</label>
                     <input
                       type="text"
                       value={heroForm.badgeText}
@@ -1247,7 +1423,7 @@ export default function AdminPage() {
                   </div>
 
                   <div>
-                    <label className="block text-text-muted mb-1">Featured Spotlight Manga</label>
+                    <label className="block text-text-muted mb-1">Spotlight Manga</label>
                     <CustomSelect
                       fullWidth
                       value={heroForm.featuredVolumeId}
@@ -1273,7 +1449,7 @@ export default function AdminPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-gold mb-1 text-[11px]">Golden Italic Highlight</label>
+                      <label className="block text-gold mb-1 text-[11px]">Gold Highlight</label>
                       <input
                         type="text"
                         value={heroForm.headlineHighlight || "YOUR NEXT"}
@@ -1295,7 +1471,7 @@ export default function AdminPage() {
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-text-muted mb-1">Subheadline & Narrative</label>
+                    <label className="block text-text-muted mb-1">Subheadline</label>
                     <textarea
                       rows={2}
                       value={heroForm.subheadline}
@@ -1305,7 +1481,7 @@ export default function AdminPage() {
                   </div>
 
                   <div>
-                    <label className="block text-text-muted mb-1">Primary CTA Button Label</label>
+                    <label className="block text-text-muted mb-1">Primary CTA Label</label>
                     <input
                       type="text"
                       value={heroForm.primaryCtaText}
@@ -1315,7 +1491,7 @@ export default function AdminPage() {
                   </div>
 
                   <div>
-                    <label className="block text-text-muted mb-1">Primary CTA Destination Link</label>
+                    <label className="block text-text-muted mb-1">Primary CTA Link</label>
                     <input
                       type="text"
                       value={heroForm.primaryCtaLink}
@@ -1325,7 +1501,7 @@ export default function AdminPage() {
                   </div>
 
                   <div>
-                    <label className="block text-text-muted mb-1">Secondary CTA Button Label</label>
+                    <label className="block text-text-muted mb-1">Secondary CTA Label</label>
                     <input
                       type="text"
                       value={heroForm.secondaryCtaText}
@@ -1335,7 +1511,7 @@ export default function AdminPage() {
                   </div>
 
                   <div>
-                    <label className="block text-text-muted mb-1">Secondary CTA Destination Link</label>
+                    <label className="block text-text-muted mb-1">Secondary CTA Link</label>
                     <input
                       type="text"
                       value={heroForm.secondaryCtaLink || "#new-releases"}
@@ -1418,11 +1594,11 @@ export default function AdminPage() {
               </div>
 
               {/* 2. GLOBAL PROMO & ANNOUNCEMENT BAR */}
-              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-4">
+              <div className="p-4 sm:p-6 bg-ink-surface border border-ink-border rounded-sm space-y-4">
                 <div className="flex items-center justify-between border-b border-ink-border/50 pb-2">
                   <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                     <Sparkles className="w-4 h-4" />
-                    <span>02. Global Welcome Offer & Top Announcement Bar</span>
+                    <span>02. Announcement Bar & Voucher</span>
                   </h2>
                 </div>
 
@@ -1435,12 +1611,12 @@ export default function AdminPage() {
                         onChange={(e) => setAnnouncementForm({ ...announcementForm, enabled: e.target.checked })}
                         className="w-4 h-4 accent-gold cursor-pointer"
                       />
-                      <span>Enable Global Announcement Bar on Live Website</span>
+                      <span>Enable Announcement Bar</span>
                     </label>
                   </div>
 
                   <div className="md:col-span-3 flex flex-col justify-end">
-                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">Banner Announcement Text</label>
+                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">Banner Text</label>
                     <input
                       type="text"
                       value={announcementForm.text}
@@ -1450,7 +1626,7 @@ export default function AdminPage() {
                   </div>
 
                   <div className="flex flex-col justify-end">
-                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">Promotional Voucher Code</label>
+                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">Voucher Code</label>
                     <input
                       type="text"
                       value={announcementForm.voucherCode}
@@ -1488,19 +1664,19 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* 3. LOGISTICS & DISPATCH HUB SETTINGS */}
-              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-6">
+              {/* 3. LOGISTICS & SHIPPING RATES */}
+              <div className="p-4 sm:p-6 bg-ink-surface border border-ink-border rounded-sm space-y-6">
                 <div className="flex items-center justify-between border-b border-ink-border/50 pb-2">
                   <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                     <Package className="w-4 h-4" />
-                    <span>03. Logistics, Dispatch Hub & Governorate Shipping Rates</span>
+                    <span>03. Logistics &amp; Shipping Rates</span>
                   </h2>
                 </div>
 
                 {/* Fulfillment Hub Core Settings */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                   <div>
-                    <label className="block text-text-muted mb-1">Primary Fulfillment Hub Name</label>
+                    <label className="block text-text-muted mb-1">Hub Name</label>
                     <input
                       type="text"
                       value={shippingForm.hubName}
@@ -1521,7 +1697,7 @@ export default function AdminPage() {
 
                   <div>
                     <label className="block text-text-muted mb-1">
-                      Product Page Dispatch Badge (e.g. Dispatched from 6th of October)
+                      Dispatch Badge Text
                     </label>
                     <input
                       type="text"
@@ -1532,7 +1708,7 @@ export default function AdminPage() {
                   </div>
 
                   <div>
-                    <label className="block text-text-muted mb-1">Authenticity Guarantee Badge Text</label>
+                    <label className="block text-text-muted mb-1">Authenticity Badge Text</label>
                     <input
                       type="text"
                       value={shippingForm.guaranteeBadgeText}
@@ -1549,10 +1725,10 @@ export default function AdminPage() {
                       <Truck className="w-5 h-5 text-gold" />
                       <div>
                         <h3 className="text-xs font-bold text-gold uppercase tracking-wider">
-                          Nationwide Free Delivery Threshold
+                          Free Delivery Threshold
                         </h3>
                         <p className="text-[11px] text-text-muted">
-                          Automatically grant 100% free delivery across all Egyptian governorates when a patron meets this minimum order amount.
+                          Apply free delivery when order meets the minimum amount.
                         </p>
                       </div>
                     </div>
@@ -1579,7 +1755,7 @@ export default function AdminPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
                       <div>
                         <label className="block text-text-muted mb-1.5 font-bold uppercase tracking-wider">
-                          Free Shipping Minimum Subtotal (EGP)
+                          Min. Subtotal (EGP)
                         </label>
                         <div className="relative">
                           <input
@@ -1601,17 +1777,17 @@ export default function AdminPage() {
                           </span>
                         </div>
                         <p className="text-[10px] text-text-muted mt-1">
-                          Orders with subtotal ≥ {shippingForm.freeShippingThreshold ?? 500} EGP will receive free delivery and display the progress meter in the cart drawer.
+                          Orders ≥ {shippingForm.freeShippingThreshold ?? 500} EGP get free delivery.
                         </p>
                       </div>
 
                       <div className="p-3 bg-ink-surface/60 border border-ink-border rounded-xs text-[11px] text-text-muted space-y-1.5 flex flex-col justify-center">
-                        <div className="text-paper font-semibold">Current Customer Experience:</div>
+                        <div className="text-paper font-semibold">Live Preview:</div>
                         <div>
-                          • Cart Drawer will show: <span className="text-gold font-bold">Add {formatPrice(shippingForm.freeShippingThreshold ?? 500)} for Free Shipping</span>
+                          • Cart: <span className="text-gold font-bold">Add {formatPrice(shippingForm.freeShippingThreshold ?? 500)} for Free Shipping</span>
                         </div>
                         <div>
-                          • Checkout will apply <span className="text-emerald-400 font-bold">0 EGP shipping cost</span> automatically once reached.
+                          • Checkout: <span className="text-emerald-400 font-bold">0 EGP shipping</span> applied automatically.
                         </div>
                       </div>
                     </div>
@@ -1619,67 +1795,115 @@ export default function AdminPage() {
                 </div>
 
                 {/* Governorate Shipping Rates Table */}
-                <div className="pt-4 border-t border-ink-border/60 space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="pt-4 border-t border-ink-border/60 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <h3 className="text-xs font-bold text-paper uppercase tracking-wider">
-                        Governorate Shipping Rates (EGP)
-                      </h3>
-                      <p className="text-[11px] text-text-muted">
-                        Configure customized doorstep delivery prices for each Egyptian governorate. These rates automatically compute at checkout.
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-xs font-bold text-paper uppercase tracking-wider">
+                          Governorate Rates (EGP)
+                        </h3>
+                        <span className="text-[10px] font-mono px-2 py-0.5 bg-gold/10 text-gold border border-gold/30 rounded-xs font-bold">
+                          {(shippingForm.governoratesList || EGYPT_GOVERNORATES).length} ZONES
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-text-muted mt-0.5">
+                        Set delivery prices per governorate, edit names (EN / AR), or add zones.
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShippingForm((prev) => ({
-                          ...prev,
-                          governorateRates: { ...DEFAULT_GOVERNORATE_RATES },
-                        }));
-                        showToast("Reset all governorates to baseline factory rates.");
-                      }}
-                      className="self-start sm:self-auto text-[10px] font-mono text-gold hover:text-paper hover:underline uppercase tracking-wider cursor-pointer"
-                    >
-                      Reset to Baseline Rates
-                    </button>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={handleAddCustomGov}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-paper text-ink hover:bg-gold font-mono font-bold text-[10px] uppercase tracking-wider rounded-xs transition-colors cursor-pointer shadow-xs"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add Custom Zone</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleResetGovernorates}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-mono text-text-muted hover:text-gold border border-ink-border hover:border-gold/40 rounded-xs transition-colors cursor-pointer"
+                        title="Reset to 27 official Egyptian governorates"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        <span>Reset 27 Baseline</span>
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
-                    {EGYPT_GOVERNORATES.map((gov) => {
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 pt-1">
+                    {(shippingForm.governoratesList || EGYPT_GOVERNORATES).map((gov, idx) => {
                       const currentRate =
                         shippingForm.governorateRates?.[gov.value] ??
                         DEFAULT_GOVERNORATE_RATES[gov.value] ??
-                        gov.defaultRate;
+                        gov.defaultRate ??
+                        65;
+                      const isHqHub = gov.value.toLowerCase().includes("giza") || gov.badge === "HQ HUB";
+
                       return (
                         <div
-                          key={gov.value}
-                          className="p-3 bg-ink border border-ink-border rounded-xs flex items-center justify-between gap-3 hover:border-ink-border/90 transition-colors"
+                          key={`${gov.value}-${idx}`}
+                          className="p-3 bg-ink border border-ink-border rounded-xs space-y-2.5 hover:border-ink-border/90 transition-colors shadow-xs"
                         >
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 mb-0.5">
-                              <span className="text-xs font-bold text-paper truncate">{gov.label}</span>
+                          {/* Name inputs (English & Arabic) */}
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between gap-1.5">
+                              <span className="text-[9px] font-mono text-text-muted uppercase">Name (EN / AR)</span>
                               {gov.badge && (
                                 <span className="text-[8px] font-mono px-1.5 py-0.2 bg-gold/15 text-gold border border-gold/30 rounded-xs uppercase">
                                   {gov.badge}
                                 </span>
                               )}
                             </div>
-                            <span className="text-[10px] font-mono text-text-muted">
-                              Default: {gov.defaultRate} EGP
-                            </span>
+
+                            <div className="grid grid-cols-2 gap-1.5">
+                              <input
+                                type="text"
+                                value={gov.label}
+                                onChange={(e) => handleGovNameChange(idx, "label", e.target.value)}
+                                placeholder="English Name"
+                                className="w-full bg-ink-surface/80 border border-ink-border px-2 py-1 text-xs text-paper rounded-xs focus:border-gold outline-none font-bold"
+                              />
+                              <input
+                                type="text"
+                                value={gov.labelAr || ""}
+                                onChange={(e) => handleGovNameChange(idx, "labelAr", e.target.value)}
+                                placeholder="الاسم بالعربي"
+                                className="w-full bg-ink-surface/80 border border-ink-border px-2 py-1 text-xs text-gold/90 rounded-xs focus:border-gold outline-none font-sans text-right"
+                              />
+                            </div>
                           </div>
 
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="number"
-                              min="0"
-                              max="1000"
-                              step="5"
-                              value={currentRate}
-                              onChange={(e) => handleGovRateChange(gov.value, parseFloat(e.target.value))}
-                              className="w-20 bg-ink-surface border border-ink-border text-gold font-mono font-bold text-right px-2.5 py-1.5 rounded-xs focus:border-gold outline-none text-xs"
-                            />
-                            <span className="text-[10px] font-mono text-text-muted">EGP</span>
+                          {/* Rate and Delete Row */}
+                          <div className="flex items-center justify-between pt-1 border-t border-ink-border/40 gap-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] font-mono text-text-muted">Rate:</span>
+                              <input
+                                type="number"
+                                min="0"
+                                max="1000"
+                                step="5"
+                                value={currentRate}
+                                onChange={(e) => handleGovRateChange(gov.value, parseFloat(e.target.value))}
+                                className="w-20 bg-ink-surface border border-ink-border text-gold font-mono font-bold text-right px-2 py-1 rounded-xs focus:border-gold outline-none text-xs"
+                              />
+                              <span className="text-[10px] font-mono text-text-muted">EGP</span>
+                            </div>
+
+                            <div className="flex items-center gap-1">
+                              {!isHqHub && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteGov(idx)}
+                                  title="Remove delivery zone"
+                                  className="p-1 text-text-muted hover:text-vermilion hover:bg-vermilion/10 rounded-xs transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
@@ -1703,17 +1927,17 @@ export default function AdminPage() {
               </div>
 
               {/* 4. POLICIES & EDITORIAL TEXT */}
-              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-4">
+              <div className="p-4 sm:p-6 bg-ink-surface border border-ink-border rounded-sm space-y-4">
                 <div className="flex items-center justify-between border-b border-ink-border/50 pb-2">
                   <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                     <FileText className="w-4 h-4" />
-                    <span>04. Editorial Policies & Guarantees</span>
+                    <span>04. Policies & Guarantees</span>
                   </h2>
                 </div>
 
                 <div className="space-y-3 text-xs">
                   <div>
-                    <label className="block text-text-muted mb-1">Footer Brand Narrative / Description</label>
+                    <label className="block text-text-muted mb-1">Footer Description</label>
                     <textarea
                       rows={2}
                       value={editorialForm.footerDescription || ""}
@@ -1724,7 +1948,7 @@ export default function AdminPage() {
                   </div>
 
                   <div>
-                    <label className="block text-text-muted mb-1">Hub Cities Line (Under Brand Logo)</label>
+                    <label className="block text-text-muted mb-1">Hub Cities (Under Logo)</label>
                     <input
                       type="text"
                       value={editorialForm.hubCities || ""}
@@ -1735,7 +1959,7 @@ export default function AdminPage() {
                   </div>
 
                   <div>
-                    <label className="block text-text-muted mb-1">Authenticity Guarantee Modal Statement</label>
+                    <label className="block text-text-muted mb-1">Authenticity Guarantee Text</label>
                     <textarea
                       rows={2}
                       value={editorialForm.authenticityGuaranteeText}
@@ -1745,7 +1969,7 @@ export default function AdminPage() {
                   </div>
 
                   <div>
-                    <label className="block text-text-muted mb-1">Shipping & Packaging Protocol</label>
+                    <label className="block text-text-muted mb-1">Shipping & Packaging Policy</label>
                     <textarea
                       rows={2}
                       value={editorialForm.shippingPolicyText}
@@ -1755,7 +1979,7 @@ export default function AdminPage() {
                   </div>
 
                   <div>
-                    <label className="block text-text-muted mb-1">14-Day Archival Return Policy Statement</label>
+                    <label className="block text-text-muted mb-1">Return Policy (14-Day)</label>
                     <textarea
                       rows={2}
                       value={editorialForm.returnPolicyText}
@@ -1781,14 +2005,14 @@ export default function AdminPage() {
               </div>
 
               {/* 5. FEATURED SERIES SHOWCASE */}
-              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-5">
+              <div className="p-4 sm:p-6 bg-ink-surface border border-ink-border rounded-sm space-y-5">
                 <div className="flex items-center justify-between border-b border-ink-border/50 pb-3">
                   <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                     <Flame className="w-4 h-4 text-vermilion" />
-                    <span>05. Featured Series Showcase (Home Spotlight)</span>
+                    <span>05. Featured Series Showcase</span>
                   </h2>
-                  <span className="text-[10px] text-text-muted">
-                    Controls the prominent featured series banner on the storefront.
+                  <span className="text-[10px] text-text-muted hidden sm:inline">
+                    Controls the home spotlight banner.
                   </span>
                 </div>
 
@@ -1796,7 +2020,7 @@ export default function AdminPage() {
                   {/* Select Series */}
                   <div className="md:col-span-2 flex flex-col justify-end">
                     <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                      Select Featured Series Franchise
+                      Featured Series
                     </label>
                     <CustomSelect
                       fullWidth
@@ -1827,7 +2051,7 @@ export default function AdminPage() {
                   {/* Custom Title Override */}
                   <div className="flex flex-col justify-end">
                     <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                      Custom Title Override (Leave blank to use series title)
+                      Title Override (blank = series title)
                     </label>
                     <input
                       type="text"
@@ -1841,7 +2065,7 @@ export default function AdminPage() {
                   {/* CTA Text */}
                   <div className="flex flex-col justify-end">
                     <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                      CTA Button Label
+                      CTA Label
                     </label>
                     <input
                       type="text"
@@ -1855,7 +2079,7 @@ export default function AdminPage() {
                   {/* CTA Link */}
                   <div className="flex flex-col justify-end">
                     <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                      CTA Button Destination Link
+                      CTA Link
                     </label>
                     <input
                       type="text"
@@ -1869,7 +2093,7 @@ export default function AdminPage() {
                   {/* Custom Artwork URL */}
                   <div className="md:col-span-2">
                     <ImageUploadInput
-                      label="Custom High-Resolution Artwork URL (Optional — overrides default cover)"
+                      label="Custom Artwork URL (optional — overrides cover)"
                       value={featuredSeriesForm.customImage || ""}
                       onChange={(url) => setFeaturedSeriesForm({ ...featuredSeriesForm, customImage: url })}
                       placeholder="https://... or upload local image file (Rec: 900 × 1200 px)"
@@ -3194,16 +3418,16 @@ export default function AdminPage() {
           {/* TAB 5: ORDERS & CUSTOMER CRM                             */}
           {/* ======================================================== */}
           {activeTab === "orders" && (
-            <div className="space-y-6 font-mono">
+            <div className="space-y-4 sm:space-y-6 font-mono">
               {/* Header with Title & Live Refresh */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                 <div>
-                  <h1 className="font-cinzel text-2xl font-bold text-paper">Orders & Patron CRM</h1>
-                  <p className="text-xs text-text-muted mt-1">
-                    Live customer checkout orders, fulfillment state, and delivery tracking.
+                  <h1 className="font-cinzel text-xl sm:text-2xl font-bold text-paper">Orders &amp; Customers</h1>
+                  <p className="text-xs font-mono text-text-muted mt-0.5 sm:mt-1">
+                    Manage orders, payment verification, and dispatch.
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                   <button
                     type="button"
                     onClick={handleRefreshOrders}
@@ -3212,9 +3436,9 @@ export default function AdminPage() {
                     title="Refresh orders from central server database"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingOrders ? "animate-spin text-gold" : ""}`} />
-                    <span>Sync Orders</span>
+                    <span>Sync</span>
                   </button>
-                  <div className="text-xs text-gold border border-gold/30 bg-gold/10 px-3 py-1.5 rounded-sm">
+                  <div className="text-xs text-gold border border-gold/30 bg-gold/10 px-2.5 sm:px-3 py-1.5 rounded-sm">
                     Total: <strong>{allOrders.length}</strong>
                   </div>
                 </div>
@@ -3222,16 +3446,16 @@ export default function AdminPage() {
 
               {/* 1. LATEST ORDERS SPOTLIGHT */}
               {allOrders.length > 0 && (
-                <div className="space-y-3">
+                <div className="space-y-2.5 sm:space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="text-xs text-gold font-bold uppercase tracking-wider flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-gold" />
-                      <span>Latest Real-Time Orders</span>
+                      <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gold" />
+                      <span>Latest Orders</span>
                     </div>
-                    <span className="text-[11px] text-text-muted">Most recent customer submissions</span>
+                    <span className="text-[10px] sm:text-[11px] text-text-muted">Recent customer submissions</span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
                     {recentOrders.map(({ order, customer }) => {
                       return (
                         <div
@@ -3241,7 +3465,7 @@ export default function AdminPage() {
                             setSelectedCustomer(customer);
                             setIsOrderModalOpen(true);
                           }}
-                          className="bg-ink-surface border border-ink-border hover:border-gold/60 p-4 rounded-sm cursor-pointer transition-all hover:-translate-y-0.5 shadow-sm group"
+                          className="bg-ink-surface border border-ink-border hover:border-gold/60 p-3 sm:p-4 rounded-sm cursor-pointer transition-all hover:-translate-y-0.5 shadow-sm group"
                         >
                           <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-ink-border/50">
                             <span className="text-gold font-bold text-xs group-hover:text-gold-light">
@@ -3254,7 +3478,7 @@ export default function AdminPage() {
                             {customer.name || "Collector"}
                           </div>
 
-                          <div className="flex items-center justify-between text-[11px] text-text-muted mb-3">
+                          <div className="flex items-center justify-between text-[11px] text-text-muted mb-2.5">
                             <span>{order.items.length} vol{order.items.length > 1 ? "s" : ""}</span>
                             <span className="text-gold font-bold">{formatPrice(order.total)}</span>
                           </div>
@@ -3296,85 +3520,85 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={() => setOrderStatusFilter("all")}
-                  className={`p-2.5 rounded-sm border text-left transition-all cursor-pointer ${
+                  className={`p-2 sm:p-2.5 rounded-sm border text-left transition-all cursor-pointer ${
                     orderStatusFilter === "all"
                       ? "bg-gold text-ink border-gold font-bold shadow-md shadow-gold/10"
                       : "bg-ink-surface border-ink-border text-text-muted hover:text-paper hover:border-gold/40"
                   }`}
                 >
-                  <div className="text-[10px] uppercase">All Orders</div>
-                  <div className="text-base font-extrabold">{orderStats.total}</div>
+                  <div className="text-[9px] sm:text-[10px] uppercase">All</div>
+                  <div className="text-sm sm:text-base font-extrabold">{orderStats.total}</div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setOrderStatusFilter("pending")}
-                  className={`p-2.5 rounded-sm border text-left transition-all cursor-pointer ${
+                  className={`p-2 sm:p-2.5 rounded-sm border text-left transition-all cursor-pointer ${
                     orderStatusFilter === "pending"
                       ? "bg-rose-500 text-white border-rose-500 font-bold"
                       : "bg-ink-surface border-ink-border text-rose-400 hover:border-rose-400/50"
                   }`}
                 >
-                  <div className="text-[10px] uppercase">Pending</div>
-                  <div className="text-base font-extrabold">{orderStats.pending}</div>
+                  <div className="text-[9px] sm:text-[10px] uppercase">Pending</div>
+                  <div className="text-sm sm:text-base font-extrabold">{orderStats.pending}</div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setOrderStatusFilter("processing")}
-                  className={`p-2.5 rounded-sm border text-left transition-all cursor-pointer ${
+                  className={`p-2 sm:p-2.5 rounded-sm border text-left transition-all cursor-pointer ${
                     orderStatusFilter === "processing"
                       ? "bg-amber-500 text-ink border-amber-500 font-bold"
                       : "bg-ink-surface border-ink-border text-amber-400 hover:border-amber-400/50"
                   }`}
                 >
-                  <div className="text-[10px] uppercase">Processing</div>
-                  <div className="text-base font-extrabold">{orderStats.processing}</div>
+                  <div className="text-[9px] sm:text-[10px] uppercase">Processing</div>
+                  <div className="text-sm sm:text-base font-extrabold">{orderStats.processing}</div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setOrderStatusFilter("shipped")}
-                  className={`p-2.5 rounded-sm border text-left transition-all cursor-pointer ${
+                  className={`p-2 sm:p-2.5 rounded-sm border text-left transition-all cursor-pointer ${
                     orderStatusFilter === "shipped"
                       ? "bg-sky-500 text-white border-sky-500 font-bold"
                       : "bg-ink-surface border-ink-border text-sky-400 hover:border-sky-400/50"
                   }`}
                 >
-                  <div className="text-[10px] uppercase">Shipped</div>
-                  <div className="text-base font-extrabold">{orderStats.shipped}</div>
+                  <div className="text-[9px] sm:text-[10px] uppercase">Shipped</div>
+                  <div className="text-sm sm:text-base font-extrabold">{orderStats.shipped}</div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setOrderStatusFilter("delivered")}
-                  className={`p-2.5 rounded-sm border text-left transition-all cursor-pointer ${
+                  className={`p-2 sm:p-2.5 rounded-sm border text-left transition-all cursor-pointer ${
                     orderStatusFilter === "delivered"
                       ? "bg-emerald-500 text-white border-emerald-500 font-bold"
                       : "bg-ink-surface border-ink-border text-emerald-400 hover:border-emerald-400/50"
                   }`}
                 >
-                  <div className="text-[10px] uppercase">Delivered</div>
-                  <div className="text-base font-extrabold">{orderStats.delivered}</div>
+                  <div className="text-[9px] sm:text-[10px] uppercase">Delivered</div>
+                  <div className="text-sm sm:text-base font-extrabold">{orderStats.delivered}</div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setOrderStatusFilter("cancelled")}
-                  className={`p-2.5 rounded-sm border text-left transition-all cursor-pointer ${
+                  className={`p-2 sm:p-2.5 rounded-sm border text-left transition-all cursor-pointer ${
                     orderStatusFilter === "cancelled"
                       ? "bg-zinc-600 text-white border-zinc-500 font-bold"
                       : "bg-ink-surface border-ink-border text-zinc-400 hover:border-zinc-400/50"
                   }`}
                 >
-                  <div className="text-[10px] uppercase">Cancelled</div>
-                  <div className="text-base font-extrabold">{orderStats.cancelled}</div>
+                  <div className="text-[9px] sm:text-[10px] uppercase">Cancelled</div>
+                  <div className="text-sm sm:text-base font-extrabold">{orderStats.cancelled}</div>
                 </button>
               </div>
 
               {/* 3. ADVANCED FILTERS & SEARCH TOOLBAR */}
-              <div className="p-4 bg-ink-surface border border-ink-border rounded-sm space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+              <div className="p-3 sm:p-4 bg-ink-surface border border-ink-border rounded-sm space-y-2.5 sm:space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 text-xs">
                   {/* Search by Order ID / Customer / Phone / Tracking */}
                   <div className="relative">
                     <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
@@ -3410,8 +3634,8 @@ export default function AdminPage() {
                     onChange={(val) => setOrderPaymentFilter(val)}
                     options={[
                       { value: "all", label: "All Payment Methods" },
-                      { value: "cash", label: "Cash on Delivery (COD)" },
-                      { value: "wallet", label: "Mobile Wallet (Vodafone...)" },
+                      { value: "cash", label: "Cash on Delivery" },
+                      { value: "wallet", label: "Mobile Wallet" },
                       { value: "instapay", label: "InstaPay" },
                       { value: "unverified", label: "Pending Verification" },
                       { value: "paid", label: "Verified & Paid" },
@@ -3462,8 +3686,105 @@ export default function AdminPage() {
                 )}
               </div>
 
-              {/* 4. ORDERS DATA TABLE */}
-              <div className="border border-ink-border rounded-sm overflow-x-auto bg-ink-surface">
+              {/* 4. ORDERS MOBILE CARDS (Visible on mobile screens) */}
+              <div className="grid grid-cols-1 gap-2.5 md:hidden text-xs">
+                {filteredOrders.length === 0 ? (
+                  <div className="p-8 text-center text-text-muted bg-ink-surface border border-ink-border rounded-sm">
+                    No orders match your filters.
+                  </div>
+                ) : (
+                  filteredOrders.map(({ order, customer }) => (
+                    <div
+                      key={`mob-order-${order.id}`}
+                      className="p-3.5 bg-ink-surface border border-ink-border rounded-sm space-y-2.5 shadow-xs"
+                    >
+                      {/* Top: ID, Date, Total */}
+                      <div className="flex items-center justify-between pb-2 border-b border-ink-border/40">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-gold">#{order.id}</span>
+                          <span className="text-[10px] text-text-muted">{order.date}</span>
+                        </div>
+                        <span className="font-bold text-paper text-sm">{formatPrice(order.total)}</span>
+                      </div>
+
+                      {/* Middle: Customer & Location */}
+                      <div className="flex items-center justify-between text-[11px]">
+                        <div className="min-w-0">
+                          <div className="font-bold text-paper truncate">{customer.name}</div>
+                          <div className="text-[10px] text-text-muted">{customer.governorate || "Egypt"}</div>
+                        </div>
+                        <span className="text-[10px] text-text-muted shrink-0">{order.items.length} items</span>
+                      </div>
+
+                      {/* Badges: Payment & Status */}
+                      <div className="flex items-center justify-between gap-1 flex-wrap pt-1">
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <span className="px-1.5 py-0.5 rounded-xs bg-ink border border-ink-border text-[9px] text-text-muted">
+                            {order.paymentMethod === "wallet"
+                              ? "Wallet"
+                              : order.paymentMethod === "instapay"
+                              ? "InstaPay"
+                              : "COD"}
+                          </span>
+                          <span
+                            className={`text-[9px] px-1.5 py-0.5 rounded-xs font-mono ${
+                              order.paymentStatus === "Verified & Paid"
+                                ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                                : order.paymentStatus === "Pending Verification"
+                                ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                                : "bg-sky-500/15 text-sky-400 border border-sky-500/30"
+                            }`}
+                          >
+                            {order.paymentStatus || (order.paymentMethod === "cash" ? "Pending Collection" : "Pending")}
+                          </span>
+                        </div>
+
+                        <span
+                          className={`px-2 py-0.5 border rounded-xs text-[10px] font-mono ${
+                            order.status === "Delivered"
+                              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                              : order.status === "Shipped"
+                              ? "bg-sky-500/10 border-sky-500/30 text-sky-400"
+                              : order.status === "Processing" || order.status === "Confirmed"
+                              ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                              : order.status === "Pending Payment"
+                              ? "bg-rose-500/10 border-rose-500/30 text-rose-400"
+                              : "bg-ink border-ink-border text-paper"
+                          }`}
+                        >
+                          {order.status}
+                        </span>
+                      </div>
+
+                      {/* Bottom Action buttons */}
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-ink-border/40">
+                        <button
+                          type="button"
+                          onClick={() => printCustomerInvoice(order, customer)}
+                          className="px-2.5 py-1 bg-ink border border-ink-border hover:border-gold text-paper text-[11px] rounded-xs flex items-center gap-1 font-mono"
+                        >
+                          <Printer strokeWidth={1.5} className="w-3 h-3 text-gold" />
+                          <span>Print</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setSelectedCustomer(customer);
+                            setIsOrderModalOpen(true);
+                          }}
+                          className="px-3 py-1 bg-gold text-ink font-bold text-[11px] rounded-xs font-mono hover:bg-gold-light"
+                        >
+                          Manage
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* 5. ORDERS DATA TABLE (Hidden on mobile) */}
+              <div className="hidden md:block border border-ink-border rounded-sm overflow-x-auto bg-ink-surface">
                 <table className="w-full text-left text-xs min-w-[750px]">
                   <thead className="bg-ink text-text-muted text-[10px] uppercase border-b border-ink-border">
                     <tr>
@@ -3596,11 +3917,11 @@ export default function AdminPage() {
               </div>
 
               {/* 1. Storefront Arabic Language Control */}
-              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-4">
+              <div className="p-4 sm:p-6 bg-ink-surface border border-ink-border rounded-sm space-y-3 sm:space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                     <Globe className="w-3.5 h-3.5" />
-                    <span>Storefront Arabic Language Support</span>
+                    <span>Arabic Language Support</span>
                   </h2>
                   <span
                     className={`text-[10px] px-2 py-0.5 uppercase tracking-wider rounded-xs font-bold ${
@@ -3613,7 +3934,7 @@ export default function AdminPage() {
                   </span>
                 </div>
                 <p className="text-xs text-text-muted leading-relaxed">
-                  Toggle Arabic language availability across the public storefront. When disabled, the language switch buttons disappear from the navigation bar, mobile menu, and live editor toolbar, and any patron currently viewing in Arabic is instantly returned to English.
+                  Enable or disable Arabic language across the public storefront.
                 </p>
                 <div className="pt-1">
                   <button
@@ -3623,11 +3944,11 @@ export default function AdminPage() {
                       setArabicLanguageEnabled(next);
                       showToast(
                         next
-                          ? "Storefront Arabic language support has been enabled."
-                          : "Storefront Arabic language support has been disabled. All visitors reverted to English."
+                          ? "Arabic language enabled storefront-wide."
+                          : "Arabic language disabled. Storefront reverted to English."
                       );
                     }}
-                    className={`px-4 py-2.5 text-xs uppercase tracking-wider rounded-sm transition-colors border cursor-pointer font-bold inline-flex items-center gap-2 ${
+                    className={`px-4 py-2 text-xs uppercase tracking-wider rounded-sm transition-colors border cursor-pointer font-bold inline-flex items-center gap-2 ${
                       arabicLanguageEnabled
                         ? "bg-ink-elevated hover:bg-vermilion/20 hover:text-vermilion hover:border-vermilion/50 text-paper border-ink-border"
                         : "bg-gold hover:bg-gold-muted text-ink border-transparent"
@@ -3636,28 +3957,28 @@ export default function AdminPage() {
                     <Globe className="w-3.5 h-3.5" />
                     <span>
                       {arabicLanguageEnabled
-                        ? "Disable Arabic Language System"
-                        : "Enable Arabic Language System"}
+                        ? "Disable Arabic"
+                        : "Enable Arabic"}
                     </span>
                   </button>
                 </div>
               </div>
 
-              {/* 1. Admin PIN */}
-              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-4">
+              {/* 2. Admin PIN */}
+              <div className="p-4 sm:p-6 bg-ink-surface border border-ink-border rounded-sm space-y-3 sm:space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                     <Shield className="w-3.5 h-3.5 text-gold" />
-                    <span>Master Curator PIN</span>
+                    <span>Master Security PIN</span>
                   </h2>
                   <span className="text-[10px] font-mono text-gold/80 px-2 py-0.5 bg-gold/10 border border-gold/20 rounded-xs">
-                    SHA-256 Salted Digest
+                    SHA-256 Hash
                   </span>
                 </div>
                 <p className="text-xs text-text-muted leading-relaxed">
-                  Your Security PIN is protected with server-side salted cryptography and brute-force lockout. The plain PIN is never stored or exposed in your browser storage.
+                  Protected with server-side cryptography and brute-force lockout.
                 </p>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
                   <input
                     type="password"
                     maxLength={8}
@@ -3696,31 +4017,31 @@ export default function AdminPage() {
                         updateAdminPin(cleanNew);
                         setCurrentPinInput("");
                         setNewPinInput("");
-                        showToast("Security PIN updated successfully across server authority.");
+                        showToast("Security PIN updated successfully.");
                       } else {
                         showToast(res.message || "Failed to update Security PIN.");
                       }
                     }}
                     className="px-4 py-2 bg-ink-elevated hover:bg-gold hover:text-ink text-paper text-xs uppercase tracking-wider rounded-sm transition-colors border border-ink-border cursor-pointer font-bold shrink-0 disabled:opacity-50"
                   >
-                    {isUpdatingPin ? "Updating..." : "Update Security PIN"}
+                    {isUpdatingPin ? "Updating..." : "Update PIN"}
                   </button>
                 </div>
               </div>
 
-              {/* 2. Authorized Admin Accounts */}
-              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-4">
+              {/* 3. Authorized Admin Accounts */}
+              <div className="p-4 sm:p-6 bg-ink-surface border border-ink-border rounded-sm space-y-3 sm:space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                     <Shield className="w-3.5 h-3.5" />
-                    <span>Authorized Admin Accounts</span>
+                    <span>Authorized Accounts</span>
                   </h2>
                   <span className="text-[10px] text-text-muted">
-                    {adminEmails.length} Authorized {adminEmails.length === 1 ? "Curator" : "Curators"}
+                    {adminEmails.length} {adminEmails.length === 1 ? "Admin" : "Admins"}
                   </span>
                 </div>
                 <p className="text-xs text-text-muted leading-relaxed">
-                  Only authenticated accounts listed below have authorization to access the curator console and execute administrative changes.
+                  Only accounts listed below have access to the admin console.
                 </p>
 
                 {/* Email list */}
@@ -3730,14 +4051,14 @@ export default function AdminPage() {
                     return (
                       <div
                         key={email}
-                        className="flex items-center justify-between px-3.5 py-2.5 bg-ink border border-ink-border rounded-xs"
+                        className="flex items-center justify-between px-3 sm:px-3.5 py-2 sm:py-2.5 bg-ink border border-ink-border rounded-xs"
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
                           <UserCheck className="w-3.5 h-3.5 text-gold shrink-0" />
                           <span className="text-xs text-paper font-mono truncate">{email}</span>
                           {isSelf && (
-                            <span className="px-1.5 py-0.5 text-[9px] uppercase tracking-wider bg-gold/15 text-gold border border-gold/30 rounded-xs shrink-0">
-                              Current Session
+                            <span className="px-1.5 py-0.2 text-[9px] uppercase tracking-wider bg-gold/15 text-gold border border-gold/30 rounded-xs shrink-0">
+                              You
                             </span>
                           )}
                         </div>
@@ -3749,7 +4070,7 @@ export default function AdminPage() {
                               return;
                             }
                             removeAdminEmail(email);
-                            showToast(`Removed ${email} from authorized curators.`);
+                            showToast(`Removed ${email}`);
                           }}
                           disabled={adminEmails.length <= 1}
                           className={`p-1.5 rounded-xs transition-colors ${
@@ -3771,7 +4092,7 @@ export default function AdminPage() {
                 </div>
 
                 {/* Add new admin */}
-                <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <div className="pt-1.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <input
                     type="email"
                     value={newAdminEmailInput}
@@ -3815,31 +4136,31 @@ export default function AdminPage() {
                     className="flex items-center justify-center gap-1.5 px-4 py-2 bg-ink-elevated hover:bg-gold hover:text-ink text-paper text-xs uppercase tracking-wider rounded-sm transition-colors border border-ink-border cursor-pointer shrink-0 font-bold"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>Authorize Email</span>
+                    <span>Add Admin</span>
                   </button>
                 </div>
               </div>
 
-              {/* 3. Data Backup & Restore */}
-              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-4">
+              {/* 4. Data Backup & Restore */}
+              <div className="p-4 sm:p-6 bg-ink-surface border border-ink-border rounded-sm space-y-3 sm:space-y-4">
                 <h2 className="text-gold text-xs font-bold uppercase tracking-wider">
-                  Data Backup & Restore (JSON)
+                  Data Backup &amp; Restore (JSON)
                 </h2>
                 <p className="text-xs text-text-muted">
-                  Download a full backup of all your books, series, prices, and website text, or restore a previously saved JSON snapshot.
+                  Download a full backup of all books, series, and settings, or restore from file.
                 </p>
-                <div className="flex flex-wrap items-center gap-3 pt-2">
+                <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 pt-1">
                   <button
                     onClick={handleExport}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
+                    className="flex items-center gap-2 px-3.5 py-2 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
                   >
                     <Download className="w-4 h-4" />
-                    <span>Download JSON Backup</span>
+                    <span>Export JSON</span>
                   </button>
 
-                  <label className="flex items-center gap-2 px-4 py-2.5 bg-ink-elevated hover:bg-ink border border-ink-border text-paper font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer">
+                  <label className="flex items-center gap-2 px-3.5 py-2 bg-ink-elevated hover:bg-ink border border-ink-border text-paper font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer">
                     <Upload className="w-4 h-4 text-gold" />
-                    <span>Restore From File</span>
+                    <span>Restore File</span>
                     <input
                       type="file"
                       accept=".json"
@@ -3850,14 +4171,14 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* 4. Factory Reset */}
-              <div className="p-6 bg-ink-surface border border-vermilion/30 rounded-sm space-y-4">
+              {/* 5. Factory Reset */}
+              <div className="p-4 sm:p-6 bg-ink-surface border border-vermilion/30 rounded-sm space-y-3 sm:space-y-4">
                 <h2 className="text-vermilion text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
                   <AlertTriangle className="w-4 h-4" />
                   <span>Factory Reset</span>
                 </h2>
                 <p className="text-xs text-text-muted">
-                  This will restore all books, series, and site copy back to the initial factory codebase defaults.
+                  Restore all books, series, and site copy back to initial codebase defaults.
                 </p>
                 <button
                   onClick={() => {
@@ -3865,7 +4186,14 @@ export default function AdminPage() {
                       resetToDefaults();
                       setHeroForm(heroContent);
                       setAnnouncementForm(announcement);
-                      setShippingForm(shippingConfig);
+                      setShippingForm({
+                        ...shippingConfig,
+                        governoratesList: shippingConfig.governoratesList || EGYPT_GOVERNORATES,
+                        governorateRates: {
+                          ...DEFAULT_GOVERNORATE_RATES,
+                          ...(shippingConfig.governorateRates || {}),
+                        },
+                      });
                       setEditorialForm(editorialConfig);
                       setFeaturedSeriesForm(featuredSeriesConfig);
                       setCollectionForm(collectionConfig);
@@ -3874,7 +4202,7 @@ export default function AdminPage() {
                       showToast("All store data reset to factory defaults.");
                     }
                   }}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-vermilion/15 hover:bg-vermilion text-vermilion hover:text-white font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer border border-vermilion/40"
+                  className="flex items-center gap-2 px-3.5 py-2 bg-vermilion/15 hover:bg-vermilion text-vermilion hover:text-white font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer border border-vermilion/40"
                 >
                   <RotateCcw className="w-4 h-4" />
                   <span>Reset All Data to Default</span>

@@ -15,7 +15,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 
 export function NewReleases() {
   const router = useRouter();
-  const { t, locale, isRTL } = useTranslation();
+  const { locale, isRTL } = useTranslation();
   const isArabic = locale === "ar";
   const addItem = useCartStore((state) => state.addItem);
   const { toggleWishlist, isInWishlist } = useWishlistStore();

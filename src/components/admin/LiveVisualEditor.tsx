@@ -161,60 +161,57 @@ export function LiveVisualEditor() {
       )}
 
       {/* 2. Floating Curator Toolbar */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[80] transition-all duration-300 pointer-events-auto">
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[80] transition-all duration-300 pointer-events-auto w-[calc(100vw-32px)] sm:w-auto flex justify-center">
         {isMinimized ? (
           <button
             type="button"
             onClick={() => setIsMinimized(false)}
-            className="flex items-center gap-2.5 px-3.5 py-2 bg-ink/95 border border-gold/60 text-gold rounded-full shadow-2xl backdrop-blur-md hover:scale-105 transition-all text-xs font-mono cursor-pointer font-bold tracking-wider uppercase"
+            className="flex items-center gap-2 px-4 py-2 bg-ink/95 border border-gold/60 text-gold rounded-full shadow-2xl backdrop-blur-md hover:scale-105 transition-all text-xs font-mono cursor-pointer font-bold tracking-wider uppercase"
             title="Expand Curator Toolbar"
           >
-            <span>KAIRO CURATOR</span>
+            <span className="font-serif text-vermilion">回路</span>
+            <span>CURATOR</span>
             <Maximize2 className="w-3.5 h-3.5 text-paper-muted" />
           </button>
         ) : (
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-4 py-2.5 bg-ink/95 border border-gold/50 rounded-full shadow-2xl backdrop-blur-md text-xs font-mono text-paper">
+          <div className="inline-flex flex-wrap justify-center items-center gap-2 px-4 py-2.5 bg-ink/95 border border-gold/50 rounded-2xl shadow-2xl backdrop-blur-md text-xs font-mono text-paper">
             {/* Curator Badge */}
-            <div className="flex items-center gap-2 pr-2 border-r border-ink-border">
+            <div className="flex items-center gap-2 pr-2 border-r border-ink-border shrink-0">
               <span className="font-serif text-sm font-bold text-vermilion">回路</span>
-              <span className="font-bold tracking-wider text-[11px] text-paper hidden sm:inline">
-                CURATOR MODE
-              </span>
+              <span className="font-bold tracking-wider text-[11px] text-paper">CURATOR</span>
             </div>
 
             {/* Visual Editor Toggle Switch */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setVisualEditorActive(!isVisualEditorActive)}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer ${
-                  isVisualEditorActive
-                    ? "bg-gold text-ink border-gold shadow-md shadow-gold/20"
-                    : "bg-ink-surface text-text-muted border-ink-border hover:text-paper"
-                }`}
-              >
-                {isVisualEditorActive ? (
-                  <>
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>Visual Edit: ON</span>
-                  </>
-                ) : (
-                  <>
-                    <EyeOff className="w-3.5 h-3.5" />
-                    <span>Visual Edit: OFF</span>
-                  </>
-                )}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setVisualEditorActive(!isVisualEditorActive)}
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer ${
+                isVisualEditorActive
+                  ? "bg-gold text-ink border-gold shadow-md shadow-gold/20"
+                  : "bg-ink-surface text-text-muted border-ink-border hover:text-paper"
+              }`}
+            >
+              {isVisualEditorActive ? (
+                <>
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Visual Edit: ON</span>
+                </>
+              ) : (
+                <>
+                  <EyeOff className="w-3.5 h-3.5" />
+                  <span>Visual Edit: OFF</span>
+                </>
+              )}
+            </button>
 
             {/* Admin Console Link */}
             <Link
               href="/admin"
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-ink-surface hover:bg-ink-border border border-ink-border text-paper-muted hover:text-paper transition-colors text-[11px] font-semibold uppercase tracking-wider"
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-ink-surface hover:bg-ink-border border border-ink-border text-paper-muted hover:text-paper transition-colors text-[11px] font-semibold uppercase tracking-wider"
               title="Open full administrative dashboard"
             >
               <Sliders className="w-3.5 h-3.5 text-gold" />
-              <span className="hidden md:inline">Full</span> Console
+              <span>Console</span>
               <ExternalLink className="w-3 h-3 text-text-muted" />
             </Link>
 
@@ -223,8 +220,8 @@ export function LiveVisualEditor() {
               <button
                 type="button"
                 onClick={toggleLanguage}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-ink-surface hover:bg-ink-border border border-ink-border text-paper-muted hover:text-paper transition-colors text-[11px] font-mono font-bold tracking-wider cursor-pointer"
-                title="تبديل لغة المتصفح فورياً (Toggle Storefront Language)"
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-ink-surface hover:bg-ink-border border border-ink-border text-paper-muted hover:text-paper transition-colors text-[11px] font-mono font-bold tracking-wider cursor-pointer"
+                title="Toggle Storefront Language"
               >
                 <span className={locale === "ar" ? "text-gold" : "text-text-muted"}>AR</span>
                 <span className="text-text-muted text-[10px]">/</span>
@@ -233,7 +230,7 @@ export function LiveVisualEditor() {
             )}
 
             {/* Actions: Minimize & Logout */}
-            <div className="flex items-center gap-1 pl-1 border-l border-ink-border">
+            <div className="flex items-center gap-1 pl-1 border-l border-ink-border shrink-0">
               <button
                 type="button"
                 onClick={() => setIsMinimized(true)}

@@ -17,7 +17,7 @@ export function Footer() {
   const [policyOpen, setPolicyOpen] = useState(false);
   const [activePolicyTab, setActivePolicyTab] = useState<PolicyTab>("shipping");
   const currentUser = useAuthStore((state) => state.currentUser);
-  const { t, locale, isRTL } = useTranslation();
+  const { t, locale } = useTranslation();
   const editorialConfig = useStorefrontStore((state) => state.editorialConfig);
   const editorialArabicConfig = useStorefrontStore((state) => state.editorialArabicConfig);
   const mounted = useMounted();
@@ -30,9 +30,6 @@ export function Footer() {
   const hubCities = mounted
     ? (isAr ? (editorialArabicConfig?.hubCities || t.footer.hubCities) : (editorialConfig?.hubCities || t.footer.hubCities))
     : t.footer.hubCities;
-  const footerQuote = mounted
-    ? (isAr ? (editorialArabicConfig?.footerQuote || editorialConfig?.footerQuote) : editorialConfig?.footerQuote)
-    : "";
 
   const openPolicy = (tab: PolicyTab) => {
     setActivePolicyTab(tab);
@@ -51,7 +48,7 @@ export function Footer() {
   }
 
   return (
-    <footer className="bg-ink border-t border-ink-border/80 pt-12 sm:pt-16 pb-12 pb-safe text-text-muted relative overflow-hidden">
+    <footer className="bg-ink border-t border-ink-border/80 pt-12 sm:pt-16 pb-5 sm:pb-12 text-text-muted relative overflow-hidden">
       {/* Background Japanese Watermark */}
       <div className="absolute -bottom-10 right-4 font-serif text-[180px] font-bold text-white/[0.015] pointer-events-none select-none">
         回路

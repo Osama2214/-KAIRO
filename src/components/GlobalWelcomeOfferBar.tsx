@@ -32,7 +32,6 @@ export function GlobalWelcomeOfferBar() {
   const mounted = useMounted();
   const { locale } = useTranslation();
   const announcement = useStorefrontStore((state) => state.announcement);
-  const announcementArabic = useStorefrontStore((state) => state.announcementArabic);
   const currentUser = useAuthStore((state) => state.currentUser);
   const applyCoupon = useCartStore((state) => state.applyCoupon);
   const appliedCoupon = useCartStore((state) => state.appliedCoupon);

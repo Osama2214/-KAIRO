@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Lock, LogIn, Tag, Sparkles, X, Banknote, Smartphone, Zap, Clock, AlertCircle } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
 import { useAuthStore, SavedOrder } from "@/store/useAuthStore";
-import { useStorefrontStore } from "@/store/useStorefrontStore";
+import { useStorefrontStore, getActiveGovernorates } from "@/store/useStorefrontStore";
 import { useMounted } from "@/store/useWishlistStore";
 import { formatPrice } from "@/lib/utils";
 import { CustomSelect } from "@/components/CustomSelect";
@@ -50,8 +50,9 @@ export default function CheckoutPage() {
     governorate: currentUser?.governorate
       ? EGYPT_GOVERNORATES.find((g) => g.value.toLowerCase().includes((currentUser.governorate || "").toLowerCase()))?.value || "Cairo"
       : "Cairo",
-    city: "",
+    city: currentUser?.city || "",
     address: currentUser?.address || "",
+    deliveryNotes: currentUser?.deliveryNotes || "",
     postal: "",
     country: "Egypt",
     cardNumber: "•••• •••• •••• 4242",
@@ -59,10 +60,21 @@ export default function CheckoutPage() {
     cardCvc: "888",
   });
 
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "wallet" | "instapay">(
+    currentUser?.preferredPaymentMethod || "cash"
+  );
+  const [senderIdentifier, setSenderIdentifier] = useState(currentUser?.paymentSenderDetail || "");
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const activeGovernorates = useMemo(() => {
+    return getActiveGovernorates(shippingConfig);
+  }, [shippingConfig]);
+
   useEffect(() => {
     if (currentUser) {
-      const matchedGov = EGYPT_GOVERNORATES.find((g) =>
-        g.value.toLowerCase().includes((currentUser.governorate || "").toLowerCase())
+      const matchedGov = activeGovernorates.find((g) =>
+        g.value.toLowerCase().includes((currentUser.governorate || "").toLowerCase()) ||
+        (currentUser.governorate || "").toLowerCase().includes(g.value.toLowerCase())
       );
       const raf = requestAnimationFrame(() => {
         setFormData((prev) => ({
@@ -71,20 +83,24 @@ export default function CheckoutPage() {
           email: currentUser.email || prev.email,
           phone: currentUser.phone || prev.phone,
           address: currentUser.address || prev.address,
+          city: currentUser.city || prev.city,
+          deliveryNotes: currentUser.deliveryNotes || prev.deliveryNotes,
           governorate: matchedGov ? matchedGov.value : prev.governorate,
         }));
+        if (currentUser.preferredPaymentMethod) {
+          setPaymentMethod(currentUser.preferredPaymentMethod);
+        }
+        if (currentUser.paymentSenderDetail) {
+          setSenderIdentifier(currentUser.paymentSenderDetail);
+        }
       });
       return () => cancelAnimationFrame(raf);
     }
-  }, [currentUser]);
+  }, [currentUser, activeGovernorates]);
 
   const items = mounted ? cartItems : [];
   const subtotal = mounted ? getSubtotal() : 0;
   const discountAmount = mounted ? getDiscountAmount() : 0;
-
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "wallet" | "instapay">("cash");
-  const [senderIdentifier, setSenderIdentifier] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
 
   // Dynamic Governorate Shipping Rate configured by Admin in CMS
   const selectedGov = formData.governorate || "Giza / 6th of October";
@@ -103,7 +119,7 @@ export default function CheckoutPage() {
   const total = Math.max(0, netMerchandise + shippingCost);
 
   const governorateOptions = useMemo(() => {
-    return EGYPT_GOVERNORATES.map((g) => {
+    return activeGovernorates.map((g) => {
       const rate = govRates[g.value] ?? g.defaultRate;
       return {
         value: g.value,
@@ -115,7 +131,7 @@ export default function CheckoutPage() {
           : `${rate} EGP`,
       };
     });
-  }, [govRates, isFreeShipping, isArabic]);
+  }, [activeGovernorates, govRates, isFreeShipping, isArabic]);
 
   const handlePlaceOrder = (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,13 +178,19 @@ export default function CheckoutPage() {
       customerName: sanitizeInput(formData.name),
       customerEmail: sanitizeInput(formData.email).toLowerCase(),
       customerPhone: sanitizeInput(validatedPhone),
-      customerAddress: sanitizeInput(formData.address),
+      customerAddress: sanitizeInput(
+        formData.deliveryNotes?.trim()
+          ? `${formData.address.trim()} (علامة مميزة / ملاحظات: ${formData.deliveryNotes.trim()})`
+          : formData.address
+      ),
       customerGovernorate: sanitizeInput(formData.governorate),
+      customerCity: sanitizeInput(formData.city),
+      deliveryNotes: sanitizeInput(formData.deliveryNotes),
       timeline: isPendingPayment
         ? ["Order Placed", "Pending Payment Verification"]
         : ["Order Placed", "Confirmed", "Preparing Dispatch"],
       trackingNumber: `EG-OCT-${Math.floor(10000 + Math.random() * 90000)}-CAI`,
-      courier: "Egypt Nationwide Tracked Courier",
+      courier: "Bosta Egypt Express",
       estimatedDelivery: `${shippingConfig?.deliveryEstimate || "24-48h"} (${formData.governorate})`,
     };
 
@@ -372,6 +394,18 @@ export default function CheckoutPage() {
                         className="w-full bg-ink border border-ink-border rounded-xs px-3.5 py-2.5 text-xs text-paper focus:outline-none focus:border-gold font-sans"
                       />
                     </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-mono text-text-muted mb-1.5 uppercase">
+                        {isArabic ? "ملاحظات التوصيل / علامة مميزة (اختياري)" : "Delivery Landmark & Notes (Optional)"}
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.deliveryNotes}
+                        onChange={(e) => setFormData({ ...formData, deliveryNotes: e.target.value })}
+                        placeholder={isArabic ? "مثال: بجوار مسجد كذا، الدور الثالث شقة 4، الاتصال قبل التوصيل" : "e.g. Near landmark, Apt 4 3rd floor, call before delivery"}
+                        className="w-full bg-ink border border-ink-border rounded-xs px-3.5 py-2.5 text-xs text-paper focus:outline-none focus:border-gold font-sans"
+                      />
+                    </div>
                     <div className="sm:col-span-2 pt-2 flex items-center justify-between text-[10px] font-mono text-text-muted border-t border-ink-border/40">
                       <span>{isArabic ? "مركز التجهيز والشحن: مدينة 6 أكتوبر • مصر" : `Dispatch Hub: ${shippingConfig?.hubName || "6th of October • Egypt"}`}</span>
                       <span>{isArabic ? `المدة المتوقعة: ${shippingConfig?.deliveryEstimate || "24-48 ساعة"}` : `Delivery Estimate: ${shippingConfig?.deliveryEstimate || "24-48h"}`}</span>
@@ -454,7 +488,7 @@ export default function CheckoutPage() {
                           <div className="flex items-center gap-2">
                             <Smartphone className="w-4 h-4 text-gold" />
                             <span className="text-xs font-bold text-paper">
-                              {isArabic ? "المحافظ الإلكترونية (فودافون كاش / أورنج / اتصالات / WE)" : "Mobile Wallet (Vodafone Cash / Orange / WE)"}
+                              {isArabic ? "المحافظ الإلكترونية (فودافون كاش / أورنج / اتصالات / WE)" : "Mobile Wallet (Vodafone / Orange / Etisalat / WE)"}
                             </span>
                             <span className="text-[9px] font-mono px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-xs uppercase">
                               {isArabic ? "يتطلب التأكيد" : "Verification Required"}

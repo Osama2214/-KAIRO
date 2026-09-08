@@ -12,6 +12,8 @@ import {
   Check,
   RotateCcw,
   Heart,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { ALL_VOLUMES, GENRES } from "@/data/manga";
 import { useCartStore } from "@/store/useCartStore";
@@ -19,14 +21,16 @@ import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { formatPrice } from "@/lib/utils";
+import { createPortal } from "react-dom";
 import { CustomSelect } from "@/components/CustomSelect";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 
 function MangaCatalogContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { t, locale, isRTL } = useTranslation();
+  const { locale, isRTL } = useTranslation();
   const isArabic = locale === "ar";
   const initialGenre = searchParams.get("genre");
   const isSaleParam = searchParams.get("sort") === "sale";
@@ -63,9 +67,23 @@ function MangaCatalogContent() {
   const effectivePriceMax = priceMax ?? highestPrice;
   const [sortBy, setSortBy] = useState<"POPULAR" | "NEWEST" | "PRICE_ASC" | "PRICE_DESC" | "RATING">("POPULAR");
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 12;
 
   const { toggleWishlist, isInWishlist } = useWishlistStore();
   const mounted = useMounted();
+  useModalScrollLock(mobileFilterOpen);
+
+  // Close mobile filter on Escape key
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && mobileFilterOpen) {
+        setMobileFilterOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [mobileFilterOpen]);
 
   // Sync state when URL query parameters change (e.g. clicking SALE or GENRE from header)
   React.useEffect(() => {
@@ -88,12 +106,14 @@ function MangaCatalogContent() {
   };
 
   const toggleGenre = (genreId: string) => {
+    setCurrentPage(1);
     setSelectedGenres((prev) =>
       prev.includes(genreId) ? prev.filter((g) => g !== genreId) : [...prev, genreId]
     );
   };
 
   const toggleFormat = (format: string) => {
+    setCurrentPage(1);
     setSelectedFormats((prev) =>
       prev.includes(format) ? prev.filter((f) => f !== format) : [...prev, format]
     );
@@ -106,6 +126,7 @@ function MangaCatalogContent() {
     setOnSaleOnly(false);
     setPriceMax(null);
     setSortBy("POPULAR");
+    setCurrentPage(1);
     if (searchParams.toString()) {
       router.push("/manga");
     }
@@ -152,7 +173,7 @@ function MangaCatalogContent() {
       if (!a.isTrending && b.isTrending) return 1;
       return b.rating - a.rating;
     });
-  }, [selectedGenres, selectedFormats, inStockOnly, onSaleOnly, effectivePriceMax, sortBy, activeVolumes, activeGenres]);
+  }, [selectedGenres, selectedFormats, inStockOnly, onSaleOnly, effectivePriceMax, sortBy, activeVolumes]);
 
   const activeFilterCount =
     selectedGenres.length +
@@ -160,6 +181,17 @@ function MangaCatalogContent() {
     (inStockOnly ? 1 : 0) +
     (onSaleOnly ? 1 : 0) +
     (priceMax !== null && priceMax < highestPrice ? 1 : 0);
+
+  const totalPages = Math.ceil(filteredVolumes.length / ITEMS_PER_PAGE);
+  const paginatedVolumes = filteredVolumes.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <div className="min-h-screen bg-ink pt-28 pb-20 px-6 md:px-12 text-paper">
@@ -177,30 +209,34 @@ function MangaCatalogContent() {
             </h1>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 w-full md:w-auto">
             {/* Mobile Filter Toggle */}
             <button
               onClick={() => setMobileFilterOpen(!mobileFilterOpen)}
-              className="md:hidden flex items-center gap-2 px-4 py-2.5 bg-ink-surface border border-ink-border rounded-xs text-xs font-mono tracking-widest uppercase hover:border-gold/60 transition-colors cursor-pointer"
+              className="md:hidden flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 h-[42px] bg-ink-surface border border-ink-border rounded-xs text-xs font-mono tracking-wider uppercase hover:border-gold/60 transition-colors cursor-pointer whitespace-nowrap shrink-0"
             >
-              <Filter strokeWidth={1.4} className="w-3.5 h-3.5 text-gold" />
+              <Filter strokeWidth={1.4} className="w-3.5 h-3.5 text-gold shrink-0" />
               <span>{isArabic ? `الفلاتر (${activeFilterCount})` : `FILTERS (${activeFilterCount})`}</span>
             </button>
 
             {/* Sort Dropdown */}
-            <CustomSelect
-              options={[
-                { value: "POPULAR", label: isArabic ? "الأكثر رواجاً" : "POPULAR" },
-                { value: "NEWEST", label: isArabic ? "أحدث المجلدات" : "NEWEST" },
-                { value: "PRICE_ASC", label: isArabic ? "السعر: من الأقل للأعلى" : "PRICE: LOW TO HIGH" },
-                { value: "PRICE_DESC", label: isArabic ? "السعر: من الأعلى للأقل" : "PRICE: HIGH TO LOW" },
-                { value: "RATING", label: isArabic ? "التقييم: الأعلى تقييماً" : "RATING (HIGH TO LOW)" },
-              ]}
-              value={sortBy}
-              onChange={(val) => setSortBy(val as typeof sortBy)}
-              labelPrefix={isArabic ? "ترتيب حسب:" : "SORT BY:"}
-              className="w-56 sm:w-64"
-            />
+            <div className="flex-1 sm:flex-none min-w-0">
+              <CustomSelect
+                options={[
+                  { value: "POPULAR", label: isArabic ? "الأكثر رواجاً" : "POPULAR" },
+                  { value: "NEWEST", label: isArabic ? "أحدث المجلدات" : "NEWEST" },
+                  { value: "PRICE_ASC", label: isArabic ? "السعر: تصاعدي" : "PRICE: LOW TO HIGH" },
+                  { value: "PRICE_DESC", label: isArabic ? "السعر: تنازلي" : "PRICE: HIGH TO LOW" },
+                  { value: "RATING", label: isArabic ? "الأعلى تقييماً" : "RATING (HIGH)" },
+                ]}
+                value={sortBy}
+                onChange={(val) => setSortBy(val as typeof sortBy)}
+                labelPrefix={isArabic ? "ترتيب:" : "SORT:"}
+                fullWidth={true}
+                className="w-full sm:w-56 md:w-64"
+                buttonClassName="h-[42px]"
+              />
+            </div>
           </div>
         </div>
 
@@ -264,9 +300,9 @@ function MangaCatalogContent() {
         )}
 
         {/* Main Catalog Layout (Sidebar Filters + Product Grid) */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
-          {/* Filters Sidebar Desktop */}
-          <aside className="hidden md:block md:col-span-3 space-y-8 bg-ink-surface/40 border border-ink-border/80 p-6 rounded-sm sticky top-28">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8 items-start">
+          {/* Filters Sidebar Desktop / iPad */}
+          <aside className="hidden md:block md:col-span-4 lg:col-span-3 space-y-7 lg:space-y-8 bg-ink-surface/40 border border-ink-border/80 p-5 lg:p-6 rounded-sm sticky top-28">
             <div className="flex items-center justify-between pb-3 border-b border-ink-border/80">
               <span className="font-mono text-xs font-bold tracking-widest text-paper uppercase flex items-center gap-2">
                 <SlidersHorizontal strokeWidth={1.4} className="w-3.5 h-3.5 text-gold" />
@@ -287,18 +323,18 @@ function MangaCatalogContent() {
               <h4 className="text-xs font-mono tracking-wider text-gold uppercase">
                 {isArabic ? "التصنيف الأدبي" : "GENRE"}
               </h4>
-              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                 {activeGenres.map((genre) => {
                   const isChecked = selectedGenres.includes(genre.id.toLowerCase());
                   return (
                     <label
                       key={genre.id}
-                      className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer group select-none py-1"
+                      className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer group select-none py-1 gap-2"
                     >
-                      <div className="flex items-center gap-2.5">
+                      <div className="flex items-center gap-2.5 min-w-0">
                         <div
                           onClick={() => toggleGenre(genre.id.toLowerCase())}
-                          className={`w-4 h-4 rounded-xs border flex items-center justify-center transition-colors ${
+                          className={`w-4 h-4 rounded-xs border flex items-center justify-center transition-colors shrink-0 ${
                             isChecked
                               ? "bg-gold border-gold text-ink"
                               : "border-ink-border group-hover:border-paper/60"
@@ -306,9 +342,9 @@ function MangaCatalogContent() {
                         >
                           {isChecked && <Check strokeWidth={2.5} className="w-3 h-3" />}
                         </div>
-                        <span>{genre.name}</span>
+                        <span className="truncate">{genre.name}</span>
                       </div>
-                      <span className="font-serif text-[11px] text-text-muted/60">
+                      <span className="font-serif text-[11px] text-text-muted/60 shrink-0 whitespace-nowrap">
                         {genre.japanese}
                       </span>
                     </label>
@@ -328,12 +364,12 @@ function MangaCatalogContent() {
                   return (
                     <label
                       key={format}
-                      className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer group select-none py-1"
+                      className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer group select-none py-1 gap-2"
                     >
-                      <div className="flex items-center gap-2.5">
+                      <div className="flex items-center gap-2.5 min-w-0">
                         <div
                           onClick={() => toggleFormat(format)}
-                          className={`w-4 h-4 rounded-xs border flex items-center justify-center transition-colors ${
+                          className={`w-4 h-4 rounded-xs border flex items-center justify-center transition-colors shrink-0 ${
                             isChecked
                               ? "bg-gold border-gold text-ink"
                               : "border-ink-border group-hover:border-paper/60"
@@ -341,7 +377,7 @@ function MangaCatalogContent() {
                         >
                           {isChecked && <Check strokeWidth={2.5} className="w-3 h-3" />}
                         </div>
-                        <span>{format}</span>
+                        <span className="truncate">{format}</span>
                       </div>
                     </label>
                   );
@@ -351,9 +387,9 @@ function MangaCatalogContent() {
 
             {/* Price Range Slider */}
             <div className="space-y-3 pt-4 border-t border-ink-border/60">
-              <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-gold uppercase">{isArabic ? "الحد الأقصى للسعر" : "MAX PRICE"}</span>
-                <span className="text-paper font-bold">{formatPrice(effectivePriceMax)}</span>
+              <div className="flex items-center justify-between text-xs font-mono gap-2">
+                <span className="text-gold uppercase whitespace-nowrap">{isArabic ? "الحد الأقصى للسعر" : "MAX PRICE"}</span>
+                <span className="text-paper font-bold whitespace-nowrap">{formatPrice(effectivePriceMax)}</span>
               </div>
               <input
                 type="range"
@@ -374,11 +410,11 @@ function MangaCatalogContent() {
             <div className="pt-4 border-t border-ink-border/60">
               <label
                 onClick={() => setInStockOnly(!inStockOnly)}
-                className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer group select-none"
+                className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer group select-none gap-2"
               >
-                <span>{isArabic ? "المتوفر في المخزن فقط" : "IN STOCK ONLY"}</span>
+                <span className="whitespace-nowrap">{isArabic ? "المتوفر في المخزن فقط" : "IN STOCK ONLY"}</span>
                 <div
-                  className={`w-9 h-5 rounded-full p-0.5 transition-colors ${
+                  className={`w-9 h-5 rounded-full p-0.5 transition-colors shrink-0 ${
                     inStockOnly ? "bg-vermilion" : "bg-ink border border-ink-border"
                   }`}
                 >
@@ -401,16 +437,16 @@ function MangaCatalogContent() {
                     router.push("/manga");
                   }
                 }}
-                className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer group select-none"
+                className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer group select-none gap-2"
               >
-                <span className="flex items-center gap-1.5 text-paper">
-                  <span>{isArabic ? "عروض وتخفيضات فقط" : "ON SALE ONLY"}</span>
-                  <span className="text-[9px] px-1.5 py-0.5 bg-vermilion/20 text-vermilion border border-vermilion/30 rounded-xs font-mono font-bold">
+                <span className="flex items-center gap-1.5 text-paper min-w-0">
+                  <span className="whitespace-nowrap truncate">{isArabic ? "عروض وتخفيضات فقط" : "ON SALE ONLY"}</span>
+                  <span className="text-[9px] px-1.5 py-0.5 bg-vermilion/20 text-vermilion border border-vermilion/30 rounded-xs font-mono font-bold shrink-0">
                     {isArabic ? "تخفيض" : "SALE"}
                   </span>
                 </span>
                 <div
-                  className={`w-9 h-5 rounded-full p-0.5 transition-colors ${
+                  className={`w-9 h-5 rounded-full p-0.5 transition-colors shrink-0 ${
                     onSaleOnly ? "bg-vermilion" : "bg-ink border border-ink-border"
                   }`}
                 >
@@ -425,47 +461,65 @@ function MangaCatalogContent() {
           </aside>
 
           {/* Mobile Filter Slide-over Sheet Modal */}
-          {mobileFilterOpen && (
-            <div className="fixed inset-0 z-50 md:hidden flex">
+          {mobileFilterOpen && mounted && typeof document !== "undefined" && createPortal(
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label={isArabic ? "تصفية الكتالوج" : "Refine Catalog"}
+              data-lenis-prevent
+              className="fixed inset-0 z-[70] md:hidden flex"
+            >
               {/* Backdrop */}
               <div
                 onClick={() => setMobileFilterOpen(false)}
-                className="fixed inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in"
+                className="fixed inset-0 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+                aria-hidden="true"
               />
-              
-              {/* Drawer Sheet */}
-              <div className={`relative z-10 w-5/6 max-w-sm bg-ink border-ink-border h-full flex flex-col justify-between p-6 shadow-2xl overflow-y-auto animate-in ${isRTL ? "slide-in-from-right mr-auto border-l" : "slide-in-from-left ml-auto border-r"}`}>
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between pb-4 border-b border-ink-border">
-                    <span className="font-mono text-sm font-bold tracking-widest text-paper uppercase flex items-center gap-2">
-                      <SlidersHorizontal strokeWidth={1.4} className="w-4 h-4 text-gold" />
-                      {isArabic ? "تصفية الكتالوج" : "REFINE CATALOG"}
-                    </span>
-                    <button
-                      onClick={() => setMobileFilterOpen(false)}
-                      className="p-1.5 rounded-sm bg-ink-surface border border-ink-border text-text-muted hover:text-paper cursor-pointer"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
 
+              {/* Drawer Sheet */}
+              <div
+                data-lenis-prevent
+                className={`relative z-10 w-[88%] max-w-[360px] bg-ink border-ink-border h-full flex flex-col shadow-2xl overflow-hidden animate-in duration-300 ${
+                  isRTL
+                    ? "slide-in-from-right mr-0 ml-auto border-l"
+                    : "slide-in-from-right ml-auto border-l"
+                }`}
+              >
+                {/* Header - Sticky with safe area padding */}
+                <div className="px-5 py-4 pt-[max(1rem,env(safe-area-inset-top))] border-b border-ink-border flex items-center justify-between bg-ink/95 backdrop-blur-sm shrink-0">
+                  <span className="font-mono text-xs sm:text-sm font-bold tracking-widest text-paper uppercase flex items-center gap-2">
+                    <SlidersHorizontal strokeWidth={1.5} className="w-4 h-4 text-gold shrink-0" />
+                    {isArabic ? "تصفية الكتالوج" : "REFINE CATALOG"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setMobileFilterOpen(false)}
+                    className="w-8 h-8 rounded-sm bg-ink-surface border border-ink-border text-text-muted hover:text-paper flex items-center justify-center transition-colors cursor-pointer active:scale-95"
+                    aria-label={isArabic ? "إغلاق" : "Close"}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Scrollable Content Body */}
+                <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6 overscroll-contain">
                   {/* Genre Multi-select */}
                   <div className="space-y-3">
                     <h4 className="text-xs font-mono tracking-wider text-gold uppercase">
                       {isArabic ? "التصنيف الأدبي" : "GENRE"}
                     </h4>
-                    <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+                    <div className="space-y-2.5 max-h-52 overflow-y-auto pr-1">
                       {activeGenres.map((genre) => {
                         const isChecked = selectedGenres.includes(genre.id.toLowerCase());
                         return (
                           <label
                             key={genre.id}
-                            className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer py-1"
+                            onClick={() => toggleGenre(genre.id.toLowerCase())}
+                            className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer py-1 select-none transition-colors"
                           >
                             <div className="flex items-center gap-2.5">
                               <div
-                                onClick={() => toggleGenre(genre.id.toLowerCase())}
-                                className={`w-4 h-4 rounded-xs border flex items-center justify-center transition-colors ${
+                                className={`w-4 h-4 rounded-xs border flex items-center justify-center transition-colors shrink-0 ${
                                   isChecked
                                     ? "bg-gold border-gold text-ink"
                                     : "border-ink-border"
@@ -495,12 +549,12 @@ function MangaCatalogContent() {
                         return (
                           <label
                             key={format}
-                            className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer py-1"
+                            onClick={() => toggleFormat(format)}
+                            className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer py-1 select-none transition-colors"
                           >
                             <div className="flex items-center gap-2.5">
                               <div
-                                onClick={() => toggleFormat(format)}
-                                className={`w-4 h-4 rounded-xs border flex items-center justify-center transition-colors ${
+                                className={`w-4 h-4 rounded-xs border flex items-center justify-center transition-colors shrink-0 ${
                                   isChecked
                                     ? "bg-gold border-gold text-ink"
                                     : "border-ink-border"
@@ -541,11 +595,11 @@ function MangaCatalogContent() {
                   <div className="space-y-3 pt-4 border-t border-ink-border/60">
                     <label
                       onClick={() => setInStockOnly(!inStockOnly)}
-                      className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer select-none"
+                      className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer select-none py-1"
                     >
                       <span>{isArabic ? "المتوفر في المخزن فقط" : "IN STOCK ONLY"}</span>
                       <div
-                        className={`w-9 h-5 rounded-full p-0.5 transition-colors ${
+                        className={`w-9 h-5 rounded-full p-0.5 transition-colors shrink-0 ${
                           inStockOnly ? "bg-vermilion" : "bg-ink border border-ink-border"
                         }`}
                       >
@@ -565,16 +619,16 @@ function MangaCatalogContent() {
                           router.push("/manga");
                         }
                       }}
-                      className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer select-none"
+                      className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer select-none py-1"
                     >
                       <span className="flex items-center gap-1.5 text-paper">
                         <span>{isArabic ? "عروض وتخفيضات فقط" : "ON SALE ONLY"}</span>
-                        <span className="text-[9px] px-1.5 py-0.5 bg-vermilion/20 text-vermilion border border-vermilion/30 rounded-xs font-mono font-bold">
+                        <span className="text-[9px] px-1.5 py-0.5 bg-vermilion/20 text-vermilion border border-vermilion/30 rounded-xs font-mono font-bold shrink-0">
                           {isArabic ? "تخفيض" : "SALE"}
                         </span>
                       </span>
                       <div
-                        className={`w-9 h-5 rounded-full p-0.5 transition-colors ${
+                        className={`w-9 h-5 rounded-full p-0.5 transition-colors shrink-0 ${
                           onSaleOnly ? "bg-vermilion" : "bg-ink border border-ink-border"
                         }`}
                       >
@@ -588,32 +642,39 @@ function MangaCatalogContent() {
                   </div>
                 </div>
 
-                {/* Mobile Bottom Filter Actions */}
-                <div className="pt-6 mt-6 border-t border-ink-border flex gap-3">
+                {/* Mobile Bottom Filter Actions - Sticky Footer */}
+                <div className="p-4 sm:p-5 border-t border-ink-border bg-ink/95 backdrop-blur-sm flex gap-3 pb-[max(1rem,env(safe-area-inset-bottom))] shrink-0">
                   <button
+                    type="button"
                     onClick={() => {
                       resetFilters();
                       setMobileFilterOpen(false);
                     }}
-                    className="flex-1 py-3 bg-ink-surface hover:bg-ink-border border border-ink-border text-paper font-mono text-xs uppercase tracking-wider rounded-xs cursor-pointer font-bold text-center"
+                    className="flex-1 py-3 bg-ink-surface hover:bg-ink-border border border-ink-border text-paper font-mono text-xs uppercase tracking-wider rounded-xs cursor-pointer font-bold text-center transition-colors active:scale-95"
                   >
                     {isArabic ? "مسح" : "CLEAR"}
                   </button>
                   <button
+                    type="button"
                     onClick={() => setMobileFilterOpen(false)}
-                    className="flex-1 py-3 bg-gold hover:bg-gold-muted text-ink font-mono text-xs uppercase tracking-wider rounded-xs cursor-pointer font-extrabold text-center shadow-lg"
+                    className="flex-1 py-3 bg-gold hover:bg-gold-muted text-ink font-mono text-xs uppercase tracking-wider rounded-xs cursor-pointer font-extrabold text-center shadow-lg transition-colors active:scale-95"
                   >
                     {isArabic ? `عرض النتائج (${filteredVolumes.length})` : `APPLY (${filteredVolumes.length})`}
                   </button>
                 </div>
               </div>
-            </div>
+            </div>,
+            document.body
           )}
 
           {/* Product Grid Area */}
-          <main className="md:col-span-9">
+          <main className="md:col-span-8 lg:col-span-9">
             <div className="mb-6 flex justify-between items-center text-xs font-mono text-text-muted">
-              <span>{isArabic ? `عرض ${filteredVolumes.length} مجلداً أرشيفياً` : `SHOWING ${filteredVolumes.length} EDITIONS`}</span>
+              <span>
+                {isArabic
+                  ? `عرض ${paginatedVolumes.length} من ${filteredVolumes.length} مجلداً`
+                  : `SHOWING ${(currentPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(currentPage * ITEMS_PER_PAGE, filteredVolumes.length)} OF ${filteredVolumes.length}`}
+              </span>
               <span className="text-gold font-serif">回路書庫</span>
             </div>
 
@@ -634,7 +695,7 @@ function MangaCatalogContent() {
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-                {filteredVolumes.map((volume) => (
+                {paginatedVolumes.map((volume) => (
                   <div
                     key={volume.id}
                     onClick={() => handleCardClick(volume.id)}
@@ -686,7 +747,7 @@ function MangaCatalogContent() {
                       </div>
 
                       {/* Floating Action Triggers */}
-                      <div className="absolute top-2.5 right-2.5 flex flex-col gap-1.5 z-10">
+                      <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-10">
                         {/* Wishlist Trigger */}
                         <button
                           type="button"
@@ -695,16 +756,16 @@ function MangaCatalogContent() {
                             e.stopPropagation();
                             toggleWishlist(volume);
                           }}
-                          className={`p-1.5 rounded-xs backdrop-blur-md border transition-all active:scale-90 ${
+                          className={`w-7 h-7 rounded-full flex items-center justify-center backdrop-blur-md border transition-all active:scale-90 shadow-sm ${
                             mounted && isInWishlist(volume.id)
-                              ? "bg-ink/90 border-vermilion text-vermilion"
-                              : "bg-ink/80 border-ink-border text-paper-muted hover:text-gold hover:border-gold/60 opacity-80 sm:opacity-0 sm:group-hover:opacity-100"
+                              ? "bg-ink/95 border-vermilion text-vermilion"
+                              : "bg-black/60 border-white/15 text-paper-muted hover:text-gold hover:border-gold/60 opacity-90 sm:opacity-0 sm:group-hover:opacity-100"
                           }`}
                           title={mounted && isInWishlist(volume.id) ? (isArabic ? "في قائمة الرغبات" : "Saved in Wishlist") : (isArabic ? "إضافة للرغبات" : "Save to Wishlist")}
                           aria-label="Wishlist"
                         >
                           <Heart
-                            strokeWidth={1.4}
+                            strokeWidth={1.5}
                             className={`w-3.5 h-3.5 transition-transform ${
                               mounted && isInWishlist(volume.id) ? "fill-vermilion text-vermilion scale-110" : ""
                             }`}
@@ -719,18 +780,19 @@ function MangaCatalogContent() {
                             e.stopPropagation();
                             openReader(volume);
                           }}
-                          className="p-1.5 rounded-xs bg-ink/80 backdrop-blur-md border border-ink-border text-paper-muted hover:text-gold hover:border-gold transition-colors opacity-80 sm:opacity-0 sm:group-hover:opacity-100 active:scale-90"
+                          className="w-7 h-7 rounded-full flex items-center justify-center bg-black/60 backdrop-blur-md border border-white/15 text-paper-muted hover:text-gold hover:border-gold transition-colors opacity-90 sm:opacity-0 sm:group-hover:opacity-100 active:scale-90 shadow-sm"
                           title={isArabic ? "معاينة عينة (RTL)" : "Read Sample (RTL)"}
+                          aria-label="Read Sample"
                         >
-                          <Eye strokeWidth={1.4} className="w-3.5 h-3.5" />
+                          <Eye strokeWidth={1.5} className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
 
                     {/* Metadata & Actions */}
-                    <div className="p-4 flex flex-col justify-between flex-1">
+                    <div className="p-3 sm:p-4 flex flex-col justify-between flex-1">
                       <div>
-                        <span className="text-[9px] font-mono tracking-widest text-gold uppercase block">
+                        <span className="text-[9px] font-mono tracking-widest text-gold uppercase block truncate">
                           {volume.seriesTitle}
                         </span>
                         <h3 className="text-xs sm:text-sm font-bold text-paper tracking-wide group-hover:text-gold transition-colors line-clamp-1 mt-0.5 block">
@@ -740,8 +802,8 @@ function MangaCatalogContent() {
                           {isArabic ? "تأليف: " : "By "} {volume.author}
                         </p>
 
-                        <div className="flex items-center gap-1 mt-2 text-[11px] font-mono text-text-muted">
-                          <Star strokeWidth={1.5} className="w-3 h-3 text-gold fill-gold" />
+                        <div className="flex items-center gap-1 mt-1.5 sm:mt-2 text-[11px] font-mono text-text-muted">
+                          <Star strokeWidth={1.5} className="w-3 h-3 text-gold fill-gold shrink-0" />
                           <span className="text-paper font-semibold">{volume.rating.toFixed(1)}</span>
                           <span className="text-[10px] text-text-muted/70">
                             ({volume.reviewCount})
@@ -749,20 +811,20 @@ function MangaCatalogContent() {
                         </div>
                       </div>
 
-                      <div className="mt-4 pt-3 border-t border-ink-border/50 flex items-center justify-between">
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-sm font-mono font-bold text-paper">
+                      <div className="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-ink-border/50 flex items-center justify-between gap-1.5">
+                        <div className="flex flex-col min-w-0 pr-1">
+                          <span className="text-xs sm:text-sm font-mono font-bold text-paper truncate">
                             {formatPrice(volume.price)}
                           </span>
                           {volume.originalPrice && volume.originalPrice > volume.price && (
-                            <span className="text-[11px] font-mono text-text-muted/70 line-through">
+                            <span className="text-[10px] sm:text-[11px] font-mono text-text-muted/70 line-through truncate -mt-0.5">
                               {formatPrice(volume.originalPrice)}
                             </span>
                           )}
                         </div>
                         {volume.stock <= 0 ? (
-                          <span className="px-2.5 py-1 bg-ink-surface/90 border border-ink-border text-text-muted text-[9px] font-mono font-bold uppercase rounded-xs cursor-not-allowed opacity-80">
-                            {isArabic ? "نفد" : "OUT OF STOCK"}
+                          <span className="px-2 py-1 bg-ink-surface/90 border border-ink-border text-text-muted text-[8.5px] sm:text-[9px] font-mono font-bold uppercase rounded-xs cursor-not-allowed opacity-80 shrink-0">
+                            {isArabic ? "نفد" : "OUT"}
                           </span>
                         ) : (
                           <button
@@ -773,16 +835,79 @@ function MangaCatalogContent() {
                               addItem(volume, 1);
                               openCart();
                             }}
-                            className="px-3 py-1.5 bg-paper text-ink hover:bg-vermilion hover:text-white font-bold text-[10px] font-mono tracking-widest uppercase transition-colors rounded-xs flex items-center gap-1 z-10 active:scale-95"
+                            className="h-7 sm:h-8 px-2 sm:px-3 bg-paper text-ink hover:bg-vermilion hover:text-white font-bold text-[10px] font-mono tracking-wider uppercase transition-colors rounded-xs flex items-center justify-center gap-1 shrink-0 z-10 active:scale-95 cursor-pointer shadow-sm"
+                            aria-label={isArabic ? "إضافة للسلة" : "Add to cart"}
                           >
-                            <Plus strokeWidth={1.5} className="w-3 h-3" />
-                            {isArabic ? "إضافة" : "ADD"}
+                            <Plus strokeWidth={2} className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                            <span className="hidden xs:inline">{isArabic ? "إضافة" : "ADD"}</span>
                           </button>
                         )}
                       </div>
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="mt-10 flex items-center justify-center gap-2 font-mono">
+                {/* Prev */}
+                <button
+                  type="button"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="flex items-center gap-1 px-3 py-2 text-xs font-bold uppercase tracking-wider border border-ink-border text-text-muted hover:text-paper hover:border-gold/50 rounded-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{isArabic ? "السابق" : "PREV"}</span>
+                </button>
+
+                {/* Page numbers */}
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    // Show first, last, current, and neighbors; show ellipsis for gaps
+                    const showPage =
+                      page === 1 ||
+                      page === totalPages ||
+                      Math.abs(page - currentPage) <= 1;
+                    const showEllipsisBefore = page === currentPage - 2 && currentPage > 3;
+                    const showEllipsisAfter = page === currentPage + 2 && currentPage < totalPages - 2;
+
+                    if (showEllipsisBefore || showEllipsisAfter) {
+                      return (
+                        <span key={page} className="w-8 text-center text-text-muted text-xs">…</span>
+                      );
+                    }
+                    if (!showPage) return null;
+
+                    return (
+                      <button
+                        key={page}
+                        type="button"
+                        onClick={() => goToPage(page)}
+                        className={`w-9 h-9 text-xs font-bold rounded-sm transition-colors cursor-pointer ${
+                          page === currentPage
+                            ? "bg-gold text-ink border border-gold"
+                            : "border border-ink-border text-text-muted hover:text-paper hover:border-gold/50"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Next */}
+                <button
+                  type="button"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="flex items-center gap-1 px-3 py-2 text-xs font-bold uppercase tracking-wider border border-ink-border text-text-muted hover:text-paper hover:border-gold/50 rounded-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <span className="hidden sm:inline">{isArabic ? "التالي" : "NEXT"}</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
             )}
           </main>

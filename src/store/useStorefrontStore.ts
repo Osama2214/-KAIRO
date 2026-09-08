@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { MangaVolume, Series, GenreInfo, ALL_VOLUMES, ALL_SERIES, GENRES } from "@/data/manga";
 import { DEFAULT_ADMIN_PIN, DEFAULT_PIN_HASH, AUTHORIZED_ADMIN_EMAILS } from "@/config/adminConfig";
-import { DEFAULT_GOVERNORATE_RATES } from "@/data/governorates";
+import { DEFAULT_GOVERNORATE_RATES, EgyptGovernorate, EGYPT_GOVERNORATES } from "@/data/governorates";
 
 export interface HeroContent {
   badgeText: string;
@@ -40,6 +40,7 @@ export interface ShippingConfig {
   deliveryEstimate: string;
   standardShippingCost: number;
   governorateRates: Record<string, number>;
+  governoratesList?: EgyptGovernorate[];
   freeShippingEnabled: boolean;
   freeShippingThreshold: number;
   perk1Title?: string;
@@ -232,6 +233,7 @@ const DEFAULT_SHIPPING_CONFIG: ShippingConfig = {
   deliveryEstimate: "24-48h",
   standardShippingCost: 65,
   governorateRates: DEFAULT_GOVERNORATE_RATES,
+  governoratesList: EGYPT_GOVERNORATES,
   freeShippingEnabled: true,
   freeShippingThreshold: 500,
   perk1Title: "EGYPT-WIDE EXPRESS DISPATCH",
@@ -936,6 +938,11 @@ export const useStorefrontStore = create<StorefrontState>()(
             shippingConfig: {
               ...DEFAULT_SHIPPING_CONFIG,
               ...(parsed.shippingConfig || {}),
+              governoratesList:
+                Array.isArray(parsed.shippingConfig?.governoratesList) &&
+                parsed.shippingConfig.governoratesList.length > 0
+                  ? parsed.shippingConfig.governoratesList
+                  : EGYPT_GOVERNORATES,
               governorateRates: {
                 ...DEFAULT_GOVERNORATE_RATES,
                 ...(parsed.shippingConfig?.governorateRates || {}),
@@ -1089,6 +1096,11 @@ export const useStorefrontStore = create<StorefrontState>()(
             perk2Desc: persisted.shippingConfig.perk2Desc || DEFAULT_SHIPPING_CONFIG.perk2Desc,
             perk3Title: persisted.shippingConfig.perk3Title || DEFAULT_SHIPPING_CONFIG.perk3Title,
             perk3Desc: persisted.shippingConfig.perk3Desc || DEFAULT_SHIPPING_CONFIG.perk3Desc,
+            governoratesList:
+              Array.isArray(persisted.shippingConfig.governoratesList) &&
+              persisted.shippingConfig.governoratesList.length > 0
+                ? persisted.shippingConfig.governoratesList
+                : EGYPT_GOVERNORATES,
             governorateRates: {
               ...DEFAULT_GOVERNORATE_RATES,
               ...(persisted.shippingConfig.governorateRates || {}),
@@ -1112,3 +1124,14 @@ export const useStorefrontStore = create<StorefrontState>()(
     }
   )
 );
+
+export function getActiveGovernorates(shippingConfig?: ShippingConfig | null): EgyptGovernorate[] {
+  if (
+    shippingConfig?.governoratesList &&
+    Array.isArray(shippingConfig.governoratesList) &&
+    shippingConfig.governoratesList.length > 0
+  ) {
+    return shippingConfig.governoratesList;
+  }
+  return EGYPT_GOVERNORATES;
+}

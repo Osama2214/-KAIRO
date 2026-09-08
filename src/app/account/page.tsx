@@ -34,9 +34,13 @@ import {
   Clock,
   Banknote,
   Lock,
+  Smartphone,
+  Zap,
 } from "lucide-react";
 import { ALL_VOLUMES, MangaVolume } from "@/data/manga";
+import { EGYPT_GOVERNORATES } from "@/data/governorates";
 import { useCartStore } from "@/store/useCartStore";
+import { useStorefrontStore, getActiveGovernorates } from "@/store/useStorefrontStore";
 import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useAuthStore, SavedOrder, SavedOrderItem } from "@/store/useAuthStore";
@@ -44,7 +48,6 @@ import { useReaderStore } from "@/store/useReaderStore";
 import { formatPrice } from "@/lib/utils";
 import { escapeHtml, validateEmail, validatePassword, validateEgyptianPhone, verifyEmailAddress, sendOtpEmail, verifyOtpCode } from "@/lib/security";
 import { CustomSelect } from "@/components/CustomSelect";
-import { ImageUploadInput } from "@/components/ImageUploadInput";
 import { WelcomeOfferBanner } from "@/components/WelcomeOfferBanner";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -77,35 +80,10 @@ declare global {
   }
 }
 
-const GOVERNORATE_OPTIONS = [
-  { value: "Cairo", label: "Cairo" },
-  { value: "Giza", label: "Giza" },
-  { value: "Alexandria", label: "Alexandria" },
-  { value: "Qalyubia", label: "Qalyubia" },
-  { value: "Sharqia", label: "Sharqia" },
-  { value: "Dakahlia", label: "Dakahlia" },
-  { value: "Gharbia", label: "Gharbia" },
-  { value: "Monufia", label: "Monufia" },
-  { value: "Beheira", label: "Beheira" },
-  { value: "Ismailia", label: "Ismailia" },
-  { value: "Suez", label: "Suez" },
-  { value: "Port Said", label: "Port Said" },
-  { value: "Red Sea", label: "Red Sea" },
-  { value: "Luxor", label: "Luxor" },
-  { value: "Aswan", label: "Aswan" },
-  { value: "Asyut", label: "Asyut" },
-  { value: "Sohag", label: "Sohag" },
-  { value: "Beni Suef", label: "Beni Suef" },
-  { value: "Fayoum", label: "Fayoum" },
-  { value: "Minya", label: "Minya" },
-  { value: "Qena", label: "Qena" },
-  { value: "Damietta", label: "Damietta" },
-  { value: "Kafr El Sheikh", label: "Kafr El Sheikh" },
-  { value: "North Sinai", label: "North Sinai" },
-  { value: "South Sinai", label: "South Sinai" },
-  { value: "Matrouh", label: "Matrouh" },
-  { value: "New Valley", label: "New Valley" },
-];
+const GOVERNORATE_OPTIONS = EGYPT_GOVERNORATES.map((g) => ({
+  value: g.value,
+  label: g.labelAr ? `${g.label} (${g.labelAr})` : g.label,
+}));
 
 function GoogleIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
@@ -148,7 +126,7 @@ function getCanonicalVolume(item: (SavedOrderItem & { volumeId?: string }) | Par
 function AccountContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { t, locale, isRTL } = useTranslation();
+  const { locale, isRTL } = useTranslation();
   const isArabic = locale === "ar";
   const newOrderId = searchParams.get("newOrder");
   const tabParam = searchParams.get("tab");
@@ -170,6 +148,7 @@ function AccountContent() {
   const updateProfile = useAuthStore((state) => state.updateProfile);
   const loginDemo = useAuthStore((state) => state.loginDemo);
   const loginWithGoogle = useAuthStore((state) => state.loginWithGoogle);
+  const shippingConfig = useStorefrontStore((state) => state.shippingConfig);
 
   // Global Wishlist Store
   const mounted = useMounted();
@@ -466,19 +445,46 @@ function AccountContent() {
   const [shippingAddress, setShippingAddress] = useState(currentUser?.address || "");
   const [patronName, setPatronName] = useState(currentUser?.name || "");
   const [patronPhone, setPatronPhone] = useState(currentUser?.phone || "");
-  const [patronGovernorate, setPatronGovernorate] = useState(currentUser?.governorate || "Cairo");
-  const [patronAvatar, setPatronAvatar] = useState(currentUser?.avatar || "");
+  const [patronGovernorate, setPatronGovernorate] = useState(
+    currentUser?.governorate
+      ? EGYPT_GOVERNORATES.find((g) => g.value.toLowerCase().includes((currentUser.governorate || "").toLowerCase()))?.value || "Cairo"
+      : "Cairo"
+  );
+  const [patronCity, setPatronCity] = useState(currentUser?.city || "");
+  const [patronDeliveryNotes, setPatronDeliveryNotes] = useState(currentUser?.deliveryNotes || "");
+  const [preferredPaymentMethod, setPreferredPaymentMethod] = useState<"cash" | "wallet" | "instapay">(
+    currentUser?.preferredPaymentMethod || "cash"
+  );
+  const [paymentSenderDetail, setPaymentSenderDetail] = useState(currentUser?.paymentSenderDetail || "");
   const [settingsSavedMessage, setSettingsSavedMessage] = useState("");
   const [settingsErrorMessage, setSettingsErrorMessage] = useState("");
+
+  const activeGovernorates = useMemo(() => {
+    return getActiveGovernorates(shippingConfig);
+  }, [shippingConfig]);
+
+  const governorateSelectOptions = useMemo(() => {
+    return activeGovernorates.map((g) => ({
+      value: g.value,
+      label: isArabic ? (g.labelAr || g.label) : g.label,
+    }));
+  }, [activeGovernorates, isArabic]);
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
       if (currentUser) {
-        setPatronName(currentUser.name);
-        setShippingAddress(currentUser.address);
-        setPatronPhone(currentUser.phone);
-        setPatronGovernorate(currentUser.governorate);
-        setPatronAvatar(currentUser.avatar || "");
+        const matchedGov = activeGovernorates.find((g) =>
+          g.value.toLowerCase().includes((currentUser.governorate || "").toLowerCase()) ||
+          (currentUser.governorate || "").toLowerCase().includes(g.value.toLowerCase())
+        );
+        setPatronName(currentUser.name || "");
+        setShippingAddress(currentUser.address || "");
+        setPatronPhone(currentUser.phone || "");
+        setPatronGovernorate(matchedGov ? matchedGov.value : (currentUser.governorate || "Cairo"));
+        setPatronCity(currentUser.city || "");
+        setPatronDeliveryNotes(currentUser.deliveryNotes || "");
+        setPreferredPaymentMethod(currentUser.preferredPaymentMethod || "cash");
+        setPaymentSenderDetail(currentUser.paymentSenderDetail || "");
 
         const seen = new Set<string>();
         const uniqueOrders: SavedOrder[] = [];
@@ -551,16 +557,22 @@ function AccountContent() {
           setShippingAddress(guestOrders[0]?.customerAddress || "");
           setPatronPhone(guestOrders[0]?.customerPhone || "");
           setPatronGovernorate(guestOrders[0]?.customerGovernorate || "Cairo");
+          setPatronCity(guestOrders[0]?.customerCity || "");
+          setPatronDeliveryNotes(guestOrders[0]?.deliveryNotes || "");
         } else {
           setPatronName("");
           setShippingAddress("");
           setPatronPhone("");
           setPatronGovernorate("Cairo");
+          setPatronCity("");
+          setPatronDeliveryNotes("");
+          setPreferredPaymentMethod("cash");
+          setPaymentSenderDetail("");
         }
       }
     });
     return () => cancelAnimationFrame(raf);
-  }, [currentUser]);
+  }, [currentUser, activeGovernorates]);
 
   const handlePrintInvoice = (order: SavedOrder) => {
     // Create an isolated hidden iframe dedicated strictly to the invoice receipt
@@ -870,7 +882,11 @@ function AccountContent() {
     if (patronPhone.trim()) {
       const phoneVal = validateEgyptianPhone(patronPhone);
       if (!phoneVal.isValid) {
-        setSettingsErrorMessage(phoneVal.message || "Please enter a valid 11-digit Egyptian mobile number.");
+        setSettingsErrorMessage(
+          isArabic
+            ? "يرجى إدخال رقم هاتف مصري صحيح مكون من 11 رقماً (مثال: 01012345678)"
+            : (phoneVal.message || "Please enter a valid 11-digit Egyptian mobile number.")
+        );
         return;
       }
       normalizedPhone = phoneVal.normalized || patronPhone;
@@ -882,9 +898,16 @@ function AccountContent() {
       address: shippingAddress,
       phone: normalizedPhone,
       governorate: patronGovernorate,
-      avatar: patronAvatar || undefined,
+      city: patronCity,
+      deliveryNotes: patronDeliveryNotes,
+      preferredPaymentMethod,
+      paymentSenderDetail,
     });
-    setSettingsSavedMessage("Collector profile preferences successfully updated.");
+    setSettingsSavedMessage(
+      isArabic
+        ? "تم حفظ تفضيلات الشحن والطلب السريع بنجاح."
+        : "Collector shipping and fast checkout preferences successfully updated."
+    );
     setTimeout(() => setSettingsSavedMessage(""), 4000);
   };
 
@@ -1572,7 +1595,7 @@ function AccountContent() {
                   </span>
                 )}
                 {emailVerified && !authError && !isCheckingEmail && (
-                  <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+                  <span className="text-[10px] font-mono text-gold flex items-center gap-1">
                     <Check className="w-3 h-3" />
                     <span>Domain verified</span>
                   </span>
@@ -1883,13 +1906,13 @@ function AccountContent() {
   }
 
   return (
-    <div className="min-h-screen bg-transparent text-paper pt-28 pb-24 px-4 sm:px-6 md:px-12 relative z-10">
-      <div className="max-w-6xl mx-auto space-y-10">
+    <div className="min-h-screen bg-transparent text-paper pt-20 sm:pt-28 pb-16 sm:pb-24 px-3.5 sm:px-6 md:px-12 relative z-10">
+      <div className="max-w-6xl mx-auto space-y-6 sm:space-y-10">
         
         {/* Streamlined Clean Profile Header */}
-        <div className="border-b border-ink-border/80 pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-linear-to-tr from-amber-600 to-gold text-ink font-bold font-sans flex items-center justify-center text-lg shadow-md shrink-0 overflow-hidden border border-gold/40">
+        <div className="border-b border-ink-border/80 pb-5 sm:pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-linear-to-tr from-amber-600 to-gold text-ink font-bold font-sans flex items-center justify-center text-base sm:text-lg shadow-md shrink-0 overflow-hidden border border-gold/40">
               {currentUser.avatar ? (
                 <img
                   src={currentUser.avatar}
@@ -1900,17 +1923,17 @@ function AccountContent() {
                 <span>{currentUser.name ? currentUser.name.charAt(0).toUpperCase() : "U"}</span>
               )}
             </div>
-            <div>
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight uppercase font-sans text-paper">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight uppercase font-sans text-paper truncate">
                   {currentUser.name}
                 </h1>
-                <span className="px-2 py-0.5 rounded-full bg-gold/10 border border-gold/30 text-gold text-[10px] font-mono uppercase tracking-wider">
+                <span className="px-2 py-0.5 rounded-full bg-gold/10 border border-gold/30 text-gold text-[9px] sm:text-[10px] font-mono uppercase tracking-wider shrink-0">
                   {currentUser.tier || "Collector"}
                 </span>
               </div>
-              <p className="text-xs text-text-muted font-mono flex items-center gap-2 mt-1">
-                <span>{currentUser.email}</span>
+              <p className="text-[11px] sm:text-xs text-text-muted font-mono flex items-center gap-1.5 sm:gap-2 mt-0.5 flex-wrap">
+                <span className="truncate max-w-[150px] xs:max-w-none">{currentUser.email}</span>
                 <span>•</span>
                 <span>{currentUser.governorate}</span>
                 <span>•</span>
@@ -1919,24 +1942,24 @@ function AccountContent() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 w-full sm:w-auto">
             {currentUser && currentUser.role === "admin" && (
               <Link
                 href="/admin"
-                className="inline-flex items-center gap-2 px-3.5 py-2 bg-gold/15 hover:bg-gold text-gold hover:text-ink border border-gold/40 text-xs font-mono font-bold uppercase tracking-wider rounded-xs transition-all cursor-pointer"
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3.5 py-2.5 bg-gold/15 hover:bg-gold text-gold hover:text-ink border border-gold/40 text-xs font-mono font-bold uppercase tracking-wider rounded-xs transition-all cursor-pointer text-center"
                 title="Enter Admin Management Dashboard"
               >
-                <SlidersHorizontal strokeWidth={1.4} className="w-3.5 h-3.5" />
+                <SlidersHorizontal strokeWidth={1.4} className="w-3.5 h-3.5 shrink-0" />
                 <span>{isArabic ? "لوحة الإدارة" : "Curator Console"}</span>
               </Link>
             )}
             <button
               type="button"
               onClick={() => logout()}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-ink-surface/60 hover:bg-vermilion/15 border border-ink-border hover:border-vermilion/60 text-text-muted hover:text-vermilion text-xs font-mono uppercase tracking-wider rounded-xs transition-all cursor-pointer"
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-ink-surface/60 hover:bg-vermilion/15 border border-ink-border hover:border-vermilion/60 text-text-muted hover:text-vermilion text-xs font-mono uppercase tracking-wider rounded-xs transition-all cursor-pointer text-center"
               title="Sign out of current account"
             >
-              <LogOut strokeWidth={1.4} className="w-3.5 h-3.5" />
+              <LogOut strokeWidth={1.4} className="w-3.5 h-3.5 shrink-0" />
               <span>{isArabic ? "تسجيل الخروج" : "Sign Out"}</span>
             </button>
           </div>
@@ -1966,12 +1989,12 @@ function AccountContent() {
         <WelcomeOfferBanner />
 
         {/* Dashboard Navigation Tabs */}
-        <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto border-b border-ink-border/60 pb-3 font-mono text-xs no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="flex items-center gap-1.5 sm:gap-3 overflow-x-auto border-b border-ink-border/60 pb-3 font-mono text-xs no-scrollbar -mx-3.5 px-3.5 sm:mx-0 sm:px-0">
           {([
-            { id: "ORDERS", label: isArabic ? `طلباتي (${orders.length})` : `My Orders (${orders.length})`, icon: Package },
-            { id: "LIBRARY", label: isArabic ? `مكتبتي الرقمية (${digitalLibraryVolumes.length})` : `My Library (${digitalLibraryVolumes.length})`, icon: BookOpen },
-            { id: "WISHLIST", label: isArabic ? `قائمة الرغبات (${wishlist.length})` : `Wishlist (${wishlist.length})`, icon: Heart },
-            { id: "SETTINGS", label: isArabic ? "إعدادات الحساب" : "Settings", icon: Settings },
+            { id: "ORDERS", shortLabel: isArabic ? `طلباتي (${orders.length})` : `Orders (${orders.length})`, fullLabel: isArabic ? `طلباتي (${orders.length})` : `My Orders (${orders.length})`, icon: Package },
+            { id: "LIBRARY", shortLabel: isArabic ? `مكتبتي (${digitalLibraryVolumes.length})` : `Library (${digitalLibraryVolumes.length})`, fullLabel: isArabic ? `مكتبتي الرقمية (${digitalLibraryVolumes.length})` : `My Library (${digitalLibraryVolumes.length})`, icon: BookOpen },
+            { id: "WISHLIST", shortLabel: isArabic ? `المفضلة (${wishlist.length})` : `Wishlist (${wishlist.length})`, fullLabel: isArabic ? `قائمة الرغبات (${wishlist.length})` : `Wishlist (${wishlist.length})`, icon: Heart },
+            { id: "SETTINGS", shortLabel: isArabic ? "الإعدادات" : "Settings", fullLabel: isArabic ? "إعدادات الحساب" : "Account Settings", icon: Settings },
           ] as const).map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -1979,14 +2002,15 @@ function AccountContent() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xs tracking-wider uppercase transition-all whitespace-nowrap cursor-pointer shrink-0 text-[11px] sm:text-xs ${
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xs tracking-wider uppercase transition-all whitespace-nowrap cursor-pointer shrink-0 text-[11px] sm:text-xs ${
                   isActive
                     ? "bg-paper text-ink font-bold shadow-md shadow-black/30"
                     : "text-text-muted hover:text-paper hover:bg-ink-surface/60 border border-transparent"
                 }`}
               >
-                <Icon strokeWidth={1.5} className="w-3.5 h-3.5" />
-                <span>{tab.label}</span>
+                <Icon strokeWidth={1.5} className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden sm:inline">{tab.fullLabel}</span>
+                <span className="sm:hidden">{tab.shortLabel}</span>
               </button>
             );
           })}
@@ -1998,21 +2022,29 @@ function AccountContent() {
         {activeTab === "ORDERS" && (
           <div className="space-y-8 animate-in fade-in duration-300">
             {orders.length === 0 ? (
-              <div className="p-16 border border-ink-border bg-ink-surface/30 rounded-sm text-center space-y-4">
-                <Package strokeWidth={1.2} className="w-12 h-12 text-text-muted mx-auto" />
-                <p className="font-mono text-sm text-paper">{isArabic ? "لا توجد طلبات سابقة في هذه الجلسة" : "NO ORDERS PLACED IN THIS SESSION"}</p>
-                <p className="text-xs text-text-muted max-w-sm mx-auto">
-                  {isArabic
-                    ? "تصفح كتالوج المانجا المعتمد وابدأ بتكوين مكتبتك الورقية الفاخرة مع شحن سريع لكافة محافظات مصر."
-                    : "Explore our curated manga catalog and build your definitive collector box set with direct delivery across all Egyptian governorates."}
-                </p>
-                <Link
-                  href="/manga"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-paper text-ink font-bold text-xs font-mono uppercase tracking-widest hover:bg-vermilion hover:text-white transition-colors rounded-xs"
-                >
-                  <span>{isArabic ? "تصفح الأرشيف الكامل" : "BROWSE ARCHIVE"}</span>
-                  <ArrowRight strokeWidth={1.5} className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
-                </Link>
+              <div className="py-12 sm:py-16 px-4 sm:px-6 border border-ink-border/80 bg-ink-surface/25 rounded-sm text-center relative">
+                <div className="max-w-sm mx-auto space-y-3">
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-ink-surface border border-ink-border flex items-center justify-center mx-auto text-text-muted">
+                    <Package strokeWidth={1.4} className="w-5 h-5 text-gold" />
+                  </div>
+                  <h3 className="font-mono text-sm sm:text-base font-bold text-paper tracking-wider uppercase">
+                    {isArabic ? "لا توجد طلبات سابقة" : "NO ORDERS YET"}
+                  </h3>
+                  <p className="text-xs text-text-muted font-sans">
+                    {isArabic
+                      ? "ستظهر سجلات طلباتك وتتبع الشحن هنا فور إتمام الشراء."
+                      : "Your orders and live delivery tracking will appear here."}
+                  </p>
+                  <div className="pt-1.5">
+                    <Link
+                      href="/manga"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-paper text-ink font-bold text-xs font-mono uppercase tracking-wider hover:bg-vermilion hover:text-white transition-all rounded-xs shadow-md active:scale-95"
+                    >
+                      <span>{isArabic ? "تصفح الكتالوج" : "BROWSE CATALOG"}</span>
+                      <ArrowRight strokeWidth={1.5} className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
+                    </Link>
+                  </div>
+                </div>
               </div>
             ) : (
               orders.map((order, orderIdx) => {
@@ -2028,18 +2060,18 @@ function AccountContent() {
                 if (isElectronic) {
                   if (!isPaid) {
                     steps = [
-                      { key: "Placed", label: isArabic ? "تم تسجيل الطلب" : "ORDER PLACED", detail: isArabic ? "من السلة للأرشيف" : "Cart Checked Out" },
-                      { key: "Verification", label: isArabic ? "قيد تأكيد الدفع" : "PAYMENT PENDING", detail: isArabic ? "في انتظار المطابقة" : "Awaiting Confirmation" },
-                      { key: "Preparing", label: isArabic ? "تغليف مصفح للمقتنين" : "VAULT PACKAGING", detail: isArabic ? "فحص الجودة والسلامة" : "Quality Inspection" },
-                      { key: "Delivered", label: isArabic ? "تم التوصيل" : "DELIVERED", detail: isArabic ? "الاستلام في باب المنزل" : "Destination Arrival" },
+                      { key: "Placed", label: isArabic ? "تم الطلب" : "ORDERED", detail: isArabic ? "تسجيل الطلب" : "Order Placed" },
+                      { key: "Verification", label: isArabic ? "التحقق" : "VERIFYING", detail: isArabic ? "مطابقة التحويل" : "Awaiting Transfer" },
+                      { key: "Preparing", label: isArabic ? "التجهيز" : "PACKAGING", detail: isArabic ? "التغليف المصفح" : "Vault Packaging" },
+                      { key: "Delivered", label: isArabic ? "التوصيل" : "DELIVERED", detail: isArabic ? "الاستلام" : "Doorstep Arrival" },
                     ];
                     currentStepIndex = 1;
                   } else {
                     steps = [
-                      { key: "Paid", label: isArabic ? "تم تأكيد الدفع" : "PAYMENT VERIFIED", detail: isArabic ? "تم اعتماد التحويل" : "Transfer Approved" },
-                      { key: "Preparing", label: isArabic ? "تغليف مصفح للمقتنين" : "VAULT PACKAGING", detail: isArabic ? "الفحص والتغليف الآمن" : "Inspection & Seal" },
-                      { key: "Shipped", label: isArabic ? "مع شركة الشحن" : "IN TRANSIT", detail: isArabic ? "خرجت مع المندوب" : "Dispatched with Courier" },
-                      { key: "Delivered", label: isArabic ? "تم التوصيل" : "DELIVERED", detail: isArabic ? "وصول الطرد بنجاح" : "Archival Delivery" },
+                      { key: "Paid", label: isArabic ? "مدفوع" : "PAID", detail: isArabic ? "اعتماد الدفع" : "Payment Verified" },
+                      { key: "Preparing", label: isArabic ? "التجهيز" : "PACKAGING", detail: isArabic ? "التغليف المصفح" : "Vault Packaging" },
+                      { key: "Shipped", label: isArabic ? "في الطريق" : "IN TRANSIT", detail: isArabic ? "مع المندوب" : "Dispatched" },
+                      { key: "Delivered", label: isArabic ? "تم الاستلام" : "DELIVERED", detail: isArabic ? "تم التوصيل" : "Doorstep Arrival" },
                     ];
                     if (order.status === "Delivered") currentStepIndex = 3;
                     else if (order.status === "Shipped") currentStepIndex = 2;
@@ -2048,10 +2080,10 @@ function AccountContent() {
                 } else {
                   // Cash on Delivery
                   steps = [
-                    { key: "Confirmed", label: isArabic ? "تم تأكيد الطلب" : "ORDER CONFIRMED", detail: isArabic ? "مجدول بمركز الشحن" : "Scheduled with Hub" },
-                    { key: "Preparing", label: isArabic ? "تغليف مصفح للمقتنين" : "VAULT PACKAGING", detail: isArabic ? "الفحص والتغليف الآمن" : "Inspection & Seal" },
-                    { key: "Shipped", label: isArabic ? "مع مندوب التوصيل" : "IN TRANSIT", detail: isArabic ? "في الطريق لمنزلك" : "Courier Doorstep Route" },
-                    { key: "Delivered", label: isArabic ? "تم الاستلام والسداد" : "COLLECTED & COMPLETE", detail: isArabic ? "استلام المبلغ نقداً" : "Cash Received" },
+                    { key: "Confirmed", label: isArabic ? "مؤكد" : "CONFIRMED", detail: isArabic ? "تم التأكيد" : "Order Confirmed" },
+                    { key: "Preparing", label: isArabic ? "التجهيز" : "PACKAGING", detail: isArabic ? "التغليف المصفح" : "Vault Packaging" },
+                    { key: "Shipped", label: isArabic ? "في الطريق" : "IN TRANSIT", detail: isArabic ? "مع المندوب" : "Out for Delivery" },
+                    { key: "Delivered", label: isArabic ? "تم الاستلام" : "DELIVERED", detail: isArabic ? "الاستلام والسداد" : "Collected & Complete" },
                   ];
                   if (order.status === "Delivered") currentStepIndex = 3;
                   else if (order.status === "Shipped") currentStepIndex = 2;
@@ -2062,92 +2094,83 @@ function AccountContent() {
                 return (
                   <div
                     key={`${order.id}-${orderIdx}`}
-                    className="bg-ink-surface/40 border border-ink-border/80 rounded-sm p-5 sm:p-7 space-y-6 shadow-xl"
+                    className="bg-ink-surface/40 border border-ink-border/80 rounded-sm p-3 sm:p-6 space-y-3.5 sm:space-y-5 shadow-xl"
                   >
                     {/* Order Title & Protocol Meta */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-ink-border/70 gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 sm:pb-4 border-b border-ink-border/70 gap-2.5 sm:gap-4">
                       <div className="space-y-1.5">
-                        <div className="flex flex-wrap items-center gap-2.5">
-                          <h3 className="text-lg sm:text-xl font-bold font-mono text-paper tracking-wider">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-base sm:text-xl font-bold font-mono text-paper tracking-wider">
                             ORDER #{order.id}
                           </h3>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="px-2 py-0.5 rounded-xs bg-ink border border-ink-border text-[10px] font-mono text-text-muted">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="px-2 py-0.5 rounded-xs bg-ink border border-ink-border text-[9px] sm:text-[10px] font-mono text-text-muted">
                               {order.paymentMethod === "wallet"
-                                ? (isArabic ? "محفظة إلكترونية" : "Mobile Wallet")
+                                ? (isArabic ? "محفظة" : "Wallet")
                                 : order.paymentMethod === "instapay"
                                 ? (isArabic ? "إنستاباي" : "InstaPay")
-                                : (isArabic ? "دفع عند الاستلام" : "Cash On Delivery")}
+                                : (isArabic ? "عند الاستلام" : "Cash on Delivery")}
                             </span>
 
                             {/* Payment Verification Status Badge */}
                             {isPaid ? (
-                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold flex items-center gap-1.5 border bg-emerald-500/10 border-emerald-500/30 text-emerald-400">
+                              <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-mono font-semibold flex items-center gap-1 border bg-emerald-500/10 border-emerald-500/30 text-emerald-400">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                <span>{isArabic ? "حالة الدفع: تم التأكيد والسداد" : "PAYMENT: VERIFIED & PAID"}</span>
+                                <span>{isArabic ? "تم السداد" : "PAID"}</span>
                               </span>
                             ) : isPendingVerification ? (
-                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold flex items-center gap-1.5 border bg-amber-500/10 border-amber-500/40 text-amber-400">
-                                <span>{isArabic ? "حالة الدفع: قيد تأكيد التحويل" : "PAYMENT: PENDING VERIFICATION"}</span>
+                              <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-mono font-semibold flex items-center gap-1 border bg-amber-500/10 border-amber-500/40 text-amber-400">
+                                <span>{isArabic ? "قيد التحقق" : "VERIFYING"}</span>
                               </span>
-                            ) : (
-                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold flex items-center gap-1.5 border bg-gold/10 border-gold/40 text-gold">
-                                <span className="w-1.5 h-1.5 rounded-full bg-gold" />
-                                <span>{isArabic ? "حالة الدفع: تحصيل عند الاستلام" : "PAYMENT: DOORSTEP COLLECTION"}</span>
-                              </span>
-                            )}
+                            ) : null}
 
                             {/* Order Fulfillment Status Badge */}
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold flex items-center gap-1.5 border bg-ink border-ink-border text-paper">
+                            <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-mono font-semibold flex items-center gap-1 border bg-ink border-ink-border text-paper">
                               <span>
                                 {isArabic
-                                  ? `حالة الطلب: ${
-                                      order.status === "Delivered"
-                                        ? "تم التوصيل بنجاح"
-                                        : order.status === "Shipped"
-                                        ? "مع شركة الشحن"
-                                        : order.status === "Confirmed"
-                                        ? "تم التأكيد"
-                                        : order.status === "Cancelled"
-                                        ? "ملغي"
-                                        : "جاري التجهيز في الأرشيف"
-                                    }`
-                                  : `ORDER: ${order.status ? order.status.toUpperCase() : "PROCESSING"}`}
+                                  ? (order.status === "Delivered"
+                                      ? "تم التوصيل"
+                                      : order.status === "Shipped"
+                                      ? "في الطريق"
+                                      : order.status === "Confirmed"
+                                      ? "مؤكد"
+                                      : order.status === "Cancelled"
+                                      ? "ملغي"
+                                      : "قيد التجهيز")
+                                  : (order.status ? order.status.toUpperCase() : "PROCESSING")}
                               </span>
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
-                        <div className={isRTL ? "text-left" : "text-right"}>
-                          <span className="text-[10px] text-text-muted block">{isArabic ? "تاريخ الطلب" : "TIMESTAMP"}</span>
-                          <span className="text-paper">{order.date}</span>
+                      <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 text-xs font-mono pt-1.5 sm:pt-0 border-t sm:border-t-0 border-ink-border/40">
+                        <div className={isRTL ? "text-right sm:text-left" : "text-left sm:text-right"}>
+                          <span className="text-[9px] sm:text-[10px] text-text-muted block uppercase">{isArabic ? "التاريخ" : "DATE"}</span>
+                          <span className="text-paper text-xs">{order.date}</span>
                         </div>
-                        <div className="h-8 w-px bg-ink-border hidden sm:block" />
+                        <div className="h-6 w-px bg-ink-border" />
                         <div className={isRTL ? "text-left" : "text-right"}>
-                          <span className="text-[10px] text-text-muted block">{isArabic ? "إجمالي الفاتورة" : "TOTAL AMOUNT"}</span>
-                          <span className="text-paper text-base font-bold">{formatPrice(order.total)}</span>
+                          <span className="text-[9px] sm:text-[10px] text-text-muted block uppercase">{isArabic ? "الإجمالي" : "TOTAL"}</span>
+                          <span className="text-paper text-sm sm:text-base font-bold">{formatPrice(order.total)}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Pending Verification Notice Banner */}
                     {isPendingVerification && (
-                      <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xs flex items-start gap-3 text-xs font-mono animate-in fade-in">
-                        <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                        <div className="space-y-1">
-                          <div className="text-amber-400 font-bold uppercase tracking-wider flex items-center gap-2">
-                            <span>{isArabic ? "جاري مطابقة وتأكيد التحويل الإلكتروني" : "Payment Verification In Progress"}</span>
-                          </div>
-                          <p className="text-text-muted leading-relaxed">
+                      <div className="p-2.5 sm:p-3 bg-amber-500/10 border border-amber-500/30 rounded-xs flex items-center gap-2.5 text-xs font-mono animate-in fade-in">
+                        <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                        <div className="flex-1 min-w-0 text-[11px] sm:text-xs leading-normal text-text-muted">
+                          <p>
                             {isArabic
-                              ? `شكراً لطلبك. يقوم فريق المتابعة بمطابقة واستلام التحويل عبر (${order.paymentMethod === "wallet" ? "المحفظة الإلكترونية" : "إنستاباي"}). فور اعتماد التحويل من الإدارة، يُفتح حسابك تلقائياً في القارئ الرقمي ويتحول الطلب للتجهيز والتغليف المصفح للشحن.`
-                              : `Thank you for your order. Our concierge team will contact you shortly via WhatsApp or Phone to provide our verified transfer coordinates (${order.paymentMethod === "wallet" ? "Mobile Wallet" : "InstaPay"}) and confirm receipt. Once verified by the administrator, your digital reader access will unlock immediately and your order will advance to vault packaging.`}
+                              ? `جاري التحقق من تحويل (${order.paymentMethod === "wallet" ? "المحفظة" : "إنستاباي"}). سيتم التجهيز فور الاعتماد.`
+                              : `Verifying your ${order.paymentMethod === "wallet" ? "Mobile Wallet" : "InstaPay"} transfer. Preparing once confirmed.`}
                           </p>
                           {order.paymentSenderDetail && (
-                            <div className="text-[11px] text-text-muted pt-1">
-                              {isArabic ? "بيانات التحويل المسجلة:" : "Registered Sender Reference:"} <strong className="text-paper">{order.paymentSenderDetail}</strong>
+                            <div className="text-[10px] text-text-muted/80 pt-0.5">
+                              {isArabic ? "رقم التحويل: " : "Ref: "}
+                              <strong className="text-paper">{order.paymentSenderDetail}</strong>
                             </div>
                           )}
                         </div>
@@ -2156,32 +2179,39 @@ function AccountContent() {
 
                     {/* Cash on Delivery Notice Banner */}
                     {order.paymentMethod === "cash" && order.status !== "Delivered" && (
-                      <div className="p-4 bg-ink-surface/80 border border-gold/30 rounded-xs flex items-start gap-3 text-xs font-mono animate-in fade-in">
-                        <Banknote className="w-4 h-4 text-gold shrink-0 mt-0.5" />
-                        <div className="space-y-1">
-                          <div className="text-gold font-bold uppercase tracking-wider flex items-center gap-2">
-                            <span>{isArabic ? "الدفع نقدياً عند الاستلام" : "Doorstep Cash Collection"}</span>
-                          </div>
-                          <p className="text-text-muted leading-relaxed">
-                            {isArabic
-                              ? `طلبك مؤكد ومجدول للتجهيز والتغليف. يرجى تجهيز المبلغ المطلوب نقداً (${formatPrice(order.total)}) عند استلام الطرد من مندوب الشحن. تتاح ميزات القراءة الرقمية فور إتمام التوصيل.`
-                              : `Your order is confirmed and scheduled for packaging. Please ensure the exact cash amount (${formatPrice(order.total)}) is ready upon doorstep delivery. Digital reading access unlocks automatically once the parcel is delivered.`}
+                      <div className="p-2.5 sm:p-3 bg-ink-surface/80 border border-gold/30 rounded-xs flex items-center gap-2.5 text-xs font-mono animate-in fade-in">
+                        <Banknote className="w-4 h-4 text-gold shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-text-muted text-[11px] sm:text-xs leading-normal">
+                            {isArabic ? (
+                              <>
+                                الدفع عند الاستلام: يرجى تجهيز <strong className="text-paper font-bold">{formatPrice(order.total)}</strong> نقداً للمندوب.
+                              </>
+                            ) : (
+                              <>
+                                Cash on delivery: Please prepare <strong className="text-paper font-bold">{formatPrice(order.total)}</strong> for the courier.
+                              </>
+                            )}
                           </p>
                         </div>
                       </div>
                     )}
 
                     {/* Shipping Courier Details Banner */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-ink/70 rounded-xs border border-ink-border/60 text-xs font-mono">
-                      <div className="flex items-center gap-2 text-text-muted">
-                        <Truck strokeWidth={1.4} className="w-4 h-4 text-gold shrink-0" />
-                        <span>{order.courier || (isArabic ? "بوسطة إكسبريس مصر — مركز 6 أكتوبر" : "Bosta Egypt Express — 6th of October Hub")}</span>
-                        <span className="text-paper font-semibold">({order.trackingNumber || "EG-OCT-9842-CAI"})</span>
+                    <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 px-3 py-2 bg-ink/70 rounded-xs border border-ink-border/60 text-xs font-mono">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Truck strokeWidth={1.4} className="w-3.5 h-3.5 text-gold shrink-0" />
+                        <span className="text-text-muted text-[11px] sm:text-xs truncate">
+                          {isArabic ? "بوسطة إكسبريس" : "Bosta Express"}
+                        </span>
+                        <span className="text-paper font-semibold shrink-0 text-[11px]">
+                          ({order.trackingNumber || "EG-OCT-9842-CAI"})
+                        </span>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-between xs:justify-end gap-2.5 text-[10px] pt-1 xs:pt-0 border-t xs:border-t-0 border-ink-border/30">
                         <button
                           onClick={() => handleCopyTracking(order.trackingNumber || "EG-OCT-9842-CAI")}
-                          className="text-[10px] text-gold hover:text-paper flex items-center gap-1 transition-colors cursor-pointer"
+                          className="text-gold hover:text-paper flex items-center gap-1 transition-colors cursor-pointer"
                         >
                           {copiedTracking ? (
                             <>
@@ -2191,22 +2221,22 @@ function AccountContent() {
                           ) : (
                             <>
                               <Copy strokeWidth={1.4} className="w-3 h-3" />
-                              <span>{isArabic ? "نسخ رقم التتبع" : "COPY WAYBILL"}</span>
+                              <span>{isArabic ? "نسخ الشحنة" : "COPY WAYBILL"}</span>
                             </>
                           )}
                         </button>
                         <span className="text-text-muted">•</span>
-                        <span className="text-text-muted text-[10px]">
-                          {isArabic ? "الموعد المتوقع:" : "ETA:"} <span className="text-paper">{order.estimatedDelivery || (isArabic ? "خلال 24-48 ساعة (شحن سريع)" : "Sep 08 – Sep 09 (Egypt Express)")}</span>
+                        <span className="text-text-muted">
+                          {isArabic ? "الموعد:" : "ETA:"} <span className="text-paper font-medium">{isArabic ? "خلال 24-48 ساعة" : "24–48h"}</span>
                         </span>
                       </div>
                     </div>
 
-                    {/* Timeline Progression Line: Exact pixel-perfect alignment */}
-                    <div className="py-5 sm:py-6 px-2 sm:px-8 bg-ink/50 rounded-sm border border-ink-border/50">
+                    {/* Timeline Progression Line: Pixel-perfect mobile & desktop alignment */}
+                    <div className="py-3 sm:py-4 px-2 sm:px-6 bg-ink/50 rounded-sm border border-ink-border/50 overflow-hidden">
                       <div className="relative max-w-2xl mx-auto">
                         {/* Connecting Line Track */}
-                        <div className="absolute top-3 left-4 right-4 h-0.5 z-0 pointer-events-none">
+                        <div className="absolute top-2.5 sm:top-3 left-4 right-4 h-0.5 z-0 pointer-events-none">
                           <div className="w-full h-full bg-ink-border" />
                           <div
                             className="absolute top-0 left-0 h-full bg-gold transition-all duration-500"
@@ -2220,7 +2250,7 @@ function AccountContent() {
                             const isCurrent = idx === currentStepIndex;
 
                             return (
-                              <div key={step.key} className="flex flex-col items-center max-w-[70px] sm:max-w-none text-center">
+                              <div key={step.key} className="flex flex-col items-center flex-1 text-center px-0.5">
                                 {/* Step Circle with Clean Subtle Pulse on Active Point */}
                                 <div className="relative flex items-center justify-center">
                                   {isCurrent && (
@@ -2228,14 +2258,14 @@ function AccountContent() {
                                   )}
 
                                   <div
-                                    className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                                    className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center transition-all ${
                                       isDone
                                         ? "bg-gold text-ink font-bold shadow-sm"
                                         : "bg-ink border-2 border-ink-border text-text-muted"
                                     }`}
                                   >
                                     {isDone ? (
-                                      <CheckCircle2 strokeWidth={2.5} className="w-3.5 h-3.5" />
+                                      <CheckCircle2 strokeWidth={2.5} className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
                                     ) : (
                                       <div className="w-1.5 h-1.5 rounded-full bg-text-muted" />
                                     )}
@@ -2243,7 +2273,7 @@ function AccountContent() {
                                 </div>
 
                                 <span
-                                  className={`text-[9px] sm:text-[10px] font-mono tracking-wider uppercase mt-2 text-center leading-tight ${
+                                  className={`text-[8px] sm:text-[10px] font-mono tracking-wider uppercase mt-1.5 sm:mt-2 text-center leading-tight ${
                                     isCurrent ? "text-gold font-bold" : isDone ? "text-paper" : "text-text-muted"
                                   }`}
                                 >
@@ -2260,12 +2290,12 @@ function AccountContent() {
                     </div>
 
                     {/* Enclosed Volumes Grid with Authentic High-Res Covers */}
-                    <div className="space-y-3 pt-2">
-                      <span className="text-[11px] font-mono tracking-wider text-text-muted uppercase block">
-                        ITEMS ({order.items.length}):
+                    <div className="space-y-2.5 pt-1">
+                      <span className="text-[10px] sm:text-[11px] font-mono tracking-wider text-text-muted uppercase block">
+                        {isArabic ? `المنتجات (${order.items.length}):` : `ITEMS (${order.items.length}):`}
                       </span>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
                         {order.items.map((item, i) => {
                           const canonical = getCanonicalVolume(item);
                           const cover = canonical?.coverImage || item.coverImage || "https://dw9to29mmj727.cloudfront.net/products/1569319014.jpg";
@@ -2274,10 +2304,10 @@ function AccountContent() {
                           return (
                             <div
                               key={i}
-                              className="group flex items-center gap-3.5 p-3 rounded-xs bg-ink/60 border border-ink-border/60 hover:border-gold/40 transition-colors"
+                              className="group flex items-center gap-2.5 sm:gap-3 p-2 sm:p-2.5 rounded-xs bg-ink/60 border border-ink-border/60 hover:border-gold/40 transition-colors"
                             >
                               {/* Book Cover */}
-                              <div className="relative w-14 h-20 sm:w-16 sm:h-22 shrink-0 overflow-hidden rounded-xs border border-ink-border bg-ink">
+                              <div className="relative w-12 h-16 sm:w-14 sm:h-20 shrink-0 overflow-hidden rounded-xs border border-ink-border bg-ink">
                                 <img
                                   src={cover}
                                   alt={item.title}
@@ -2292,19 +2322,19 @@ function AccountContent() {
                                 />
                                 {!isPaid && (
                                   <div className="absolute inset-0 bg-ink/60 flex items-center justify-center pointer-events-none">
-                                    <Lock className="w-4 h-4 text-amber-400" />
+                                    <Lock className="w-3.5 h-3.5 text-amber-400" />
                                   </div>
                                 )}
                               </div>
 
                               {/* Book Metadata */}
-                              <div className="flex-1 min-w-0 flex flex-col justify-between h-20 sm:h-22 py-0.5">
+                              <div className="flex-1 min-w-0 flex flex-col justify-between h-16 sm:h-20 py-0.5">
                                 <div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[9px] font-mono text-gold uppercase tracking-wider">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[8px] sm:text-[9px] font-mono text-gold uppercase tracking-wider truncate">
                                       {item.seriesTitle}
                                     </span>
-                                    <span className="px-1.5 py-0.2 rounded-xs bg-ink text-[8px] font-mono text-text-muted border border-ink-border">
+                                    <span className="px-1 py-0.2 rounded-xs bg-ink text-[8px] font-mono text-text-muted border border-ink-border shrink-0">
                                       {item.format || "Tankōbon"}
                                     </span>
                                   </div>
@@ -2314,8 +2344,8 @@ function AccountContent() {
                                   >
                                     {item.title}
                                   </Link>
-                                  <p className="text-[10px] font-mono text-text-muted">
-                                    Volume {item.volumeNumber} • Qty: {item.quantity || 1}
+                                  <p className="text-[9px] sm:text-[10px] font-mono text-text-muted">
+                                    Vol. {item.volumeNumber} • Qty: {item.quantity || 1}
                                   </p>
                                 </div>
 
@@ -2329,18 +2359,18 @@ function AccountContent() {
                                       <button
                                         type="button"
                                         onClick={() => openReader(canonical)}
-                                        className="text-[10px] font-mono text-gold hover:text-paper transition-colors flex items-center gap-1 cursor-pointer"
+                                        className="text-[9px] sm:text-[10px] font-mono text-gold hover:text-paper transition-colors flex items-center gap-1 cursor-pointer"
                                       >
                                         <BookOpen strokeWidth={1.3} className="w-3 h-3" />
-                                        <span>READ ARCHIVE</span>
+                                        <span>{isArabic ? "قراءة" : "READ"}</span>
                                       </button>
                                     ) : (
                                       <div
-                                        className="flex items-center gap-1 text-[9px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-xs border border-amber-500/30 select-none"
-                                        title="Reading access is locked until payment is confirmed by administrator"
+                                        className="flex items-center gap-1 text-[8px] sm:text-[9px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-xs border border-amber-500/30 select-none"
+                                        title="Reading access is locked until payment is confirmed"
                                       >
                                         <Lock strokeWidth={1.3} className="w-2.5 h-2.5 text-amber-400 shrink-0" />
-                                        <span>LOCKED (AWAITING PAYMENT)</span>
+                                        <span>{isArabic ? "مغلق" : "LOCKED"}</span>
                                       </div>
                                     )
                                   )}
@@ -2353,26 +2383,26 @@ function AccountContent() {
                     </div>
 
                     {/* Order Action Protocol Bar */}
-                    <div className="pt-4 border-t border-ink-border/60 flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
+                    <div className="pt-3 border-t border-ink-border/60 flex flex-col xs:flex-row xs:items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-2 w-full xs:w-auto">
                         <button
                           onClick={() => setSelectedInvoiceOrder(order)}
-                          className="px-4 py-2 bg-ink border border-ink-border hover:border-gold text-paper hover:text-gold font-mono text-[11px] tracking-wider uppercase rounded-xs transition-colors flex items-center gap-1.5"
+                          className="flex-1 xs:flex-none justify-center px-3 py-1.5 bg-ink border border-ink-border hover:border-gold text-paper hover:text-gold font-mono text-[10px] sm:text-[11px] tracking-wider uppercase rounded-xs transition-colors flex items-center gap-1.5 cursor-pointer"
                         >
                           <FileText strokeWidth={1.4} className="w-3.5 h-3.5" />
-                          <span>ARCHIVE RECEIPT / INVOICE</span>
+                          <span>{isArabic ? "الفاتورة" : "INVOICE"}</span>
                         </button>
                         <button
                           onClick={() => handleReorder(order)}
-                          className="px-4 py-2 bg-ink border border-ink-border hover:border-gold text-paper hover:text-gold font-mono text-[11px] tracking-wider uppercase rounded-xs transition-colors flex items-center gap-1.5"
+                          className="flex-1 xs:flex-none justify-center px-3 py-1.5 bg-ink border border-ink-border hover:border-gold text-paper hover:text-gold font-mono text-[10px] sm:text-[11px] tracking-wider uppercase rounded-xs transition-colors flex items-center gap-1.5 cursor-pointer"
                         >
                           <RotateCcw strokeWidth={1.4} className="w-3.5 h-3.5" />
-                          <span>REORDER VOLUMES</span>
+                          <span>{isArabic ? "إعادة الطلب" : "REORDER"}</span>
                         </button>
                       </div>
 
-                      <span className="text-[10px] font-mono text-text-muted">
-                        Reinforced Packaging with Corner Protectors (Dispatched from 6th of October Hub)
+                      <span className="text-[9px] font-mono text-text-muted hidden sm:block">
+                        {isArabic ? "مركز شحن 6 أكتوبر" : "6th of October Central Hub"}
                       </span>
                     </div>
                   </div>
@@ -2389,45 +2419,49 @@ function AccountContent() {
           <div className="space-y-6 animate-in fade-in duration-300">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-ink-border/60 gap-2">
               <div>
-                <span className="text-xs font-mono text-gold uppercase tracking-wider block">
-                  UNLOCKED DIGITAL ARCHIVE ({digitalLibraryVolumes.length} EDITIONS)
-                </span>
-                <span className="text-[11px] text-text-muted font-mono">
-                  Continuous High-Resolution Japanese Right-to-Left (RTL) Reader
-                </span>
+                <h2 className="text-base sm:text-lg font-bold font-mono uppercase tracking-wider text-paper">
+                  {isArabic
+                    ? `المكتبة الرقمية (${digitalLibraryVolumes.length})`
+                    : `DIGITAL LIBRARY (${digitalLibraryVolumes.length})`}
+                </h2>
               </div>
-              <span className="text-[10px] font-mono text-text-muted bg-ink-surface px-2.5 py-1 rounded-xs border border-ink-border">
+              <span className="text-[10px] font-mono text-text-muted bg-ink-surface px-2.5 py-1 rounded-xs border border-ink-border w-fit">
                 CLOUD SYNC: ACTIVE
               </span>
             </div>
 
             {digitalLibraryVolumes.length === 0 ? (
-              <div className="p-16 border border-ink-border bg-ink-surface/30 rounded-sm text-center space-y-4">
-                <BookOpen strokeWidth={1.2} className="w-12 h-12 text-text-muted mx-auto" />
-                <p className="font-mono text-sm text-paper">
-                  {isArabic ? "لم يتم فتح أي طبعات رقمية بعد" : "NO DIGITAL EDITIONS UNLOCKED YET"}
-                </p>
-                <p className="text-xs text-text-muted max-w-md mx-auto leading-relaxed">
-                  {isArabic
-                    ? "كل مجلد مانجا ورقي تطلبه من كايرو يتيح لك تلقائياً وصولاً سحابياً فورياً للقراءة الرقمية في أرشيفك مدى الحياة."
-                    : "Every physical manga volume you order from KAIRO automatically unlocks lifetime instant cloud reading access in your digital archive."}
-                </p>
-                <Link
-                  href="/manga"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-paper text-ink font-bold text-xs font-mono uppercase tracking-widest hover:bg-vermilion hover:text-white transition-colors rounded-xs"
-                >
-                  <span>{isArabic ? "تصفح الأرشيف الكامل" : "BROWSE ARCHIVE"}</span>
-                  <ArrowRight strokeWidth={1.5} className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
-                </Link>
+              <div className="py-12 sm:py-16 px-4 sm:px-6 border border-ink-border/80 bg-ink-surface/25 rounded-sm text-center relative">
+                <div className="max-w-sm mx-auto space-y-3">
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-ink-surface border border-ink-border flex items-center justify-center mx-auto text-text-muted">
+                    <BookOpen strokeWidth={1.4} className="w-5 h-5 text-gold" />
+                  </div>
+                  <h3 className="font-mono text-sm sm:text-base font-bold text-paper tracking-wider uppercase">
+                    {isArabic ? "لم يتم فتح أي مجلدات بعد" : "NO DIGITAL EDITIONS YET"}
+                  </h3>
+                  <p className="text-xs text-text-muted font-sans">
+                    {isArabic
+                      ? "تُفتح القراءة الرقمية تلقائياً مع طلباتك للمجلدات الورقية."
+                      : "Digital reading access unlocks automatically with your volume orders."}
+                  </p>
+                  <div className="pt-1.5">
+                    <Link
+                      href="/manga"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-paper text-ink font-bold text-xs font-mono uppercase tracking-wider hover:bg-vermilion hover:text-white transition-all rounded-xs shadow-md active:scale-95"
+                    >
+                      <span>{isArabic ? "تصفح الكتالوج" : "BROWSE CATALOG"}</span>
+                      <ArrowRight strokeWidth={1.5} className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
+                    </Link>
+                  </div>
+                </div>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
                 {digitalLibraryVolumes.map((volume) => {
                   const progress = progressMap[volume.id];
                   const percentage = progress ? progress.percentage : 0;
                   const isCompleted = progress ? progress.isCompleted : false;
                   const currentPageNum = progress ? progress.currentPage + 1 : 0;
-                  const totalPagesNum = progress ? progress.totalPages : (volume.previewPages?.length || 1);
 
                   return (
                     <div
@@ -2450,20 +2484,20 @@ function AccountContent() {
                           draggable={false}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
                         />
-                        <div className="absolute top-2.5 left-2.5 pointer-events-none z-10 flex flex-col gap-1">
-                          <span className="px-2 py-0.5 rounded-xs bg-ink/90 text-[9px] font-mono text-gold border border-ink-border">
+                        <div className="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 pointer-events-none z-10 flex flex-col gap-1">
+                          <span className="px-1.5 sm:px-2 py-0.5 rounded-xs bg-ink/90 text-[8px] sm:text-[9px] font-mono text-gold border border-ink-border">
                             VOL. {volume.volumeNumber}
                           </span>
                           {isCompleted ? (
-                            <span className="px-2 py-0.5 rounded-xs bg-gold/15 text-[8px] font-mono text-gold font-bold border border-gold/40">
+                            <span className="px-1.5 sm:px-2 py-0.5 rounded-xs bg-gold/15 text-[7px] sm:text-[8px] font-mono text-gold font-bold border border-gold/40">
                               COMPLETED
                             </span>
                           ) : percentage > 0 ? (
-                            <span className="px-2 py-0.5 rounded-xs bg-gold/90 text-[8px] font-mono text-ink font-bold border border-gold">
+                            <span className="px-1.5 sm:px-2 py-0.5 rounded-xs bg-gold/90 text-[7px] sm:text-[8px] font-mono text-ink font-bold border border-gold">
                               IN PROGRESS
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-xs bg-ink/90 text-[8px] font-mono text-text-muted border border-ink-border">
+                            <span className="px-1.5 sm:px-2 py-0.5 rounded-xs bg-ink/90 text-[7px] sm:text-[8px] font-mono text-text-muted border border-ink-border">
                               UNREAD
                             </span>
                           )}
@@ -2478,20 +2512,20 @@ function AccountContent() {
                         </div>
                       </div>
 
-                      <div className="p-4 space-y-3">
+                      <div className="p-2.5 sm:p-4 space-y-2 sm:space-y-3">
                         <div>
-                          <span className="text-[9px] font-mono text-gold uppercase block">
+                          <span className="text-[8px] sm:text-[9px] font-mono text-gold uppercase block truncate">
                             {volume.seriesTitle}
                           </span>
-                          <h4 className="text-xs font-bold text-paper line-clamp-1 group-hover:text-gold transition-colors">
+                          <h4 className="text-[11px] sm:text-xs font-bold text-paper line-clamp-1 group-hover:text-gold transition-colors">
                             {volume.title}
                           </h4>
-                          <span className="text-[10px] font-mono text-text-muted block mt-0.5">
+                          <span className="text-[9px] sm:text-[10px] font-mono text-text-muted block mt-0.5">
                             {isCompleted
                               ? `100% Read • Completed`
                               : percentage > 0
-                              ? `${percentage}% Read • Page ${currentPageNum} of ${totalPagesNum}`
-                              : `Not Started • ${volume.pages} Pages`}
+                              ? `${percentage}% • Page ${currentPageNum}`
+                              : `Not Started • ${volume.pages} P.`}
                           </span>
                         </div>
 
@@ -2502,7 +2536,7 @@ function AccountContent() {
                             e.stopPropagation();
                             openReader(volume);
                           }}
-                          className={`w-full py-2 font-bold text-xs font-mono tracking-wider uppercase transition-colors rounded-xs flex items-center justify-center gap-1.5 z-10 active:scale-95 ${
+                          className={`w-full py-1.5 sm:py-2 font-bold text-[9px] sm:text-xs font-mono tracking-wider uppercase transition-colors rounded-xs flex items-center justify-center gap-1 sm:gap-1.5 z-10 active:scale-95 ${
                             isCompleted
                               ? "bg-ink border border-ink-border hover:border-gold text-paper hover:text-gold"
                               : percentage > 0
@@ -2510,13 +2544,13 @@ function AccountContent() {
                               : "bg-paper text-ink hover:bg-gold"
                           }`}
                         >
-                          <Eye strokeWidth={1.4} className="w-3.5 h-3.5" />
+                          <Eye strokeWidth={1.4} className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                           <span>
                             {isCompleted
-                              ? "READ AGAIN (RTL)"
+                              ? "READ AGAIN"
                               : percentage > 0
-                              ? `CONTINUE (P. 0${currentPageNum})`
-                              : "START READING (RTL)"}
+                              ? `CONTINUE (P. ${currentPageNum})`
+                              : "START READING"}
                           </span>
                         </button>
                       </div>
@@ -2590,75 +2624,63 @@ function AccountContent() {
         {/* TAB 3: WISHLIST                                          */}
         {/* ========================================================= */}
         {activeTab === "WISHLIST" && (
-          <div className="space-y-8 animate-in fade-in duration-300">
+          <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
             {/* Wishlist Header Banner */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-ink-border/70 gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 sm:pb-4 border-b border-ink-border/70 gap-3 sm:gap-4">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="w-2 h-2 rounded-full bg-gold" />
-                  <span className="text-[11px] font-mono tracking-widest text-gold uppercase">
-                    CURATED ARCHIVE COLLECTION
-                  </span>
-                </div>
-                <h2 className="text-xl sm:text-2xl font-extrabold uppercase tracking-tight text-paper">
-                  SAVED WISHLIST ({wishlist.length} {wishlist.length === 1 ? "VOLUME" : "VOLUMES"})
+                <h2 className="text-base sm:text-xl font-bold font-mono uppercase tracking-wider text-paper">
+                  {isArabic ? `قائمة الرغبات (${wishlist.length})` : `WISHLIST (${wishlist.length})`}
                 </h2>
-                <p className="text-xs text-text-muted font-mono mt-0.5">
-                  Priority bookmark queue with live 6th of October archive inventory and delivery across all Egypt.
-                </p>
               </div>
 
               {wishlist.length > 0 && (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={clearWishlist}
-                    className="px-3 py-2 border border-ink-border hover:border-vermilion hover:text-vermilion text-text-muted text-[11px] font-mono uppercase tracking-wider rounded-xs transition-colors cursor-pointer"
+                    className="flex-1 sm:flex-none text-center px-3 py-2 border border-ink-border hover:border-vermilion hover:text-vermilion text-text-muted text-[10px] sm:text-[11px] font-mono uppercase tracking-wider rounded-xs transition-colors cursor-pointer"
                   >
                     CLEAR ALL
                   </button>
                   <button
                     type="button"
                     onClick={moveAllWishlistToCart}
-                    className="px-4 py-2 bg-paper text-ink hover:bg-vermilion hover:text-white text-[11px] font-mono font-bold uppercase tracking-wider rounded-xs transition-colors flex items-center gap-2 shadow-lg active:scale-95 cursor-pointer"
+                    className="flex-1 sm:flex-none justify-center px-3.5 sm:px-4 py-2 bg-paper text-ink hover:bg-vermilion hover:text-white text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-wider rounded-xs transition-colors flex items-center gap-2 shadow-lg active:scale-95 cursor-pointer"
                   >
-                    <ShoppingBag strokeWidth={1.4} className="w-3.5 h-3.5" />
-                    <span>MOVE ALL TO CART</span>
+                    <ShoppingBag strokeWidth={1.4} className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">MOVE ALL TO CART</span>
                   </button>
                 </div>
               )}
             </div>
 
             {wishlist.length === 0 ? (
-              <div className="py-20 px-6 border border-ink-border/80 bg-ink-surface/25 rounded-sm text-center space-y-4 relative overflow-hidden">
-                <div className="absolute inset-0 pointer-events-none opacity-5 flex items-center justify-center select-none font-serif text-9xl text-gold">
-                  回路
-                </div>
-                <div className="relative z-10 max-w-md mx-auto space-y-3">
-                  <div className="w-14 h-14 rounded-full bg-ink-surface border border-ink-border flex items-center justify-center mx-auto text-text-muted">
-                    <Heart strokeWidth={1.3} className="w-6 h-6 text-gold" />
+              <div className="py-12 sm:py-16 px-4 sm:px-6 border border-ink-border/80 bg-ink-surface/25 rounded-sm text-center relative overflow-hidden">
+                <div className="relative z-10 max-w-sm mx-auto space-y-3">
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-ink-surface border border-ink-border flex items-center justify-center mx-auto text-text-muted">
+                    <Heart strokeWidth={1.4} className="w-5 h-5 text-gold" />
                   </div>
-                  <h3 className="font-mono text-base font-bold text-paper tracking-wider uppercase">
-                    {isArabic ? "قائمة رغباتك فارغة حالياً" : "YOUR WISHLIST IS CURRENTLY EMPTY"}
+                  <h3 className="font-mono text-sm sm:text-base font-bold text-paper tracking-wider uppercase">
+                    {isArabic ? "قائمة رغباتك فارغة" : "YOUR WISHLIST IS EMPTY"}
                   </h3>
-                  <p className="text-xs text-text-muted font-sans leading-relaxed">
+                  <p className="text-xs text-text-muted font-sans">
                     {isArabic
-                      ? "احفظ طبعات المقتنين والإصدارات الجديدة أثناء تصفح الكتالوج. ستظهر عناوينك المحفوظة هنا مع تتبع فوري لحالة المخزون."
-                      : "Bookmark collector editions, new releases, and upcoming volumes while browsing the catalog. Your saved titles will appear here with live stock tracking."}
+                      ? "احفظ مجلداتك المفضلة أثناء التصفح لتجدها هنا دائماً."
+                      : "Save your favorite volumes while browsing to find them here."}
                   </p>
-                  <div className="pt-2">
+                  <div className="pt-1.5">
                     <Link
                       href="/manga"
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-paper text-ink font-bold text-xs font-mono uppercase tracking-widest hover:bg-vermilion hover:text-white transition-all rounded-xs shadow-xl active:scale-95"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-paper text-ink font-bold text-xs font-mono uppercase tracking-wider hover:bg-vermilion hover:text-white transition-all rounded-xs shadow-md active:scale-95"
                     >
-                      <span>{isArabic ? "استكشف كتالوج الأرشيف" : "EXPLORE ARCHIVE CATALOG"}</span>
-                      <ArrowRight strokeWidth={1.5} className={`w-4 h-4 ${isRTL ? "rotate-180" : ""}`} />
+                      <span>{isArabic ? "تصفح الكتالوج" : "EXPLORE CATALOG"}</span>
+                      <ArrowRight strokeWidth={1.5} className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
                     </Link>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
                 {wishlist.map((volume) => (
                   <div
                     key={volume.id}
@@ -2676,28 +2698,28 @@ function AccountContent() {
                       </Link>
 
                       {/* Badges Overlay */}
-                      <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 pointer-events-none z-10">
-                        <span className="px-2 py-0.5 rounded-xs bg-ink/90 backdrop-blur-md text-[9px] font-mono tracking-wider text-gold border border-ink-border">
+                      <div className="absolute top-2 left-2 flex flex-col gap-1 pointer-events-none z-10">
+                        <span className="px-1.5 sm:px-2 py-0.5 rounded-xs bg-ink/90 backdrop-blur-md text-[8px] sm:text-[9px] font-mono tracking-wider text-gold border border-ink-border">
                           VOL. {volume.volumeNumber < 10 ? `0${volume.volumeNumber}` : volume.volumeNumber}
                         </span>
                         {volume.format === "Deluxe Edition" && (
-                          <span className="px-2 py-0.5 rounded-xs bg-gold/90 text-[8px] font-mono tracking-wider text-ink font-bold">
+                          <span className="px-1.5 sm:px-2 py-0.5 rounded-xs bg-gold/90 text-[7px] sm:text-[8px] font-mono tracking-wider text-ink font-bold">
                             DELUXE
                           </span>
                         )}
                         {volume.originalPrice && volume.originalPrice > volume.price && (
-                          <span className="px-2 py-0.5 rounded-xs bg-vermilion text-[8px] font-mono font-bold tracking-wider text-white shadow-sm">
+                          <span className="px-1.5 sm:px-2 py-0.5 rounded-xs bg-vermilion text-[7px] sm:text-[8px] font-mono font-bold tracking-wider text-white shadow-sm">
                             SALE -{Math.round(((volume.originalPrice - volume.price) / volume.originalPrice) * 100)}%
                           </span>
                         )}
                       </div>
 
                       {/* Action Buttons Top Right: Remove & Preview */}
-                      <div className="absolute top-2.5 right-2.5 flex flex-col gap-1.5 z-10">
+                      <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-10">
                         <button
                           type="button"
                           onClick={() => removeFromWishlist(volume.id)}
-                          className="p-1.5 rounded-xs bg-ink/80 backdrop-blur-md border border-ink-border text-paper-muted hover:text-vermilion hover:border-vermilion transition-colors active:scale-90 cursor-pointer"
+                          className="w-7 h-7 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-paper-muted hover:text-vermilion hover:border-vermilion transition-colors flex items-center justify-center active:scale-90 cursor-pointer"
                           title="Remove from wishlist"
                           aria-label="Remove volume"
                         >
@@ -2707,7 +2729,7 @@ function AccountContent() {
                         <button
                           type="button"
                           onClick={() => openReader(volume)}
-                          className="p-1.5 rounded-xs bg-ink/80 backdrop-blur-md border border-ink-border text-paper-muted hover:text-gold hover:border-gold transition-colors opacity-80 sm:opacity-0 sm:group-hover:opacity-100 active:scale-90 cursor-pointer"
+                          className="w-7 h-7 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-paper-muted hover:text-gold hover:border-gold transition-colors flex items-center justify-center active:scale-90 cursor-pointer"
                           title="Read Sample (RTL)"
                         >
                           <Eye strokeWidth={1.4} className="w-3.5 h-3.5" />
@@ -2716,9 +2738,9 @@ function AccountContent() {
                     </div>
 
                     {/* Metadata & Actions */}
-                    <div className="p-4 flex flex-col justify-between flex-1">
+                    <div className="p-3 sm:p-4 flex flex-col justify-between flex-1">
                       <div>
-                        <span className="text-[9px] font-mono tracking-widest text-gold uppercase block">
+                        <span className="text-[8px] sm:text-[9px] font-mono tracking-widest text-gold uppercase block truncate">
                           {volume.seriesTitle}
                         </span>
                         <Link
@@ -2727,12 +2749,12 @@ function AccountContent() {
                         >
                           {volume.title}
                         </Link>
-                        <p className="text-[10px] text-text-muted mt-0.5 line-clamp-1">
+                        <p className="text-[9px] sm:text-[10px] text-text-muted mt-0.5 line-clamp-1">
                           By {volume.author}
                         </p>
 
                         {/* Rating & Stock */}
-                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-ink-border/40 text-[10px] font-mono">
+                        <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-ink-border/40 text-[9px] sm:text-[10px] font-mono">
                           <div className="flex items-center gap-1 text-text-muted">
                             <Star strokeWidth={1.5} className="w-3 h-3 text-gold fill-gold" />
                             <span className="text-paper font-semibold">{volume.rating.toFixed(1)}</span>
@@ -2744,13 +2766,13 @@ function AccountContent() {
                       </div>
 
                       {/* Price & Add to Cart Action */}
-                      <div className="mt-4 pt-3 border-t border-ink-border/50 flex items-center justify-between">
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-sm font-mono font-bold text-paper">
+                      <div className="mt-3 pt-2 sm:mt-4 sm:pt-3 border-t border-ink-border/50 flex items-center justify-between font-mono gap-1">
+                        <div className="flex flex-col min-w-0 pr-1">
+                          <span className="text-xs sm:text-sm font-bold text-paper truncate">
                             {formatPrice(volume.price)}
                           </span>
                           {volume.originalPrice && volume.originalPrice > volume.price && (
-                            <span className="text-[10px] font-mono text-text-muted/70 line-through">
+                            <span className="text-[9px] sm:text-[10px] text-text-muted/70 line-through truncate">
                               {formatPrice(volume.originalPrice)}
                             </span>
                           )}
@@ -2762,10 +2784,10 @@ function AccountContent() {
                             addItem(volume, 1);
                             openCart();
                           }}
-                          className="px-3.5 py-1.5 bg-paper text-ink hover:bg-vermilion hover:text-white font-bold text-[10px] font-mono tracking-widest uppercase transition-colors rounded-xs flex items-center gap-1.5 active:scale-95 cursor-pointer shadow-sm"
+                          className="h-7 sm:h-8 px-2 sm:px-3 bg-paper text-ink hover:bg-vermilion hover:text-white font-bold text-[10px] uppercase transition-colors rounded-xs flex items-center gap-1 z-10 active:scale-95 shrink-0 cursor-pointer shadow-xs"
                         >
-                          <ShoppingBag strokeWidth={1.3} className="w-3 h-3" />
-                          <span>ADD</span>
+                          <span>+</span>
+                          <span className="hidden xs:inline">ADD</span>
                         </button>
                       </div>
                     </div>
@@ -2782,84 +2804,217 @@ function AccountContent() {
         {activeTab === "SETTINGS" && (
           <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-300">
             {/* Delivery & Shipping Info Card */}
-            <form onSubmit={handleSaveSettings} className="p-6 sm:p-7 bg-ink-surface/40 border border-ink-border/80 rounded-sm space-y-5 shadow-sm">
-              <div className="border-b border-ink-border/60 pb-3">
+            <form onSubmit={handleSaveSettings} className="p-4 sm:p-7 bg-ink-surface/40 border border-ink-border/80 rounded-sm space-y-4 sm:space-y-5 shadow-sm">
+              <div className="border-b border-ink-border/60 pb-3 flex items-center justify-between">
                 <h3 className="text-xs font-mono tracking-widest text-gold uppercase font-bold flex items-center gap-2">
                   <Truck strokeWidth={1.5} className="w-4 h-4 text-gold" />
-                  <span>SHIPPING & DELIVERY PREFERENCES</span>
+                  <span>{isArabic ? "بيانات الشحن والدفع" : "SHIPPING & PAYMENT"}</span>
                 </h3>
               </div>
 
               <div className="space-y-4 text-xs font-mono">
-                {/* Patron Avatar Custom Upload */}
-                <ImageUploadInput
-                  label="Patron Profile Avatar"
-                  value={patronAvatar}
-                  onChange={(url) => setPatronAvatar(url)}
-                  placeholder="https://... or upload local avatar from your PC (Rec: 400 × 400 px)"
-                  aspectRatio="avatar"
-                  recommendedDimensions="400 × 400 px (1:1 Square)"
-                  helpText="Displayed in the patron portal and archival stamps"
-                />
-
-                <div>
-                  <label className="text-[10px] text-text-muted uppercase block mb-1.5 font-medium">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    value={patronName}
-                    onChange={(e) => setPatronName(e.target.value)}
-                    className="w-full bg-ink border border-ink-border px-3.5 py-2.5 text-paper rounded-xs focus:border-gold outline-none cursor-text caret-gold text-xs transition-colors"
-                  />
-                </div>
-
+                {/* 1. Name & Phone */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-[10px] text-text-muted uppercase block mb-1.5 font-medium">
-                      Phone Number
+                      {isArabic ? "الاسم" : "Full Name"}
                     </label>
                     <input
-                      type="tel"
-                      value={patronPhone}
-                      onChange={(e) => setPatronPhone(e.target.value)}
+                      type="text"
+                      value={patronName}
+                      onChange={(e) => setPatronName(e.target.value)}
+                      placeholder={isArabic ? "الاسم" : "Full Name"}
                       className="w-full bg-ink border border-ink-border px-3.5 py-2.5 text-paper rounded-xs focus:border-gold outline-none cursor-text caret-gold text-xs transition-colors"
                     />
                   </div>
                   <div>
                     <label className="text-[10px] text-text-muted uppercase block mb-1.5 font-medium">
-                      Governorate
+                      {isArabic ? "رقم الهاتف" : "Phone"}
+                    </label>
+                    <input
+                      type="tel"
+                      value={patronPhone}
+                      onChange={(e) => setPatronPhone(e.target.value)}
+                      placeholder="01012345678"
+                      className="w-full bg-ink border border-ink-border px-3.5 py-2.5 text-paper rounded-xs focus:border-gold outline-none cursor-text caret-gold text-xs transition-colors font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* 2. Governorate & City / District */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] text-text-muted uppercase block mb-1.5 font-medium">
+                      {isArabic ? "المحافظة" : "Governorate"}
                     </label>
                     <CustomSelect
-                      options={GOVERNORATE_OPTIONS}
+                      options={governorateSelectOptions}
                       value={patronGovernorate}
                       onChange={(val) => setPatronGovernorate(val)}
                       fullWidth
                       buttonClassName="bg-ink py-2.5 text-xs border-ink-border"
                     />
                   </div>
+                  <div>
+                    <label className="text-[10px] text-text-muted uppercase block mb-1.5 font-medium">
+                      {isArabic ? "المدينة / الحي" : "City / District"}
+                    </label>
+                    <input
+                      type="text"
+                      value={patronCity}
+                      onChange={(e) => setPatronCity(e.target.value)}
+                      placeholder={isArabic ? "مثال: 6 أكتوبر، الشيخ زايد، الدقي" : "e.g. 6th of October, Sheikh Zayed, Dokki"}
+                      className="w-full bg-ink border border-ink-border px-3.5 py-2.5 text-paper rounded-xs focus:border-gold outline-none cursor-text caret-gold text-xs transition-colors"
+                    />
+                  </div>
                 </div>
 
+                {/* 3. Detailed Street Address */}
                 <div>
                   <label className="text-[10px] text-text-muted uppercase block mb-1.5 font-medium">
-                    Delivery Address
+                    {isArabic ? "العنوان بالتفصيل" : "Delivery Address"}
                   </label>
                   <input
                     type="text"
                     value={shippingAddress}
                     onChange={(e) => setShippingAddress(e.target.value)}
-                    placeholder="Street, building, apartment, landmark..."
+                    placeholder={isArabic ? "الشارع، رقم العمارة، رقم الشقة..." : "Street, building, apartment..."}
                     className="w-full bg-ink border border-ink-border px-3.5 py-2.5 text-paper rounded-xs focus:border-gold outline-none cursor-text caret-gold text-xs transition-colors"
                   />
+                </div>
+
+                {/* 4. Delivery Notes & Landmark */}
+                <div>
+                  <label className="text-[10px] text-text-muted uppercase block mb-1.5 font-medium">
+                    {isArabic ? "علامة مميزة / ملاحظات (اختياري)" : "Landmark / Notes (Optional)"}
+                  </label>
+                  <input
+                    type="text"
+                    value={patronDeliveryNotes}
+                    onChange={(e) => setPatronDeliveryNotes(e.target.value)}
+                    placeholder={isArabic ? "مثال: بجوار مسجد كذا، الدور 3 شقة 5" : "e.g. Near landmark, Apt 5 3rd floor"}
+                    className="w-full bg-ink border border-ink-border px-3.5 py-2.5 text-paper rounded-xs focus:border-gold outline-none cursor-text caret-gold text-xs transition-colors"
+                  />
+                </div>
+
+                {/* 5. Preferred Payment Method */}
+                <div className="pt-3 border-t border-ink-border/40 space-y-2.5">
+                  <label className="text-[10px] text-gold uppercase block font-bold tracking-wider">
+                    {isArabic ? "طريقة الدفع المفضلة" : "PREFERRED PAYMENT"}
+                  </label>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {/* Cash */}
+                    <button
+                      type="button"
+                      onClick={() => setPreferredPaymentMethod("cash")}
+                      className={`p-3 rounded-xs border text-start transition-all cursor-pointer flex flex-col justify-between gap-2.5 ${
+                        preferredPaymentMethod === "cash"
+                          ? "bg-gold/10 border-gold shadow-xs"
+                          : "bg-ink border-ink-border hover:border-ink-border/90"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <Banknote className={`w-4 h-4 ${preferredPaymentMethod === "cash" ? "text-gold" : "text-text-muted"}`} />
+                        <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                          preferredPaymentMethod === "cash" ? "border-gold bg-gold" : "border-ink-border"
+                        }`}>
+                          {preferredPaymentMethod === "cash" && <span className="w-1.5 h-1.5 rounded-full bg-ink" />}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-[11px] font-bold text-paper">
+                          {isArabic ? "الدفع عند الاستلام" : "Cash on Delivery"}
+                        </div>
+                        <div className="text-[9px] text-text-muted">
+                          {isArabic ? "نقداً عند الباب" : "Doorstep cash"}
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* Mobile Wallet - Shows all Egyptian wallets */}
+                    <button
+                      type="button"
+                      onClick={() => setPreferredPaymentMethod("wallet")}
+                      className={`p-3 rounded-xs border text-start transition-all cursor-pointer flex flex-col justify-between gap-2.5 ${
+                        preferredPaymentMethod === "wallet"
+                          ? "bg-gold/10 border-gold shadow-xs"
+                          : "bg-ink border-ink-border hover:border-ink-border/90"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <Smartphone className={`w-4 h-4 ${preferredPaymentMethod === "wallet" ? "text-gold" : "text-text-muted"}`} />
+                        <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                          preferredPaymentMethod === "wallet" ? "border-gold bg-gold" : "border-ink-border"
+                        }`}>
+                          {preferredPaymentMethod === "wallet" && <span className="w-1.5 h-1.5 rounded-full bg-ink" />}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-[11px] font-bold text-paper">
+                          {isArabic ? "المحافظ الإلكترونية" : "Mobile Wallet"}
+                        </div>
+                        <div className="text-[9px] text-text-muted font-sans leading-tight mt-0.5">
+                          {isArabic ? "فودافون • أورنج • اتصالات • WE" : "Vodafone • Orange • Etisalat • WE"}
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* InstaPay */}
+                    <button
+                      type="button"
+                      onClick={() => setPreferredPaymentMethod("instapay")}
+                      className={`p-3 rounded-xs border text-start transition-all cursor-pointer flex flex-col justify-between gap-2.5 ${
+                        preferredPaymentMethod === "instapay"
+                          ? "bg-gold/10 border-gold shadow-xs"
+                          : "bg-ink border-ink-border hover:border-ink-border/90"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <Zap className={`w-4 h-4 ${preferredPaymentMethod === "instapay" ? "text-gold" : "text-text-muted"}`} />
+                        <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                          preferredPaymentMethod === "instapay" ? "border-gold bg-gold" : "border-ink-border"
+                        }`}>
+                          {preferredPaymentMethod === "instapay" && <span className="w-1.5 h-1.5 rounded-full bg-ink" />}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-[11px] font-bold text-paper">
+                          {isArabic ? "إنستاباي" : "InstaPay"}
+                        </div>
+                        <div className="text-[9px] text-text-muted">
+                          {isArabic ? "تحويل لحظي (IPA)" : "Instant Bank / IPA"}
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* Sender Details Input if Wallet or InstaPay */}
+                  {preferredPaymentMethod !== "cash" && (
+                    <div className="p-3 bg-ink/70 border border-ink-border rounded-xs space-y-1 animate-in fade-in duration-200">
+                      <label className="text-[10px] text-text-muted uppercase block font-medium">
+                        {preferredPaymentMethod === "wallet"
+                          ? (isArabic ? "رقم المحفظة (اختياري)" : "Wallet Number (Optional)")
+                          : (isArabic ? "عنوان IPA أو اسم الحساب (اختياري)" : "InstaPay IPA / Account (Optional)")}
+                      </label>
+                      <input
+                        type="text"
+                        value={paymentSenderDetail}
+                        onChange={(e) => setPaymentSenderDetail(e.target.value)}
+                        placeholder={preferredPaymentMethod === "wallet" ? "01012345678" : "yourname@instapay"}
+                        className="w-full bg-ink border border-ink-border px-3 py-2 text-paper rounded-xs focus:border-gold outline-none cursor-text caret-gold text-xs transition-colors font-mono"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-paper text-ink hover:bg-gold font-mono font-bold text-xs uppercase tracking-wider rounded-xs transition-colors cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-2.5 bg-paper text-ink hover:bg-gold font-mono font-bold text-xs uppercase tracking-wider rounded-xs transition-colors cursor-pointer text-center justify-center flex items-center shadow-xs active:scale-[0.98]"
                 >
-                  Save Changes
+                  {isArabic ? "حفظ التغييرات" : "Save Changes"}
                 </button>
                 {settingsErrorMessage && (
                   <span className="text-xs text-vermilion font-mono animate-in fade-in flex items-center gap-1.5">
@@ -2876,35 +3031,36 @@ function AccountContent() {
             </form>
 
             {/* Account Details & Security Card */}
-            <div className="p-6 sm:p-7 bg-ink-surface/40 border border-ink-border/80 rounded-sm space-y-4 shadow-sm">
+            <div className="p-4 sm:p-7 bg-ink-surface/40 border border-ink-border/80 rounded-sm space-y-4 shadow-sm">
               <div className="border-b border-ink-border/60 pb-3">
                 <h3 className="text-xs font-mono tracking-widest text-gold uppercase font-bold flex items-center gap-2">
                   <ShieldCheck strokeWidth={1.5} className="w-4 h-4 text-gold" />
-                  <span>ACCOUNT & SECURITY</span>
+                  <span>{isArabic ? "الحساب والأمان" : "ACCOUNT & SECURITY"}</span>
                 </h3>
               </div>
 
               <div className="space-y-2.5 text-xs font-mono text-text-muted">
-                <div className="flex items-center justify-between py-1.5 border-b border-ink-border/40">
-                  <span>Registered Email</span>
+                <div className="flex flex-wrap sm:flex-nowrap items-center justify-between py-1.5 border-b border-ink-border/40 gap-1 sm:gap-2">
+                  <span>{isArabic ? "البريد الإلكتروني المسجل" : "Registered Email"}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-paper font-semibold">{currentUser.email}</span>
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[9px]">
-                      Verified
+                    <span className="text-paper font-semibold break-all">{currentUser.email}</span>
+                    <span className="px-2.5 py-0.5 rounded-full bg-gold/10 text-gold border border-gold/30 text-[9px] font-mono shrink-0 flex items-center gap-1">
+                      <Check strokeWidth={2} className="w-2.5 h-2.5" />
+                      <span>{isArabic ? "مُؤكد" : "Verified"}</span>
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between py-1.5 border-b border-ink-border/40">
-                  <span>Membership ID</span>
+                  <span>{isArabic ? "رقم العضوية الأرشيفية" : "Membership ID"}</span>
                   <span className="text-gold font-semibold">#{currentUser.id}</span>
                 </div>
                 <div className="flex items-center justify-between py-1.5">
-                  <span>Member Since</span>
+                  <span>{isArabic ? "تاريخ الانضمام" : "Member Since"}</span>
                   <span className="text-paper">{currentUser.joinedDate || "Sep 2026"}</span>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-ink-border/60 flex items-center justify-between">
+              <div className="pt-3 border-t border-ink-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -2926,7 +3082,7 @@ function AccountContent() {
                 <button
                   type="button"
                   onClick={() => logout()}
-                  className="px-4 py-2 bg-vermilion/10 border border-vermilion/40 text-vermilion hover:bg-vermilion hover:text-white font-mono text-xs uppercase tracking-wider rounded-xs transition-colors cursor-pointer flex items-center gap-2"
+                  className="w-full sm:w-auto justify-center px-4 py-2 bg-vermilion/10 border border-vermilion/40 text-vermilion hover:bg-vermilion hover:text-white font-mono text-xs uppercase tracking-wider rounded-xs transition-colors cursor-pointer flex items-center gap-2"
                 >
                   <LogOut strokeWidth={1.4} className="w-3.5 h-3.5" />
                   <span>Sign Out</span>
@@ -2959,15 +3115,15 @@ function AccountContent() {
       {/* EGYPT ARCHIVAL INVOICE MODAL                              */}
       {/* ========================================================= */}
       {selectedInvoiceOrder && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 print:p-0 print:bg-transparent print:static print:block">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-2.5 sm:p-4 overflow-y-auto print:p-0 print:bg-transparent print:static print:block">
           <div
             id="invoice-print-area"
-            className="bg-ink border border-ink-border w-full max-w-xl rounded-sm p-6 sm:p-8 space-y-6 shadow-2xl relative animate-in zoom-in-95 duration-200 print:shadow-none print:border print:border-black/20 print:bg-white print:text-black print:p-6 print:m-0"
+            className="bg-ink border border-ink-border w-full max-w-xl rounded-sm p-4 sm:p-8 space-y-4 sm:space-y-6 shadow-2xl relative my-auto animate-in zoom-in-95 duration-200 print:shadow-none print:border print:border-black/20 print:bg-white print:text-black print:p-6 print:m-0"
           >
             {/* Close Button - hidden in print */}
             <button
               onClick={() => setSelectedInvoiceOrder(null)}
-              className="absolute top-5 right-5 text-text-muted hover:text-paper print-hidden print:hidden cursor-pointer"
+              className="absolute top-4 right-4 sm:top-5 sm:right-5 text-text-muted hover:text-paper print-hidden print:hidden cursor-pointer"
             >
               <X strokeWidth={1.5} className="w-5 h-5" />
             </button>
@@ -2982,13 +3138,13 @@ function AccountContent() {
                   KAIRO PUBLISHING ARCHIVE
                 </span>
               </div>
-              <span className="text-[10px] font-mono tracking-[0.3em] text-gold print:text-neutral-700 uppercase block">
+              <span className="text-[9px] sm:text-[10px] font-mono tracking-[0.25em] sm:tracking-[0.3em] text-gold print:text-neutral-700 uppercase block">
                 6TH OF OCTOBER CENTRAL ARCHIVAL HUB — EGYPT
               </span>
-              <h2 className="text-xl font-extrabold tracking-tight uppercase font-sans text-paper print:text-black">
+              <h2 className="text-lg sm:text-xl font-extrabold tracking-tight uppercase font-sans text-paper print:text-black">
                 OFFICIAL ORDER RECEIPT
               </h2>
-              <p className="text-[11px] font-mono text-text-muted print:text-neutral-600">
+              <p className="text-[10px] sm:text-[11px] font-mono text-text-muted print:text-neutral-600">
                 INVOICE #{selectedInvoiceOrder.id} • DATE: {selectedInvoiceOrder.date}
               </p>
             </div>
@@ -2996,7 +3152,7 @@ function AccountContent() {
             {/* Details Table */}
             <div className="space-y-3 font-mono text-xs">
               <div className="border border-ink-border/60 print:border-black/20 rounded-xs overflow-hidden">
-                <div className="grid grid-cols-12 bg-ink-surface/80 print:bg-neutral-100 p-2.5 text-[10px] text-text-muted print:text-neutral-700 uppercase border-b border-ink-border/60 print:border-black/20 font-bold">
+                <div className="grid grid-cols-12 bg-ink-surface/80 print:bg-neutral-100 p-2 sm:p-2.5 text-[9px] sm:text-[10px] text-text-muted print:text-neutral-700 uppercase border-b border-ink-border/60 print:border-black/20 font-bold">
                   <div className="col-span-7">ITEM DESCRIPTION</div>
                   <div className="col-span-2 text-center">QTY</div>
                   <div className="col-span-3 text-right">AMOUNT</div>
@@ -3004,7 +3160,7 @@ function AccountContent() {
 
                 <div className="divide-y divide-ink-border/40 print:divide-black/10">
                   {selectedInvoiceOrder.items.map((item, i) => (
-                    <div key={i} className="grid grid-cols-12 p-2.5 text-[11px] text-paper print:text-black">
+                    <div key={i} className="grid grid-cols-12 p-2 sm:p-2.5 text-[10px] sm:text-[11px] text-paper print:text-black">
                       <div className="col-span-7 line-clamp-1 print:line-clamp-none">
                         {item.seriesTitle} — {item.title}
                       </div>
@@ -3021,15 +3177,15 @@ function AccountContent() {
 
               {/* Cost Calculations */}
               <div className="space-y-1.5 pt-2 border-t border-ink-border/60 print:border-black/20 text-xs">
-                <div className="flex justify-between text-text-muted print:text-neutral-700">
+                <div className="flex justify-between text-text-muted print:text-neutral-700 text-[11px] sm:text-xs">
                   <span>Subtotal</span>
                   <span className="font-bold">{formatPrice(selectedInvoiceOrder.subtotal)}</span>
                 </div>
-                <div className="flex justify-between text-text-muted print:text-neutral-700">
+                <div className="flex justify-between text-text-muted print:text-neutral-700 text-[11px] sm:text-xs">
                   <span>Reinforced Shipping (Bosta Egypt Express)</span>
                   <span className="font-bold">{formatPrice(selectedInvoiceOrder.shippingCost || 4.00)}</span>
                 </div>
-                <div className="flex justify-between text-base font-bold text-paper print:text-black pt-2 border-t border-ink-border/80 print:border-black/30">
+                <div className="flex justify-between text-sm sm:text-base font-bold text-paper print:text-black pt-2 border-t border-ink-border/80 print:border-black/30">
                   <span>Grand Total</span>
                   <span className="text-gold print:text-black font-extrabold">{formatPrice(selectedInvoiceOrder.total)}</span>
                 </div>
@@ -3037,30 +3193,30 @@ function AccountContent() {
             </div>
 
             {/* Courier Stamp / Seal */}
-            <div className="p-3 bg-ink-surface/50 print:bg-neutral-50 border border-ink-border print:border-black/20 rounded-xs flex items-center justify-between text-[10px] font-mono text-text-muted print:text-neutral-700">
+            <div className="p-2.5 sm:p-3 bg-ink-surface/50 print:bg-neutral-50 border border-ink-border print:border-black/20 rounded-xs flex flex-col xs:flex-row xs:items-center justify-between gap-1.5 text-[9px] sm:text-[10px] font-mono text-text-muted print:text-neutral-700">
               <div>
                 <span className="text-gold print:text-black block font-semibold">AUTHENTICITY STAMP:</span>
                 <span>KAIRO EGYPT SEAL #KRO-OCT-88219</span>
               </div>
-              <div className="text-right">
+              <div className="xs:text-right">
                 <span className="block">TRACKING CODE:</span>
                 <span className="text-paper print:text-black font-bold">{selectedInvoiceOrder.trackingNumber || "EG-OCT-9842-CAI"}</span>
               </div>
             </div>
 
             {/* Actions - hidden when printing */}
-            <div className="flex items-center justify-end gap-3 pt-2 print-hidden print:hidden">
+            <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3 pt-2 print-hidden print:hidden">
               <button
                 type="button"
                 onClick={() => setSelectedInvoiceOrder(null)}
-                className="px-4 py-2 border border-ink-border text-paper hover:bg-ink-surface text-xs font-mono uppercase rounded-xs transition-colors cursor-pointer"
+                className="flex-1 sm:flex-none justify-center px-4 py-2 border border-ink-border text-paper hover:bg-ink-surface text-xs font-mono uppercase rounded-xs transition-colors cursor-pointer text-center"
               >
                 Close
               </button>
               <button
                 type="button"
                 onClick={() => handlePrintInvoice(selectedInvoiceOrder)}
-                className="px-5 py-2 bg-paper text-ink hover:bg-gold font-mono font-bold text-xs uppercase rounded-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-md"
+                className="flex-1 sm:flex-none justify-center px-5 py-2 bg-paper text-ink hover:bg-gold font-mono font-bold text-xs uppercase rounded-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-md text-center"
               >
                 <Printer strokeWidth={1.4} className="w-3.5 h-3.5" />
                 <span>PRINT / SAVE PDF</span>

@@ -25,13 +25,13 @@ export function StorefrontShell({ children }: { children: React.ReactNode }) {
   }, [arabicLanguageEnabled, locale, setLocale]);
 
   if (isAdmin) {
-    return <main className="flex-1 w-full overflow-x-clip relative z-10">{children}</main>;
+    return <main className="flex-1 w-full overflow-x-clip relative">{children}</main>;
   }
 
   return (
     <>
       <Navbar />
-      <main className="flex-1 w-full overflow-x-clip relative z-10">{children}</main>
+      <main className="flex-1 w-full overflow-x-clip relative">{children}</main>
       <Footer />
       <CartDrawer />
       <SearchModal />

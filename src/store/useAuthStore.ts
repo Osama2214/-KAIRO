@@ -48,6 +48,8 @@ export interface SavedOrder {
   customerEmail?: string;
   customerAddress?: string;
   customerGovernorate?: string;
+  customerCity?: string;
+  deliveryNotes?: string;
   timeline: string[];
   trackingNumber?: string;
   trackingUrl?: string;
@@ -67,7 +69,11 @@ export interface UserProfile {
   password?: string; // Legacy fallback for backward-compatibility
   phone: string;
   governorate: string;
+  city?: string;
   address: string;
+  deliveryNotes?: string;
+  preferredPaymentMethod?: "cash" | "wallet" | "instapay";
+  paymentSenderDetail?: string;
   tier: "Collector" | "Deluxe Patron" | "Archive Master";
   joinedDate: string;
   orders: SavedOrder[];
@@ -114,8 +120,12 @@ const DEMO_USER: UserProfile = {
   password: SECOND_ADMIN.password,
   role: "admin",
   phone: SECOND_ADMIN.phone || "+20 100 234 5678",
-  governorate: SECOND_ADMIN.governorate || "Giza",
+  governorate: SECOND_ADMIN.governorate || "Giza / 6th of October",
+  city: "6th of October City",
   address: "Al Motamayez District, 6th of October City, Giza, Egypt",
+  deliveryNotes: "Near Al Hosary Mosque, Building 4, Apt 3",
+  preferredPaymentMethod: "cash",
+  paymentSenderDetail: "",
   tier: "Collector",
   joinedDate: "2026-01-15",
   orders: [
@@ -616,6 +626,10 @@ export const useAuthStore = create<AuthState>((set, get) => {
       if (data.phone !== undefined) cleanData.phone = sanitizeInput(data.phone);
       if (data.address !== undefined) cleanData.address = sanitizeInput(data.address);
       if (data.governorate !== undefined) cleanData.governorate = sanitizeInput(data.governorate);
+      if (data.city !== undefined) cleanData.city = sanitizeInput(data.city);
+      if (data.deliveryNotes !== undefined) cleanData.deliveryNotes = sanitizeInput(data.deliveryNotes);
+      if (data.preferredPaymentMethod !== undefined) cleanData.preferredPaymentMethod = data.preferredPaymentMethod;
+      if (data.paymentSenderDetail !== undefined) cleanData.paymentSenderDetail = sanitizeInput(data.paymentSenderDetail);
 
       const updatedUser: UserProfile = {
         ...currentUser,

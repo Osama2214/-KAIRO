@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, ShoppingBag, User, Menu, X, Compass, Heart, Sparkles, Globe } from "lucide-react";
+import { Search, ShoppingBag, User, Menu, X, Heart, Sparkles, Globe, ArrowRight } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
 import { useUIStore } from "@/store/useUIStore";
@@ -16,7 +16,7 @@ import { useStorefrontStore } from "@/store/useStorefrontStore";
 export function Navbar() {
   const pathname = usePathname();
   const mounted = useMounted();
-  const { t, locale, toggleLanguage } = useTranslation();
+  const { t, locale, toggleLanguage, isRTL } = useTranslation();
   const isArabic = locale === "ar";
   const arabicLanguageEnabled = useStorefrontStore((state) => state.arabicLanguageEnabled ?? true);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -59,11 +59,11 @@ export function Navbar() {
   }, [openSearch]);
 
   const navLinks = [
-    { label: t.nav.manga, href: "/manga" },
-    { label: t.nav.series, href: "/series" },
-    { label: t.nav.genres, href: "/#genres" },
-    { label: t.nav.newReleases, href: "/#new-releases" },
-    { label: t.nav.sale, href: "/manga?sort=sale" },
+    { label: t.nav.manga, href: "/manga", kanji: "漫画" },
+    { label: t.nav.series, href: "/series", kanji: "連載" },
+    { label: t.nav.genres, href: "/#genres", kanji: "分類" },
+    { label: t.nav.newReleases, href: "/#new-releases", kanji: "新刊" },
+    { label: t.nav.sale, href: "/manga?sort=sale", kanji: "特選" },
   ];
 
   const handleLogoClick = (e: React.MouseEvent) => {
@@ -322,100 +322,249 @@ export function Navbar() {
 
       {/* Mobile Drawer Menu with Smooth Touch Layout and Safe-Area Support */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-30 bg-ink/98 backdrop-blur-2xl md:hidden pt-24 px-6 sm:px-8 pb-8 pb-safe flex flex-col justify-between overflow-y-auto animate-in fade-in duration-300">
-          <div className="space-y-6">
-            <span className="text-[10px] tracking-[0.25em] text-text-muted font-mono uppercase">
-              {isArabic ? "التنقل السريع" : "NAVIGATION"}
-            </span>
-            <div className="flex flex-col space-y-3">
-              {navLinks.map((link) => {
-                const active = isLinkActive(link.href);
-                return (
-                  <Link
-                    key={link.label}
-                    href={link.href}
-                    onClick={(e) => handleNavClick(e, link.href)}
-                    className={`py-2 px-3 rounded-xs text-base sm:text-lg font-bold tracking-[0.12em] transition-colors flex items-center justify-between cursor-pointer ${
-                      active
-                        ? "bg-ink-surface text-vermilion border border-vermilion/30"
-                        : "text-paper hover:text-vermilion hover:bg-ink-surface/50"
-                    }`}
-                  >
-                    <span>{link.label}</span>
-                    <Compass strokeWidth={1.2} className={`w-4 h-4 ${active ? "text-vermilion" : "text-text-muted"}`} />
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
+        <div className="fixed inset-0 z-30 bg-[#0a0a0d]/98 backdrop-blur-2xl lg:hidden pt-16 px-4.5 sm:px-8 pb-8 flex flex-col overflow-y-auto animate-in fade-in duration-300">
+          <div className="relative z-10 flex flex-col space-y-5 md:space-y-8 py-2 md:py-6 max-w-lg sm:max-w-xl md:max-w-2xl mx-auto w-full">
+            {/* Quick Archive Search Pill */}
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                openSearch();
+              }}
+              className="w-full py-2.5 md:py-3.5 px-3.5 md:px-5 bg-[#121216] hover:bg-ink-surface border border-ink-border/80 hover:border-gold/50 rounded-xs flex items-center justify-between text-xs md:text-sm text-text-muted transition-colors group cursor-pointer"
+            >
+              <div className="flex items-center gap-2.5 md:gap-3">
+                <Search strokeWidth={1.5} className="w-4 h-4 md:w-4.5 md:h-4.5 text-gold group-hover:scale-110 transition-transform" />
+                <span className="font-sans text-paper-muted group-hover:text-paper transition-colors">
+                  {isArabic ? "ابحث عن مانجا، مؤلف، أو تصنيف..." : "Search archive, title, author..."}
+                </span>
+              </div>
+              <span className="text-[10.5px] md:text-xs font-serif text-gold/85 px-2 py-0.5 rounded-xs bg-ink/90 border border-ink-border">
+                {isArabic ? "بحث" : "検索"}
+              </span>
+            </button>
 
-          <div className="pt-6 mt-6 border-t border-ink-border/80 flex flex-col gap-3">
+            {/* Primary Navigation Links */}
+            <div>
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-ink-border/50">
+                <span className="text-[10px] md:text-[11px] tracking-[0.25em] text-text-muted font-mono uppercase">
+                  {isArabic ? "الأرشيف الرئيسي" : "PRIMARY DIRECTORY"}
+                </span>
+                <span className="text-[10px] md:text-[11px] font-serif text-vermilion">目録</span>
+              </div>
+              <div className="flex flex-col divide-y divide-ink-border/30">
+                {navLinks.map((link, idx) => {
+                  const active = isLinkActive(link.href);
+                  return (
+                    <Link
+                      key={link.label}
+                      href={link.href}
+                      onClick={(e) => handleNavClick(e, link.href)}
+                      className={`group py-2.5 md:py-3.5 px-2 md:px-3 rounded-xs transition-all flex items-center justify-between cursor-pointer ${
+                        active
+                          ? "text-vermilion bg-ink-surface/40"
+                          : "text-paper hover:text-gold hover:bg-ink-surface/20"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 md:gap-4">
+                        <span className={`text-[10px] md:text-xs font-mono font-medium ${active ? "text-vermilion" : "text-gold/80 group-hover:text-gold"}`}>
+                          0{idx + 1}
+                        </span>
+                        <span className="text-base md:text-lg font-bold tracking-[0.14em] uppercase font-sans">
+                          {link.label}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 md:gap-3">
+                        <span className="text-xs md:text-sm font-serif text-text-muted/60 group-hover:text-gold/80 transition-colors">
+                          {link.kanji}
+                        </span>
+                        <ArrowRight
+                          strokeWidth={1.5}
+                          className={`w-3.5 h-3.5 md:w-4 md:h-4 transition-transform ${
+                            active
+                              ? "text-vermilion translate-x-0.5 rtl:-translate-x-0.5"
+                              : "text-text-muted/50 group-hover:text-gold group-hover:translate-x-1 rtl:group-hover:-translate-x-1"
+                          } ${isRTL ? "rotate-180" : ""}`}
+                        />
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Curated Format Shortcuts */}
+            <div>
+              <span className="text-[10px] md:text-[11px] tracking-[0.22em] text-text-muted/70 font-mono uppercase block mb-2">
+                {isArabic ? "تنسيقات مميزة" : "CURATED FORMATS"}
+              </span>
+              <div className="grid grid-cols-2 gap-3 xs:gap-3.5 md:gap-4">
+                {/* Deluxe Hardcovers Card with Hand-drawn Illustration Cover */}
+                <Link
+                  href="/manga?format=Deluxe+Edition"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="relative p-3 xs:p-3.5 md:p-4 min-h-[96px] xs:min-h-[104px] md:min-h-[116px] bg-[#101014] hover:bg-ink-surface border border-ink-border/80 hover:border-gold/50 rounded-xs transition-all flex items-center group overflow-hidden"
+                >
+                  <img
+                    src="/images/deluxe-hardcover-cover.webp"
+                    alt="Deluxe Hardcovers"
+                    className="absolute inset-0 w-full h-full object-cover object-left pointer-events-none group-hover:scale-105 transition-transform duration-500"
+                    draggable={false}
+                  />
+
+                  {/* Text Container matching Complete Boxsets */}
+                  <div className="relative z-10 flex flex-col flex-1 min-w-0 pl-[53%] xs:pl-[55%] md:pl-[52%] pr-3 md:pr-4 pt-3.5 md:pt-4 pb-0.5">
+                    <span className="font-serif font-bold text-[13px] xs:text-[14.5px] md:text-[16px] leading-[1.15] text-paper group-hover:text-gold transition-colors tracking-tight drop-shadow-md">
+                      {isArabic ? (
+                        <>طبعات<br />Deluxe</>
+                      ) : (
+                        <>Deluxe<br />Hardcovers</>
+                      )}
+                    </span>
+                    <span className="text-[9px] xs:text-[10px] md:text-[11px] leading-[1.25] text-text-muted font-mono mt-1.5 drop-shadow-md">
+                      {isArabic ? (
+                        <>مجلدات<br />مقواة</>
+                      ) : (
+                        <>Collector<br />Bindings</>
+                      )}
+                    </span>
+                  </div>
+
+                  {/* Golden Kanji matching user design: 豪華 */}
+                  <span className="absolute top-2.5 right-2.5 md:top-3 md:right-3.5 z-10 text-[12.5px] xs:text-[13.5px] md:text-[15px] text-gold/90 font-serif drop-shadow-md font-medium">豪華</span>
+
+                  {/* Sleek navigation arrow */}
+                  <ArrowRight
+                    strokeWidth={1.5}
+                    className="absolute bottom-2.5 right-2.5 md:bottom-3 md:right-3.5 z-10 w-4 h-4 md:w-4.5 md:h-4.5 text-paper/70 group-hover:text-gold group-hover:translate-x-1 transition-all drop-shadow-md"
+                  />
+                </Link>
+
+                {/* Complete Boxsets Card matching User Mockup exactly */}
+                <Link
+                  href="/manga?format=Box+Set"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="relative p-3 xs:p-3.5 md:p-4 min-h-[96px] xs:min-h-[104px] md:min-h-[116px] bg-[#101014] hover:bg-ink-surface border border-ink-border/80 hover:border-gold/50 rounded-xs transition-all flex items-center group overflow-hidden"
+                >
+                  <img
+                    src="/images/complete-boxset-cover.webp"
+                    alt="Complete Boxsets"
+                    className="absolute inset-0 w-full h-full object-cover object-left pointer-events-none group-hover:scale-105 transition-transform duration-500"
+                    draggable={false}
+                  />
+
+                  {/* Text Container matching the mockup layout */}
+                  <div className="relative z-10 flex flex-col flex-1 min-w-0 pl-[53%] xs:pl-[55%] md:pl-[52%] pr-3 md:pr-4 pt-3.5 md:pt-4 pb-0.5">
+                    <span className="font-serif font-bold text-[13px] xs:text-[14.5px] md:text-[16px] leading-[1.15] text-paper group-hover:text-gold transition-colors tracking-tight drop-shadow-md">
+                      {isArabic ? (
+                        <>مجموعات<br />بوكس سيت</>
+                      ) : (
+                        <>Complete<br />Boxsets</>
+                      )}
+                    </span>
+                    <span className="font-mono text-[9px] xs:text-[10px] md:text-[11px] leading-[1.25] text-text-muted mt-1.5 drop-shadow-md">
+                      {isArabic ? (
+                        <>سلاسل<br />كاملة</>
+                      ) : (
+                        <>Full Story<br />Arcs</>
+                      )}
+                    </span>
+                  </div>
+
+                  {/* Golden Kanji matching user mockup: 全集 */}
+                  <span className="absolute top-2.5 right-2.5 md:top-3 md:right-3.5 z-10 text-[12.5px] xs:text-[13.5px] md:text-[15px] text-gold/90 font-serif drop-shadow-md font-medium">全集</span>
+
+                  {/* Sleek navigation arrow matching user mockup */}
+                  <ArrowRight
+                    strokeWidth={1.5}
+                    className="absolute bottom-2.5 right-2.5 md:bottom-3 md:right-3.5 z-10 w-4 h-4 md:w-4.5 md:h-4.5 text-paper/70 group-hover:text-gold group-hover:translate-x-1 transition-all drop-shadow-md"
+                  />
+                </Link>
+              </div>
+            </div>
+
+            {/* Welcome Grant Voucher Pill (if active) */}
             {hasWelcomeOffer && (
-              <div className="p-3 bg-gold/10 border border-gold/40 rounded-xs flex items-center justify-between gap-2 text-xs font-mono">
-                <div className="flex items-center gap-1.5 text-gold truncate">
-                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
+              <div className="p-2.5 md:p-3.5 bg-gold/10 border border-gold/40 rounded-xs flex items-center justify-between gap-2 text-xs md:text-sm font-mono">
+                <div className="flex items-center gap-1.5 md:gap-2 text-gold truncate">
+                  <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" />
                   <span className="truncate">20% Grant: <strong>{currentUser?.welcomeDiscountCode}</strong></span>
                 </div>
                 <Link
                   href="/account"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="px-2.5 py-1 bg-gold text-ink font-bold text-[10px] rounded-xs uppercase tracking-wider shrink-0"
+                  className="px-2 md:px-3 py-0.5 md:py-1 bg-gold text-ink font-bold text-[9px] md:text-[10px] rounded-xs uppercase tracking-wider shrink-0"
                 >
                   View
                 </Link>
               </div>
             )}
-            
-            <Link
-              href="/account"
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-2.5 px-3 rounded-xs bg-ink-surface/60 border border-ink-border text-xs font-mono tracking-wider text-paper hover:text-gold flex items-center justify-between"
-            >
-              <div className="flex items-center gap-2">
-                <User strokeWidth={1.4} className={`w-4 h-4 ${mounted && currentUser ? "text-gold" : "text-text-muted"}`} />
-                <span className="font-semibold">
-                  {mounted && currentUser
-                    ? `PATRON: ${currentUser.name.split(" ")[0].toUpperCase()}`
-                    : (isArabic ? "حسابي / تتبع الطلبات" : "MY ACCOUNT / ORDERS")}
-                </span>
-              </div>
-              <span className="text-[10px] text-text-muted font-serif">→</span>
-            </Link>
 
-            <Link
-              href="/account?tab=WISHLIST"
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-2.5 px-3 rounded-xs bg-ink-surface/60 border border-ink-border text-xs font-mono tracking-wider text-gold hover:text-paper flex items-center justify-between"
-            >
-              <div className="flex items-center gap-2">
-                <Heart strokeWidth={1.4} className="w-4 h-4" />
-                <span>{isArabic ? "قائمة الرغبات" : "WISHLIST"} ({mounted ? totalWishlistCount : 0})</span>
-              </div>
-              <span className="text-[10px] text-text-muted font-serif">→</span>
-            </Link>
-
-            {arabicLanguageEnabled && (
-              <button
-                type="button"
-                onClick={() => {
-                  toggleLanguage();
-                  setMobileMenuOpen(false);
-                }}
-                className="py-2.5 px-3 rounded-xs bg-gold/10 border border-gold/30 text-xs font-bold text-gold hover:text-paper flex items-center justify-between font-sans cursor-pointer"
+            {/* User Quick Actions Grid (Account & Wishlist) */}
+            <div className="grid grid-cols-2 gap-3 xs:gap-3.5 md:gap-4">
+              <Link
+                href="/account"
+                onClick={() => setMobileMenuOpen(false)}
+                className="relative p-3.5 xs:p-4 md:p-4.5 min-h-[76px] xs:min-h-[82px] md:min-h-[92px] rounded-xs bg-[#101014] hover:bg-ink-surface border border-ink-border/80 hover:border-gold/50 flex items-center gap-3.5 md:gap-4 group transition-all overflow-hidden"
               >
-                <div className="flex items-center gap-2">
-                  <Globe strokeWidth={1.4} className="w-4 h-4" />
-                  <span>{locale === "en" ? "تغيير الواجهة إلى العربية" : "Switch Interface to English"}</span>
+                <User strokeWidth={1.5} className={`w-6 h-6 xs:w-6.5 xs:h-6.5 md:w-7 md:h-7 shrink-0 ${mounted && currentUser ? "text-gold" : "text-paper/80 group-hover:text-gold"}`} />
+                <div className="flex flex-col flex-1 min-w-0 pr-4">
+                  <div className="text-[12.5px] xs:text-[13.5px] md:text-sm font-bold text-paper group-hover:text-gold transition-colors truncate font-mono">
+                    {mounted && currentUser ? currentUser.name.split(" ")[0].toUpperCase() : (isArabic ? "حسابي" : "MY ACCOUNT")}
+                  </div>
+                  <div className="text-[10px] xs:text-[10.5px] md:text-xs text-text-muted font-mono truncate mt-0.5">
+                    {isArabic ? "تتبع الطلبات" : "Order Tracking"}
+                  </div>
                 </div>
-                <span className="text-[11px] font-mono uppercase text-gold font-bold">
-                  {locale === "en" ? "العربية" : "EN"}
-                </span>
-              </button>
-            )}
+                <ArrowRight className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 md:w-4.5 md:h-4.5 text-text-muted/40 group-hover:text-gold group-hover:translate-x-0.5 transition-all" />
+              </Link>
 
-            <div className="pt-2 flex items-center justify-between text-[11px] text-text-muted font-mono">
-              <span>{isArabic ? "أرشيف مانجا كيرو الرسمي" : "KAIRO ARCHIVAL SYSTEM"}</span>
-              <span className="text-gold font-serif">回路アーカイブ</span>
+              <Link
+                href="/account?tab=WISHLIST"
+                onClick={() => setMobileMenuOpen(false)}
+                className="relative p-3.5 xs:p-4 md:p-4.5 min-h-[76px] xs:min-h-[82px] md:min-h-[92px] rounded-xs bg-[#101014] hover:bg-ink-surface border border-ink-border/80 hover:border-gold/50 flex items-center gap-3.5 md:gap-4 group transition-all overflow-hidden"
+              >
+                <Heart strokeWidth={1.5} className="w-6 h-6 xs:w-6.5 xs:h-6.5 md:w-7 md:h-7 text-vermilion fill-vermilion/10 group-hover:fill-vermilion/30 transition-all shrink-0" />
+                <div className="flex flex-col flex-1 min-w-0 pr-4">
+                  <div className="text-[12.5px] xs:text-[13.5px] md:text-sm font-bold text-paper group-hover:text-gold transition-colors truncate font-mono">
+                    {isArabic ? "المفضلة" : "WISHLIST"}
+                  </div>
+                  <div className="text-[10px] xs:text-[10.5px] md:text-xs text-text-muted font-mono truncate mt-0.5">
+                    {isArabic ? "المجلدات المحفوظة" : "Saved Volumes"}
+                  </div>
+                </div>
+                <ArrowRight className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 md:w-4.5 md:h-4.5 text-text-muted/40 group-hover:text-gold group-hover:translate-x-0.5 transition-all" />
+              </Link>
+            </div>
+
+            {/* Subtle Japanese Kanji Watermark & Language Controls */}
+            <div className="relative pt-8 md:pt-14 pb-4 md:pb-8 flex flex-col items-start justify-end overflow-hidden min-h-[140px] md:min-h-[220px]">
+              {/* Two Faint Japanese Kanji Characters shifted right & down (回路 - KAIRO) */}
+              <div
+                className="absolute -right-2 md:-right-6 -bottom-4 md:-bottom-8 pointer-events-none select-none z-0"
+                aria-hidden="true"
+              >
+                <span className="text-[120px] xs:text-[145px] md:text-[220px] font-serif font-bold text-white/[0.035] tracking-[0.1em] leading-none">
+                  回路
+                </span>
+              </div>
+
+              {/* Language Switch Button */}
+              {arabicLanguageEnabled && (
+                <div className="relative z-10 self-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toggleLanguage();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="py-1.5 md:py-2 px-3.5 md:px-5 rounded-full bg-[#121216]/90 hover:bg-ink-surface border border-ink-border/80 hover:border-gold/40 text-paper-muted hover:text-gold flex items-center gap-2 md:gap-2.5 text-[10.5px] md:text-xs font-mono transition-colors cursor-pointer shadow-sm"
+                  >
+                    <Globe strokeWidth={1.4} className="w-3.5 h-3.5 md:w-4 md:h-4 text-gold" />
+                    <span>{locale === "en" ? "العربية" : "ENGLISH"}</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

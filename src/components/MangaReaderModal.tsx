@@ -19,7 +19,7 @@ import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { useTranslation } from "@/hooks/useTranslation";
 
 export function MangaReaderModal() {
-  const { t, locale, isRTL } = useTranslation();
+  const { locale } = useTranslation();
   const isArabic = locale === "ar";
   const { isReaderOpen, activeReaderVolume, closeReader } = useUIStore();
   useModalScrollLock(isReaderOpen && Boolean(activeReaderVolume));
@@ -261,89 +261,92 @@ export function MangaReaderModal() {
             <img
               src={pages[currentPageIndex]}
               alt={`Manga Page ${currentPageIndex + 1}`}
-              className="w-full h-full object-cover object-top pointer-events-none"
+              className={`w-full h-full object-cover object-top pointer-events-none transition-all duration-500 ${
+                isLastPage ? "blur-xl scale-110 opacity-35" : ""
+              }`}
             />
 
             {/* Authentic Japanese Inner Spine Shadow (Simulates Physical Binding) */}
-            <div className="absolute inset-y-0 left-0 w-8 bg-linear-to-r from-black/45 via-black/15 to-transparent pointer-events-none" />
+            {!isLastPage && (
+              <div className="absolute inset-y-0 left-0 w-8 bg-linear-to-r from-black/45 via-black/15 to-transparent pointer-events-none" />
+            )}
 
-            {/* Top Chapter Header Stamp */}
-            <div className="absolute top-3 left-4 px-2.5 py-1 rounded-xs bg-black/70 backdrop-blur-md border border-white/10 font-mono text-[9px] text-text-muted tracking-widest uppercase flex items-center gap-1.5">
-              <span>第１話 // CHAPTER 01</span>
-              <span className="text-gold">•</span>
-              <span className="text-gold font-bold">
-                {isOwned
-                  ? (isArabic ? "أرشيف مفتوح" : "UNLOCKED ARCHIVE")
-                  : (isArabic ? "عينة مجانية" : "SAMPLE PREVIEW")}
-              </span>
-            </div>
+            {/* Top Chapter Header Stamp - only visible during active reading */}
+            {!isLastPage && (
+              <div className="absolute top-3 left-4 px-2.5 py-1 rounded-xs bg-black/70 backdrop-blur-md border border-white/10 font-mono text-[9px] text-text-muted tracking-widest uppercase flex items-center gap-1.5">
+                <span>第１話 // CHAPTER 01</span>
+                <span className="text-gold">•</span>
+                <span className="text-gold font-bold">
+                  {isOwned
+                    ? (isArabic ? "أرشيف مفتوح" : "UNLOCKED ARCHIVE")
+                    : (isArabic ? "عينة مجانية" : "SAMPLE PREVIEW")}
+                </span>
+              </div>
+            )}
 
-            {/* Official Editorial Bottom Watermark Bar (Legal & Clean Attribution) */}
-            <div className="absolute bottom-3 inset-x-3 sm:inset-x-4 flex items-center justify-between px-3.5 py-2 rounded-xs bg-ink/95 backdrop-blur-md border border-ink-border/90 shadow-[0_8px_30px_rgba(0,0,0,0.95)] z-20">
-              <div className="flex items-center gap-2.5 min-w-0">
-                {/* Official Vermilion Hanko Stamp */}
-                <div className="h-5 px-2 rounded-xs bg-vermilion text-white flex items-center justify-center shrink-0 border border-vermilion/80 shadow-xs select-none">
-                  <span className="font-serif font-bold text-[10px] tracking-tight leading-none whitespace-nowrap">
-                    回路
-                  </span>
+            {/* Official Editorial Bottom Watermark Bar - only visible during active reading */}
+            {!isLastPage && (
+              <div className="absolute bottom-3 inset-x-3 sm:inset-x-4 flex items-center justify-between px-3.5 py-2 rounded-xs bg-ink/95 backdrop-blur-md border border-ink-border/90 shadow-[0_8px_30px_rgba(0,0,0,0.95)] z-20">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {/* Official Vermilion Hanko Stamp */}
+                  <div className="h-5 px-2 rounded-xs bg-vermilion text-white flex items-center justify-center shrink-0 border border-vermilion/80 shadow-xs select-none">
+                    <span className="font-serif font-bold text-[10px] tracking-tight leading-none whitespace-nowrap">
+                      回路
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-[11px] font-mono font-extrabold text-paper tracking-[0.16em] uppercase whitespace-nowrap">
+                      {isArabic ? "أرشيف كايرو" : "KAIRO ARCHIVE"}
+                    </span>
+                    <span className="text-ink-border hidden sm:inline">•</span>
+                    <span className="text-[9px] font-mono text-gold tracking-widest uppercase truncate hidden sm:inline">
+                      {isOwned
+                        ? (isArabic ? "نسخة رقمية مرخصة" : "LICENSED DIGITAL EDITION")
+                        : (isArabic ? "عينة رسمية" : "OFFICIAL SAMPLER")}
+                    </span>
+                    <span className="text-text-muted/60 text-[9px] font-mono hidden md:inline">
+                      {isArabic ? "// مستودع 6 أكتوبر" : "// 6TH OF OCTOBER HUB"}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-[11px] font-mono font-extrabold text-paper tracking-[0.16em] uppercase whitespace-nowrap">
-                    {isArabic ? "أرشيف كايرو" : "KAIRO ARCHIVE"}
+                <div className="flex items-center gap-1.5 font-mono text-[10px] shrink-0 pl-3">
+                  <span className="text-gold font-bold">{isArabic ? "صفحة" : "PAGE"}</span>
+                  <span className="text-paper font-semibold">
+                    0{currentPageIndex + 1}
                   </span>
-                  <span className="text-ink-border hidden sm:inline">•</span>
-                  <span className="text-[9px] font-mono text-gold tracking-widest uppercase truncate hidden sm:inline">
-                    {isOwned
-                      ? (isArabic ? "نسخة رقمية مرخصة" : "LICENSED DIGITAL EDITION")
-                      : (isArabic ? "عينة رسمية" : "OFFICIAL SAMPLER")}
-                  </span>
-                  <span className="text-text-muted/60 text-[9px] font-mono hidden md:inline">
-                    {isArabic ? "// مستودع 6 أكتوبر" : "// 6TH OF OCTOBER HUB"}
+                  <span className="text-text-muted">/</span>
+                  <span className="text-text-muted font-normal">
+                    0{pages.length}
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 font-mono text-[10px] shrink-0 pl-3">
-                <span className="text-gold font-bold">{isArabic ? "صفحة" : "PAGE"}</span>
-                <span className="text-paper font-semibold">
-                  0{currentPageIndex + 1}
-                </span>
-                <span className="text-text-muted">/</span>
-                <span className="text-text-muted font-normal">
-                  0{pages.length}
-                </span>
-              </div>
-            </div>
+            )}
 
-            {/* Last Page Call-To-Action Overlay */}
+            {/* Last Page Call-To-Action Overlay with Uniform Full-Frame Blur */}
             {isLastPage && (
-              <div className="absolute inset-0 bg-ink/85 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center space-y-4 animate-in fade-in duration-300 z-30">
-                <div className="w-13 h-13 rounded-full bg-gold/10 border border-gold/40 flex items-center justify-center text-gold shadow-lg shadow-gold/10">
-                  <CheckCircle2 strokeWidth={1.5} className="w-7 h-7" />
+              <div className="absolute inset-0 bg-ink/75 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center space-y-3.5 animate-in fade-in duration-300 z-30">
+                <div className="w-12 h-12 rounded-full bg-gold/15 border border-gold/40 flex items-center justify-center text-gold shadow-lg shadow-gold/10">
+                  <CheckCircle2 strokeWidth={1.6} className="w-6 h-6" />
                 </div>
 
                 {isOwned ? (
                   /* ================= OWNED VOLUME STATE ================= */
                   <>
-                    <div className="space-y-1.5 max-w-sm">
-                      <span className="text-[10px] font-mono tracking-widest text-gold uppercase font-bold block">
-                        {isArabic ? "اكتمل الفصل • عضو موثق" : "CHAPTER COMPLETE • VERIFIED PATRON"}
-                      </span>
-                      <h4 className="text-lg font-extrabold uppercase text-paper tracking-wide font-sans">
-                        {isArabic ? "اكتملت قراءة مجلد الأرشيف" : "VOLUME ARCHIVE COMPLETED"}
+                    <div className="space-y-1 max-w-xs">
+                      <h4 className="text-base sm:text-lg font-bold uppercase text-paper tracking-wider font-mono">
+                        {isArabic ? "اكتملت القراءة" : "CHAPTER COMPLETED"}
                       </h4>
-                      <p className="text-xs text-text-muted leading-relaxed">
-                        {isArabic ? (
-                          <>لقد أتممت قراءة هذا الفصل من <span className="text-paper font-semibold">{activeReaderVolume.seriesTitle}</span>. هذا المجلد مفتوح بصفة دائمة في مكتبتك الرقمية.</>
-                        ) : (
-                          <>You have completed reading this chapter of <span className="text-paper font-semibold">{activeReaderVolume.seriesTitle}</span>. This volume is permanently unlocked in your digital library.</>
-                        )}
+                      <p className="text-xs text-text-muted font-sans">
+                        {isArabic
+                          ? "متاح دائماً في مكتبتك الرقمية."
+                          : "Permanently unlocked in your library."}
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                    <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
                       <button
                         onClick={() => changePage(0)}
-                        className="px-5 py-2.5 bg-paper text-ink font-bold text-xs font-mono tracking-wider uppercase rounded-xs hover:bg-gold transition-colors flex items-center gap-2 cursor-pointer shadow-lg active:scale-95"
+                        className="px-4 py-2 bg-paper text-ink font-bold text-xs font-mono tracking-wider uppercase rounded-xs hover:bg-gold transition-colors flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95"
                       >
                         <RotateCcw strokeWidth={1.4} className="w-3.5 h-3.5" />
                         <span>{isArabic ? "إعادة القراءة" : "READ AGAIN"}</span>
@@ -351,7 +354,7 @@ export function MangaReaderModal() {
 
                       <button
                         onClick={closeReader}
-                        className="px-5 py-2.5 bg-ink border border-ink-border hover:border-gold text-paper hover:text-gold font-bold text-xs font-mono tracking-wider uppercase rounded-xs transition-colors cursor-pointer active:scale-95"
+                        className="px-4 py-2 bg-ink border border-ink-border hover:border-gold text-paper hover:text-gold font-bold text-xs font-mono tracking-wider uppercase rounded-xs transition-colors cursor-pointer active:scale-95"
                       >
                         <span>{isArabic ? "العودة للأرشيف" : "RETURN TO ARCHIVE"}</span>
                       </button>
@@ -360,25 +363,22 @@ export function MangaReaderModal() {
                 ) : (
                   /* ================= UNOWNED / STORE PREVIEW STATE ================= */
                   <>
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-mono tracking-widest text-gold uppercase">
-                        {isArabic ? "انتهت معاينة العينة" : "SAMPLE PREVIEW COMPLETE"}
-                      </span>
-                      <h4 className="text-base font-extrabold uppercase text-paper">
-                        {isArabic ? "احصل على النسخة الكاملة" : "UNLOCK THE FULL ADVENTURE"}
+                    <div className="space-y-1 max-w-xs">
+                      <h4 className="text-base sm:text-lg font-bold uppercase text-paper tracking-wider font-mono">
+                        {isArabic ? "نهاية العينة" : "PREVIEW COMPLETED"}
                       </h4>
-                      <p className="text-xs text-text-muted max-w-xs">
+                      <p className="text-xs text-text-muted font-sans">
                         {isArabic
-                          ? "احصل على هذه النسخة الأصلية مع تغليف محكم وشحن فوري لكافة المحافظات لباب منزلك."
-                          : "Get this pristine edition shipped directly to your doorstep in reinforced protective packaging."}
+                          ? "اطلب نسختك الورقية مع شحن سريع لباب منزلك."
+                          : "Order your physical copy with express delivery."}
                       </p>
                     </div>
                     <button
                       onClick={handleAddToCartAndClose}
-                      className="px-6 py-3 bg-paper text-ink font-bold text-xs font-mono tracking-widest uppercase rounded-sm hover:bg-vermilion hover:text-white transition-all shadow-xl flex items-center gap-2 cursor-pointer"
+                      className="px-5 py-2.5 bg-paper text-ink font-bold text-xs font-mono tracking-wider uppercase rounded-xs hover:bg-vermilion hover:text-white transition-all shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 mt-1"
                     >
                       <ShoppingBag strokeWidth={1.4} className="w-4 h-4" />
-                      <span>{isArabic ? "أضف للسلة وأكمل الطلب" : "ADD TO CART & CHECKOUT"}</span>
+                      <span>{isArabic ? "أضف للسلة" : "ADD TO CART"}</span>
                     </button>
                   </>
                 )}

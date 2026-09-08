@@ -62,6 +62,28 @@ export function TheCollection() {
     openCart();
   };
 
+  const formatCollectionTitle = (title: string) => {
+    if (/ and /i.test(title)) {
+      const parts = title.split(/ and /i);
+      return (
+        <>
+          <span>{parts[0]} &amp;</span>
+          <span className="block">{parts.slice(1).join(" & ")}</span>
+        </>
+      );
+    }
+    if (title.includes(" & ")) {
+      const parts = title.split(" & ");
+      return (
+        <>
+          <span>{parts[0]} &amp;</span>
+          <span className="block">{parts.slice(1).join(" & ")}</span>
+        </>
+      );
+    }
+    return title;
+  };
+
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -558,9 +580,10 @@ export function TheCollection() {
     });
 
     // ==========================================
-    // 3. MOBILE (max-width: 640px)
-    // Book: w-26 h-38 (104px x 152px). Spacing: 112px (8px gap)
-    // Box: w-350px h-230px (39px clearance)
+    // 3. MOBILE (max-width: 640px) - Vertical Stack Presentation (Extra Enlarged Cards)
+    // Card: w-[345px] xs:w-[370px] h-[122px] xs:h-[132px]
+    // Vertical Stacking: Vol 1 (y: -136), Vol 2 (y: 0), Vol 3 (y: +136)
+    // Slipcase: w-[370px] xs:w-[395px] h-[485px] xs:h-[515px]
     // ==========================================
     mm.add("(max-width: 640px)", () => {
       const tl = gsap.timeline({
@@ -572,13 +595,14 @@ export function TheCollection() {
         },
       });
 
+      // Initial State: 3D vertical fan-out parallax float
       gsap.set(vol1Ref.current, {
-        x: -150,
-        y: 14,
-        z: 30,
-        rotationY: -20,
-        rotationZ: -5,
-        rotationX: 6,
+        x: 0,
+        y: -175,
+        z: 32,
+        rotationX: 14,
+        rotationY: -4,
+        rotationZ: -1.5,
         scale: 0.94,
         opacity: 1,
         force3D: true,
@@ -586,33 +610,33 @@ export function TheCollection() {
 
       gsap.set(vol2Ref.current, {
         x: 0,
-        y: -18,
-        z: 65,
+        y: 0,
+        z: 60,
+        rotationX: -5,
         rotationY: 0,
         rotationZ: 0,
-        rotationX: -5,
-        scale: 1.06,
+        scale: 1.05,
         opacity: 1,
         force3D: true,
       });
 
       gsap.set(vol3Ref.current, {
-        x: 150,
-        y: 14,
-        z: 30,
-        rotationY: 20,
-        rotationZ: 5,
-        rotationX: 6,
+        x: 0,
+        y: 175,
+        z: 32,
+        rotationX: -14,
+        rotationY: 4,
+        rotationZ: 1.5,
         scale: 0.94,
         opacity: 1,
         force3D: true,
       });
 
       gsap.set(boxsetRef.current, {
-        scale: 1.15,
+        scale: 1.12,
         opacity: 0,
         z: -45,
-        rotationX: 10,
+        rotationX: 8,
         force3D: true,
       });
 
@@ -634,17 +658,17 @@ export function TheCollection() {
         pointerEvents: "none",
       });
 
-      // Stage 1a: Mobile 3D Fan Float (0 -> 1.2s)
+      // Stage 1a: Vertical 3D Floating Drift (0 -> 1.2s)
       tl.to(
         vol1Ref.current,
         {
-          x: -165,
-          y: 20,
-          z: 42,
-          rotationY: -24,
-          rotationZ: -6,
-          rotationX: 8,
-          scale: 0.95,
+          x: 0,
+          y: -205,
+          z: 44,
+          rotationX: 18,
+          rotationY: -6,
+          rotationZ: -2,
+          scale: 0.96,
           duration: 1.2,
           ease: "power2.out",
           force3D: true,
@@ -655,12 +679,10 @@ export function TheCollection() {
           vol2Ref.current,
           {
             x: 0,
-            y: -24,
-            z: 80,
-            rotationY: 0,
-            rotationZ: 0,
-            rotationX: -7,
-            scale: 1.09,
+            y: 0,
+            z: 78,
+            rotationX: -8,
+            scale: 1.08,
             duration: 1.2,
             ease: "power2.out",
             force3D: true,
@@ -670,13 +692,13 @@ export function TheCollection() {
         .to(
           vol3Ref.current,
           {
-            x: 165,
-            y: 20,
-            z: 42,
-            rotationY: 24,
-            rotationZ: 6,
-            rotationX: 8,
-            scale: 0.95,
+            x: 0,
+            y: 205,
+            z: 44,
+            rotationX: -18,
+            rotationY: 6,
+            rotationZ: 2,
+            scale: 0.96,
             duration: 1.2,
             ease: "power2.out",
             force3D: true,
@@ -684,16 +706,16 @@ export function TheCollection() {
           0
         )
 
-        // Stage 1b: Align into Docking Row (1.2 -> 3.2s)
+        // Stage 1b: Align into Vertical Docking Stack (1.2 -> 3.2s)
         .to(
           vol1Ref.current,
           {
-            x: -120,
-            y: 0,
+            x: 0,
+            y: -136,
             z: 10,
+            rotationX: 0,
             rotationY: 0,
             rotationZ: 0,
-            rotationX: 0,
             scale: 1,
             duration: 2.0,
             ease: "power2.inOut",
@@ -707,9 +729,9 @@ export function TheCollection() {
             x: 0,
             y: 0,
             z: 10,
+            rotationX: 0,
             rotationY: 0,
             rotationZ: 0,
-            rotationX: 0,
             scale: 1,
             duration: 2.0,
             ease: "power2.inOut",
@@ -720,12 +742,12 @@ export function TheCollection() {
         .to(
           vol3Ref.current,
           {
-            x: 120,
-            y: 0,
+            x: 0,
+            y: 136,
             z: 10,
+            rotationX: 0,
             rotationY: 0,
             rotationZ: 0,
-            rotationX: 0,
             scale: 1,
             duration: 2.0,
             ease: "power2.inOut",
@@ -734,7 +756,7 @@ export function TheCollection() {
           1.2
         )
 
-        // Stage 2: Slipcase Locks In (2.2 -> 4.0s)
+        // Stage 2: Vertical Slipcase Locks In (2.2 -> 4.0s)
         .to(
           boxsetRef.current,
           {
@@ -761,12 +783,12 @@ export function TheCollection() {
           2.6
         )
 
-        // Stage 4: Showcase Tilt (3.3 -> 5.0s)
+        // Stage 4: Showcase 3D Tilt (3.3 -> 5.0s)
         .to(
           stageRef.current,
           {
             rotationX: 3.5,
-            rotationY: -2,
+            rotationY: -1.5,
             z: 12,
             duration: 1.7,
             ease: "power2.out",
@@ -809,7 +831,7 @@ export function TheCollection() {
       className="relative w-full h-[200vh] bg-ink border-t border-ink-border/60 overflow-clip select-none"
     >
       {/* Sticky Inner Viewport */}
-      <div className="sticky top-0 h-screen w-full overflow-hidden flex flex-col items-center justify-between pt-20 sm:pt-24 pb-8 sm:pb-10 px-4 sm:px-6">
+      <div className="sticky top-0 h-screen w-full overflow-hidden flex flex-col items-center justify-between pt-20 xs:pt-24 sm:pt-20 lg:pt-24 pb-6 xs:pb-8 sm:pb-10 px-2 sm:px-6">
         {/* Atmospheric Subtle Japanese Typographic Watermark Background */}
         <div
           ref={kanjiBgRef}
@@ -827,22 +849,31 @@ export function TheCollection() {
         />
 
         {/* 01 — Top Editorial Header */}
-        <div className="text-center z-10 pt-4 sm:pt-6 flex flex-col items-center gap-2">
+        <div className="text-center z-10 pt-2 xs:pt-4 sm:pt-6 flex flex-col items-center gap-1.5 sm:gap-2">
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight uppercase text-paper font-cinzel">
             {isArabic ? t.theCollection.headline : (collectionConfig?.headline || "THE COLLECTION")}
           </h2>
+          {/* Authentic Editorial Subtitle & Japanese Accent rule matching mockup */}
+          <div className="flex items-center gap-2.5 my-0.5">
+            <span className="h-px w-6 sm:w-10 bg-gold/40" />
+            <span className="text-[10px] sm:text-xs font-serif text-vermilion tracking-[0.25em]">コレクション</span>
+            <span className="h-px w-6 sm:w-10 bg-gold/40" />
+          </div>
+          <p className="text-[11px] sm:text-sm text-paper-muted/80 max-w-sm sm:max-w-md font-light leading-relaxed px-4 hidden xs:block">
+            {isArabic ? "قصص كاملة. مجموعات حصرية فاخرة. رحلة أعمق إلى عوالم تأسر خيالك." : "Complete stories. Premium boxsets. A deeper journey into the worlds that move you."}
+          </p>
           <LiveEditButton target={{ type: "collection" }} label="Edit Collection" variant="floating" size="xs" />
         </div>
 
-        {/* 02 — Center 3D Stage (Enlarged Books & Boxset with Generous Clearance) */}
+        {/* 02 — Center 3D Stage (Vertical Stacking on Mobile, Horizontal on Desktop) */}
         <div
           ref={stageRef}
-          className="relative w-full max-w-6xl h-80 sm:h-96 lg:h-[500px] flex items-center justify-center perspective-2000 preserve-3d my-auto transform-gpu"
+          className="relative w-full max-w-6xl h-[510px] xs:h-[540px] sm:h-96 lg:h-[500px] flex items-center justify-center perspective-2000 preserve-3d my-auto transform-gpu"
         >
-          {/* Slipcase Housing Box (Heavy Japanese archival canvas aesthetic, placed behind books) */}
+          {/* Slipcase Housing Box (Vertical portrait slipcase on mobile, landscape on desktop) */}
           <div
             ref={boxsetRef}
-            className="absolute w-[365px] sm:w-[700px] lg:w-[860px] h-[245px] sm:h-[390px] lg:h-[480px] rounded-xs border border-gold/40 bg-linear-to-b from-ink-surface/90 via-ink to-ink-surface/90 pointer-events-none flex flex-col justify-between p-3.5 sm:p-4 lg:p-5 z-10 shadow-[0_0_70px_rgba(199,167,108,0.10)] transform-gpu will-change-transform [backface-visibility:hidden] overflow-hidden"
+            className="absolute w-[370px] xs:w-[395px] sm:w-[700px] lg:w-[860px] h-[485px] xs:h-[515px] sm:h-[390px] lg:h-[480px] rounded-xs border border-gold/40 bg-linear-to-b from-ink-surface/90 via-ink to-ink-surface/90 pointer-events-none flex flex-col justify-between p-3 sm:p-4 lg:p-5 z-10 shadow-[0_0_70px_rgba(199,167,108,0.10)] transform-gpu will-change-transform [backface-visibility:hidden] overflow-hidden"
           >
             {/* Background Japanese Watermark Texture inside Slipcase */}
             <div className="absolute inset-0 bg-japanese-pattern opacity-35 pointer-events-none" />
@@ -856,10 +887,10 @@ export function TheCollection() {
             {/* Top Bar of Slipcase - Calm & Refined */}
             <div className="flex items-center justify-between border-b border-gold/15 pb-2 px-1 relative z-10">
               <span className="text-[9px] sm:text-[10px] font-mono tracking-[0.22em] text-gold/80 uppercase font-medium">
-                {isArabic ? "صندوق أرشيف كايرو // الإصدار 01" : "KAIRO ARCHIVE BOXSET // SERIES 01"}
+                {isArabic ? "صندوق أرشيف كايرو // الإصدار 01" : "KAIRO ARCHIVE BOXSET // SERIES"}
               </span>
               <span className="text-[8px] sm:text-[9px] font-mono text-paper-muted/50 tracking-widest uppercase font-light">
-                {isArabic ? "طبعة أولى • 2026" : "FIRST PRINT • 2026"}
+                {isArabic ? "طبعة أولى • 2026" : "FIRST PRINT EDITION"}
               </span>
             </div>
 
@@ -871,7 +902,7 @@ export function TheCollection() {
             {/* Bottom Bar of Slipcase - Calm & Refined */}
             <div className="flex items-center justify-between border-t border-gold/15 pt-2 px-1 relative z-10">
               <span className="text-[9px] sm:text-[10px] font-serif text-paper-muted/60 tracking-wider">
-                第１巻 — 第３巻 豪華特装版
+                呪術廻戦 完全書架
               </span>
               <span className="text-[8px] sm:text-[9px] font-mono text-gold/70 tracking-[0.22em] uppercase font-medium">
                 {isArabic ? "صندوق حفظ فاخر" : "DELUXE ARCHIVAL SLIPCASE"}
@@ -879,7 +910,7 @@ export function TheCollection() {
             </div>
           </div>
 
-          {/* Volume 01 (Left) */}
+          {/* Volume 01 (Top on mobile, Left on desktop) */}
           <div
             ref={vol1Ref}
             onClick={() => router.push(`/manga/${vol1.id}`)}
@@ -891,51 +922,96 @@ export function TheCollection() {
                 router.push(`/manga/${vol1.id}`);
               }
             }}
-            className="absolute w-28 sm:w-48 lg:w-60 h-42 sm:h-70 lg:h-88 rounded-xs overflow-hidden border border-ink-border/90 shadow-[0_20px_50px_rgba(0,0,0,0.85)] bg-ink-elevated cursor-pointer group hover:border-gold hover:shadow-[0_25px_60px_rgba(199,167,108,0.3)] transition-[border-color,box-shadow] duration-300 z-20 select-none transform-gpu will-change-transform [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [isolation:isolate]"
+            className="absolute w-[345px] xs:w-[370px] sm:w-48 lg:w-60 h-[122px] xs:h-[132px] sm:h-70 lg:h-88 rounded-xs overflow-hidden border border-ink-border/90 shadow-[0_20px_50px_rgba(0,0,0,0.85)] bg-[#0a0a0d] cursor-pointer group hover:border-gold hover:shadow-[0_25px_60px_rgba(199,167,108,0.3)] transition-[border-color,box-shadow] duration-300 z-20 select-none transform-gpu will-change-transform [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [isolation:isolate]"
           >
-            <img
-              src={vol1.coverImage}
-              alt={vol1.title}
-              draggable={false}
-              className="w-full h-full object-cover pointer-events-none group-hover:scale-105 transition-transform duration-700 ease-out transform-gpu [backface-visibility:hidden] [-webkit-backface-visibility:hidden]"
-            />
-            {/* Book spine curvature lighting */}
-            <div className="absolute left-0 top-0 bottom-0 w-3 bg-linear-to-r from-white/30 via-white/10 to-transparent pointer-events-none z-20" />
-            <div className="absolute inset-0 bg-linear-to-t from-ink/30 via-transparent to-black/20 pointer-events-none" />
+            {/* MOBILE LAYOUT (< sm): Clean Horizontal Ticket without Eye Icon */}
+            <div className="flex sm:hidden w-full h-full relative items-center justify-between overflow-hidden bg-[#0a0a0d] rtl:flex-row-reverse">
+              {/* Top-Left Corner Subtle Faded Edge Wear */}
+              <div className="absolute top-0 left-0 w-7 h-5 pointer-events-none z-25 bg-[radial-gradient(ellipse_at_0%_0%,rgba(180,174,162,0.10)_0%,rgba(180,174,162,0.03)_35%,transparent_70%)]" />
 
-            {/* Volume Badge */}
-            <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 z-20 pointer-events-none">
-              <span className="px-2 py-0.5 rounded-xs bg-ink/80 backdrop-blur-md text-[8px] sm:text-[9px] font-mono tracking-wider text-gold/90 border border-gold/20 shadow-xs font-semibold">
-                {vol1.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol1.volumeNumber).padStart(2, "0")}` : (isArabic ? "المجلد 01" : "VOL. 01")}
-              </span>
-              {vol1.stock <= 0 && (
-                <span className="px-2 py-0.5 rounded-xs bg-red-950/90 border border-red-800/80 text-[7px] sm:text-[8px] font-mono tracking-wider text-red-400 font-bold uppercase">
-                  {isArabic ? "نفد" : "OUT OF STOCK"}
+              {/* Top-Center Subtle Edge Wear */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-9 h-1.5 pointer-events-none z-25 bg-[radial-gradient(ellipse_at_50%_0%,rgba(180,174,162,0.09)_0%,rgba(180,174,162,0.02)_40%,transparent_75%)]" />
+
+              {/* Bottom Edge Subtle Faded Wear (Shifted slightly left of center) */}
+              <div className="absolute bottom-0 left-[36%] -translate-x-1/2 w-9 h-1.5 pointer-events-none z-25 bg-[radial-gradient(ellipse_at_50%_100%,rgba(180,174,162,0.09)_0%,rgba(180,174,162,0.02)_40%,transparent_75%)]" />
+
+              {/* Left Details */}
+              <div className="relative z-20 flex flex-col justify-center pl-4.5 pr-2 py-3 rtl:pr-4.5 rtl:pl-2 max-w-[62%] xs:max-w-[64%]">
+                <span className="inline-block self-start px-2 py-0.5 rounded-xs bg-ink/80 backdrop-blur-md text-[9px] xs:text-[10px] font-mono tracking-wider text-gold/90 border border-gold/20 font-semibold mb-1">
+                  {vol1.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol1.volumeNumber).padStart(2, "0")}` : (isArabic ? "المجلد 01" : "VOL. 01")}
                 </span>
-              )}
+                <span className="text-[11px] xs:text-[13.5px] font-bold text-paper line-clamp-2 uppercase tracking-wide font-cinzel leading-tight">
+                  {formatCollectionTitle(vol1.title)}
+                </span>
+                <span className="text-[9px] xs:text-[10px] font-mono text-paper-muted/60 tracking-widest uppercase mt-1">
+                  {isArabic ? "طبعة أولى" : "FIRST PRINT"}
+                </span>
+              </div>
+
+              {/* Right Art (Deep bleed across with wide smoky feather fade) */}
+              <div className="absolute inset-y-0 right-0 rtl:right-auto rtl:left-0 w-[55%] xs:w-[58%] h-full overflow-hidden pointer-events-none z-10">
+                <img
+                  src={vol1.coverImage}
+                  alt={vol1.title}
+                  draggable={false}
+                  className="w-full h-full object-cover object-[center_20%] pointer-events-none group-hover:scale-105 transition-transform duration-700 ease-out"
+                />
+                <div className="absolute inset-0 bg-linear-to-r rtl:bg-linear-to-l from-[#0a0a0d] via-[#0a0a0d]/85 25%, via-[#0a0a0d]/45 60%, to-transparent pointer-events-none z-10" />
+                <div className="absolute inset-0 bg-linear-to-t from-[#0a0a0d]/85 via-transparent to-[#0a0a0d]/35 pointer-events-none z-10" />
+                <div className="absolute top-2 right-2 rtl:right-auto rtl:left-2 pointer-events-none z-20 opacity-85 group-hover:opacity-100 transition-opacity">
+                  <span className="text-[8px] font-serif text-vermilion font-bold tracking-wider px-1 py-0.5 rounded-xs bg-ink/80 border border-vermilion/40 backdrop-blur-xs">
+                    回路
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {/* Quick Preview Button */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                openReader(vol1);
-              }}
-              className="absolute top-2.5 right-2.5 p-1.5 rounded-xs bg-ink/85 backdrop-blur-md border border-ink-border text-paper hover:text-gold hover:border-gold transition-colors opacity-80 sm:opacity-0 sm:group-hover:opacity-100 z-30 shadow-md active:scale-90"
-              title={isArabic ? "معاينة المجلد" : "Preview Volume"}
-            >
-              <Eye strokeWidth={1.5} className="w-3.5 h-3.5" />
-            </button>
+            {/* DESKTOP / TABLET LAYOUT (sm+): Full Portrait Cover */}
+            <div className="hidden sm:block w-full h-full relative">
+              <img
+                src={vol1.coverImage}
+                alt={vol1.title}
+                draggable={false}
+                className="w-full h-full object-cover pointer-events-none group-hover:scale-105 transition-transform duration-700 ease-out transform-gpu [backface-visibility:hidden] [-webkit-backface-visibility:hidden]"
+              />
+              {/* Book spine curvature lighting */}
+              <div className="absolute left-0 top-0 bottom-0 w-3 bg-linear-to-r from-white/30 via-white/10 to-transparent pointer-events-none z-20" />
+              <div className="absolute inset-0 bg-linear-to-t from-ink/30 via-transparent to-black/20 pointer-events-none" />
 
-            {/* Bottom Title Bar (Reveals smoothly on hover, visible on mobile) */}
-            <div className="absolute inset-x-0 bottom-0 p-2.5 sm:p-3 bg-linear-to-t from-ink via-ink/95 to-transparent opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
-              <span className="text-[9px] sm:text-[11px] font-bold text-paper line-clamp-1 uppercase tracking-wider block">
-                {vol1.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol1.volumeNumber).padStart(2, "0")} // ${vol1.title}` : vol1.title}
-              </span>
-              <span className="text-[8px] font-mono text-gold tracking-widest uppercase block mt-0.5 opacity-90">
-                {isArabic ? "طبعة أولى" : "FIRST PRINT"}
-              </span>
+              {/* Volume Badge */}
+              <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 z-20 pointer-events-none">
+                <span className="px-2 py-0.5 rounded-xs bg-ink/80 backdrop-blur-md text-[8px] sm:text-[9px] font-mono tracking-wider text-gold/90 border border-gold/20 shadow-xs font-semibold">
+                  {vol1.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol1.volumeNumber).padStart(2, "0")}` : (isArabic ? "المجلد 01" : "VOL. 01")}
+                </span>
+                {vol1.stock <= 0 && (
+                  <span className="px-2 py-0.5 rounded-xs bg-red-950/90 border border-red-800/80 text-[7px] sm:text-[8px] font-mono tracking-wider text-red-400 font-bold uppercase">
+                    {isArabic ? "نفد" : "OUT OF STOCK"}
+                  </span>
+                )}
+              </div>
+
+              {/* Quick Preview Button */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openReader(vol1);
+                }}
+                className="absolute top-2.5 right-2.5 p-1.5 rounded-xs bg-ink/85 backdrop-blur-md border border-ink-border text-paper hover:text-gold hover:border-gold transition-colors opacity-80 sm:opacity-0 sm:group-hover:opacity-100 z-30 shadow-md active:scale-90"
+                title={isArabic ? "معاينة المجلد" : "Preview Volume"}
+              >
+                <Eye strokeWidth={1.5} className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Bottom Title Bar */}
+              <div className="absolute inset-x-0 bottom-0 p-2.5 sm:p-3 bg-linear-to-t from-ink via-ink/95 to-transparent opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
+                <span className="text-[9px] sm:text-[11px] font-bold text-paper line-clamp-1 uppercase tracking-wider block">
+                  {vol1.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol1.volumeNumber).padStart(2, "0")} // ${vol1.title}` : vol1.title}
+                </span>
+                <span className="text-[8px] font-mono text-gold tracking-widest uppercase block mt-0.5 opacity-90">
+                  {isArabic ? "طبعة أولى" : "FIRST PRINT"}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -951,55 +1027,100 @@ export function TheCollection() {
                 router.push(`/manga/${vol2.id}`);
               }
             }}
-            className="absolute w-28 sm:w-48 lg:w-60 h-42 sm:h-70 lg:h-88 rounded-xs overflow-hidden border border-ink-border/90 shadow-[0_20px_50px_rgba(0,0,0,0.85)] bg-ink-elevated cursor-pointer group hover:border-gold hover:shadow-[0_25px_60px_rgba(199,167,108,0.3)] transition-[border-color,box-shadow] duration-300 z-20 select-none transform-gpu will-change-transform [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [isolation:isolate]"
+            className="absolute w-[345px] xs:w-[370px] sm:w-48 lg:w-60 h-[122px] xs:h-[132px] sm:h-70 lg:h-88 rounded-xs overflow-hidden border border-ink-border/90 shadow-[0_20px_50px_rgba(0,0,0,0.85)] bg-[#0a0a0d] cursor-pointer group hover:border-gold hover:shadow-[0_25px_60px_rgba(199,167,108,0.3)] transition-[border-color,box-shadow] duration-300 z-20 select-none transform-gpu will-change-transform [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [isolation:isolate]"
           >
-            <img
-              src={vol2.coverImage}
-              alt={vol2.title}
-              draggable={false}
-              className="w-full h-full object-cover pointer-events-none group-hover:scale-105 transition-transform duration-700 ease-out transform-gpu [backface-visibility:hidden] [-webkit-backface-visibility:hidden]"
-            />
-            {/* Book spine curvature lighting */}
-            <div className="absolute left-0 top-0 bottom-0 w-3 bg-linear-to-r from-white/30 via-white/10 to-transparent pointer-events-none z-20" />
-            <div className="absolute inset-0 bg-linear-to-t from-ink/30 via-transparent to-black/20 pointer-events-none" />
+            {/* MOBILE LAYOUT (< sm): Clean Horizontal Ticket without Eye Icon */}
+            <div className="flex sm:hidden w-full h-full relative items-center justify-between overflow-hidden bg-[#0a0a0d] rtl:flex-row-reverse">
+              {/* Top-Left Corner Subtle Faded Edge Wear */}
+              <div className="absolute top-0 left-0 w-7 h-5 pointer-events-none z-25 bg-[radial-gradient(ellipse_at_0%_0%,rgba(180,174,162,0.10)_0%,rgba(180,174,162,0.03)_35%,transparent_70%)]" />
 
-            {/* Volume Badge */}
-            <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 z-20 pointer-events-none">
-              <span className="px-2 py-0.5 rounded-xs bg-ink/80 backdrop-blur-md text-[8px] sm:text-[9px] font-mono tracking-wider text-gold/90 border border-gold/20 shadow-xs font-semibold">
-                {vol2.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol2.volumeNumber).padStart(2, "0")}` : (isArabic ? "المجلد 02" : "VOL. 02")}
-              </span>
-              {vol2.stock <= 0 && (
-                <span className="px-2 py-0.5 rounded-xs bg-red-950/90 border border-red-800/80 text-[7px] sm:text-[8px] font-mono tracking-wider text-red-400 font-bold uppercase">
-                  {isArabic ? "نفد" : "OUT OF STOCK"}
+              {/* Top Edge Subtle Wear */}
+              <div className="absolute top-0 left-[42%] -translate-x-1/2 w-9 h-1.5 pointer-events-none z-25 bg-[radial-gradient(ellipse_at_50%_0%,rgba(180,174,162,0.09)_0%,rgba(180,174,162,0.02)_40%,transparent_75%)]" />
+
+              {/* Bottom Edge Subtle Wear (Shifted slightly left of center) */}
+              <div className="absolute bottom-0 left-[36%] -translate-x-1/2 w-9 h-1.5 pointer-events-none z-25 bg-[radial-gradient(ellipse_at_50%_100%,rgba(180,174,162,0.09)_0%,rgba(180,174,162,0.02)_40%,transparent_75%)]" />
+
+              {/* Left Details */}
+              <div className="relative z-20 flex flex-col justify-center pl-4.5 pr-2 py-3 rtl:pr-4.5 rtl:pl-2 max-w-[62%] xs:max-w-[64%]">
+                <span className="inline-block self-start px-2 py-0.5 rounded-xs bg-ink/80 backdrop-blur-md text-[9px] xs:text-[10px] font-mono tracking-wider text-gold/90 border border-gold/20 font-semibold mb-1">
+                  {vol2.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol2.volumeNumber).padStart(2, "0")}` : (isArabic ? "المجلد 02" : "VOL. 02")}
                 </span>
-              )}
+                <span className="text-[11px] xs:text-[13.5px] font-bold text-paper line-clamp-2 uppercase tracking-wide font-cinzel leading-tight">
+                  {formatCollectionTitle(vol2.title)}
+                </span>
+                <span className="text-[9px] xs:text-[10px] font-mono text-paper-muted/60 tracking-widest uppercase mt-1">
+                  {isArabic ? "طبعة أولى" : "FIRST PRINT"}
+                </span>
+              </div>
+
+              {/* Right Art (Deep bleed across with wide smoky feather fade) */}
+              <div className="absolute inset-y-0 right-0 rtl:right-auto rtl:left-0 w-[55%] xs:w-[58%] h-full overflow-hidden pointer-events-none z-10">
+                <img
+                  src={vol2.coverImage}
+                  alt={vol2.title}
+                  draggable={false}
+                  className="w-full h-full object-cover object-[center_20%] pointer-events-none group-hover:scale-105 transition-transform duration-700 ease-out"
+                />
+                <div className="absolute inset-0 bg-linear-to-r rtl:bg-linear-to-l from-[#0a0a0d] via-[#0a0a0d]/85 25%, via-[#0a0a0d]/45 60%, to-transparent pointer-events-none z-10" />
+                <div className="absolute inset-0 bg-linear-to-t from-[#0a0a0d]/85 via-transparent to-[#0a0a0d]/35 pointer-events-none z-10" />
+                <div className="absolute top-2 right-2 rtl:right-auto rtl:left-2 pointer-events-none z-20 opacity-85 group-hover:opacity-100 transition-opacity">
+                  <span className="text-[8px] font-serif text-vermilion font-bold tracking-wider px-1 py-0.5 rounded-xs bg-ink/80 border border-vermilion/40 backdrop-blur-xs">
+                    回路
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {/* Quick Preview Button */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                openReader(vol2);
-              }}
-              className="absolute top-2.5 right-2.5 p-1.5 rounded-xs bg-ink/85 backdrop-blur-md border border-ink-border text-paper hover:text-gold hover:border-gold transition-colors opacity-80 sm:opacity-0 sm:group-hover:opacity-100 z-30 shadow-md active:scale-90"
-              title={isArabic ? "معاينة المجلد" : "Preview Volume"}
-            >
-              <Eye strokeWidth={1.5} className="w-3.5 h-3.5" />
-            </button>
+            {/* DESKTOP / TABLET LAYOUT (sm+): Full Portrait Cover */}
+            <div className="hidden sm:block w-full h-full relative">
+              <img
+                src={vol2.coverImage}
+                alt={vol2.title}
+                draggable={false}
+                className="w-full h-full object-cover pointer-events-none group-hover:scale-105 transition-transform duration-700 ease-out transform-gpu [backface-visibility:hidden] [-webkit-backface-visibility:hidden]"
+              />
+              {/* Book spine curvature lighting */}
+              <div className="absolute left-0 top-0 bottom-0 w-3 bg-linear-to-r from-white/30 via-white/10 to-transparent pointer-events-none z-20" />
+              <div className="absolute inset-0 bg-linear-to-t from-ink/30 via-transparent to-black/20 pointer-events-none" />
 
-            {/* Bottom Title Bar (Reveals smoothly on hover, visible on mobile) */}
-            <div className="absolute inset-x-0 bottom-0 p-2.5 sm:p-3 bg-linear-to-t from-ink via-ink/95 to-transparent opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
-              <span className="text-[9px] sm:text-[11px] font-bold text-paper line-clamp-1 uppercase tracking-wider block">
-                {vol2.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol2.volumeNumber).padStart(2, "0")} // ${vol2.title}` : vol2.title}
-              </span>
-              <span className="text-[8px] font-mono text-gold tracking-widest uppercase block mt-0.5 opacity-90">
-                {isArabic ? "طبعة أولى" : "FIRST PRINT"}
-              </span>
+              {/* Volume Badge */}
+              <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 z-20 pointer-events-none">
+                <span className="px-2 py-0.5 rounded-xs bg-ink/80 backdrop-blur-md text-[8px] sm:text-[9px] font-mono tracking-wider text-gold/90 border border-gold/20 shadow-xs font-semibold">
+                  {vol2.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol2.volumeNumber).padStart(2, "0")}` : (isArabic ? "المجلد 02" : "VOL. 02")}
+                </span>
+                {vol2.stock <= 0 && (
+                  <span className="px-2 py-0.5 rounded-xs bg-red-950/90 border border-red-800/80 text-[7px] sm:text-[8px] font-mono tracking-wider text-red-400 font-bold uppercase">
+                    {isArabic ? "نفد" : "OUT OF STOCK"}
+                  </span>
+                )}
+              </div>
+
+              {/* Quick Preview Button */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openReader(vol2);
+                }}
+                className="absolute top-2.5 right-2.5 p-1.5 rounded-xs bg-ink/85 backdrop-blur-md border border-ink-border text-paper hover:text-gold hover:border-gold transition-colors opacity-80 sm:opacity-0 sm:group-hover:opacity-100 z-30 shadow-md active:scale-90"
+                title={isArabic ? "معاينة المجلد" : "Preview Volume"}
+              >
+                <Eye strokeWidth={1.5} className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Bottom Title Bar */}
+              <div className="absolute inset-x-0 bottom-0 p-2.5 sm:p-3 bg-linear-to-t from-ink via-ink/95 to-transparent opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
+                <span className="text-[9px] sm:text-[11px] font-bold text-paper line-clamp-1 uppercase tracking-wider block">
+                  {vol2.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol2.volumeNumber).padStart(2, "0")} // ${vol2.title}` : vol2.title}
+                </span>
+                <span className="text-[8px] font-mono text-gold tracking-widest uppercase block mt-0.5 opacity-90">
+                  {isArabic ? "طبعة أولى" : "FIRST PRINT"}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Volume 03 (Right) */}
+          {/* Volume 03 (Bottom on mobile, Right on desktop) */}
           <div
             ref={vol3Ref}
             onClick={() => router.push(`/manga/${vol3.id}`)}
@@ -1011,69 +1132,112 @@ export function TheCollection() {
                 router.push(`/manga/${vol3.id}`);
               }
             }}
-            className="absolute w-28 sm:w-48 lg:w-60 h-42 sm:h-70 lg:h-88 rounded-xs overflow-hidden border border-ink-border/90 shadow-[0_20px_50px_rgba(0,0,0,0.85)] bg-ink-elevated cursor-pointer group hover:border-gold hover:shadow-[0_25px_60px_rgba(199,167,108,0.3)] transition-[border-color,box-shadow] duration-300 z-20 select-none transform-gpu will-change-transform [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [isolation:isolate]"
+            className="absolute w-[345px] xs:w-[370px] sm:w-48 lg:w-60 h-[122px] xs:h-[132px] sm:h-70 lg:h-88 rounded-xs overflow-hidden border border-ink-border/90 shadow-[0_20px_50px_rgba(0,0,0,0.85)] bg-[#0a0a0d] cursor-pointer group hover:border-gold hover:shadow-[0_25px_60px_rgba(199,167,108,0.3)] transition-[border-color,box-shadow] duration-300 z-20 select-none transform-gpu will-change-transform [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [isolation:isolate]"
           >
-            <img
-              src={vol3.coverImage}
-              alt={vol3.title}
-              draggable={false}
-              className="w-full h-full object-cover pointer-events-none group-hover:scale-105 transition-transform duration-700 ease-out transform-gpu [backface-visibility:hidden] [-webkit-backface-visibility:hidden]"
-            />
-            {/* Book spine curvature lighting */}
-            <div className="absolute left-0 top-0 bottom-0 w-3 bg-linear-to-r from-white/30 via-white/10 to-transparent pointer-events-none z-20" />
-            <div className="absolute inset-0 bg-linear-to-t from-ink/30 via-transparent to-black/20 pointer-events-none" />
+            {/* MOBILE LAYOUT (< sm): Clean Horizontal Ticket without Eye Icon */}
+            <div className="flex sm:hidden w-full h-full relative items-center justify-between overflow-hidden bg-[#0a0a0d] rtl:flex-row-reverse">
+              {/* Top Edge Subtle Wear (Middle from top) */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-9 h-1.5 pointer-events-none z-25 bg-[radial-gradient(ellipse_at_50%_0%,rgba(180,174,162,0.09)_0%,rgba(180,174,162,0.02)_40%,transparent_75%)]" />
 
-            {/* Volume Badge */}
-            <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 z-20 pointer-events-none">
-              <span className="px-2 py-0.5 rounded-xs bg-ink/80 backdrop-blur-md text-[8px] sm:text-[9px] font-mono tracking-wider text-gold/90 border border-gold/20 shadow-xs font-semibold">
-                {vol3.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol3.volumeNumber).padStart(2, "0")}` : (isArabic ? "المجلد 03" : "VOL. 03")}
-              </span>
-              {vol3.stock <= 0 && (
-                <span className="px-2 py-0.5 rounded-xs bg-red-950/90 border border-red-800/80 text-[7px] sm:text-[8px] font-mono tracking-wider text-red-400 font-bold uppercase">
-                  {isArabic ? "نفد" : "OUT OF STOCK"}
+              {/* Bottom-Left Corner Subtle Faded Edge Wear */}
+              <div className="absolute bottom-0 left-0 w-7 h-5 pointer-events-none z-25 bg-[radial-gradient(ellipse_at_0%_100%,rgba(180,174,162,0.10)_0%,rgba(180,174,162,0.03)_35%,transparent_70%)]" />
+
+              {/* Left Details */}
+              <div className="relative z-20 flex flex-col justify-center pl-4.5 pr-2 py-3 rtl:pr-4.5 rtl:pl-2 max-w-[62%] xs:max-w-[64%]">
+                <span className="inline-block self-start px-2 py-0.5 rounded-xs bg-ink/80 backdrop-blur-md text-[9px] xs:text-[10px] font-mono tracking-wider text-gold/90 border border-gold/20 font-semibold mb-1">
+                  {vol3.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol3.volumeNumber).padStart(2, "0")}` : (isArabic ? "المجلد 03" : "VOL. 03")}
                 </span>
-              )}
+                <span className="text-[11px] xs:text-[13.5px] font-bold text-paper line-clamp-2 uppercase tracking-wide font-cinzel leading-tight">
+                  {formatCollectionTitle(vol3.title)}
+                </span>
+                <span className="text-[9px] xs:text-[10px] font-mono text-paper-muted/60 tracking-widest uppercase mt-1">
+                  {isArabic ? "طبعة أولى" : "FIRST PRINT"}
+                </span>
+              </div>
+
+              {/* Right Art (Deep bleed across with wide smoky feather fade) */}
+              <div className="absolute inset-y-0 right-0 rtl:right-auto rtl:left-0 w-[55%] xs:w-[58%] h-full overflow-hidden pointer-events-none z-10">
+                <img
+                  src={vol3.coverImage}
+                  alt={vol3.title}
+                  draggable={false}
+                  className="w-full h-full object-cover object-[center_20%] pointer-events-none group-hover:scale-105 transition-transform duration-700 ease-out"
+                />
+                <div className="absolute inset-0 bg-linear-to-r rtl:bg-linear-to-l from-[#0a0a0d] via-[#0a0a0d]/85 25%, via-[#0a0a0d]/45 60%, to-transparent pointer-events-none z-10" />
+                <div className="absolute inset-0 bg-linear-to-t from-[#0a0a0d]/85 via-transparent to-[#0a0a0d]/35 pointer-events-none z-10" />
+                <div className="absolute top-2 right-2 rtl:right-auto rtl:left-2 pointer-events-none z-20 opacity-85 group-hover:opacity-100 transition-opacity">
+                  <span className="text-[8px] font-serif text-vermilion font-bold tracking-wider px-1 py-0.5 rounded-xs bg-ink/80 border border-vermilion/40 backdrop-blur-xs">
+                    回路
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {/* Quick Preview Button */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                openReader(vol3);
-              }}
-              className="absolute top-2.5 right-2.5 p-1.5 rounded-xs bg-ink/85 backdrop-blur-md border border-ink-border text-paper hover:text-gold hover:border-gold transition-colors opacity-80 sm:opacity-0 sm:group-hover:opacity-100 z-30 shadow-md active:scale-90"
-              title={isArabic ? "معاينة المجلد" : "Preview Volume"}
-            >
-              <Eye strokeWidth={1.5} className="w-3.5 h-3.5" />
-            </button>
+            {/* DESKTOP / TABLET LAYOUT (sm+): Full Portrait Cover */}
+            <div className="hidden sm:block w-full h-full relative">
+              <img
+                src={vol3.coverImage}
+                alt={vol3.title}
+                draggable={false}
+                className="w-full h-full object-cover pointer-events-none group-hover:scale-105 transition-transform duration-700 ease-out transform-gpu [backface-visibility:hidden] [-webkit-backface-visibility:hidden]"
+              />
+              {/* Book spine curvature lighting */}
+              <div className="absolute left-0 top-0 bottom-0 w-3 bg-linear-to-r from-white/30 via-white/10 to-transparent pointer-events-none z-20" />
+              <div className="absolute inset-0 bg-linear-to-t from-ink/30 via-transparent to-black/20 pointer-events-none" />
 
-            {/* Bottom Title Bar (Reveals smoothly on hover, visible on mobile) */}
-            <div className="absolute inset-x-0 bottom-0 p-2.5 sm:p-3 bg-linear-to-t from-ink via-ink/95 to-transparent opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
-              <span className="text-[9px] sm:text-[11px] font-bold text-paper line-clamp-1 uppercase tracking-wider block">
-                {vol3.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol3.volumeNumber).padStart(2, "0")} // ${vol3.title}` : vol3.title}
-              </span>
-              <span className="text-[8px] font-mono text-gold tracking-widest uppercase block mt-0.5 opacity-90">
-                {isArabic ? "طبعة أولى" : "FIRST PRINT"}
-              </span>
+              {/* Volume Badge */}
+              <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 z-20 pointer-events-none">
+                <span className="px-2 py-0.5 rounded-xs bg-ink/80 backdrop-blur-md text-[8px] sm:text-[9px] font-mono tracking-wider text-gold/90 border border-gold/20 shadow-xs font-semibold">
+                  {vol3.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol3.volumeNumber).padStart(2, "0")}` : (isArabic ? "المجلد 03" : "VOL. 03")}
+                </span>
+                {vol3.stock <= 0 && (
+                  <span className="px-2 py-0.5 rounded-xs bg-red-950/90 border border-red-800/80 text-[7px] sm:text-[8px] font-mono tracking-wider text-red-400 font-bold uppercase">
+                    {isArabic ? "نفد" : "OUT OF STOCK"}
+                  </span>
+                )}
+              </div>
+
+              {/* Quick Preview Button */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openReader(vol3);
+                }}
+                className="absolute top-2.5 right-2.5 p-1.5 rounded-xs bg-ink/85 backdrop-blur-md border border-ink-border text-paper hover:text-gold hover:border-gold transition-colors opacity-80 sm:opacity-0 sm:group-hover:opacity-100 z-30 shadow-md active:scale-90"
+                title={isArabic ? "معاينة المجلد" : "Preview Volume"}
+              >
+                <Eye strokeWidth={1.5} className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Bottom Title Bar */}
+              <div className="absolute inset-x-0 bottom-0 p-2.5 sm:p-3 bg-linear-to-t from-ink via-ink/95 to-transparent opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
+                <span className="text-[9px] sm:text-[11px] font-bold text-paper line-clamp-1 uppercase tracking-wider block">
+                  {vol3.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol3.volumeNumber).padStart(2, "0")} // ${vol3.title}` : vol3.title}
+                </span>
+                <span className="text-[8px] font-mono text-gold tracking-widest uppercase block mt-0.5 opacity-90">
+                  {isArabic ? "طبعة أولى" : "FIRST PRINT"}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* 03 — Bottom Climax Container (Zen Minimalist) */}
-        <div className="relative w-full max-w-xl min-h-[90px] sm:min-h-[100px] flex items-center justify-center z-20 px-4">
+        <div className="relative w-full max-w-xl min-h-[90px] sm:min-h-[100px] flex items-center justify-center z-20 px-4 mb-8 xs:mb-10 sm:mb-8 lg:mb-0">
           {/* Clean Zen Climax CTA (Revealed upon assembly) */}
           <div
             ref={ctaRef}
-            className="flex flex-col items-center text-center space-y-3 w-full"
+            className="flex flex-col items-center text-center space-y-2.5 sm:space-y-3 w-full"
           >
             {/* Quiet Archival Metadata Bar */}
-            <div className="inline-flex items-center gap-2.5 text-[10px] font-mono tracking-[0.22em] text-paper-muted/80 uppercase">
-              <span className="text-gold font-medium">
+            <div className="flex flex-col items-center gap-0.5 sm:gap-1">
+              <span className="text-[9px] sm:text-[10px] font-mono tracking-[0.22em] text-paper-muted/80 uppercase text-gold font-medium">
                 {isArabic ? t.theCollection.badgeText : (collectionConfig?.badgeText || "COMPLETE ARCHIVE • VOL. 01–03")}
               </span>
-              <span className="text-gold/30">•</span>
-              <span className="text-paper/90 font-semibold">{formatPrice(bundlePrice)}</span>
+              <span className="text-xl sm:text-2xl font-cinzel font-bold text-paper tracking-wider">
+                {formatPrice(bundlePrice)}
+              </span>
             </div>
 
             {/* Action Buttons (Dual Box Style) */}

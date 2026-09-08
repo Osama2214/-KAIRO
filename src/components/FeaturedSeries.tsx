@@ -8,6 +8,31 @@ import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
 
+function parseBadgeText(badgeText: string) {
+  const match = badgeText.match(/^(.*?)([\s]*[—–-][\s]*)(.*)$/);
+  if (match && match[3]) {
+    return {
+      prefix: match[1].trim(),
+      separator: " — ",
+      japanese: match[3].trim(),
+    };
+  }
+  // Check if there are Japanese characters directly
+  const cjkMatch = badgeText.match(/^([^\u3000-\u9FAF]*)([\u3000-\u9FAF]+.*)$/);
+  if (cjkMatch && cjkMatch[2]) {
+    return {
+      prefix: cjkMatch[1].trim(),
+      separator: " ",
+      japanese: cjkMatch[2].trim(),
+    };
+  }
+  return {
+    prefix: badgeText,
+    separator: "",
+    japanese: "",
+  };
+}
+
 export function FeaturedSeries() {
   const { locale, isRTL } = useTranslation();
   const isArabic = locale === "ar";
@@ -24,6 +49,9 @@ export function FeaturedSeries() {
       : isArabic
       ? `سلسلة مميزة — ${series.japaneseTitle}`
       : `FEATURED SERIES — ${series.japaneseTitle}`;
+
+  // Parse badge text to extract prefix and Japanese text to style Japanese text in vermilion red
+  const badgeParts = parseBadgeText(badgeText);
   const title = featuredConfig?.customTitle || series.title;
   const description = featuredConfig?.customDescription || series.description;
   const ctaText =
@@ -40,9 +68,9 @@ export function FeaturedSeries() {
     : `Written & Illustrated by ${series.author} • ${series.totalVolumes} Volumes (${series.status})`;
 
   return (
-    <section className="py-20 px-6 md:px-12 lg:px-16 bg-ink border-t border-ink-border/60 relative overflow-hidden">
+    <section className="py-14 sm:py-20 px-4 sm:px-8 md:px-12 lg:px-16 bg-ink border-t border-ink-border/60 relative overflow-hidden">
       <div className="max-w-7xl mx-auto">
-        <div className="relative rounded-sm border border-ink-border/70 bg-ink-surface/40 p-8 sm:p-12 lg:p-14 overflow-hidden shadow-2xl backdrop-blur-sm">
+        <div className="relative rounded-sm border border-ink-border/70 bg-ink-surface/40 p-5 xs:p-7 sm:p-10 lg:p-14 overflow-hidden shadow-2xl backdrop-blur-sm">
           {/* Authentic Japanese Typographic Watermark Pattern inside Card */}
           <div className="absolute inset-0 bg-japanese-pattern opacity-100 pointer-events-none select-none z-0" />
 
@@ -59,8 +87,16 @@ export function FeaturedSeries() {
             <div className="lg:col-span-7 flex flex-col justify-center space-y-6">
               {/* Badge & Live Edit */}
               <div className="flex items-center justify-between gap-3">
-                <span className="text-xs font-mono tracking-[0.25em] text-gold uppercase">
-                  {badgeText}
+                <span className="text-xs font-mono tracking-[0.25em] uppercase inline-flex items-center flex-wrap">
+                  <span className="text-gold">{badgeParts.prefix}</span>
+                  {badgeParts.separator && (
+                    <span className="text-gold/60 mx-1.5">{badgeParts.separator.trim()}</span>
+                  )}
+                  {badgeParts.japanese && (
+                    <span className="text-vermilion font-serif font-bold tracking-wider">
+                      {badgeParts.japanese}
+                    </span>
+                  )}
                 </span>
                 <LiveEditButton target={{ type: "featured-series" }} label="Edit Spotlight" variant="floating" size="xs" />
               </div>
@@ -81,10 +117,10 @@ export function FeaturedSeries() {
               </p>
 
               {/* Single Confident CTA */}
-              <div className="pt-2">
+              <div className="pt-2 flex justify-center lg:justify-start">
                 <Link
                   href={ctaLink}
-                  className="inline-flex items-center gap-3 px-8 sm:px-9 py-4 bg-paper text-ink font-extrabold text-xs sm:text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-vermilion hover:text-white transition-all duration-300 shadow-xl group cursor-pointer"
+                  className="inline-flex items-center justify-center gap-3 px-8 sm:px-9 py-4 bg-paper text-ink font-extrabold text-xs sm:text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-vermilion hover:text-white transition-all duration-300 shadow-xl group cursor-pointer text-center"
                 >
                   <span>{ctaText}</span>
                   <ArrowRight strokeWidth={1.5} className={`w-4 h-4 group-hover:translate-x-1.5 rtl:group-hover:-translate-x-1.5 transition-transform ${isRTL ? "rotate-180" : ""}`} />
@@ -93,8 +129,8 @@ export function FeaturedSeries() {
             </div>
 
             {/* Right Column: Clean, Pure Art Presentation */}
-            <div className="lg:col-span-5 flex items-center justify-center lg:justify-end">
-              <div className="relative w-full max-w-[380px] sm:max-w-[420px] aspect-[3/4] rounded-sm overflow-hidden border border-ink-border/80 shadow-[0_25px_80px_rgba(0,0,0,0.9)] group">
+            <div className="lg:col-span-5 flex items-center justify-center lg:justify-end w-full">
+              <div className="relative w-full max-w-[350px] xs:max-w-[390px] sm:max-w-[440px] lg:max-w-[450px] aspect-[3/4] rounded-sm overflow-hidden border border-ink-border/80 shadow-[0_25px_80px_rgba(0,0,0,0.9)] group">
                 <img
                   src={image}
                   alt={title}

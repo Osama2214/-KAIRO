@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -12,7 +12,15 @@ import { useTranslation } from "@/hooks/useTranslation";
 export function Hero() {
   const cardRef = useRef<HTMLDivElement>(null);
   const mounted = useMounted();
-  const { t, locale, isRTL } = useTranslation();
+  const { t, locale } = useTranslation();
+
+  const [bgIndex, setBgIndex] = useState(0);
+  const mobileHeroImages = [
+    "/images/hero-mobile-bg.webp",
+    "/images/hero-mobile-bg-2.webp",
+    "/images/hero-mobile-bg-3.webp",
+    "/images/hero-mobile-bg-4.webp",
+  ];
 
   const heroContent = useStorefrontStore((state) => state.heroContent);
   const heroArabicContent = useStorefrontStore((state) => state.heroArabicContent);
@@ -56,6 +64,14 @@ export function Hero() {
       cancelAnimationFrame(rafId);
     };
   }, []);
+
+  // Automatic smooth transition between mobile hero backgrounds (8 seconds per slide)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setBgIndex((prev) => (prev + 1) % mobileHeroImages.length);
+    }, 8000);
+    return () => clearInterval(timer);
+  }, [mobileHeroImages.length]);
 
   const isAr = locale === "ar";
   const badgeText = mounted
@@ -104,44 +120,68 @@ export function Hero() {
     : t.hero.stat3Lbl;
 
   return (
-    <section className="relative h-[100svh] min-h-[100svh] max-h-[100svh] md:h-auto md:min-h-screen md:max-h-none w-full flex flex-col justify-center overflow-hidden pt-20 sm:pt-24 md:pt-28 pb-6 md:pb-16 px-5 sm:px-8 md:px-12 lg:px-16 bg-ink">
+    <section className="relative h-[100svh] min-h-[100svh] max-h-[100svh] lg:h-auto lg:min-h-screen lg:max-h-none w-full flex flex-col justify-center overflow-hidden pt-20 sm:pt-24 lg:pt-28 pb-8 sm:pb-12 lg:pb-16 px-5 sm:px-8 md:px-12 lg:px-16 bg-ink">
       {/* Subtle Japanese Typographic Watermark Background */}
       <div className="absolute inset-0 bg-japanese-pattern pointer-events-none select-none z-0" />
       <div className="absolute top-1/4 left-1/4 w-[450px] h-[450px] rounded-full bg-vermilion/5 blur-[130px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-[450px] h-[450px] rounded-full bg-gold/5 blur-[130px] pointer-events-none" />
 
-      {/* Mobile Cinematic Cover Backdrop (< md screens) */}
-      {featuredVolume && (
-        <div className="md:hidden absolute inset-0 z-0 overflow-hidden pointer-events-none select-none">
+      {/* Mobile & iPad Cinematic Cover Backdrop (< lg screens): Automatic smooth crossfade between images */}
+      <div className="lg:hidden absolute inset-0 z-0 overflow-hidden select-none">
+        {mobileHeroImages.map((src, idx) => (
           <img
-            src={featuredVolume.coverImage}
-            alt=""
-            className="w-full h-full object-cover object-center filter blur-[1px] brightness-[0.35] contrast-125 scale-105"
+            key={src}
+            src={src}
+            alt={featuredVolume?.title || "KAIRO Manga Hero"}
+            className={`absolute inset-0 w-full h-full object-cover object-[70%_center] filter transition-all duration-1000 ease-in-out ${
+              idx === 0
+                ? "contrast-105 brightness-100"
+                : "contrast-110 brightness-[0.76]"
+            } ${
+              idx === bgIndex ? "opacity-100 scale-100" : "opacity-0 scale-105 pointer-events-none"
+            }`}
           />
-          {/* Atmospheric Dark Editorial Overlays */}
-          <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/85 to-ink/65" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_10%,_#0D0D0F_80%)]" />
-        </div>
-      )}
+        ))}
+        {/* Soft Top Vignette for Navbar Legibility */}
+        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-ink/75 via-ink/20 to-transparent pointer-events-none" />
+        {/* Soft Left Vignette for Text Contrast leaving Artwork Vibrant */}
+        <div className="absolute inset-y-0 left-0 w-3/5 bg-gradient-to-r from-ink/55 via-ink/20 to-transparent pointer-events-none" />
+        {/* Soft Bottom Vignette */}
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-ink/35 to-transparent pointer-events-none" />
 
-      {/* Large Ultra-Faint Japanese Watermark Accents in Void */}
-      <div className="absolute top-1/3 -left-3 writing-mode-vertical font-serif text-6xl md:text-8xl font-bold text-paper/[0.015] pointer-events-none select-none tracking-[0.35em] hidden sm:block">
+        {/* Minimalist Slide Indicator Dots on Mobile & iPad (Bottom-Right) */}
+        <div className="absolute bottom-5 right-5 sm:bottom-6 sm:right-6 z-20 flex items-center gap-1.5 pointer-events-auto">
+          {mobileHeroImages.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setBgIndex(idx)}
+              aria-label={`Switch slide ${idx + 1}`}
+              className={`h-1 rounded-full transition-all duration-500 cursor-pointer ${
+                idx === bgIndex ? "w-5 bg-gold shadow-[0_0_8px_rgba(199,167,108,0.6)]" : "w-1.5 bg-paper/30 hover:bg-paper/60"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Large Ultra-Faint Japanese Watermark Accents in Void (Desktop) */}
+      <div className="absolute top-1/3 -left-3 writing-mode-vertical font-serif text-6xl md:text-8xl font-bold text-paper/[0.015] pointer-events-none select-none tracking-[0.35em] hidden lg:block">
         {heroContent.japaneseWatermark1 || "回路・物語の始まり"}
       </div>
-      <div className="absolute bottom-1/4 -right-3 writing-mode-vertical font-serif text-6xl md:text-8xl font-bold text-paper/[0.012] pointer-events-none select-none tracking-[0.35em] hidden sm:block">
+      <div className="absolute bottom-1/4 -right-3 writing-mode-vertical font-serif text-6xl md:text-8xl font-bold text-paper/[0.012] pointer-events-none select-none tracking-[0.35em] hidden lg:block">
         {heroContent.japaneseWatermark2 || "精神と物質の調和"}
       </div>
 
       {/* Hero Content Container */}
-      <div className="relative max-w-7xl mx-auto w-full my-auto flex flex-col justify-center md:grid md:grid-cols-12 md:gap-8 lg:gap-14 md:items-center z-10 py-2 sm:py-4">
+      <div className="relative max-w-7xl mx-auto w-full z-10 flex flex-col justify-center lg:grid lg:grid-cols-12 lg:gap-14 lg:items-center my-auto py-2 sm:py-4">
         {/* Left Column: Bold & Confident Editorial Headline & Actions */}
-        <div className="md:col-span-7 flex flex-col justify-center md:justify-start space-y-4 sm:space-y-5 md:space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
+        <div className="lg:col-span-7 flex flex-col space-y-3 sm:space-y-5 lg:space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700 w-full max-w-xl lg:max-w-none">
           
           {/* Top Metadata: Badge & Live Edit */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-2.5">
               <span className="text-[10px] sm:text-xs font-mono tracking-[0.24em] text-gold uppercase font-medium">
-                {badgeText}
+                {badgeText.includes("—") && !badgeText.endsWith("—") ? `${badgeText} —` : badgeText}
               </span>
               <span className="text-xs text-text-muted font-serif hidden sm:inline">
                 回路アーカイブ // {hubName}
@@ -150,75 +190,83 @@ export function Hero() {
             <LiveEditButton target={{ type: "hero" }} label="Edit Hero" variant="floating" size="xs" />
           </div>
 
-          {/* Main Headline */}
-          <div className="space-y-1 sm:space-y-2">
+          {/* Main Headline with 3-line cadence on mobile & iPad */}
+          <div className="space-y-0.5 sm:space-y-2">
             <h1
-              className={`text-[2.4rem] xs:text-[2.85rem] sm:text-4xl md:text-5xl lg:text-[4.8rem] xl:text-[5.2rem] font-bold text-paper uppercase ${
+              className={`text-[2.25rem] xs:text-[2.65rem] sm:text-4xl md:text-5xl lg:text-[4.8rem] xl:text-[5.2rem] font-bold text-paper uppercase drop-shadow-[0_2px_14px_rgba(0,0,0,0.9)] ${
                 isAr
                   ? "font-sans leading-[1.18] sm:leading-[1.25] tracking-normal"
                   : "font-cinzel leading-[1.04] sm:leading-[1.06] tracking-[0.02em]"
               }`}
             >
-              {headlineLine1} <br />
-              <span
-                className={
-                  isAr
-                    ? "text-gold font-bold inline-block drop-shadow-[0_2px_16px_rgba(199,167,108,0.25)]"
-                    : "text-gold-gradient font-semibold tracking-[0.05em]"
-                }
-              >
-                {headlineHighlight}
-              </span>{" "}
-              {headlineLine2}
+              {isAr ? (
+                <>
+                  {headlineLine1} <br />
+                  <span className="text-gold font-bold inline-block drop-shadow-[0_2px_16px_rgba(199,167,108,0.25)]">
+                    {headlineHighlight}
+                  </span>{" "}
+                  {headlineLine2}
+                </>
+              ) : (
+                <>
+                  {headlineLine1 || "DISCOVER"} <br />
+                  <span className="lg:hidden">YOUR <br /></span>
+                  <span className="hidden lg:inline">YOUR </span>
+                  <span className="text-gold font-semibold">NEXT</span> STORY
+                </>
+              )}
             </h1>
+
+            {/* Subtle Gold Editorial Line under Headline */}
+            <div className="w-7 xs:w-8 h-[1.5px] bg-gold/80 mt-2.5 mb-2.5 rounded-full shadow-md" />
           </div>
 
-          {/* Supporting Text */}
-          <p className="text-xs sm:text-sm md:text-base text-paper-muted/80 leading-relaxed max-w-xl font-sans line-clamp-3 sm:line-clamp-none">
+          {/* Supporting Text: Formatted to break into 4 balanced lines matching user reference */}
+          <p className="text-[12px] xs:text-[12.5px] sm:text-sm md:text-base text-paper-muted/80 leading-[1.65] max-w-[315px] sm:max-w-xl font-sans drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
             {subheadline}
           </p>
 
-          {/* CTA Buttons: Balanced 2-column grid on mobile, inline-flex on larger screens */}
+          {/* CTA Buttons: Expanded across available space with full text visible */}
           <div className="grid grid-cols-2 gap-3 pt-1 w-full max-w-md sm:flex sm:flex-row sm:items-center sm:gap-4 sm:max-w-none">
             <Link
               href={primaryCtaLink}
-              className="w-full sm:w-auto px-3 sm:px-9 py-3.5 sm:py-4 bg-paper text-ink font-extrabold text-[11px] sm:text-sm tracking-[0.16em] sm:tracking-[0.2em] uppercase rounded-sm hover:bg-vermilion hover:text-white transition-all duration-300 shadow-xl flex items-center justify-center gap-1.5 sm:gap-2 group cursor-pointer active:scale-95"
+              className="w-full sm:w-auto px-3 xs:px-4 sm:px-9 py-3.5 sm:py-4 bg-paper text-ink font-extrabold text-[11px] xs:text-xs sm:text-sm tracking-[0.14em] sm:tracking-[0.2em] uppercase rounded-sm hover:bg-vermilion hover:text-white transition-all duration-300 shadow-xl flex items-center justify-center gap-1.5 sm:gap-2 group cursor-pointer active:scale-95 whitespace-nowrap"
             >
-              <span className="truncate">{primaryCtaText}</span>
+              <span>{primaryCtaText}</span>
               <ArrowRight strokeWidth={1.5} className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:translate-x-1.5 rtl:group-hover:-translate-x-1.5 rtl:rotate-180 transition-transform shrink-0" />
             </Link>
 
             <a
               href={secondaryCtaLink}
-              className="w-full sm:w-auto px-3 sm:px-9 py-3.5 sm:py-4 bg-ink-surface/85 border border-ink-border text-paper font-semibold text-[11px] sm:text-sm tracking-[0.16em] sm:tracking-[0.2em] uppercase rounded-sm hover:border-gold hover:text-gold transition-all duration-300 backdrop-blur-md cursor-pointer flex items-center justify-center active:scale-95 whitespace-nowrap"
+              className="w-full sm:w-auto px-3 xs:px-4 sm:px-9 py-3.5 sm:py-4 bg-ink-surface/85 border border-ink-border text-paper font-semibold text-[11px] xs:text-xs sm:text-sm tracking-[0.14em] sm:tracking-[0.2em] uppercase rounded-sm hover:border-gold hover:text-gold transition-all duration-300 backdrop-blur-md cursor-pointer flex items-center justify-center active:scale-95 whitespace-nowrap"
             >
-              <span className="truncate">{secondaryCtaText}</span>
+              <span>{secondaryCtaText}</span>
             </a>
           </div>
 
-          {/* Editorial Specs Bar */}
-          <div className="pt-4 sm:pt-6 mt-1 border-t border-ink-border/60 grid grid-cols-3 gap-2 sm:gap-6 max-w-lg font-mono text-xs w-full">
-            <div className="text-left rtl:text-right">
-              <span className="block text-paper font-bold text-xs sm:text-base lg:text-lg tracking-wider">
+          {/* Editorial Specs Bar: Top stat values centered relative to the labels below them */}
+          <div className="pt-3.5 sm:pt-6 mt-1 border-t border-ink-border/60 grid grid-cols-3 gap-2 sm:gap-6 max-w-md sm:max-w-lg font-mono text-xs w-full">
+            <div className="text-center flex flex-col items-center">
+              <span className="block text-paper font-bold text-xs sm:text-base lg:text-lg tracking-wider text-center">
                 {stat1Val}
               </span>
-              <span className="text-text-muted text-[8px] sm:text-[10px] lg:text-[11px] tracking-wider uppercase block mt-0.5 truncate">
+              <span className="text-text-muted text-[8.5px] xs:text-[9.5px] sm:text-[10px] lg:text-[11px] tracking-wider uppercase block mt-0.5 leading-tight text-center">
                 {stat1Lbl}
               </span>
             </div>
-            <div className="text-center border-x border-ink-border/40 px-1 sm:px-0 sm:border-x-0">
-              <span className="block text-paper font-bold text-xs sm:text-base lg:text-lg tracking-wider">
+            <div className="text-center flex flex-col items-center border-x border-ink-border/40 px-1 sm:px-3">
+              <span className="block text-paper font-bold text-xs sm:text-base lg:text-lg tracking-wider text-center">
                 {stat2Val}
               </span>
-              <span className="text-text-muted text-[8px] sm:text-[10px] lg:text-[11px] tracking-wider uppercase block mt-0.5 truncate">
+              <span className="text-text-muted text-[8.5px] xs:text-[9.5px] sm:text-[10px] lg:text-[11px] tracking-wider uppercase block mt-0.5 leading-tight text-center">
                 {stat2Lbl}
               </span>
             </div>
-            <div className="text-right rtl:text-left">
-              <span className="block text-gold font-bold text-xs sm:text-base lg:text-lg tracking-wider">
+            <div className="text-center flex flex-col items-center">
+              <span className="block text-gold font-bold text-xs sm:text-base lg:text-lg tracking-wider text-center">
                 {stat3Val}
               </span>
-              <span className="text-text-muted text-[8px] sm:text-[10px] lg:text-[11px] tracking-wider uppercase block mt-0.5 truncate">
+              <span className="text-text-muted text-[8.5px] xs:text-[9.5px] sm:text-[10px] lg:text-[11px] tracking-wider uppercase block mt-0.5 leading-tight text-center">
                 {stat3Lbl}
               </span>
             </div>
@@ -226,8 +274,8 @@ export function Hero() {
         </div>
 
 
-        {/* Right Column: Tablet & Desktop 3D Artwork (Hidden on mobile phones to prevent cut-off) */}
-        <div className="hidden md:flex md:col-span-5 relative items-center justify-center md:justify-end">
+        {/* Right Column: Desktop 3D Artwork (Active on lg screens and above) */}
+        <div className="hidden lg:flex lg:col-span-5 relative items-center justify-center lg:justify-end">
           <div
             ref={cardRef}
             className="relative w-full max-w-[280px] md:max-w-[320px] lg:max-w-[420px] xl:max-w-[450px] aspect-[3/4] rounded-sm overflow-hidden border border-ink-border/80 shadow-[0_30px_100px_rgba(0,0,0,0.95)] group will-change-transform"
