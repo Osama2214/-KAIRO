@@ -66,7 +66,7 @@ interface GoogleOAuth2 {
     scope: string;
     prompt?: string;
     callback: (response: GoogleTokenResponse) => void | Promise<void>;
-    error_callback?: () => void;
+    error_callback?: (error: { type?: string }) => void;
   }) => GoogleTokenClient;
 }
 
@@ -231,9 +231,14 @@ function AccountContent() {
               }
               setIsGoogleLoading(false);
             },
-            error_callback: () => {
+            error_callback: (error: { type?: string }) => {
+              console.error("Google OAuth popup error", error);
               setIsGoogleLoading(false);
-              setAuthError("Google authentication was canceled or failed.");
+              setAuthError(
+                error?.type === "popup_closed"
+                  ? "Google sign-in window was closed before completion."
+                  : "Google authentication could not complete. Please try again."
+              );
             },
           });
           client.requestAccessToken();
