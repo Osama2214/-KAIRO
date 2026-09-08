@@ -21,9 +21,11 @@ function fingerprint(request: Request): string {
 }
 
 function isAuthorizedEmail(email: unknown): email is string {
-  return typeof email === "string" && AUTHORIZED_ADMIN_EMAILS.some(
-    (allowed) => allowed.trim().toLowerCase() === email.trim().toLowerCase()
-  );
+  if (typeof email !== "string") return false;
+  const clean = email.trim().toLowerCase();
+  const envAdmin = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  if (envAdmin && envAdmin === clean) return true;
+  return AUTHORIZED_ADMIN_EMAILS.some((allowed) => allowed.trim().toLowerCase() === clean);
 }
 
 export async function createCuratorToken(email: string, request: Request): Promise<string | null> {

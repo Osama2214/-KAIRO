@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import {
   AUTHORIZED_ADMIN_EMAILS,
   MAX_PIN_ATTEMPTS,
@@ -56,7 +56,8 @@ export async function POST(request: Request) {
     }
 
     // 3. Check if email is on the authorized curator admin list
-    const isAuthorized = AUTHORIZED_ADMIN_EMAILS.some(
+    const envAdmin = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+    const isAuthorized = (envAdmin && envAdmin === email) || AUTHORIZED_ADMIN_EMAILS.some(
       (e) => e.trim().toLowerCase() === email
     );
     if (!isAuthorized) {

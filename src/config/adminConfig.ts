@@ -48,6 +48,7 @@ export const PIN_LOCKOUT_MS = 15 * 60 * 1000;
 export const AUTHORIZED_ADMIN_EMAILS: string[] = [
   "admin@kairo.archive",
   "karim@kairo.archive",
+  "osamahamad261981@gmail.com",
 ];
 
 /**

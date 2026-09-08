@@ -92,12 +92,12 @@ export function AdminLoginOverlay() {
     }
   };
 
-  // Handle PIN Login (Step 2)
+  // Handle PIN Login (Step 2 or Direct PIN)
   const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser || !isAuthorizedAdmin(currentUser.email)) {
-      setPinError("Unauthorized account. Please sign in with an authorized curator account.");
-      setStep("account");
+    const targetEmail = (currentUser?.email || email || "admin@kairo.archive").trim().toLowerCase();
+    if (!targetEmail || !isAuthorizedAdmin(targetEmail)) {
+      setPinError("Unauthorized email. Please enter an authorized administrator email.");
       return;
     }
 
@@ -115,7 +115,7 @@ export function AdminLoginOverlay() {
     setPinError("");
 
     try {
-      const res = await verifyAdminPinWithServer(currentUser.email, pin.trim());
+      const res = await verifyAdminPinWithServer(targetEmail, pin.trim());
       setIsSubmittingPin(false);
 
       if (res.locked) {
@@ -130,7 +130,7 @@ export function AdminLoginOverlay() {
       }
 
       // The signed session is HTTP-only and is never exposed to client-side JavaScript.
-      loginAdmin(pin.trim(), currentUser.email);
+      loginAdmin(pin.trim(), targetEmail);
     } catch {
       setIsSubmittingPin(false);
       setPinError("Connection error while validating Security PIN.");
@@ -308,11 +308,25 @@ export function AdminLoginOverlay() {
                     <span>Verifying Account...</span>
                   ) : (
                     <>
-                      <span>Sign In & Proceed to PIN</span>
+                      <span>Sign In with Password</span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
                 </button>
+
+                <div className="pt-3 border-t border-ink-border/60 text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!email) setEmail("admin@kairo.archive");
+                      setStep("pin");
+                    }}
+                    className="text-xs font-mono text-gold hover:text-gold-muted hover:underline flex items-center justify-center gap-1.5 mx-auto cursor-pointer"
+                  >
+                    <KeyRound className="w-3.5 h-3.5" />
+                    <span>Or Sign In Directly with Master Security PIN</span>
+                  </button>
+                </div>
               </form>
             )}
           </div>
@@ -322,7 +336,7 @@ export function AdminLoginOverlay() {
         {step === "pin" && (
           <form onSubmit={handlePinSubmit} className="space-y-4">
             {/* Authenticated User Badge */}
-            {currentUser && (
+            {currentUser ? (
               <div className="p-3 bg-ink/70 border border-ink-border rounded-sm flex items-center justify-between">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-7 h-7 rounded-full bg-gold/20 text-gold font-bold font-mono text-xs flex items-center justify-center shrink-0">
@@ -341,6 +355,19 @@ export function AdminLoginOverlay() {
                 >
                   Switch
                 </button>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-xs font-mono text-text-muted mb-1.5 tracking-wider uppercase">
+                  Administrator Email
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@kairo.archive"
+                  className="w-full bg-ink border border-ink-border focus:border-gold px-3.5 py-2.5 text-xs font-mono text-paper rounded-sm outline-none transition-colors"
+                />
               </div>
             )}
 
