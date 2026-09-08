@@ -1560,7 +1560,7 @@ function AccountContent() {
           {/* Header */}
           <div className="text-center space-y-1.5 border-b border-ink-border/80 pb-4">
             <h1 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-tight font-sans text-paper">
-              PATRON PORTAL
+              KAIRO
             </h1>
             <p className="text-xs text-text-muted font-mono">
               Sign in to access your archive.
@@ -1837,7 +1837,7 @@ function AccountContent() {
                 ? "AUTHENTICATING..."
                 : authMode === "LOGIN"
                 ? "SIGN IN TO ARCHIVE"
-                : "CREATE PATRON ACCOUNT"}
+                : "CREATE ACCOUNT"}
             </button>
           </form>
 
