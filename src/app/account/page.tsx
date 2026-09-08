@@ -1836,7 +1836,7 @@ function AccountContent() {
               {isSubmittingAuth
                 ? "AUTHENTICATING..."
                 : authMode === "LOGIN"
-                ? "SIGN IN TO ARCHIVE"
+                ? "SIGN IN"
                 : "CREATE ACCOUNT"}
             </button>
           </form>
