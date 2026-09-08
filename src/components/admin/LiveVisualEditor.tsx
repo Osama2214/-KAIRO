@@ -225,9 +225,9 @@ export function LiveVisualEditor() {
             <Maximize2 className="w-3.5 h-3.5 text-paper-muted" />
           </button>
         ) : (
-          <div className="inline-flex flex-nowrap justify-center items-center gap-2 px-4 py-2.5 bg-ink/95 border border-gold/50 rounded-2xl shadow-2xl backdrop-blur-md text-xs font-mono text-paper whitespace-nowrap">
-            {/* Curator Badge */}
-            <div className="flex items-center gap-2 pr-2 border-r border-ink-border shrink-0">
+          <div className="inline-flex flex-nowrap justify-center items-center gap-1.5 px-3 py-2 bg-ink/95 border border-gold/50 rounded-2xl shadow-2xl backdrop-blur-md text-xs font-mono text-paper">
+            {/* Curator Badge — hidden on very small screens */}
+            <div className="hidden sm:flex items-center gap-2 pr-2 border-r border-ink-border shrink-0">
               <span className="font-serif text-sm font-bold text-vermilion">回路</span>
               <span className="font-bold tracking-wider text-[11px] text-paper">CURATOR</span>
             </div>
@@ -236,7 +236,7 @@ export function LiveVisualEditor() {
             <button
               type="button"
               onClick={() => setVisualEditorActive(!isVisualEditorActive)}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer ${
+              className={`shrink-0 flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full border transition-all text-[10px] sm:text-[11px] font-bold uppercase tracking-wider cursor-pointer ${
                 isVisualEditorActive
                   ? "bg-gold text-ink border-gold shadow-md shadow-gold/20"
                   : "bg-ink-surface text-text-muted border-ink-border hover:text-paper"
@@ -244,13 +244,15 @@ export function LiveVisualEditor() {
             >
               {isVisualEditorActive ? (
                 <>
-                  <Eye className="w-3.5 h-3.5" />
-                  <span>Visual Edit: ON</span>
+                  <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  <span className="hidden xs:inline">Visual Edit: ON</span>
+                  <span className="xs:hidden">ON</span>
                 </>
               ) : (
                 <>
-                  <EyeOff className="w-3.5 h-3.5" />
-                  <span>Visual Edit: OFF</span>
+                  <EyeOff className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  <span className="hidden xs:inline">Visual Edit: OFF</span>
+                  <span className="xs:hidden">Edit</span>
                 </>
               )}
             </button>
@@ -258,12 +260,12 @@ export function LiveVisualEditor() {
             {/* Admin Console Link */}
             <Link
               href="/admin"
-              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-ink-surface hover:bg-ink-border border border-ink-border text-paper-muted hover:text-paper transition-colors text-[11px] font-semibold uppercase tracking-wider"
+              className="shrink-0 flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full bg-ink-surface hover:bg-ink-border border border-ink-border text-paper-muted hover:text-paper transition-colors text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider"
               title="Open full administrative dashboard"
             >
-              <Sliders className="w-3.5 h-3.5 text-gold" />
+              <Sliders className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gold" />
               <span>Console</span>
-              <ExternalLink className="w-3 h-3 text-text-muted" />
+              <ExternalLink className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-text-muted" />
             </Link>
 
             {/* Storefront Language Live Switch */}
@@ -271,24 +273,24 @@ export function LiveVisualEditor() {
               <button
                 type="button"
                 onClick={toggleLanguage}
-                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-ink-surface hover:bg-ink-border border border-ink-border text-paper-muted hover:text-paper transition-colors text-[11px] font-mono font-bold tracking-wider cursor-pointer"
+                className="shrink-0 flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-full bg-ink-surface hover:bg-ink-border border border-ink-border text-paper-muted hover:text-paper transition-colors text-[10px] sm:text-[11px] font-mono font-bold tracking-wider cursor-pointer"
                 title="Toggle Storefront Language"
               >
                 <span className={locale === "ar" ? "text-gold" : "text-text-muted"}>AR</span>
-                <span className="text-text-muted text-[10px]">/</span>
+                <span className="text-text-muted text-[9px]">/</span>
                 <span className={locale === "en" ? "text-gold" : "text-text-muted"}>EN</span>
               </button>
             )}
 
             {/* Actions: Minimize & Logout */}
-            <div className="flex items-center gap-1 pl-1 border-l border-ink-border shrink-0">
+            <div className="flex items-center gap-0.5 pl-1 border-l border-ink-border shrink-0">
               <button
                 type="button"
                 onClick={() => setIsMinimized(true)}
                 className="p-1.5 rounded-full text-text-muted hover:text-paper hover:bg-ink-surface transition-colors cursor-pointer"
                 title="Minimize toolbar"
               >
-                <Minimize2 className="w-3.5 h-3.5" />
+                <Minimize2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </button>
 
               <button
@@ -297,7 +299,7 @@ export function LiveVisualEditor() {
                 className="p-1.5 rounded-full text-text-muted hover:text-red-400 hover:bg-ink-surface transition-colors cursor-pointer"
                 title="Log out from Curator Session"
               >
-                <LogOut className="w-3.5 h-3.5" />
+                <LogOut className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </button>
             </div>
           </div>
