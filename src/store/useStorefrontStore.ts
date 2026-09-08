@@ -818,13 +818,23 @@ export const useStorefrontStore = create<StorefrontState>()(
       },
 
       logoutAdmin: () => {
-        set({ isAdminAuthenticated: false, adminSessionToken: null });
+        // Clear every client-only editor state immediately. Server-side access
+        // remains protected by the HttpOnly curator cookie and is revoked below.
+        set({
+          isAdminAuthenticated: false,
+          adminSessionToken: null,
+          isVisualEditorActive: false,
+          activeLiveEditTarget: null,
+        });
         if (typeof fetch !== "undefined") {
           fetch("/api/admin/verify-session", { method: "DELETE" }).catch(() => {});
         }
         if (typeof document !== "undefined") {
           document.cookie = "kairo_curator_session=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT";
         }
+        try {
+          localStorage.removeItem("kairo_storefront_cms_v3");
+        } catch {}
       },
 
       updateAdminPin: (newPin) => {

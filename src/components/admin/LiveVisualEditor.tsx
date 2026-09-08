@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Edit2,
@@ -111,6 +111,33 @@ export function LiveVisualEditor() {
 
   const [isMinimized, setIsMinimized] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
+
+  // A persisted browser flag is never enough to reveal admin controls. The
+  // HttpOnly server session must still be valid after every page load.
+  useEffect(() => {
+    let active = true;
+    if (!isAdminAuthenticated) {
+      return;
+    }
+    fetch("/api/admin/verify-session", { method: "POST", cache: "no-store" })
+      .then((response) => response.json())
+      .then((payload) => {
+        if (!active) return;
+        if (!payload?.valid) {
+          logoutAdmin();
+          return;
+        }
+        setSessionChecked(true);
+      })
+      .catch(() => {
+        if (active) logoutAdmin();
+      })
+      .finally(() => {
+        if (active) setSessionChecked(true);
+      });
+    return () => { active = false; };
+  }, [isAdminAuthenticated, logoutAdmin]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -118,7 +145,7 @@ export function LiveVisualEditor() {
   };
 
   // Only render for authenticated admins
-  if (!mounted || !isAdminAuthenticated) {
+  if (!mounted || !sessionChecked || !isAdminAuthenticated) {
     return null;
   }
 
@@ -174,7 +201,7 @@ export function LiveVisualEditor() {
             <Maximize2 className="w-3.5 h-3.5 text-paper-muted" />
           </button>
         ) : (
-          <div className="inline-flex flex-wrap justify-center items-center gap-2 px-4 py-2.5 bg-ink/95 border border-gold/50 rounded-2xl shadow-2xl backdrop-blur-md text-xs font-mono text-paper">
+          <div className="inline-flex flex-nowrap justify-center items-center gap-2 px-4 py-2.5 bg-ink/95 border border-gold/50 rounded-2xl shadow-2xl backdrop-blur-md text-xs font-mono text-paper whitespace-nowrap">
             {/* Curator Badge */}
             <div className="flex items-center gap-2 pr-2 border-r border-ink-border shrink-0">
               <span className="font-serif text-sm font-bold text-vermilion">回路</span>
@@ -242,7 +269,10 @@ export function LiveVisualEditor() {
 
               <button
                 type="button"
-                onClick={logoutAdmin}
+                onClick={() => {
+                  setSessionChecked(false);
+                  logoutAdmin();
+                }}
                 className="p-1.5 rounded-full text-text-muted hover:text-red-400 hover:bg-ink-surface transition-colors cursor-pointer"
                 title="Log out from Curator Session"
               >
@@ -3391,5 +3421,3 @@ function MangaDiscoveryLiveEditModal({
     </div>
   );
 }
-
-
