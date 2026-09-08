@@ -84,9 +84,9 @@ export function WelcomeOfferBanner() {
         </div>
 
         {/* Right Column: Urgency Timer & Ticket Voucher Box */}
-        <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto shrink-0">
           
-          {/* Live Urgency Countdown Dials */}
+          {/* Live Urgency Countdown */}
           <div className="bg-ink/70 border border-gold/25 rounded-xs px-3 py-2 flex items-center gap-2 font-mono shrink-0">
             <div className="flex items-center gap-1 text-xs text-gold uppercase tracking-wider font-bold">
               <Clock className="w-3.5 h-3.5 text-gold shrink-0" />

@@ -2022,7 +2022,7 @@ function AccountContent() {
                 title="Enter Admin Management Dashboard"
               >
                 <SlidersHorizontal strokeWidth={1.4} className="w-3.5 h-3.5 shrink-0" />
-                <span>{isArabic ? "لوحة الإدارة" : "Curator Console"}</span>
+                <span className="whitespace-nowrap">{isArabic ? "لوحة الإدارة" : "Curator Console"}</span>
               </Link>
             )}
             <button

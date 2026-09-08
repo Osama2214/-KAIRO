@@ -117,18 +117,18 @@ export function GlobalWelcomeOfferBar() {
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4 text-xs font-mono min-w-0">
         
         {/* Left Side: Personalized Grant Badge & Info */}
-        <div className="flex items-center gap-2 min-w-0">
-          <p className="text-paper-muted leading-tight text-[11px] sm:text-xs font-sans whitespace-nowrap">
+        <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+          <p className="text-paper-muted leading-tight text-[11px] sm:text-xs font-sans whitespace-nowrap shrink-0">
             <span className="sm:hidden">20% OFF</span><span className="hidden sm:inline">20% off your first order.</span>
           </p>
           <button
             type="button"
             onClick={handleApplyOffer}
-            className="inline-flex min-w-0 items-center gap-1 px-2 py-0.5 bg-ink border border-dashed border-gold/60 rounded-xs text-gold font-bold text-[11px] tracking-wider hover:bg-gold/15 transition-colors cursor-pointer whitespace-nowrap"
+            className="hidden sm:inline-flex min-w-0 items-center gap-1 px-2 py-0.5 bg-ink border border-dashed border-gold/60 rounded-xs text-gold font-bold text-[11px] tracking-wider hover:bg-gold/15 transition-colors cursor-pointer whitespace-nowrap"
             title="Click to copy & apply voucher"
           >
-            <span>{voucherCode}</span>
-            <Copy className="w-3 h-3 opacity-70" />
+            <span className="truncate max-w-[120px]">{voucherCode}</span>
+            <Copy className="w-3 h-3 opacity-70 shrink-0" />
           </button>
 
           <LiveEditButton target={{ type: "announcement" }} label="Edit Offer" variant="badge" size="xs" />
