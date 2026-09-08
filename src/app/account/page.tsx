@@ -213,20 +213,21 @@ function AccountContent() {
             callback: async (tokenResponse: GoogleTokenResponse) => {
               if (tokenResponse?.access_token) {
                 try {
-                  const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-                    headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+                  const res = await fetch("/api/auth/google", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ accessToken: tokenResponse.access_token, uid: `google-${crypto.randomUUID()}` }),
                   });
-                  const googleUser = await res.json();
-                  if (googleUser?.email) {
-                    await loginWithGoogle({
-                      email: googleUser.email,
-                      name: googleUser.name || googleUser.email.split("@")[0],
-                      avatar: googleUser.picture,
-                    });
-                  }
+                  const data = await res.json().catch(() => null);
+                  if (!data?.success || !data.profile?.email) throw new Error("Google profile verification failed");
+                  await loginWithGoogle({
+                    email: data.profile.email,
+                    name: data.profile.name || data.profile.email.split("@")[0],
+                    avatar: data.profile.picture,
+                  }, true);
                 } catch (fetchErr) {
-                  console.error("Failed to retrieve Google userinfo", fetchErr);
-                  setAuthError("Failed to fetch Google profile info.");
+                  console.error("Failed to verify Google account", fetchErr);
+                  setAuthError("Google account verification failed. Please try again.");
                 }
               }
               setIsGoogleLoading(false);

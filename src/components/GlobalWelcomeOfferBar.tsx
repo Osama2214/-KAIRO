@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { Sparkles, Clock, Copy, Check, X } from "lucide-react";
-import { useAuthStore } from "@/store/useAuthStore";
 import { useCartStore } from "@/store/useCartStore";
 import { useUIStore } from "@/store/useUIStore";
-import { useMounted } from "@/store/useWishlistStore";
+import { useWelcomeOffer } from "@/hooks/useWelcomeOffer";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -29,10 +28,8 @@ function calculateTimeRemaining(expiresAt: number): TimeRemaining {
 }
 
 export function GlobalWelcomeOfferBar() {
-  const mounted = useMounted();
   const { locale } = useTranslation();
   const announcement = useStorefrontStore((state) => state.announcement);
-  const currentUser = useAuthStore((state) => state.currentUser);
   const applyCoupon = useCartStore((state) => state.applyCoupon);
   const appliedCoupon = useCartStore((state) => state.appliedCoupon);
   const openCart = useUIStore((state) => state.openCart);
@@ -40,11 +37,8 @@ export function GlobalWelcomeOfferBar() {
   const [copied, setCopied] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
 
-  const expiresAt = currentUser?.welcomeOfferExpiresAt;
-  const isClaimed = currentUser?.welcomeOfferClaimed;
-  const voucherCode = announcement.voucherCode || currentUser?.welcomeDiscountCode || "KAIRO20";
-  const discountPercent = announcement.discountPercent || 20;
-  const firstName = currentUser?.name ? currentUser.name.trim().split(" ")[0] : (locale === "ar" ? "العضو" : "PATRON");
+  const { mounted, currentUser, hasOffer, voucherCode, expiresAt } = useWelcomeOffer();
+  const discountPercent = 20;
 
   const [timeLeft, setTimeLeft] = useState<TimeRemaining | null>(() =>
     expiresAt ? calculateTimeRemaining(expiresAt) : null
@@ -69,7 +63,7 @@ export function GlobalWelcomeOfferBar() {
     !mounted ||
     !announcement.enabled ||
     !currentUser ||
-    isClaimed ||
+    !hasOffer ||
     !expiresAt ||
     !timeLeft ||
     timeLeft.isExpired
@@ -131,15 +125,7 @@ export function GlobalWelcomeOfferBar() {
             {locale === "ar" ? "منحة المقتنين" : "PATRON GRANT"}
           </span>
           <p className="text-paper-muted leading-tight text-[11px] sm:text-xs font-sans">
-            {locale === "ar" ? (
-              <>
-                أهلاً بك في كايْرو، <strong className="text-paper font-sans uppercase">{firstName}</strong>! تم تفعيل خصم 20% على طلبك الأول:
-              </>
-            ) : (
-              <>
-                Welcome to KAIRO, <strong className="text-paper font-sans uppercase">{firstName}</strong>! Your 20% inaugural grant is active:
-              </>
-            )}
+            {locale === "ar" ? <>خصم 20% على أول طلب.</> : <>20% off your first order.</>}
           </p>
           <button
             type="button"

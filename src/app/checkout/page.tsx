@@ -194,33 +194,40 @@ export default function CheckoutPage() {
       estimatedDelivery: `${shippingConfig?.deliveryEstimate || "24-48h"} (${formData.governorate})`,
     };
 
-    setTimeout(() => {
+    setTimeout(async () => {
+      // Create the order first. Prices and coupon redemption are authoritative on the server.
+      const serverResponse = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newOrder),
+      }).catch(() => null);
+      const serverData = serverResponse ? await serverResponse.json().catch(() => null) : null;
+      if (!serverResponse?.ok || !serverData?.success) {
+        setOrderError(serverData?.message || "Unable to place your order. Please try again.");
+        setIsProcessing(false);
+        return;
+      }
+      const finalizedOrder: SavedOrder = serverData.order;
+
       // Deduct purchased quantities from live store inventory
       deductStock(items.map((i) => ({ volumeId: i.volumeId, quantity: i.quantity })));
 
       // Save order to current active user profile if authenticated
       if (currentUser) {
-        addOrderToUser(newOrder);
+        addOrderToUser(finalizedOrder);
       } else {
         // Fallback for guest checkout: save to localStorage deduplicated
         const existingOrders = JSON.parse(localStorage.getItem("kairo_orders") || "[]");
         const filtered = Array.isArray(existingOrders)
           ? existingOrders.filter((o: SavedOrder) => o?.id !== newOrder.id)
           : [];
-        localStorage.setItem("kairo_orders", JSON.stringify([newOrder, ...filtered]));
+        localStorage.setItem("kairo_orders", JSON.stringify([finalizedOrder, ...filtered]));
       }
-
-      // Persist order to central server database asynchronously
-      fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newOrder),
-      }).catch((err) => console.error("Central order sync error:", err));
 
       clearCart();
       removeCoupon();
       setIsProcessing(false);
-      router.push(`/account?newOrder=${newOrder.id}`);
+      router.push(`/account?newOrder=${finalizedOrder.id}`);
     }, 1200);
   };
 

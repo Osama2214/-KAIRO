@@ -96,68 +96,30 @@ export const useCartStore = create<CartState>()(
       clearCart: () => {
         set({ items: [], appliedCoupon: null, discountPercent: 0, freeShippingGranted: false });
       },
-      applyCoupon: (code: string, percent = 20, freeShipping = true) => {
+      applyCoupon: (code: string, _percent = 20, freeShipping = true) => {
+        void _percent;
         const cleanCode = code.trim().toUpperCase();
         if (!cleanCode) {
           return { success: false, message: "Please enter a valid voucher code." };
         }
 
-        // Validate against authorized promotion vouchers
-        const isWelcomeCode = cleanCode.endsWith("-FIRST20") || cleanCode === "WELCOME20" || cleanCode === "PATRON20";
-        const isKairoCode = cleanCode === "KAIRO20" || cleanCode === "KAIRO-PATRON20" || cleanCode === "KAIRO-FIRST20";
-
-        // Check if there is a custom voucher in stored storefront CMS announcement
-        let isCmsCode = false;
-        let effectivePercent = percent;
-        try {
-          const rawCms = typeof window !== "undefined" ? localStorage.getItem("kairo_storefront_cms") : null;
-          if (rawCms) {
-            const parsed = JSON.parse(rawCms);
-            const cmsVoucher = parsed?.state?.announcement?.voucherCode?.trim().toUpperCase();
-            if (cmsVoucher && cleanCode === cmsVoucher) {
-              isCmsCode = true;
-              if (parsed?.state?.announcement?.discountPercent) {
-                effectivePercent = parsed.state.announcement.discountPercent;
-              }
-            }
-          }
-        } catch {
-          // ignore
-        }
-
-        // Prevent repeated use of welcome/first-time vouchers
-        if (isWelcomeCode && typeof window !== "undefined") {
-          try {
-            const rawOrders = localStorage.getItem("kairo_orders");
-            if (rawOrders) {
-              const orders = JSON.parse(rawOrders);
-              if (Array.isArray(orders) && orders.length > 0) {
-                return {
-                  success: false,
-                  message: `Welcome voucher "${cleanCode}" is only valid for your first order.`,
-                };
-              }
-            }
-          } catch {
-            // ignore
-          }
-        }
-
-        if (!isWelcomeCode && !isKairoCode && !isCmsCode) {
+        // The browser can only stage a server-issued code. The API redeems it
+        // atomically against Neon when the order is created.
+        if (!/^KAIRO-[A-F0-9]{10}$/.test(cleanCode)) {
           return {
             success: false,
-            message: `Invalid voucher code "${cleanCode}". Please verify your code.`,
+            message: "Use the private coupon shown on your account.",
           };
         }
 
         set({
           appliedCoupon: cleanCode,
-          discountPercent: effectivePercent,
+          discountPercent: 20,
           freeShippingGranted: freeShipping,
         });
         return {
           success: true,
-          message: `Voucher ${cleanCode} applied! ${effectivePercent}% OFF + Free Delivery.`,
+          message: `Voucher ${cleanCode} is ready for server verification.`,
         };
       },
       removeCoupon: () => {

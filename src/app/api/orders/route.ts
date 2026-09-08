@@ -10,6 +10,8 @@ import { checkRateLimitKey, getClientIp } from "@/lib/rateLimit";
 import { ALL_VOLUMES } from "@/data/manga";
 import { DEFAULT_GOVERNORATE_RATES } from "@/data/governorates";
 import { curatorSession, isTrustedOrigin } from "@/lib/serverAuth";
+import { patronSession } from "@/lib/patronAuth";
+import { redeemWelcomeCoupon } from "@/lib/couponStore";
 
 /**
  * GET: Retrieve orders from central server database
@@ -63,7 +65,6 @@ export async function POST(request: Request) {
 
     const customerEmail = String(body.customerEmail || "").toLowerCase().trim();
     const customerPhone = String(body.customerPhone || "").trim();
-    const cleanPhoneDigits = customerPhone.replace(/\D/g, "");
 
     // 1. Authoritative Item Pricing & Subtotal Calculation
     let computedSubtotal = 0;
@@ -95,32 +96,19 @@ export async function POST(request: Request) {
 
     const rawCode = String(body.appliedCoupon || "").trim().toUpperCase();
     if (rawCode) {
-      const isWelcomeCode =
-        rawCode.endsWith("-FIRST20") || rawCode === "WELCOME20" || rawCode === "PATRON20";
-
-      if (isWelcomeCode) {
-        // Enforce ONE-TIME use: Check if this email or phone has ever ordered before
-        const allOrders = await getAllServerOrders();
-        const hasOrderedBefore = allOrders.some((o) => {
-          const emailMatch =
-            customerEmail && o.customerEmail && o.customerEmail.toLowerCase() === customerEmail;
-          const phoneMatch =
-            cleanPhoneDigits &&
-            o.customerPhone &&
-            o.customerPhone.replace(/\D/g, "") === cleanPhoneDigits;
-          const isNotCancelled = !o.status.toLowerCase().includes("cancelled");
-          return (emailMatch || phoneMatch) && isNotCancelled;
-        });
-
-        if (hasOrderedBefore) {
-          couponMessage = "Welcome voucher was not applied: this discount is valid for first-time orders only.";
+      const session = patronSession(request);
+      const orderId = String(body.id).trim().slice(0, 32);
+      // A coupon belongs to the signed-in patron, not to data sent by the browser.
+      if (!session.valid || !session.email || session.email !== customerEmail) {
+        couponMessage = "Sign in with the coupon owner to use this code.";
+      } else {
+        const redeemedDiscount = await redeemWelcomeCoupon(rawCode, session.email, orderId);
+        if (redeemedDiscount === null) {
+          couponMessage = "This coupon is invalid, expired, or has already been used.";
         } else {
-          discountPercent = 20;
+          discountPercent = redeemedDiscount;
           appliedCoupon = rawCode;
         }
-      } else if (rawCode === "KAIRO20" || rawCode === "KAIRO-PATRON20") {
-        discountPercent = 20;
-        appliedCoupon = rawCode;
       }
     }
 

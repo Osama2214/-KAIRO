@@ -103,7 +103,7 @@ interface AuthState {
     email: string;
     name: string;
     avatar?: string;
-  }) => Promise<{ success: boolean; message?: string }>;
+  }, skipSession?: boolean) => Promise<{ success: boolean; message?: string }>;
   resetPassword: (email: string, newPassword: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   updateProfile: (data: Partial<UserProfile>) => void;
@@ -761,7 +761,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       set({ currentUser: demo });
     },
 
-    loginWithGoogle: async (profile) => {
+    loginWithGoogle: async (profile, skipSession = false) => {
       const normalizedEmail = sanitizeInput(profile.email).toLowerCase();
       if (!validateEmail(normalizedEmail)) {
         return { success: false, message: "Invalid email from Google account." };
@@ -829,7 +829,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
       // Establish session
       resetRateLimit(normalizedEmail);
-      setSessionCookie(user.id, normalizedEmail);
+      if (!skipSession) await setSessionCookie(user.id, normalizedEmail);
 
       try {
         localStorage.setItem("kairo_active_session", normalizedEmail);

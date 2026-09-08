@@ -1,50 +1,43 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useMounted } from "@/store/useWishlistStore";
+
+type ServerCoupon = { code: string; expiresAt: number; used: boolean; discountPercent: number };
 
 export function useWelcomeOffer() {
   const mounted = useMounted();
   const currentUser = useAuthStore((state) => state.currentUser);
-
-  const expiresAt = currentUser?.welcomeOfferExpiresAt;
-  const isClaimed = currentUser?.welcomeOfferClaimed;
-  const voucherCode = currentUser?.welcomeDiscountCode || "WELCOME-FIRST20";
-  const firstName = currentUser?.name ? currentUser.name.trim().split(" ")[0] : "PATRON";
-
-  const [isExpired, setIsExpired] = useState(() => {
-    if (!expiresAt) return false;
-    return expiresAt <= Date.now();
-  });
+  const [coupon, setCoupon] = useState<ServerCoupon | null>(null);
 
   useEffect(() => {
-    if (!expiresAt) return;
-    const remainingMs = expiresAt - Date.now();
-    if (remainingMs <= 0) {
+    if (!mounted || !currentUser) {
       return;
     }
-    const timer = setTimeout(() => {
-      setIsExpired(true);
-    }, remainingMs);
-    return () => clearTimeout(timer);
-  }, [expiresAt]);
-
-  const hasOffer = Boolean(
-    mounted &&
-    currentUser &&
-    !isClaimed &&
-    expiresAt &&
-    !isExpired
-  );
+    let cancelled = false;
+    let attempts = 0;
+    const load = async () => {
+      const response = await fetch("/api/coupons/welcome", { cache: "no-store" }).catch(() => null);
+      const data = response ? await response.json().catch(() => null) : null;
+      if (!cancelled && data?.success && data.coupon) {
+        setCoupon(data.coupon);
+      } else if (!cancelled && attempts++ < 3) {
+        window.setTimeout(load, 500);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [mounted, currentUser]);
 
   return {
-    hasOffer,
-    voucherCode,
-    expiresAt,
-    isClaimed,
+    hasOffer: Boolean(mounted && currentUser && coupon && !coupon.used),
+    voucherCode: coupon?.code || "",
+    expiresAt: coupon?.expiresAt,
+    isClaimed: coupon?.used ?? false,
+    discountPercent: coupon?.discountPercent ?? 0,
     currentUser,
-    firstName,
+    firstName: currentUser?.name ? currentUser.name.trim().split(" ")[0] : "PATRON",
     mounted,
   };
 }
