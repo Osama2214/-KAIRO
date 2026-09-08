@@ -706,22 +706,22 @@ export default function AdminPage() {
       )}
 
       {/* Top Bar */}
-      <header className="h-14 sm:h-16 bg-ink-surface border-b border-ink-border px-3 sm:px-6 flex items-center justify-between sticky top-0 z-40">
-        <div className="flex items-center gap-2.5 sm:gap-4">
-          <Link href="/" className="flex items-center gap-1.5 sm:gap-2 group">
-            <span className="font-serif text-gold text-base sm:text-lg font-bold group-hover:scale-105 transition-transform">
+      <header className="h-12 sm:h-16 bg-ink-surface border-b border-ink-border px-3 sm:px-6 flex items-center justify-between sticky top-0 z-40">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <Link href="/" className="flex items-center gap-1.5 group shrink-0">
+            <span className="font-serif text-gold text-sm sm:text-lg font-bold group-hover:scale-105 transition-transform leading-none">
               回路
             </span>
-            <span className="font-cinzel text-sm sm:text-base font-bold text-paper tracking-wider">
+            <span className="font-cinzel text-sm sm:text-base font-bold text-paper tracking-wider whitespace-nowrap">
               KAIRO
             </span>
           </Link>
-          <span className="text-[9px] sm:text-[11px] font-mono text-gold bg-gold/10 px-2 py-0.5 rounded uppercase tracking-wider border border-gold/30">
+          <span className="hidden xs:inline-block text-[9px] sm:text-[11px] font-mono text-gold bg-gold/10 px-2 py-0.5 rounded uppercase tracking-wider border border-gold/30 whitespace-nowrap">
             Console
           </span>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3 font-mono text-xs">
+        <div className="flex items-center gap-1.5 sm:gap-3 font-mono text-xs">
           {currentUser && (
             <div className="hidden md:flex items-center gap-2 px-2.5 py-1 bg-ink/70 border border-gold/30 rounded-sm">
               <div className="w-4 h-4 rounded-full bg-gold/20 text-gold font-bold flex items-center justify-center text-[9px]">
@@ -741,28 +741,27 @@ export default function AdminPage() {
                 showToast("Error saving to Neon DB. Check internet connection.");
               }
             }}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-ink border border-gold/40 hover:bg-gold/20 text-gold rounded-sm transition-all font-semibold text-[11px] sm:text-xs cursor-pointer"
+            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 bg-ink border border-gold/40 hover:bg-gold/20 text-gold rounded-sm transition-all font-semibold text-[11px] sm:text-xs cursor-pointer"
             title="Force immediate save of all changes to Neon Cloud Database"
           >
             <Cloud className="w-3.5 h-3.5 text-gold" />
-            <span className="hidden sm:inline">Sync Neon</span>
+            <span className="hidden sm:inline">Sync</span>
           </button>
 
           <Link
             href="/"
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-gold/10 hover:bg-gold text-gold hover:text-ink border border-gold/40 hover:border-gold rounded-sm transition-all font-semibold text-[11px] sm:text-xs"
+            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 bg-gold/10 hover:bg-gold text-gold hover:text-ink border border-gold/40 hover:border-gold rounded-sm transition-all font-semibold text-[11px] sm:text-xs whitespace-nowrap"
             title="Browse storefront in Live Mode"
           >
             <Edit2 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Live Mode</span>
-            <span className="sm:hidden">Store</span>
+            <span>Store</span>
           </Link>
           <button
             onClick={() => void handleAdminSignOut()}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-ink-elevated hover:bg-vermilion/20 hover:text-vermilion border border-ink-border rounded-sm text-text-muted transition-colors cursor-pointer text-[11px] sm:text-xs"
+            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 bg-ink-elevated hover:bg-vermilion/20 hover:text-vermilion border border-ink-border rounded-sm text-text-muted transition-colors cursor-pointer text-[11px] sm:text-xs whitespace-nowrap"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span>Exit</span>
+            <span className="hidden xs:inline">Exit</span>
           </button>
         </div>
       </header>
