@@ -218,6 +218,17 @@ export default function AdminPage() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  const handleAdminSignOut = async () => {
+    // Revoke the HttpOnly cookie before navigating so the fresh /admin load is
+    // always the login screen, never a stale client-side dashboard.
+    try {
+      await fetch("/api/admin/verify-session", { method: "DELETE", cache: "no-store" });
+    } finally {
+      logoutAdmin();
+      window.location.replace("/admin");
+    }
+  };
+
   // Cryptographic server-side session guard
   useEffect(() => {
     if (isAdminAuthenticated) {
@@ -710,7 +721,7 @@ export default function AdminPage() {
             <span className="sm:hidden">Store</span>
           </Link>
           <button
-            onClick={logoutAdmin}
+            onClick={() => void handleAdminSignOut()}
             className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-ink-elevated hover:bg-vermilion/20 hover:text-vermilion border border-ink-border rounded-sm text-text-muted transition-colors cursor-pointer text-[11px] sm:text-xs"
           >
             <LogOut className="w-3.5 h-3.5" />
@@ -3974,8 +3985,7 @@ export default function AdminPage() {
                         setCurrentPinInput("");
                         setNewPinInput("");
                         setConfirmPinInput("");
-                        logoutAdmin();
-                        showToast("PIN updated. Please sign in again.");
+                        await handleAdminSignOut();
                       } else {
                         showToast(res.message || "Failed to update Security PIN.");
                       }

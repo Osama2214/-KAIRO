@@ -157,6 +157,17 @@ export function LiveVisualEditor() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  const handleCuratorSignOut = async () => {
+    setSessionChecked(false);
+    try {
+      await fetch("/api/admin/verify-session", { method: "DELETE", cache: "no-store" });
+    } finally {
+      logoutAdmin();
+      // Use a full navigation so storefront admin state is not reused.
+      window.location.replace("/admin");
+    }
+  };
+
   // Only render for authenticated admins
   if (!mounted || !sessionChecked || !isAdminAuthenticated) {
     return null;
@@ -282,10 +293,7 @@ export function LiveVisualEditor() {
 
               <button
                 type="button"
-                onClick={() => {
-                  setSessionChecked(false);
-                  logoutAdmin();
-                }}
+                onClick={() => void handleCuratorSignOut()}
                 className="p-1.5 rounded-full text-text-muted hover:text-red-400 hover:bg-ink-surface transition-colors cursor-pointer"
                 title="Log out from Curator Session"
               >
