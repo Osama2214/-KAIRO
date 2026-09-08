@@ -130,6 +130,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initSession: async () => {
     try {
       const res = await fetch("/api/auth/me", { cache: "no-store" });
+
+      // Only log out if the server explicitly says "not authenticated" (401)
+      // — any other error (500, network fail, timeout) keeps the current state
+      if (res.status === 401) {
+        set({ currentUser: null, isInitialized: true });
+        return;
+      }
+
       if (res.ok) {
         const data = await res.json();
         if (data.authenticated && data.user) {
@@ -155,10 +163,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           return;
         }
       }
+
+      // Non-401 unexpected response — don't touch currentUser, just mark initialized
+      set((state) => ({ ...state, isInitialized: true }));
     } catch {
-      // Session fetch error
+      // Network/fetch error — don't log the user out, just mark initialized
+      set((state) => ({ ...state, isInitialized: true }));
     }
-    set({ currentUser: null, isInitialized: true });
   },
 
   login: async (email: string, password?: string) => {
