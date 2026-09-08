@@ -254,7 +254,7 @@ export default function MangaDetailPage({ params }: MangaPageProps) {
 
             {/* Patron Inaugural Grant Callout (Only if book is in stock) */}
             {hasWelcomeOffer && ((volume.stock ?? 0) > 0) && (
-              <div className="p-3 bg-gold/10 border border-gold/40 rounded-xs flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2.5 text-xs font-mono animate-in fade-in">
+              <div className="p-3 bg-gold/10 border border-gold/40 rounded-xs flex flex-row items-center justify-between gap-2.5 text-xs font-mono animate-in fade-in">
                 <div className="flex items-center gap-2 text-gold min-w-0">
                   <div className="truncate">
                     <span>{isArabic ? "خصم الترحيب: " : "Private Grant: "}</span>
