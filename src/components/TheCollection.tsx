@@ -581,10 +581,7 @@ export function TheCollection() {
     });
 
     // ==========================================
-    // 3. MOBILE (max-width: 640px) - Vertical Stack Presentation (Extra Enlarged Cards)
-    // Card: w-[345px] xs:w-[370px] h-[122px] xs:h-[132px]
-    // Vertical Stacking: Vol 1 (y: -136), Vol 2 (y: 0), Vol 3 (y: +136)
-    // Slipcase: w-[370px] xs:w-[395px] h-[485px] xs:h-[515px]
+    // 3. MOBILE (max-width: 640px) - compact, low-compositing vertical stack.
     // ==========================================
     mm.add("(max-width: 640px)", () => {
       const tl = gsap.timeline({
@@ -599,12 +596,8 @@ export function TheCollection() {
       // Initial State: 3D vertical fan-out parallax float
       gsap.set(vol1Ref.current, {
         x: 0,
-        y: -175,
-        z: 32,
-        rotationX: 14,
-        rotationY: -4,
-        rotationZ: -1.5,
-        scale: 0.94,
+        y: -120,
+        scale: 0.98,
         opacity: 1,
         force3D: true,
       });
@@ -612,33 +605,22 @@ export function TheCollection() {
       gsap.set(vol2Ref.current, {
         x: 0,
         y: 0,
-        z: 60,
-        rotationX: -5,
-        rotationY: 0,
-        rotationZ: 0,
-        scale: 1.05,
+        scale: 1,
         opacity: 1,
         force3D: true,
       });
 
       gsap.set(vol3Ref.current, {
         x: 0,
-        y: 175,
-        z: 32,
-        rotationX: -14,
-        rotationY: 4,
-        rotationZ: 1.5,
-        scale: 0.94,
+        y: 120,
+        scale: 0.98,
         opacity: 1,
         force3D: true,
       });
 
       gsap.set(boxsetRef.current, {
-        scale: 1.12,
+        scale: 1.02,
         opacity: 0,
-        z: -45,
-        rotationX: 8,
-        force3D: true,
       });
 
       gsap.set(stageRef.current, {
@@ -659,17 +641,13 @@ export function TheCollection() {
         pointerEvents: "none",
       });
 
-      // Stage 1a: Vertical 3D Floating Drift (0 -> 1.2s)
+      // Stage 1a: small vertical motion only; this stays responsive on mobile GPUs.
       tl.to(
         vol1Ref.current,
         {
           x: 0,
-          y: -205,
-          z: 44,
-          rotationX: 18,
-          rotationY: -6,
-          rotationZ: -2,
-          scale: 0.96,
+          y: -135,
+          scale: 1,
           duration: 1.2,
           ease: "power2.out",
           force3D: true,
@@ -681,9 +659,6 @@ export function TheCollection() {
           {
             x: 0,
             y: 0,
-            z: 78,
-            rotationX: -8,
-            scale: 1.08,
             duration: 1.2,
             ease: "power2.out",
             force3D: true,
@@ -694,12 +669,8 @@ export function TheCollection() {
           vol3Ref.current,
           {
             x: 0,
-            y: 205,
-            z: 44,
-            rotationX: -18,
-            rotationY: 6,
-            rotationZ: 2,
-            scale: 0.96,
+            y: 135,
+            scale: 1,
             duration: 1.2,
             ease: "power2.out",
             force3D: true,
@@ -712,11 +683,7 @@ export function TheCollection() {
           vol1Ref.current,
           {
             x: 0,
-            y: -136,
-            z: 10,
-            rotationX: 0,
-            rotationY: 0,
-            rotationZ: 0,
+            y: -113,
             scale: 1,
             duration: 2.0,
             ease: "power2.inOut",
@@ -729,10 +696,6 @@ export function TheCollection() {
           {
             x: 0,
             y: 0,
-            z: 10,
-            rotationX: 0,
-            rotationY: 0,
-            rotationZ: 0,
             scale: 1,
             duration: 2.0,
             ease: "power2.inOut",
@@ -744,11 +707,7 @@ export function TheCollection() {
           vol3Ref.current,
           {
             x: 0,
-            y: 136,
-            z: 10,
-            rotationX: 0,
-            rotationY: 0,
-            rotationZ: 0,
+            y: 113,
             scale: 1,
             duration: 2.0,
             ease: "power2.inOut",
@@ -763,8 +722,6 @@ export function TheCollection() {
           {
             scale: 1,
             opacity: 1,
-            z: -15,
-            rotationX: 0,
             duration: 1.8,
             ease: "back.out(1.15)",
             force3D: true,
@@ -829,14 +786,14 @@ export function TheCollection() {
     <section
       ref={sectionRef}
       id="the-collection"
-      className="relative w-full h-[200vh] bg-ink border-t border-ink-border/60 overflow-clip select-none"
+      className="relative w-full h-[170vh] sm:h-[200vh] bg-ink border-t border-ink-border/60 overflow-clip select-none"
     >
       {/* Sticky Inner Viewport */}
-      <div className="sticky top-0 h-screen w-full overflow-hidden flex flex-col items-center justify-between pt-20 xs:pt-24 sm:pt-20 lg:pt-24 pb-6 xs:pb-8 sm:pb-10 px-2 sm:px-6">
+      <div className="sticky top-0 h-screen w-full overflow-hidden flex flex-col items-center justify-between pt-16 xs:pt-20 sm:pt-20 lg:pt-24 pb-5 xs:pb-7 sm:pb-10 px-2 sm:px-6">
         {/* Atmospheric Subtle Japanese Typographic Watermark Background */}
         <div
           ref={kanjiBgRef}
-          className="absolute inset-0 flex items-center justify-center pointer-events-none select-none transition-transform will-change-transform z-0"
+          className="absolute inset-0 hidden sm:flex items-center justify-center pointer-events-none select-none transition-transform will-change-transform z-0"
         >
           <span className="text-[260px] sm:text-[380px] lg:text-[440px] font-serif font-black text-paper/5 tracking-[0.15em] blur-[1px]">
             全巻
@@ -846,7 +803,7 @@ export function TheCollection() {
         {/* Ambient Warm Golden Aura Glow during Assembly - Softened & Atmospheric */}
         <div
           ref={auraRef}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] sm:w-[700px] lg:w-[850px] h-[300px] sm:h-[400px] lg:h-[480px] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(199,167,108,0.12)_0%,rgba(199,167,108,0.02)_55%,transparent_75%)] blur-3xl pointer-events-none z-0 will-change-transform"
+          className="absolute top-1/2 left-1/2 hidden sm:block -translate-x-1/2 -translate-y-1/2 w-[700px] lg:w-[850px] h-[400px] lg:h-[480px] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(199,167,108,0.12)_0%,rgba(199,167,108,0.02)_55%,transparent_75%)] blur-3xl pointer-events-none z-0 will-change-transform"
         />
 
         {/* 01 — Top Editorial Header */}
@@ -869,15 +826,15 @@ export function TheCollection() {
         {/* 02 — Center 3D Stage (Vertical Stacking on Mobile, Horizontal on Desktop) */}
         <div
           ref={stageRef}
-          className="relative w-full max-w-6xl h-[510px] xs:h-[540px] sm:h-96 lg:h-[500px] flex items-center justify-center perspective-2000 preserve-3d my-auto transform-gpu"
+          className="relative w-full max-w-6xl h-[440px] xs:h-[460px] sm:h-96 lg:h-[500px] flex items-center justify-center perspective-2000 preserve-3d my-auto transform-gpu"
         >
           {/* Slipcase Housing Box (Vertical portrait slipcase on mobile, landscape on desktop) */}
           <div
             ref={boxsetRef}
-            className="absolute w-[370px] xs:w-[395px] sm:w-[700px] lg:w-[860px] h-[485px] xs:h-[515px] sm:h-[390px] lg:h-[480px] rounded-xs border border-gold/40 bg-linear-to-b from-ink-surface/90 via-ink to-ink-surface/90 pointer-events-none flex flex-col justify-between p-3 sm:p-4 lg:p-5 z-10 shadow-[0_0_70px_rgba(199,167,108,0.10)] transform-gpu will-change-transform [backface-visibility:hidden] overflow-hidden"
+            className="absolute w-[calc(100%-16px)] xs:w-[calc(100%-20px)] sm:w-[700px] lg:w-[860px] h-[420px] xs:h-[450px] sm:h-[390px] lg:h-[480px] rounded-xs border border-gold/40 bg-linear-to-b from-ink-surface/90 via-ink to-ink-surface/90 pointer-events-none flex flex-col justify-between p-2.5 sm:p-4 lg:p-5 z-10 shadow-[0_0_40px_rgba(199,167,108,0.08)] sm:shadow-[0_0_70px_rgba(199,167,108,0.10)] transform-gpu [will-change:auto] sm:will-change-transform [backface-visibility:hidden] overflow-hidden"
           >
             {/* Background Japanese Watermark Texture inside Slipcase */}
-            <div className="absolute inset-0 bg-japanese-pattern opacity-35 pointer-events-none" />
+            <div className="absolute inset-0 bg-japanese-pattern opacity-15 sm:opacity-35 pointer-events-none" />
 
             {/* Delicate Corner Foil Accents */}
             <div className="absolute top-2.5 left-2.5 w-2.5 h-2.5 border-t border-l border-gold/60" />
@@ -923,7 +880,7 @@ export function TheCollection() {
                 router.push(`/manga/${vol1.id}`);
               }
             }}
-            className="absolute w-[345px] xs:w-[370px] sm:w-48 lg:w-60 h-[122px] xs:h-[132px] sm:h-70 lg:h-88 rounded-xs overflow-hidden border border-ink-border/90 shadow-[0_20px_50px_rgba(0,0,0,0.85)] bg-[#0a0a0d] cursor-pointer group hover:border-gold hover:shadow-[0_25px_60px_rgba(199,167,108,0.3)] transition-[border-color,box-shadow] duration-300 z-20 select-none transform-gpu will-change-transform [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [isolation:isolate]"
+            className="absolute w-[calc(100%-36px)] xs:w-[calc(100%-44px)] sm:w-48 lg:w-60 h-[104px] xs:h-[112px] sm:h-70 lg:h-88 rounded-xs overflow-hidden border border-ink-border/90 shadow-[0_12px_28px_rgba(0,0,0,0.72)] sm:shadow-[0_20px_50px_rgba(0,0,0,0.85)] bg-[#0a0a0d] cursor-pointer group hover:border-gold hover:shadow-[0_25px_60px_rgba(199,167,108,0.3)] transition-[border-color,box-shadow] duration-300 z-20 select-none transform-gpu [will-change:auto] sm:will-change-transform [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [isolation:isolate]"
           >
             {/* MOBILE LAYOUT (< sm): Clean Horizontal Ticket without Eye Icon */}
             <div className="flex sm:hidden w-full h-full relative items-center justify-between overflow-hidden bg-[#0a0a0d] rtl:flex-row-reverse">
@@ -938,7 +895,7 @@ export function TheCollection() {
 
               {/* Left Details */}
               <div className="relative z-20 flex flex-col justify-center pl-4.5 pr-2 py-3 rtl:pr-4.5 rtl:pl-2 max-w-[62%] xs:max-w-[64%]">
-                <span className="inline-block self-start px-2 py-0.5 rounded-xs bg-ink/80 backdrop-blur-md text-[9px] xs:text-[10px] font-mono tracking-wider text-gold/90 border border-gold/20 font-semibold mb-1">
+                <span className="inline-block self-start px-2 py-0.5 rounded-xs bg-ink/80 sm:backdrop-blur-md text-[9px] xs:text-[10px] font-mono tracking-wider text-gold/90 border border-gold/20 font-semibold mb-1">
                   {vol1.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol1.volumeNumber).padStart(2, "0")}` : (isArabic ? "المجلد 01" : "VOL. 01")}
                 </span>
                 <span className="text-[11px] xs:text-[13.5px] font-bold text-paper line-clamp-2 uppercase tracking-wide font-cinzel leading-tight">
@@ -1028,7 +985,7 @@ export function TheCollection() {
                 router.push(`/manga/${vol2.id}`);
               }
             }}
-            className="absolute w-[345px] xs:w-[370px] sm:w-48 lg:w-60 h-[122px] xs:h-[132px] sm:h-70 lg:h-88 rounded-xs overflow-hidden border border-ink-border/90 shadow-[0_20px_50px_rgba(0,0,0,0.85)] bg-[#0a0a0d] cursor-pointer group hover:border-gold hover:shadow-[0_25px_60px_rgba(199,167,108,0.3)] transition-[border-color,box-shadow] duration-300 z-20 select-none transform-gpu will-change-transform [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [isolation:isolate]"
+            className="absolute w-[calc(100%-36px)] xs:w-[calc(100%-44px)] sm:w-48 lg:w-60 h-[104px] xs:h-[112px] sm:h-70 lg:h-88 rounded-xs overflow-hidden border border-ink-border/90 shadow-[0_12px_28px_rgba(0,0,0,0.72)] sm:shadow-[0_20px_50px_rgba(0,0,0,0.85)] bg-[#0a0a0d] cursor-pointer group hover:border-gold hover:shadow-[0_25px_60px_rgba(199,167,108,0.3)] transition-[border-color,box-shadow] duration-300 z-20 select-none transform-gpu [will-change:auto] sm:will-change-transform [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [isolation:isolate]"
           >
             {/* MOBILE LAYOUT (< sm): Clean Horizontal Ticket without Eye Icon */}
             <div className="flex sm:hidden w-full h-full relative items-center justify-between overflow-hidden bg-[#0a0a0d] rtl:flex-row-reverse">
@@ -1043,7 +1000,7 @@ export function TheCollection() {
 
               {/* Left Details */}
               <div className="relative z-20 flex flex-col justify-center pl-4.5 pr-2 py-3 rtl:pr-4.5 rtl:pl-2 max-w-[62%] xs:max-w-[64%]">
-                <span className="inline-block self-start px-2 py-0.5 rounded-xs bg-ink/80 backdrop-blur-md text-[9px] xs:text-[10px] font-mono tracking-wider text-gold/90 border border-gold/20 font-semibold mb-1">
+                <span className="inline-block self-start px-2 py-0.5 rounded-xs bg-ink/80 sm:backdrop-blur-md text-[9px] xs:text-[10px] font-mono tracking-wider text-gold/90 border border-gold/20 font-semibold mb-1">
                   {vol2.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol2.volumeNumber).padStart(2, "0")}` : (isArabic ? "المجلد 02" : "VOL. 02")}
                 </span>
                 <span className="text-[11px] xs:text-[13.5px] font-bold text-paper line-clamp-2 uppercase tracking-wide font-cinzel leading-tight">
@@ -1133,7 +1090,7 @@ export function TheCollection() {
                 router.push(`/manga/${vol3.id}`);
               }
             }}
-            className="absolute w-[345px] xs:w-[370px] sm:w-48 lg:w-60 h-[122px] xs:h-[132px] sm:h-70 lg:h-88 rounded-xs overflow-hidden border border-ink-border/90 shadow-[0_20px_50px_rgba(0,0,0,0.85)] bg-[#0a0a0d] cursor-pointer group hover:border-gold hover:shadow-[0_25px_60px_rgba(199,167,108,0.3)] transition-[border-color,box-shadow] duration-300 z-20 select-none transform-gpu will-change-transform [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [isolation:isolate]"
+            className="absolute w-[calc(100%-36px)] xs:w-[calc(100%-44px)] sm:w-48 lg:w-60 h-[104px] xs:h-[112px] sm:h-70 lg:h-88 rounded-xs overflow-hidden border border-ink-border/90 shadow-[0_12px_28px_rgba(0,0,0,0.72)] sm:shadow-[0_20px_50px_rgba(0,0,0,0.85)] bg-[#0a0a0d] cursor-pointer group hover:border-gold hover:shadow-[0_25px_60px_rgba(199,167,108,0.3)] transition-[border-color,box-shadow] duration-300 z-20 select-none transform-gpu [will-change:auto] sm:will-change-transform [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [isolation:isolate]"
           >
             {/* MOBILE LAYOUT (< sm): Clean Horizontal Ticket without Eye Icon */}
             <div className="flex sm:hidden w-full h-full relative items-center justify-between overflow-hidden bg-[#0a0a0d] rtl:flex-row-reverse">
@@ -1145,7 +1102,7 @@ export function TheCollection() {
 
               {/* Left Details */}
               <div className="relative z-20 flex flex-col justify-center pl-4.5 pr-2 py-3 rtl:pr-4.5 rtl:pl-2 max-w-[62%] xs:max-w-[64%]">
-                <span className="inline-block self-start px-2 py-0.5 rounded-xs bg-ink/80 backdrop-blur-md text-[9px] xs:text-[10px] font-mono tracking-wider text-gold/90 border border-gold/20 font-semibold mb-1">
+                <span className="inline-block self-start px-2 py-0.5 rounded-xs bg-ink/80 sm:backdrop-blur-md text-[9px] xs:text-[10px] font-mono tracking-wider text-gold/90 border border-gold/20 font-semibold mb-1">
                   {vol3.volumeNumber ? `${isArabic ? "المجلد" : "VOL."} ${String(vol3.volumeNumber).padStart(2, "0")}` : (isArabic ? "المجلد 03" : "VOL. 03")}
                 </span>
                 <span className="text-[11px] xs:text-[13.5px] font-bold text-paper line-clamp-2 uppercase tracking-wide font-cinzel leading-tight">
