@@ -800,8 +800,10 @@ export const useStorefrontStore = create<StorefrontState>()(
       },
 
       loginAdmin: (pin, userEmail) => {
-        if (pin !== get().adminPin) return false;
-        if (userEmail && !get().isAuthorizedAdmin(userEmail)) return false;
+        // The PIN and curator identity are verified by /api/admin/verify-pin.
+        // This flag controls only client UI; it must never be treated as authorization.
+        void pin;
+        void userEmail;
         set({ isAdminAuthenticated: true });
         return true;
       },

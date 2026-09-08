@@ -2,10 +2,9 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { checkRateLimitKey, getClientIp } from "@/lib/rateLimit";
 import { AUTHORIZED_ADMIN_EMAILS } from "@/config/adminConfig";
+import { isTrustedOrigin } from "@/lib/serverAuth";
 
-const PATRON_SECRET =
-  process.env.PATRON_SESSION_SECRET ||
-  "kairo_patron_secret_signing_key_2026_salt_8832941_tokyo_archive";
+const PATRON_SECRET = process.env.PATRON_SESSION_SECRET || "";
 
 function computeClientFingerprint(request: Request): string {
   const ua = request.headers.get("user-agent") || "unknown";
@@ -71,6 +70,12 @@ function verifyPatronToken(token: string, request: Request): { valid: boolean; u
  */
 export async function POST(request: Request) {
   try {
+    if (PATRON_SECRET.length < 32) {
+      return NextResponse.json({ success: false, message: "Session configuration is incomplete." }, { status: 503 });
+    }
+    if (!isTrustedOrigin(request)) {
+      return NextResponse.json({ success: false, message: "Cross-origin session creation forbidden." }, { status: 403 });
+    }
     const clientIp = getClientIp(request);
 
     // 1. Rate limit session establishment: max 10 per 5 minutes per IP
@@ -80,19 +85,6 @@ export async function POST(request: Request) {
         { success: false, message: "Too many session attempts. Please wait." },
         { status: 429 }
       );
-    }
-
-    // 2. Strict Origin / Host verification
-    const origin = request.headers.get("origin");
-    const host = request.headers.get("host");
-    if (origin && host) {
-      const cleanOrigin = origin.replace(/^https?:\/\//, "");
-      if (cleanOrigin !== host && !cleanOrigin.startsWith(host)) {
-        return NextResponse.json(
-          { success: false, message: "Cross-origin session creation forbidden." },
-          { status: 403 }
-        );
-      }
     }
 
     const body = await request.json().catch(() => ({}));
