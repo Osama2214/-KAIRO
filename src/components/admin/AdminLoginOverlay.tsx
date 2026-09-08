@@ -23,7 +23,6 @@ import { verifyAdminPinWithServer } from "@/lib/security";
 export function AdminLoginOverlay() {
   const { currentUser, login, logout, loginDemo, isLoading } = useAuthStore();
   const loginAdmin = useStorefrontStore((state) => state.loginAdmin);
-  const loginAdminWithToken = useStorefrontStore((state) => state.loginAdminWithToken);
   const isAuthorizedAdmin = useStorefrontStore((state) => state.isAuthorizedAdmin);
 
   const isCurrentAuthorized = currentUser ? isAuthorizedAdmin(currentUser.email) : false;
@@ -136,10 +135,7 @@ export function AdminLoginOverlay() {
         return;
       }
 
-      // PIN verified successfully!
-      if (res.token) {
-        loginAdminWithToken(res.token, res.pinHash);
-      }
+      // The signed session is HTTP-only and is never exposed to client-side JavaScript.
       loginAdmin(pin.trim(), currentUser.email);
     } catch {
       setIsSubmittingPin(false);
@@ -373,13 +369,13 @@ export function AdminLoginOverlay() {
                 <KeyRound className="w-4 h-4 text-gold/60 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="password"
-                  maxLength={8}
+                  maxLength={64}
                   value={pin}
                   onChange={(e) => {
                     setPin(e.target.value);
                     setPinError("");
                   }}
-                  placeholder="••••"
+                  placeholder="••••••••••"
                   className="w-full bg-ink border border-ink-border focus:border-gold px-10 py-3 text-center text-lg font-mono tracking-[0.4em] text-paper rounded-sm outline-none transition-colors"
                   autoFocus
                 />

@@ -9,6 +9,7 @@ import {
 import { checkRateLimitKey, getClientIp } from "@/lib/rateLimit";
 import { ALL_VOLUMES } from "@/data/manga";
 import { DEFAULT_GOVERNORATE_RATES } from "@/data/governorates";
+import { curatorSession, isTrustedOrigin } from "@/lib/serverAuth";
 
 /**
  * GET: Retrieve orders from central server database
@@ -17,23 +18,12 @@ import { DEFAULT_GOVERNORATE_RATES } from "@/data/governorates";
  */
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const filterEmail = searchParams.get("email")?.toLowerCase().trim();
-    const cookieHeader = request.headers.get("cookie") || "";
-    const isCurator = cookieHeader.includes("kairo_curator_session=");
-
-    const allOrders = await getAllServerOrders();
-
-    if (filterEmail && !isCurator) {
-      // Customer querying their own orders
-      const userOrders = allOrders.filter(
-        (o) => o.customerEmail?.toLowerCase() === filterEmail
-      );
-      return NextResponse.json({ success: true, orders: userOrders });
+    if (!curatorSession(request).valid) {
+      return NextResponse.json({ success: false, message: "Curator authorization required." }, { status: 401, headers: { "Cache-Control": "no-store" } });
     }
 
-    // Return all orders for curator
-    return NextResponse.json({ success: true, orders: allOrders, total: allOrders.length });
+    const allOrders = await getAllServerOrders();
+    return NextResponse.json({ success: true, orders: allOrders, total: allOrders.length }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("GET /api/orders error:", error);
     return NextResponse.json(
@@ -48,6 +38,7 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
+    if (!isTrustedOrigin(request)) return NextResponse.json({ success: false, message: "Invalid request origin." }, { status: 403 });
     const clientIp = getClientIp(request);
 
     // Rate limiting: Max 6 orders per 10 minutes per IP
@@ -63,7 +54,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => null);
-    if (!body || !body.id || !Array.isArray(body.items) || body.items.length === 0) {
+    if (!body || !body.id || !Array.isArray(body.items) || body.items.length === 0 || body.items.length > 20) {
       return NextResponse.json(
         { success: false, message: "Invalid order data. Cart items and order ID are required." },
         { status: 400 }
@@ -79,8 +70,9 @@ export async function POST(request: Request) {
     const validatedItems = body.items.map((it: Record<string, unknown>) => {
       const volId = String(it.volumeId || it.id || "");
       const canon = ALL_VOLUMES.find((v) => v.id === volId);
-      const unitPrice = canon ? canon.price : Math.max(0, Number(it.price) || 0);
-      const qty = Math.max(1, Math.floor(Number(it.quantity) || 1));
+      if (!canon) throw new Error("Invalid catalogue item");
+      const unitPrice = canon.price;
+      const qty = Math.min(10, Math.max(1, Math.floor(Number(it.quantity) || 1)));
       computedSubtotal += unitPrice * qty;
 
       return {
@@ -145,7 +137,7 @@ export async function POST(request: Request) {
       65;
 
     // Free shipping threshold: 500 EGP calculated on NET merchandise value (after discount)
-    const isFreeShipping = netMerchandise >= 500 || (discountPercent > 0 && body.freeShippingGranted);
+    const isFreeShipping = netMerchandise >= 500;
     const shippingCost = isFreeShipping ? 0 : govShippingRate;
 
     // 4. Authoritative Final Total
@@ -166,7 +158,7 @@ export async function POST(request: Request) {
 
     const sanitizedOrder: ServerOrder = {
       id: String(body.id).trim().slice(0, 32),
-      date: body.date || new Date().toISOString().split("T")[0],
+      date: new Date().toISOString().split("T")[0],
       items: validatedItems,
       subtotal: Math.round(computedSubtotal * 100) / 100,
       shippingCost,
@@ -232,11 +224,7 @@ export async function POST(request: Request) {
  */
 export async function PATCH(request: Request) {
   try {
-    const cookieHeader = request.headers.get("cookie") || "";
-    const isCurator = cookieHeader.includes("kairo_curator_session=");
-
-    // Require curator session to update order status in production
-    if (!isCurator && process.env.NODE_ENV === "production") {
+    if (!isTrustedOrigin(request) || !curatorSession(request).valid) {
       return NextResponse.json(
         { success: false, message: "Curator administrator authorization required." },
         { status: 403 }
@@ -251,44 +239,10 @@ export async function PATCH(request: Request) {
       );
     }
 
-    let result = await updateServerOrderStatus(body.orderId, body.updates || {});
-    
-    // If order was not yet in central server storage (e.g. legacy/client-created order),
-    // but the client provided fullOrder details, upsert it now!
-    if (!result && body.fullOrder) {
-      const full = body.fullOrder;
-      const enrichedOrder: ServerOrder = {
-        id: body.orderId,
-        date: full.date || new Date().toISOString().split("T")[0],
-        items: Array.isArray(full.items) ? full.items : [],
-        subtotal: Number(full.subtotal) || 0,
-        shippingCost: Number(full.shippingCost) || 0,
-        discountAmount: full.discountAmount,
-        appliedCoupon: full.appliedCoupon,
-        total: Number(full.total) || 0,
-        status: (body.updates?.status || full.status || "Confirmed") as string,
-        paymentMethod: full.paymentMethod || "cash",
-        paymentStatus: body.updates?.paymentStatus || full.paymentStatus || "Pending Collection",
-        paymentSenderDetail: full.paymentSenderDetail,
-        customerName: full.customerName || "Collector",
-        customerPhone: full.customerPhone,
-        customerEmail: full.customerEmail,
-        customerAddress: full.customerAddress,
-        customerGovernorate: full.customerGovernorate,
-        timeline: Array.isArray(full.timeline) ? full.timeline : ["Order Placed"],
-        trackingNumber: body.updates?.trackingNumber || full.trackingNumber || "",
-        trackingUrl: body.updates?.trackingUrl || full.trackingUrl || "",
-        courier: body.updates?.courier || full.courier || "Egypt Tracked Express",
-        estimatedDelivery: body.updates?.estimatedDelivery || full.estimatedDelivery || "24-48h",
-        ...body.updates,
-      };
-      
-      const saved = await saveServerOrder(enrichedOrder);
-      result = {
-        updated: saved,
-        previous: { ...saved, status: full.status || "Confirmed", trackingNumber: full.trackingNumber || "" },
-      };
-    }
+    const rawUpdates = body.updates && typeof body.updates === "object" ? body.updates : {};
+    const allowedFields = ["status", "paymentStatus", "timeline", "trackingNumber", "trackingUrl", "courier", "estimatedDelivery"];
+    const updates = Object.fromEntries(Object.entries(rawUpdates).filter(([key]) => allowedFields.includes(key)));
+    const result = await updateServerOrderStatus(String(body.orderId).slice(0, 32), updates);
 
     if (!result) {
       return NextResponse.json(
@@ -336,4 +290,3 @@ export async function PATCH(request: Request) {
     );
   }
 }
-

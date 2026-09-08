@@ -5,7 +5,7 @@
  */
 
 import crypto from "crypto";
-import { DEFAULT_ADMIN_PIN, PIN_SALT } from "@/config/adminConfig";
+import { PIN_SALT } from "@/config/adminConfig";
 
 declare global {
   var __kairo_server_pin_hash: string | undefined;
@@ -16,8 +16,12 @@ export function computePinHash(pin: string): string {
 }
 
 function getStoredPinHash(): string {
+  const configuredPin = process.env.ADMIN_PIN;
+  if (!configuredPin || configuredPin.length < 10) {
+    throw new Error("ADMIN_PIN must be configured as a 10+ character Vercel Secret.");
+  }
   if (!globalThis.__kairo_server_pin_hash) {
-    globalThis.__kairo_server_pin_hash = computePinHash(DEFAULT_ADMIN_PIN);
+    globalThis.__kairo_server_pin_hash = computePinHash(configuredPin);
   }
   return globalThis.__kairo_server_pin_hash;
 }
@@ -37,11 +41,9 @@ export function verifyServerPin(pin: string): boolean {
   return crypto.timingSafeEqual(bufSubmitted, bufExpected);
 }
 
-export function updateServerPin(newPin: string): boolean {
-  if (!newPin || newPin.trim().length < 4) return false;
-  const newHash = computePinHash(newPin);
-  globalThis.__kairo_server_pin_hash = newHash;
-  return true;
+export function updateServerPin(_newPin: string): boolean {
+  void _newPin;
+  return false;
 }
 
 export function getCurrentPinHash(): string {

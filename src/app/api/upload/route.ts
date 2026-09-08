@@ -3,6 +3,7 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import { checkRateLimitKey, getClientIp } from "@/lib/rateLimit";
+import { curatorSession, isTrustedOrigin } from "@/lib/serverAuth";
 
 // Allowed MIME types and corresponding extensions
 const ALLOWED_MIME_TYPES: Record<string, string> = {
@@ -75,6 +76,9 @@ function isValidImageMagicBytes(buffer: Buffer): { valid: boolean; detectedMime?
 
 export async function POST(request: Request) {
   try {
+    if (!isTrustedOrigin(request) || !curatorSession(request).valid) {
+      return NextResponse.json({ success: false, message: "Curator authorization required for uploads." }, { status: 401 });
+    }
     const clientIp = getClientIp(request);
 
     // 1. Check Rate Limiting (IP Level: max 15 uploads per 10 minutes to prevent disk exhaustion DoS)
@@ -87,22 +91,6 @@ export async function POST(request: Request) {
           waitSec: rateCheck.resetSeconds,
         },
         { status: 429 }
-      );
-    }
-
-    // 2. Authentication Check
-    const cookieHeader = request.headers.get("cookie") || "";
-    const hasCuratorSession = cookieHeader.includes("kairo_curator_session=");
-    const hasPatronSession = cookieHeader.includes("kairo_patron_session=");
-
-    // In production, require at least one authenticated session to upload files
-    if (process.env.NODE_ENV === "production" && !hasCuratorSession && !hasPatronSession) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Authentication required. Please log in to upload files to the archival server.",
-        },
-        { status: 401 }
       );
     }
 

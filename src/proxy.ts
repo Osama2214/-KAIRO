@@ -3,12 +3,10 @@ import type { NextRequest } from "next/server";
 import crypto from "crypto";
 import { AUTHORIZED_ADMIN_EMAILS } from "@/config/adminConfig";
 
-const SESSION_SECRET =
-  process.env.ADMIN_SESSION_SECRET ||
-  "kairo_master_curator_super_secret_hmac_2026_994827_kairo_archive";
+const SESSION_SECRET = process.env.ADMIN_SESSION_SECRET;
 
 function isCuratorAuthorized(token: string | null | undefined): boolean {
-  if (!token || !token.includes(".")) return false;
+  if (!SESSION_SECRET || SESSION_SECRET.length < 32 || !token || !token.includes(".")) return false;
   const [encodedPayload, signature] = token.split(".");
   if (!encodedPayload || !signature) return false;
 
@@ -40,8 +38,9 @@ function isCuratorAuthorized(token: string | null | undefined): boolean {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Guard administrative API routes (except the verification endpoint itself)
-  if (pathname.startsWith("/api/admin") && !pathname.startsWith("/api/admin/verify-pin")) {
+  // 1. Guard administrative and order-data API routes (except PIN verification itself).
+  const isProtectedOrderOperation = pathname === "/api/orders" && request.method !== "POST";
+  if ((pathname.startsWith("/api/admin") && !pathname.startsWith("/api/admin/verify-pin")) || isProtectedOrderOperation) {
     const cookieToken = request.cookies.get("kairo_curator_session")?.value;
     const authHeader = request.headers.get("authorization") || "";
     const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : null;
@@ -61,10 +60,12 @@ export function proxy(request: NextRequest) {
 
   // 2. Add hardened security headers to all responses
   const response = NextResponse.next();
-  response.headers.set("X-Frame-Options", "SAMEORIGIN");
+  response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  response.headers.set("X-XSS-Protection", "1; mode=block");
+  response.headers.set("Cross-Origin-Opener-Policy", "same-origin");
+  response.headers.set("Cross-Origin-Resource-Policy", "same-origin");
+  response.headers.set("X-Permitted-Cross-Domain-Policies", "none");
   response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
 
   if (process.env.NODE_ENV === "production") {

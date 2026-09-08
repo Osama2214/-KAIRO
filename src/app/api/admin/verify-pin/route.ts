@@ -1,40 +1,18 @@
 ﻿import { NextResponse } from "next/server";
-import crypto from "crypto";
 import {
   AUTHORIZED_ADMIN_EMAILS,
   MAX_PIN_ATTEMPTS,
   PIN_LOCKOUT_MS,
 } from "@/config/adminConfig";
-import { verifyServerPin, getCurrentPinHash } from "@/lib/adminPinStore";
+import { verifyServerPin } from "@/lib/adminPinStore";
 import { checkRateLimitKey, resetRateLimitKey, getClientIp } from "@/lib/rateLimit";
-
-const SESSION_SECRET =
-  process.env.ADMIN_SESSION_SECRET ||
-  "kairo_master_curator_super_secret_hmac_2026_994827_kairo_archive";
-
-function computeClientFingerprint(request: Request): string {
-  const ua = request.headers.get("user-agent") || "unknown";
-  return crypto.createHash("sha256").update(ua).digest("hex").slice(0, 16);
-}
-
-function generateCuratorToken(email: string, request: Request): string {
-  const payload = {
-    sub: email.toLowerCase(),
-    role: "admin",
-    fp: computeClientFingerprint(request),
-    iat: Date.now(),
-    exp: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
-  };
-  const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64url");
-  const signature = crypto
-    .createHmac("sha256", SESSION_SECRET)
-    .update(encodedPayload)
-    .digest("base64url");
-  return `${encodedPayload}.${signature}`;
-}
+import { createCuratorToken, isTrustedOrigin } from "@/lib/serverAuth";
 
 export async function POST(request: Request) {
   try {
+    if (!isTrustedOrigin(request)) {
+      return NextResponse.json({ success: false, message: "Invalid request origin." }, { status: 403 });
+    }
     const clientIp = getClientIp(request);
     const body = await request.json().catch(() => ({}));
     const email = (body.email || "").toString().trim().toLowerCase();
@@ -101,13 +79,13 @@ export async function POST(request: Request) {
       resetRateLimitKey(`pin:ip:${clientIp}`);
 
       // Issue signed curator session token bound to client fingerprint
-      const token = generateCuratorToken(email, request);
-      const pinHash = getCurrentPinHash();
+      const token = createCuratorToken(email, request);
+      if (!token) {
+        return NextResponse.json({ success: false, message: "Admin session configuration is incomplete." }, { status: 503 });
+      }
 
       const response = NextResponse.json({
         success: true,
-        token,
-        pinHash,
         message: "Master Curator authentication verified. Welcome to KAIRO Admin Console.",
       });
 
