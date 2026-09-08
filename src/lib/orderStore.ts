@@ -151,6 +151,17 @@ export function processExpiredPendingOrders(orders: ServerOrder[]): { orders: Se
   if (expiredOrdersToNotify.length > 0) {
     (async () => {
       try {
+        const { restoreCatalogItems } = await import("./storefrontDataStore");
+        for (const exp of expiredOrdersToNotify) {
+          if (Array.isArray(exp.items)) {
+            await restoreCatalogItems(exp.items);
+          }
+        }
+      } catch (err) {
+        console.error("[AUTO-CANCEL RESTOCK ERROR]:", err);
+      }
+
+      try {
         const { sendCustomerOrderAutoCancelledEmail } = await import("./email");
         for (const exp of expiredOrdersToNotify) {
           await sendCustomerOrderAutoCancelledEmail(exp);
@@ -354,6 +365,18 @@ export async function updateServerOrderStatus(
     timeline: updates.timeline || current.timeline,
     updatedAt: Date.now(),
   };
+
+  // If order is transitioned to Cancelled, return reserved items back to catalogue
+  const isNowCancelled = String(updates.status || "").toLowerCase().includes("cancelled");
+  const wasAlreadyCancelled = String(current.status || "").toLowerCase().includes("cancelled");
+  if (isNowCancelled && !wasAlreadyCancelled && Array.isArray(current.items)) {
+    try {
+      const { restoreCatalogItems } = await import("./storefrontDataStore");
+      await restoreCatalogItems(current.items);
+    } catch (restockErr) {
+      console.error("[ADMIN CANCEL RESTOCK ERROR]:", restockErr);
+    }
+  }
 
   const updatedList = [...orders];
   updatedList[idx] = updated;

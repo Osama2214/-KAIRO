@@ -467,6 +467,9 @@ export interface StorefrontState {
   updateMangaDiscoveryArabicConfig: (updates: Partial<MangaDiscoveryArabicConfig>) => void;
   updateTrendingArabicConfig: (updates: Partial<TrendingArabicConfig>) => void;
   updateGenreBentoArabicConfig: (updates: Partial<GenreBentoArabicConfig>) => void;
+
+  // Cloud Neon DB Direct Synchronization
+  syncToNeon: () => Promise<{ success: boolean }>;
   addGenre: (genre: GenreInfo) => void;
   updateGenre: (id: string, updates: Partial<GenreInfo>) => void;
   deleteGenre: (id: string) => void;
@@ -763,6 +766,29 @@ export const useStorefrontStore = create<StorefrontState>()(
         set((state) => ({
           genreBentoArabicConfig: { ...state.genreBentoArabicConfig, ...updates },
         }));
+      },
+
+      syncToNeon: async () => {
+        const state = get() as unknown as Record<string, unknown>;
+        const DATA_KEYS = [
+          "volumes", "series", "genres", "formats", "heroContent", "announcement", "shippingConfig",
+          "editorialConfig", "featuredSeriesConfig", "collectionConfig", "genreBentoConfig", "trendingConfig",
+          "newReleasesConfig", "mangaDiscoveryConfig", "heroArabicContent", "announcementArabic",
+          "shippingArabicConfig", "editorialArabicConfig", "newReleasesArabicConfig", "mangaDiscoveryArabicConfig",
+          "trendingArabicConfig", "genreBentoArabicConfig", "arabicLanguageEnabled",
+        ];
+        const data = Object.fromEntries(DATA_KEYS.map((k) => [k, state[k]]));
+        try {
+          const res = await fetch("/api/storefront", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ data }),
+          });
+          const json = await res.json().catch(() => ({}));
+          return { success: Boolean(res.ok && json.success) };
+        } catch {
+          return { success: false };
+        }
       },
 
       addGenre: (newGenre) => {

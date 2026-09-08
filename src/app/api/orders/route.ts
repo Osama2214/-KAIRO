@@ -8,11 +8,12 @@ import {
   PAYMENT_HOLD_TIMEOUT_MS,
 } from "@/lib/orderStore";
 import { checkRateLimitKey, getClientIp } from "@/lib/rateLimit";
-import { ALL_VOLUMES } from "@/data/manga";
 import { DEFAULT_GOVERNORATE_RATES } from "@/data/governorates";
 import { curatorSession, isTrustedOrigin } from "@/lib/serverAuth";
 import { patronSession } from "@/lib/patronAuth";
 import { redeemWelcomeCoupon } from "@/lib/couponStore";
+import { CatalogReservationError, reserveCatalogItems } from "@/lib/storefrontDataStore";
+import { validateEgyptianPhone } from "@/lib/security";
 
 /**
  * GET: Retrieve orders from central server database
@@ -93,30 +94,59 @@ export async function POST(request: Request) {
     }
 
     const customerEmail = String(body.customerEmail || "").toLowerCase().trim();
-    const customerPhone = String(body.customerPhone || "").trim();
+    const rawCustomerPhone = String(body.customerPhone || "").trim();
+    const customerName = String(body.customerName || "").trim();
+    const customerAddress = String(body.customerAddress || "").trim();
 
-    // 1. Authoritative Item Pricing & Subtotal Calculation
-    let computedSubtotal = 0;
-    const validatedItems = body.items.map((it: Record<string, unknown>) => {
-      const volId = String(it.volumeId || it.id || "");
-      const canon = ALL_VOLUMES.find((v) => v.id === volId);
-      if (!canon) throw new Error("Invalid catalogue item");
-      const unitPrice = canon.price;
-      const qty = Math.min(10, Math.max(1, Math.floor(Number(it.quantity) || 1)));
-      computedSubtotal += unitPrice * qty;
+    if (!customerName || customerName.length < 2) {
+      return NextResponse.json({ success: false, message: "A valid customer name is required." }, { status: 400 });
+    }
 
-      return {
-        id: volId.slice(0, 64),
-        volumeId: volId.slice(0, 64),
-        title: canon?.title || String(it.title || "Manga Volume").slice(0, 120),
-        seriesTitle: canon?.seriesTitle || String(it.seriesTitle || "").slice(0, 120),
-        volumeNumber: canon?.volumeNumber ?? it.volumeNumber ?? 1,
-        coverImage: canon?.coverImage || String(it.coverImage || "").slice(0, 500),
-        format: canon?.format || String(it.format || "Tankōbon").slice(0, 50),
-        price: unitPrice,
-        quantity: qty,
-      };
-    });
+    if (!customerAddress || customerAddress.length < 5) {
+      return NextResponse.json({ success: false, message: "A detailed delivery address in Egypt is required." }, { status: 400 });
+    }
+
+    const phoneValidation = validateEgyptianPhone(rawCustomerPhone);
+    if (!phoneValidation.isValid) {
+      return NextResponse.json(
+        { success: false, message: phoneValidation.message || "A valid 11-digit Egyptian mobile number is required." },
+        { status: 400 }
+      );
+    }
+    const customerPhone = phoneValidation.normalized || rawCustomerPhone;
+
+    // 1. Reserve stock and calculate price from Neon catalogue data only.
+    const requestedItems: Array<{ id: string; quantity: number }> = body.items.map((it: Record<string, unknown>) => ({
+      id: String(it.volumeId || it.id || ""),
+      quantity: Number(it.quantity) || 1,
+    }));
+    let reservedCatalogItems;
+    try {
+      reservedCatalogItems = await reserveCatalogItems(requestedItems);
+    } catch (error) {
+      if (error instanceof CatalogReservationError) {
+        return NextResponse.json({ success: false, message: error.message }, { status: 409 });
+      }
+      throw error;
+    }
+    const quantityById = new Map<string, number>(
+      requestedItems.map((item: { id: string; quantity: number }) => [
+        item.id,
+        Math.min(10, Math.max(1, Math.floor(item.quantity || 1))),
+      ])
+    );
+    const validatedItems = reservedCatalogItems.map((catalogItem) => ({
+      id: catalogItem.id,
+      volumeId: catalogItem.id,
+      title: catalogItem.title,
+      seriesTitle: catalogItem.seriesTitle,
+      volumeNumber: catalogItem.volumeNumber,
+      coverImage: catalogItem.coverImage,
+      format: catalogItem.format,
+      price: Number(catalogItem.price),
+      quantity: Number(quantityById.get(catalogItem.id) || 1),
+    }));
+    const computedSubtotal = validatedItems.reduce((total: number, item) => total + item.price * item.quantity, 0);
 
     // 2. Authoritative Coupon Validation & One-Time Use Enforcement
     let discountPercent = 0;
@@ -163,6 +193,15 @@ export async function POST(request: Request) {
     // 5. Electronic Payment Hold & Expiration Timestamp (36 Hours = 1.5 Days)
     const paymentMethod = String(body.paymentMethod || "cash").toLowerCase();
     const isElectronic = paymentMethod === "wallet" || paymentMethod === "instapay";
+    const paymentSenderDetail = body.paymentSenderDetail ? String(body.paymentSenderDetail).trim().slice(0, 100) : undefined;
+
+    if (isElectronic && (!paymentSenderDetail || paymentSenderDetail.length < 3)) {
+      return NextResponse.json(
+        { success: false, message: "Please provide your transfer phone number or InstaPay reference for payment verification." },
+        { status: 400 }
+      );
+    }
+
     const now = Date.now();
     const expiresAt = isElectronic ? now + PAYMENT_HOLD_TIMEOUT_MS : undefined;
 
@@ -185,13 +224,11 @@ export async function POST(request: Request) {
       status: isElectronic ? "Pending Payment" : "Confirmed",
       paymentMethod,
       paymentStatus: isElectronic ? "Pending Verification" : "Pending Collection",
-      paymentSenderDetail: body.paymentSenderDetail
-        ? String(body.paymentSenderDetail).slice(0, 100)
-        : undefined,
-      customerName: String(body.customerName || "Collector").slice(0, 100),
+      paymentSenderDetail,
+      customerName: String(customerName).slice(0, 100),
       customerPhone: customerPhone.slice(0, 30),
       customerEmail: customerEmail.slice(0, 100),
-      customerAddress: String(body.customerAddress || "").slice(0, 250),
+      customerAddress: String(customerAddress).slice(0, 250),
       customerGovernorate: governorate.slice(0, 50),
       timeline: initialTimeline,
       trackingNumber: String(body.trackingNumber || "").slice(0, 50),

@@ -15,14 +15,13 @@
 export interface AdminAccountConfig {
   email: string;
   name: string;
-  password: string;
   phone?: string;
   governorate?: string;
 }
 
 /**
  * 🔑 1. Master Security PIN
- * Set this to your preferred master security code (e.g. "5892" or "7741")
+ * Managed securely via server environment variables (ADMIN_PIN) and Neon DB.
  */
 export const DEFAULT_ADMIN_PIN = "1234";
 
@@ -52,21 +51,18 @@ export const AUTHORIZED_ADMIN_EMAILS: string[] = [
 ];
 
 /**
- * 👤 3. Initial Admin Accounts & Credentials
- * These accounts are provisioned automatically into the system with full Admin privileges:
+ * 👤 3. Initial Admin Profile Metadatas
  */
 export const INITIAL_ADMIN_ACCOUNTS: AdminAccountConfig[] = [
   {
     email: "admin@kairo.archive",
     name: "Master Curator",
-    password: "password123",
     phone: "+20 100 000 0000",
     governorate: "Cairo",
   },
   {
     email: "karim@kairo.archive",
     name: "Karim El-Sayed",
-    password: "password123",
     phone: "+20 100 234 5678",
     governorate: "Giza",
   },

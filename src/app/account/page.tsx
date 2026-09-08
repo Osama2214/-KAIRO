@@ -140,13 +140,10 @@ function AccountContent() {
 
   // Auth Store
   const currentUser = useAuthStore((state) => state.currentUser);
-  const users = useAuthStore((state) => state.users);
   const login = useAuthStore((state) => state.login);
   const register = useAuthStore((state) => state.register);
-  const resetPassword = useAuthStore((state) => state.resetPassword);
   const logout = useAuthStore((state) => state.logout);
   const updateProfile = useAuthStore((state) => state.updateProfile);
-  const loginDemo = useAuthStore((state) => state.loginDemo);
   const loginWithGoogle = useAuthStore((state) => state.loginWithGoogle);
   const shippingConfig = useStorefrontStore((state) => state.shippingConfig);
 
@@ -224,7 +221,7 @@ function AccountContent() {
                     email: data.profile.email,
                     name: data.profile.name || data.profile.email.split("@")[0],
                     avatar: data.profile.picture,
-                  }, true);
+                  });
                 } catch (fetchErr) {
                   console.error("Failed to verify Google account", fetchErr);
                   setAuthError("Google account verification failed. Please try again.");
@@ -357,12 +354,6 @@ function AccountContent() {
       return;
     }
 
-    const registeredUser = users[cleanEmail];
-    if (!registeredUser) {
-      setForgotError("No patron account found with this email. Please verify spelling or create an account.");
-      return;
-    }
-
     setIsSubmittingForgot(true);
     try {
       const res = await sendOtpEmail(cleanEmail, "RESET_PASSWORD");
@@ -418,21 +409,25 @@ function AccountContent() {
     setIsSubmittingForgot(true);
     try {
       const cleanEmail = forgotEmail.trim().toLowerCase();
-      // 1. Verify OTP code
-      const otpRes = await verifyOtpCode(cleanEmail, forgotOtp.trim());
-      if (!otpRes.success) {
-        setForgotError(otpRes.message || "Invalid or expired recovery code.");
+      
+      // Reset password securely on server
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: cleanEmail,
+          otp: forgotOtp.trim(),
+          newPassword: forgotNewPassword,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data.success) {
+        setForgotError(data.message || "Failed to update password.");
         return;
       }
 
-      // 2. Reset password in database
-      const resetRes = await resetPassword(cleanEmail, forgotNewPassword);
-      if (!resetRes.success) {
-        setForgotError(resetRes.message || "Failed to update password.");
-        return;
-      }
-
-      // 3. Immediately log patron into session
+      // Immediately log patron into session
       await login(cleanEmail, forgotNewPassword);
       setForgotSuccess("Password updated successfully! Welcome back to the Archive.");
       setTimeout(() => {
@@ -582,32 +577,87 @@ function AccountContent() {
 
   // Google patrons receive a signed server session. Refresh their orders from
   // Neon so an admin status change appears without relying on stale browser
-  // storage. The local list remains the fallback for legacy/guest orders.
+  // Refresh patron orders directly from server Neon DB so admin status changes
+  // (e.g. Confirmed, In Transit, Shipped, Delivered) reflect immediately on the site.
   useEffect(() => {
-    if (!currentUser?.email || currentUser.provider !== "google") return;
-
     let disposed = false;
+
     const refreshCentralOrders = async () => {
       try {
-        const response = await fetch("/api/orders/mine", { cache: "no-store" });
-        const payload = await response.json().catch(() => null);
-        if (!disposed && payload?.success && Array.isArray(payload.orders)) {
-          setOrders(payload.orders as SavedOrder[]);
+        if (currentUser?.email) {
+          // 1. Authenticated user: fetch their verified orders from server
+          const response = await fetch("/api/orders/mine", { cache: "no-store" });
+          const payload = await response.json().catch(() => null);
+          if (!disposed && payload?.success && Array.isArray(payload.orders)) {
+            setOrders(payload.orders as SavedOrder[]);
+            return;
+          }
+        }
+
+        // 2. Guest user or fallback: sync status of locally known order IDs from Neon DB
+        const currentOrderIds = (orders || []).map((o) => o.id).filter(Boolean);
+        if (typeof window !== "undefined") {
+          try {
+            const raw = localStorage.getItem("kairo_orders");
+            if (raw) {
+              const parsed: SavedOrder[] = JSON.parse(raw);
+              if (Array.isArray(parsed)) {
+                for (const ord of parsed) {
+                  if (ord?.id && !currentOrderIds.includes(ord.id)) {
+                    currentOrderIds.push(ord.id);
+                  }
+                }
+              }
+            }
+          } catch {}
+        }
+
+        if (currentOrderIds.length > 0) {
+          const res = await fetch("/api/orders/status-check", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orderIds: currentOrderIds }),
+          });
+          const data = await res.json().catch(() => null);
+          if (!disposed && data?.success && Array.isArray(data.orders) && data.orders.length > 0) {
+            const updatedMap = new Map<string, SavedOrder>(data.orders.map((o: SavedOrder) => [o.id, o]));
+            setOrders((prev) =>
+              prev.map((ord) => {
+                const fresh = updatedMap.get(ord.id);
+                return fresh ? { ...ord, ...fresh } : ord;
+              })
+            );
+
+            // Update local storage so guest gets fresh data immediately
+            try {
+              const raw = localStorage.getItem("kairo_orders");
+              if (raw) {
+                const parsed: SavedOrder[] = JSON.parse(raw);
+                if (Array.isArray(parsed)) {
+                  const updatedLocal = parsed.map((ord) => {
+                    const fresh = updatedMap.get(ord.id);
+                    return fresh ? { ...ord, ...fresh } : ord;
+                  });
+                  localStorage.setItem("kairo_orders", JSON.stringify(updatedLocal));
+                }
+              }
+            } catch {}
+          }
         }
       } catch {
-        // Keep the locally stored copy visible during a transient network error.
+        // Keep existing orders visible on transient network error
       }
     };
 
     void refreshCentralOrders();
-    const interval = window.setInterval(refreshCentralOrders, 30_000);
+    const interval = window.setInterval(refreshCentralOrders, 8_000); // Poll every 8 seconds
     window.addEventListener("focus", refreshCentralOrders);
     return () => {
       disposed = true;
       window.clearInterval(interval);
       window.removeEventListener("focus", refreshCentralOrders);
     };
-  }, [currentUser?.email, currentUser?.provider]);
+  }, [currentUser?.email]);
 
   const handlePrintInvoice = (order: SavedOrder) => {
     // Create an isolated hidden iframe dedicated strictly to the invoice receipt
@@ -1808,22 +1858,6 @@ function AccountContent() {
             <GoogleIcon className="w-4 h-4 shrink-0" />
             <span>{isGoogleLoading ? "CONNECTING TO GOOGLE..." : "SIGN IN WITH GOOGLE"}</span>
           </button>
-
-          {/* Quick Demo Login Option */}
-          <div className="pt-3 border-t border-ink-border/80 text-center space-y-2">
-            <span className="text-[10px] font-mono text-text-muted block uppercase">
-              OR EXPLORE WITH ARCHIVE PREVIEW
-            </span>
-            <button
-              type="button"
-              onClick={() => loginDemo()}
-              className="w-full py-2 bg-ink border border-gold/40 text-gold hover:bg-gold hover:text-ink text-xs font-mono uppercase tracking-wider rounded-xs transition-all cursor-pointer flex items-center justify-center gap-2"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-gold" />
-              <span>QUICK DEMO PATRON (KARIM EL-SAYED)</span>
-            </button>
-          </div>
-
         </div>
 
         {/* Google Account Selection Modal */}

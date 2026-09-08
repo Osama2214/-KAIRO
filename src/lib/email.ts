@@ -9,6 +9,16 @@ function appUrl(): string {
   return "http://localhost:3000";
 }
 
+function escapeHtml(str: unknown): string {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function adminNotificationRecipients(): string[] {
   const configured = [
     process.env.ADMIN_EMAIL,
@@ -331,31 +341,31 @@ export async function sendAdminNewOrderNotification(order: ServerOrder): Promise
                 <tr>
                   <td style="padding: 6px; font-size: 12px; color: #888;">Customer:</td>
                   <td style="padding: 6px; font-size: 13px; color: #f5f3ef; font-weight: bold;">
-                    ${order.customerName || "Collector"}
+                    ${escapeHtml(order.customerName) || "Collector"}
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 6px; font-size: 12px; color: #888;">Phone / Contact:</td>
                   <td style="padding: 6px; font-size: 13px; color: #f5f3ef; font-family: monospace;">
-                    <a href="tel:${order.customerPhone}" style="color: #D4AF37; text-decoration: none;">${order.customerPhone || "N/A"}</a>
+                    <a href="tel:${escapeHtml(order.customerPhone)}" style="color: #D4AF37; text-decoration: none;">${escapeHtml(order.customerPhone) || "N/A"}</a>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 6px; font-size: 12px; color: #888;">Email:</td>
                   <td style="padding: 6px; font-size: 13px; color: #cccccc; font-family: monospace;">
-                    ${order.customerEmail || "N/A"}
+                    ${escapeHtml(order.customerEmail) || "N/A"}
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 6px; font-size: 12px; color: #888;">Shipping Destination:</td>
                   <td style="padding: 6px; font-size: 13px; color: #f5f3ef;">
-                    ${order.customerGovernorate || "Cairo"}, Egypt — <span style="color:#aaa;">${order.customerAddress || ""}</span>
+                    ${escapeHtml(order.customerGovernorate) || "Cairo"}, Egypt — <span style="color:#aaa;">${escapeHtml(order.customerAddress) || ""}</span>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 6px; font-size: 12px; color: #888;">Payment Method:</td>
                   <td style="padding: 6px; font-size: 13px; color: #f5f3ef;">
-                    ${order.paymentMethod?.toUpperCase() || "CASH"} — ${paymentBadge}
+                    ${escapeHtml(order.paymentMethod?.toUpperCase()) || "CASH"} — ${paymentBadge}
                   </td>
                 </tr>
                 ${
@@ -363,7 +373,7 @@ export async function sendAdminNewOrderNotification(order: ServerOrder): Promise
                     ? `<tr>
                         <td style="padding: 6px; font-size: 12px; color: #888;">Sender Reference:</td>
                         <td style="padding: 6px; font-size: 13px; color: #D4AF37; font-weight: bold; font-family: monospace;">
-                          ${order.paymentSenderDetail}
+                          ${escapeHtml(order.paymentSenderDetail)}
                         </td>
                       </tr>`
                     : ""
@@ -503,7 +513,7 @@ export async function sendCustomerOrderStatusUpdateEmail(
           <tr>
             <td style="padding: 28px 30px;">
               <p style="margin: 0 0 14px; font-size: 14px; color: #cccccc;">
-                Dear ${order.customerName || "Patron"},
+                Dear ${escapeHtml(order.customerName) || "Patron"},
               </p>
               <p style="margin: 0 0 20px; font-size: 14px; line-height: 1.6; color: #cccccc;">
                 ${statusDescription}
@@ -622,7 +632,7 @@ export async function sendCustomerOrderShippedEmail(order: ServerOrder): Promise
           <tr>
             <td style="padding: 28px 30px;">
               <p style="margin: 0 0 16px; font-size: 14px; line-height: 1.6; color: #cccccc;">
-                Dear <strong style="color: #ffffff;">${order.customerName || "Patron"}</strong>,
+                Dear <strong style="color: #ffffff;">${escapeHtml(order.customerName) || "Patron"}</strong>,
               </p>
               <p style="margin: 0 0 22px; font-size: 14px; line-height: 1.6; color: #cccccc;">
                 Great news! Your archival manga volumes have departed the KAIRO fulfillment vault and are currently in transit with our logistics carrier.
@@ -755,7 +765,7 @@ export async function sendCustomerOrderAutoCancelledEmail(order: ServerOrder): P
           <tr>
             <td style="padding: 26px 30px;">
               <p style="margin: 0 0 14px; font-size: 14px; color: #cccccc;">
-                Dear ${order.customerName || "Patron"},
+                Dear ${escapeHtml(order.customerName) || "Patron"},
               </p>
               <p style="margin: 0 0 18px; font-size: 14px; line-height: 1.6; color: #cccccc;">
                 This is to notify you that Order <strong style="color: #fff;">#${order.id}</strong> has been automatically cancelled because the payment transfer was not completed or verified within our standard 36-hour (1.5 days) hold window.

@@ -33,6 +33,7 @@ import {
   RefreshCw,
   Clock,
   Globe,
+  Cloud,
 } from "lucide-react";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { useAuthStore, SavedOrder, UserProfile } from "@/store/useAuthStore";
@@ -170,10 +171,10 @@ export default function AdminPage() {
     exportData,
     importData,
     resetToDefaults,
+    syncToNeon,
   } = useStorefrontStore();
 
   // Auth & Orders State
-  const users = useAuthStore((state) => state.users);
   const currentUser = useAuthStore((state) => state.currentUser);
   const updateOrderStatus = useAuthStore((state) => state.updateOrderStatus);
 
@@ -399,22 +400,29 @@ export default function AdminPage() {
     }));
   };
 
-  // Compile all customer orders from useAuthStore & local storage
+  // Compile all customer orders from authoritative serverOrders
   const allOrders = useMemo(() => {
     const list: { order: SavedOrder; customer: UserProfile }[] = [];
     const seenIds = new Set<string>();
 
-    const allUsers = Object.values(users);
-    if (currentUser && !allUsers.some((u) => u.id === currentUser.id)) {
-      allUsers.push(currentUser);
-    }
-    allUsers.forEach((u) => {
-      (u.orders || []).forEach((o) => {
-        if (!seenIds.has(o.id)) {
-          seenIds.add(o.id);
-          list.push({ order: o, customer: u });
-        }
-      });
+    (serverOrders || []).forEach((o) => {
+      if (!seenIds.has(o.id)) {
+        seenIds.add(o.id);
+        list.push({
+          order: o,
+          customer: {
+            id: `PATRON-${o.id}`,
+            name: o.customerName || "Collector",
+            email: o.customerEmail || "patron@kairo.archive",
+            phone: o.customerPhone || "+20 100 000 0000",
+            governorate: o.customerGovernorate || "Cairo",
+            address: o.customerAddress || "Cairo, Egypt",
+            tier: "Collector",
+            joinedDate: o.date || new Date().toISOString().split("T")[0],
+            orders: [o],
+          },
+        });
+      }
     });
 
     if (typeof window !== "undefined") {
@@ -475,7 +483,7 @@ export default function AdminPage() {
       const timeB = b.order.createdAt || (b.order.date ? new Date(b.order.date).getTime() : 0);
       return timeB - timeA;
     });
-  }, [users, currentUser, serverOrders]);
+  }, [currentUser, serverOrders]);
 
   // Top recent orders preview (latest 4 orders)
   const recentOrders = useMemo(() => {
@@ -620,27 +628,39 @@ export default function AdminPage() {
   }
 
   // Handle Save Volume
-  const handleSaveVolume = (vol: MangaVolume) => {
+  const handleSaveVolume = async (vol: MangaVolume) => {
     if (editingVolume) {
       updateVolume(vol.id, vol);
-      showToast(`Updated volume "${vol.title}" successfully.`);
+      showToast(`Updated volume "${vol.title}". Syncing with Neon DB...`);
     } else {
       addVolume(vol);
-      showToast(`Added new volume "${vol.title}" to catalog.`);
+      showToast(`Added new volume "${vol.title}". Syncing with Neon DB...`);
     }
     setEditingVolume(null);
+    const syncRes = await syncToNeon();
+    if (syncRes.success) {
+      showToast(`Volume changes safely committed to Neon DB.`);
+    } else {
+      showToast(`Saved locally. Background cloud sync pending.`);
+    }
   };
 
   // Handle Save Series
-  const handleSaveSeries = (s: Series) => {
+  const handleSaveSeries = async (s: Series) => {
     if (editingSeries) {
       updateSeries(s.slug, s);
-      showToast(`Updated series "${s.title}" successfully.`);
+      showToast(`Updated series "${s.title}". Syncing with Neon DB...`);
     } else {
       addSeries(s);
-      showToast(`Created series franchise "${s.title}".`);
+      showToast(`Created series franchise "${s.title}". Syncing with Neon DB...`);
     }
     setEditingSeries(null);
+    const syncRes = await syncToNeon();
+    if (syncRes.success) {
+      showToast(`Series changes safely committed to Neon DB.`);
+    } else {
+      showToast(`Saved locally. Background cloud sync pending.`);
+    }
   };
 
   // Handle Export
@@ -710,6 +730,23 @@ export default function AdminPage() {
               <span className="text-paper text-[11px] font-medium truncate max-w-[100px]">{currentUser.name}</span>
             </div>
           )}
+
+          <button
+            onClick={async () => {
+              showToast("Saving all catalog & CMS settings to Neon DB...");
+              const res = await syncToNeon();
+              if (res.success) {
+                showToast("All changes safely committed to Neon DB.");
+              } else {
+                showToast("Error saving to Neon DB. Check internet connection.");
+              }
+            }}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-ink border border-gold/40 hover:bg-gold/20 text-gold rounded-sm transition-all font-semibold text-[11px] sm:text-xs cursor-pointer"
+            title="Force immediate save of all changes to Neon Cloud Database"
+          >
+            <Cloud className="w-3.5 h-3.5 text-gold" />
+            <span className="hidden sm:inline">Sync Neon</span>
+          </button>
 
           <Link
             href="/"

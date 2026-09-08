@@ -66,13 +66,36 @@ export async function curatorSession(request: Request) {
   return verifyCuratorToken(token, request);
 }
 
-/** Reject cross-site state-changing browser requests. */
+/** Reject cross-site state-changing browser requests with strict origin verification. */
 export function isTrustedOrigin(request: Request): boolean {
   const origin = request.headers.get("origin");
   if (!origin) return process.env.NODE_ENV !== "production";
+
+  const cleanOrigin = origin.trim().replace(/\/+$/, "");
+  const allowed = new Set<string>([
+    "https://kairo-rosy-five.vercel.app",
+  ]);
+
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "");
+  if (configured) allowed.add(configured);
+
+  const vercelUrl = process.env.VERCEL_URL?.trim().replace(/\/+$/, "");
+  if (vercelUrl) {
+    allowed.add(`https://${vercelUrl.replace(/^https?:\/\//, "")}`);
+  }
+
+  // Development origins
+  if (process.env.NODE_ENV !== "production") {
+    allowed.add("http://localhost:3000");
+    allowed.add("http://127.0.0.1:3000");
+  }
+
+  if (allowed.has(cleanOrigin)) return true;
+
+  // Fallback to verified forwarding host matching
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
   const protocol = request.headers.get("x-forwarded-proto") || "https";
-  return Boolean(host) && origin === `${protocol}://${host}`;
+  return Boolean(host) && cleanOrigin === `${protocol}://${host}`;
 }
 
 export function noStoreJson(data: unknown, init?: ResponseInit) {

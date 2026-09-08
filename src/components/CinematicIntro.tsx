@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import { SkipForward } from "lucide-react";
 import { useUIStore } from "@/store/useUIStore";
 import { useMounted } from "@/store/useWishlistStore";
@@ -15,7 +16,36 @@ interface Particle {
   twinkleSpeed: number;
 }
 
+function hasSeenIntro(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    // 1. In-memory flag (survives client-side route navigation in same tab/window)
+    if ((window as unknown as { __kairo_intro_seen?: boolean }).__kairo_intro_seen) return true;
+    // 2. Cookie flag (shared across all tabs in incognito/private windows)
+    if (document.cookie.split(";").some((c) => c.trim().startsWith("kairo_intro_seen=true"))) return true;
+    // 3. LocalStorage flag (persistent across tabs in normal and most incognito windows)
+    if (localStorage.getItem("kairo_intro_seen") === "true") return true;
+    // 4. SessionStorage flag (per-tab fallback)
+    if (sessionStorage.getItem("kairo_intro_seen") === "true") return true;
+  } catch {
+    // If incognito strictly blocks all storage access, default to true to avoid annoying looping intros
+    return true;
+  }
+  return false;
+}
+
+function markIntroSeen(): void {
+  if (typeof window === "undefined") return;
+  try {
+    (window as unknown as { __kairo_intro_seen?: boolean }).__kairo_intro_seen = true;
+    sessionStorage.setItem("kairo_intro_seen", "true");
+    localStorage.setItem("kairo_intro_seen", "true");
+    document.cookie = "kairo_intro_seen=true; path=/; max-age=86400; SameSite=Lax";
+  } catch {}
+}
+
 export function CinematicIntro() {
+  const pathname = usePathname();
   const mounted = useMounted();
   const [shouldShow, setShouldShow] = useState(false);
   const [stage, setStage] = useState<"enter" | "active" | "exit">("enter");
@@ -37,11 +67,7 @@ export function CinematicIntro() {
   const animFrameId = useRef<number | null>(null);
 
   const finishIntro = useCallback(() => {
-    try {
-      sessionStorage.setItem("kairo_intro_seen", "true");
-    } catch (e) {
-      console.error(e);
-    }
+    markIntroSeen();
     setStage("exit");
     closeIntro();
     setTimeout(() => {
@@ -50,11 +76,7 @@ export function CinematicIntro() {
   }, [closeIntro]);
 
   const startIntro = useCallback(() => {
-    try {
-      sessionStorage.setItem("kairo_intro_seen", "true");
-    } catch (e) {
-      console.error(e);
-    }
+    markIntroSeen();
     const rafId = requestAnimationFrame(() => {
       setShouldShow(true);
       setStage("enter");
@@ -99,10 +121,14 @@ export function CinematicIntro() {
   }, [finishIntro]);
 
   useEffect(() => {
-    const sessionSeen = typeof window !== "undefined" ? sessionStorage.getItem("kairo_intro_seen") : null;
+    // Only auto-trigger on the root landing page ("/") if never seen before.
+    // If user is navigating other pages (/manga, /account, /checkout), do NOT auto-show.
+    const isRootHome = pathname === "/";
+    const alreadySeen = hasSeenIntro();
+    const shouldTrigger = isIntroActive || (isRootHome && !alreadySeen);
 
     let cleanup: (() => void) | undefined;
-    if (!sessionSeen || isIntroActive) {
+    if (shouldTrigger) {
       cleanup = startIntro();
     } else {
       const raf = requestAnimationFrame(() => {
@@ -117,7 +143,7 @@ export function CinematicIntro() {
         cancelAnimationFrame(animFrameId.current);
       }
     };
-  }, [isIntroActive, startIntro]);
+  }, [isIntroActive, startIntro, pathname]);
 
   // Golden Archival Particles Background Engine
   useEffect(() => {

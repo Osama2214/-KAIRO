@@ -34,7 +34,6 @@ export default function CheckoutPage() {
   const currentUser = useAuthStore((state) => state.currentUser);
   const addOrderToUser = useAuthStore((state) => state.addOrderToUser);
   const shippingConfig = useStorefrontStore((state) => state.shippingConfig);
-  const deductStock = useStorefrontStore((state) => state.deductStock);
   const { hasOffer: hasWelcomeOffer, voucherCode: welcomeCode } = useWelcomeOffer();
 
   const [checkoutPromoInput, setCheckoutPromoInput] = useState("");
@@ -65,6 +64,7 @@ export default function CheckoutPage() {
   );
   const [senderIdentifier, setSenderIdentifier] = useState(currentUser?.paymentSenderDetail || "");
   const [isProcessing, setIsProcessing] = useState(false);
+  const isSubmittingRef = React.useRef(false);
 
   const activeGovernorates = useMemo(() => {
     return getActiveGovernorates(shippingConfig);
@@ -133,10 +133,10 @@ export default function CheckoutPage() {
     });
   }, [activeGovernorates, govRates, isFreeShipping, isArabic]);
 
-  const handlePlaceOrder = (e: React.FormEvent) => {
+  const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setOrderError("");
-    if (items.length === 0) return;
+    if (items.length === 0 || isSubmittingRef.current || isProcessing) return;
 
     // Validate Egyptian Mobile Number strictly (11 digits, valid prefix 010/011/012/015)
     const phoneValidation = validateEgyptianPhone(formData.phone);
@@ -150,6 +150,7 @@ export default function CheckoutPage() {
     }
     const validatedPhone = phoneValidation.normalized || formData.phone;
 
+    isSubmittingRef.current = true;
     setIsProcessing(true);
 
     const isPendingPayment = paymentMethod === "wallet" || paymentMethod === "instapay";
@@ -194,23 +195,24 @@ export default function CheckoutPage() {
       estimatedDelivery: `${shippingConfig?.deliveryEstimate || "24-48h"} (${formData.governorate})`,
     };
 
-    setTimeout(async () => {
-      // Create the order first. Prices and coupon redemption are authoritative on the server.
+    try {
       const serverResponse = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newOrder),
-      }).catch(() => null);
-      const serverData = serverResponse ? await serverResponse.json().catch(() => null) : null;
-      if (!serverResponse?.ok || !serverData?.success) {
-        setOrderError(serverData?.message || "Unable to place your order. Please try again.");
-        setIsProcessing(false);
+      });
+      const serverData = await serverResponse.json().catch(() => null);
+
+      if (!serverResponse.ok || !serverData?.success) {
+        let msg = serverData?.message || "Unable to place your order. Please try again.";
+        if (isArabic && msg.includes("unavailable or no longer have enough stock")) {
+          msg = "عذراً، أحد المجلدات في سلتك قد نفد مخزونه للتو من الأرشيف. يرجى مراجعة الكميات المتبقية.";
+        }
+        setOrderError(msg);
         return;
       }
-      const finalizedOrder: SavedOrder = serverData.order;
 
-      // Deduct purchased quantities from live store inventory
-      deductStock(items.map((i) => ({ volumeId: i.volumeId, quantity: i.quantity })));
+      const finalizedOrder: SavedOrder = serverData.order;
 
       // Save order to current active user profile if authenticated
       if (currentUser) {
@@ -226,9 +228,17 @@ export default function CheckoutPage() {
 
       clearCart();
       removeCoupon();
-      setIsProcessing(false);
       router.push(`/account?newOrder=${finalizedOrder.id}`);
-    }, 1200);
+    } catch {
+      setOrderError(
+        isArabic
+          ? "تعذر الاتصال بمركز الأرشيف المركزي. يرجى التحقق من اتصالك بالإنترنت والمحاولة مجدداً."
+          : "Network connection lost. Please check your internet connection and try again."
+      );
+    } finally {
+      isSubmittingRef.current = false;
+      setIsProcessing(false);
+    }
   };
 
   return (

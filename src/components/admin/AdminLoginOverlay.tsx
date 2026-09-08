@@ -21,7 +21,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { verifyAdminPinWithServer } from "@/lib/security";
 
 export function AdminLoginOverlay() {
-  const { currentUser, login, logout, loginDemo, isLoading } = useAuthStore();
+  const { currentUser, login, logout, isLoading } = useAuthStore();
   const loginAdmin = useStorefrontStore((state) => state.loginAdmin);
   const isAuthorizedAdmin = useStorefrontStore((state) => state.isAuthorizedAdmin);
 
@@ -90,12 +90,6 @@ export function AdminLoginOverlay() {
     } else {
       setAccountError(res.message || "Invalid account credentials. Please verify your email and password.");
     }
-  };
-
-  // Quick fill demo curator credentials
-  const handleUseDemo = () => {
-    loginDemo();
-    setStep("pin");
   };
 
   // Handle PIN Login (Step 2)
@@ -319,17 +313,6 @@ export function AdminLoginOverlay() {
                     </>
                   )}
                 </button>
-
-                <div className="pt-2 border-t border-ink-border/40">
-                  <button
-                    type="button"
-                    onClick={handleUseDemo}
-                    className="w-full py-2 bg-ink hover:bg-gold/10 hover:border-gold/50 text-gold border border-gold/30 font-mono text-[11px] font-semibold uppercase tracking-wider rounded-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Use Demo Curator Account</span>
-                  </button>
-                </div>
               </form>
             )}
           </div>

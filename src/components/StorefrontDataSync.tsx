@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 
+import { useAuthStore } from "@/store/useAuthStore";
+
 const DATA_KEYS = [
   "volumes", "series", "genres", "formats", "heroContent", "announcement", "shippingConfig",
   "editorialConfig", "featuredSeriesConfig", "collectionConfig", "genreBentoConfig", "trendingConfig",
@@ -17,10 +19,14 @@ function snapshot(state: Record<string, unknown>) {
 
 export function StorefrontDataSync() {
   useEffect(() => {
-    // Remove the retired client-side CMS snapshot. It is never authoritative.
+    // Remove the retired client-side CMS & users snapshots.
     try {
       localStorage.removeItem("kairo_storefront_cms_v3");
+      localStorage.removeItem("kairo_users_db");
     } catch {}
+
+    // Initialize authentic patron session from server HttpOnly cookie
+    void useAuthStore.getState().initSession();
 
     let active = true;
     let hydrated = false;

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { X, Plus, Minus, Trash2, ArrowRight, ShieldCheck, Truck, Sparkles, Tag } from "lucide-react";
+import { X, Plus, Minus, Trash2, ArrowRight, ShieldCheck, Truck, Tag } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useMounted } from "@/store/useWishlistStore";
@@ -248,8 +248,7 @@ export function CartDrawer() {
               {/* Welcome Grant Quick-Apply Callout (if active and not applied) */}
               {hasWelcomeOffer && appliedCoupon !== welcomeCode && (
                 <div className="p-2.5 bg-gold/10 border border-gold/30 rounded-xs flex items-center justify-between gap-2 text-xs font-mono animate-in fade-in">
-                  <div className="flex items-center gap-1.5 text-gold min-w-0">
-                    <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                  <div className="flex items-center text-gold min-w-0">
                     <span className="truncate">First Order Grant: <strong className="text-paper">{welcomeCode}</strong></span>
                   </div>
                   <button
