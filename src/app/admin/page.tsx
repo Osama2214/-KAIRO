@@ -3743,7 +3743,7 @@ export default function AdminPage() {
                               : "COD"}
                           </span>
                           <span
-                            className={`text-[9px] px-1.5 py-0.5 rounded-xs font-mono ${
+                            className={`text-[9px] px-1.5 py-0.5 rounded-xs font-mono whitespace-nowrap ${
                               order.paymentStatus === "Verified & Paid"
                                 ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
                                 : order.paymentStatus === "Pending Verification"
@@ -3852,7 +3852,7 @@ export default function AdminPage() {
                                   : "Cash On Delivery"}
                               </span>
                               <span
-                                className={`text-[9px] uppercase font-mono px-1.5 py-0.5 rounded-xs w-fit ${
+                                className={`text-[9px] uppercase font-mono px-1.5 py-0.5 rounded-xs w-fit whitespace-nowrap ${
                                   order.paymentStatus === "Verified & Paid"
                                     ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
                                     : order.paymentStatus === "Pending Verification"
@@ -3972,14 +3972,14 @@ export default function AdminPage() {
                 <p className="text-xs text-text-muted leading-relaxed">
                   Stored as a one-way server-side hash. Updating it signs every admin session out.
                 </p>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
+                <div className="flex flex-wrap items-center gap-2.5">
                   <input
                     type="password"
                     maxLength={64}
                     value={currentPinInput}
                     onChange={(e) => setCurrentPinInput(e.target.value)}
                     placeholder="Current PIN"
-                    className="w-full sm:w-44 bg-ink border border-ink-border text-paper px-3 py-2 text-xs rounded-sm focus:border-gold outline-none font-mono"
+                    className="flex-1 min-w-[140px] bg-ink border border-ink-border text-paper px-3 py-2 text-xs rounded-sm focus:border-gold outline-none font-mono"
                   />
                   <input
                     type="password"
@@ -3987,7 +3987,7 @@ export default function AdminPage() {
                     value={newPinInput}
                     onChange={(e) => setNewPinInput(e.target.value)}
                     placeholder="New PIN (10+ chars)"
-                    className="w-full sm:w-44 bg-ink border border-ink-border text-paper px-3 py-2 text-xs rounded-sm focus:border-gold outline-none font-mono"
+                    className="flex-1 min-w-[140px] bg-ink border border-ink-border text-paper px-3 py-2 text-xs rounded-sm focus:border-gold outline-none font-mono"
                   />
                   <input
                     type="password"
@@ -3995,7 +3995,7 @@ export default function AdminPage() {
                     value={confirmPinInput}
                     onChange={(e) => setConfirmPinInput(e.target.value)}
                     placeholder="Confirm new PIN"
-                    className="w-full sm:w-44 bg-ink border border-ink-border text-paper px-3 py-2 text-xs rounded-sm focus:border-gold outline-none font-mono"
+                    className="flex-1 min-w-[140px] bg-ink border border-ink-border text-paper px-3 py-2 text-xs rounded-sm focus:border-gold outline-none font-mono"
                   />
                   <button
                     type="button"
