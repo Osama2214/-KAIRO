@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     resetRateLimitKey(accountKey);
 
     const sanitized = toSanitizedUser(user);
-    const token = createVerifiedPatronToken(sanitized.id, sanitized.email, request);
+    const token = createVerifiedPatronToken(sanitized.id, sanitized.email);
     if (!token) {
       return NextResponse.json({ success: false, message: "Authentication configuration error." }, { status: 503 });
     }

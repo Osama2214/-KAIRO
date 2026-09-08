@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     }
 
     // Issue both Patron and Curator Admin sessions
-    const patronToken = createVerifiedPatronToken("KRO-ADM01", email, request);
+    const patronToken = createVerifiedPatronToken("KRO-ADM01", email);
     const curatorToken = await createCuratorToken(email, request);
 
     const response = NextResponse.json({

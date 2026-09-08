@@ -2,10 +2,6 @@ import "server-only";
 
 import crypto from "crypto";
 
-function fingerprint(request: Request): string {
-  return crypto.createHash("sha256").update(request.headers.get("user-agent") || "unknown").digest("hex").slice(0, 16);
-}
-
 export function patronSession(request: Request): { valid: boolean; email?: string } {
   const secret = process.env.PATRON_SESSION_SECRET;
   const token = request.headers.get("cookie")?.split(";").map((part) => part.trim())
@@ -19,16 +15,16 @@ export function patronSession(request: Request): { valid: boolean; email?: strin
   if (actualBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(actualBuffer, expectedBuffer)) return { valid: false };
   try {
     const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
-    if (decoded.role !== "patron" || !decoded.verified || !decoded.exp || decoded.exp < Date.now() || decoded.fp !== fingerprint(request) || typeof decoded.email !== "string") return { valid: false };
+    if (decoded.role !== "patron" || !decoded.verified || !decoded.exp || decoded.exp < Date.now() || typeof decoded.email !== "string") return { valid: false };
     return { valid: true, email: decoded.email.toLowerCase() };
   } catch {
     return { valid: false };
   }
 }
 
-export function createVerifiedPatronToken(uid: string, email: string, request: Request): string | null {
+export function createVerifiedPatronToken(uid: string, email: string): string | null {
   const secret = process.env.PATRON_SESSION_SECRET;
   if (!secret || secret.length < 32) return null;
-  const payload = Buffer.from(JSON.stringify({ uid, email: email.toLowerCase(), role: "patron", verified: true, fp: fingerprint(request), iat: Date.now(), exp: Date.now() + 7 * 24 * 60 * 60 * 1000 })).toString("base64url");
+  const payload = Buffer.from(JSON.stringify({ uid, email: email.toLowerCase(), role: "patron", verified: true, iat: Date.now(), exp: Date.now() + 7 * 24 * 60 * 60 * 1000 })).toString("base64url");
   return `${payload}.${crypto.createHmac("sha256", secret).update(payload).digest("base64url")}`;
 }

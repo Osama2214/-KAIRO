@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     });
     const profile = await profileResponse.json().catch(() => null);
     if (!profileResponse.ok || !profile?.email || profile.email_verified === false) return NextResponse.json({ success: false }, { status: 401 });
-    const token = createVerifiedPatronToken(String(uid).slice(0, 80), String(profile.email), request);
+    const token = createVerifiedPatronToken(String(uid).slice(0, 80), String(profile.email));
     if (!token) return NextResponse.json({ success: false }, { status: 503 });
     const response = NextResponse.json({ success: true, profile: { email: profile.email, name: profile.name, picture: profile.picture } });
     response.cookies.set("kairo_patron_session", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict", path: "/", maxAge: 7 * 24 * 60 * 60 });

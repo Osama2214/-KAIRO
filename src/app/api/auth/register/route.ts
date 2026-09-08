@@ -78,7 +78,7 @@ export async function POST(request: Request) {
       deliveryNotes,
     });
 
-    const token = createVerifiedPatronToken(newUser.id, newUser.email, request);
+    const token = createVerifiedPatronToken(newUser.id, newUser.email);
     if (!token) {
       return NextResponse.json({ success: false, message: "Session secret configuration is missing." }, { status: 503 });
     }
