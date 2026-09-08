@@ -190,7 +190,10 @@ function MangaCatalogContent() {
 
   const goToPage = (page: number) => {
     setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Pagination changes the client state without changing the route, so Lenis
+    // must be moved explicitly; native window scrolling alone is ignored by it.
+    window.__lenis?.scrollTo(0, { immediate: true });
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
   };
 
   return (
