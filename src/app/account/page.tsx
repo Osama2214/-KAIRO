@@ -141,6 +141,7 @@ function AccountContent() {
 
   // Auth Store
   const currentUser = useAuthStore((state) => state.currentUser);
+  const isAuthInitialized = useAuthStore((state) => state.isInitialized);
   const login = useAuthStore((state) => state.login);
   const register = useAuthStore((state) => state.register);
   const logout = useAuthStore((state) => state.logout);
@@ -1191,7 +1192,8 @@ function AccountContent() {
   }, [orders]);
 
   // Prevent hydration mismatch between server render (initial currentUser is null) and client (persisted session)
-  if (!mounted) {
+  // Also keep showing spinner while the session check (initSession → /api/auth/me) is still in flight
+  if (!mounted || !isAuthInitialized) {
     return (
       <div className="min-h-[calc(100dvh-80px)] bg-transparent text-paper pt-24 pb-12 px-4 sm:px-6 md:px-12 flex items-center justify-center relative">
         <div className="flex flex-col items-center gap-3">
