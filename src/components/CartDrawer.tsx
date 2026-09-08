@@ -150,12 +150,13 @@ export function CartDrawer() {
                     {t.cart.emptyDesc}
                   </p>
                 </div>
-                <button
+                <Link
+                  href="/manga"
                   onClick={closeCart}
-                  className="mt-4 px-6 py-2.5 bg-paper text-ink font-semibold text-xs tracking-[0.16em] uppercase hover:bg-vermilion hover:text-white transition-colors cursor-pointer font-sans"
+                  className="mt-4 inline-block px-6 py-2.5 bg-paper text-ink font-semibold text-xs tracking-[0.16em] uppercase hover:bg-vermilion hover:text-white transition-colors cursor-pointer font-sans"
                 >
                   {t.cart.exploreCatalog}
-                </button>
+                </Link>
               </div>
             ) : (
               items.map((item) => (
