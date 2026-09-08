@@ -38,6 +38,7 @@ import {
   Zap,
 } from "lucide-react";
 import { ALL_VOLUMES, MangaVolume } from "@/data/manga";
+import { AUTHORIZED_ADMIN_EMAILS } from "@/config/adminConfig";
 import { EGYPT_GOVERNORATES } from "@/data/governorates";
 import { useCartStore } from "@/store/useCartStore";
 import { useStorefrontStore, getActiveGovernorates } from "@/store/useStorefrontStore";
@@ -2012,7 +2013,7 @@ function AccountContent() {
           </div>
 
           <div className="flex items-center gap-2.5 w-full sm:w-auto">
-            {currentUser && currentUser.role === "admin" && (
+            {currentUser && AUTHORIZED_ADMIN_EMAILS.includes(currentUser.email) && (
               <Link
                 href="/admin"
                 className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3.5 py-2.5 bg-gold/15 hover:bg-gold text-gold hover:text-ink border border-gold/40 text-xs font-mono font-bold uppercase tracking-wider rounded-xs transition-all cursor-pointer text-center"
