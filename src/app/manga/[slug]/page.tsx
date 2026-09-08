@@ -16,7 +16,6 @@ import {
   Eye,
   Check,
   Heart,
-  Sparkles,
 } from "lucide-react";
 import { ALL_VOLUMES } from "@/data/manga";
 import { useCartStore } from "@/store/useCartStore";
@@ -257,7 +256,6 @@ export default function MangaDetailPage({ params }: MangaPageProps) {
             {hasWelcomeOffer && ((volume.stock ?? 0) > 0) && (
               <div className="p-3 bg-gold/10 border border-gold/40 rounded-xs flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2.5 text-xs font-mono animate-in fade-in">
                 <div className="flex items-center gap-2 text-gold min-w-0">
-                  <Sparkles className="w-4 h-4 shrink-0 text-gold" />
                   <div className="truncate">
                     <span>{isArabic ? "خصم الترحيب: " : "Private Grant: "}</span>
                     <strong className="text-paper">{formatPrice(volume.price * 0.8)}</strong>
