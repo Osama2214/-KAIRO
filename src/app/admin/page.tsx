@@ -4202,8 +4202,7 @@ export default function AdminPage() {
         }}
         order={selectedOrder}
         customer={selectedCustomer}
-        onUpdateOrder={(orderId, updates) => {
-          updateOrderStatus(orderId, updates);
+        onUpdateOrder={async (orderId, updates) => {
           const fullOrderPayload = selectedOrder
             ? {
                 ...selectedOrder,
@@ -4216,11 +4215,22 @@ export default function AdminPage() {
               }
             : undefined;
 
-          fetch("/api/orders", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ orderId, updates, fullOrder: fullOrderPayload }),
-          }).catch((err) => console.error("Server order patch error:", err));
+          try {
+            const response = await fetch("/api/orders", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ orderId, updates, fullOrder: fullOrderPayload }),
+            });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload?.success) {
+              throw new Error(payload?.message || "Central order update was rejected.");
+            }
+          } catch (error) {
+            console.error("Server order patch error:", error);
+            showToast(`Order #${orderId} could not be synced. Please try again.`);
+            return;
+          }
+          updateOrderStatus(orderId, updates);
           setServerOrders((prev) =>
             prev.map((o) => (o.id === orderId ? { ...o, ...updates } : o))
           );
@@ -4229,8 +4239,7 @@ export default function AdminPage() {
           }
           showToast(`Order #${orderId} updated successfully.`);
         }}
-        onUpdateStatus={(orderId, newStatus) => {
-          updateOrderStatus(orderId, { status: newStatus });
+        onUpdateStatus={async (orderId, newStatus) => {
           const fullOrderPayload = selectedOrder
             ? {
                 ...selectedOrder,
@@ -4243,11 +4252,22 @@ export default function AdminPage() {
               }
             : undefined;
 
-          fetch("/api/orders", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ orderId, updates: { status: newStatus }, fullOrder: fullOrderPayload }),
-          }).catch((err) => console.error("Server order patch error:", err));
+          try {
+            const response = await fetch("/api/orders", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ orderId, updates: { status: newStatus }, fullOrder: fullOrderPayload }),
+            });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload?.success) {
+              throw new Error(payload?.message || "Central order update was rejected.");
+            }
+          } catch (error) {
+            console.error("Server order patch error:", error);
+            showToast(`Order #${orderId} status could not be synced. Please try again.`);
+            return;
+          }
+          updateOrderStatus(orderId, { status: newStatus });
           setServerOrders((prev) =>
             prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
           );
