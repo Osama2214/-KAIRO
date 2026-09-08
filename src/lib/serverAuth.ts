@@ -2,6 +2,7 @@ import "server-only";
 
 import crypto from "crypto";
 import { AUTHORIZED_ADMIN_EMAILS } from "@/config/adminConfig";
+import { getAdminSessionVersion } from "@/lib/adminSecurityStore";
 
 const SESSION_COOKIE = "kairo_curator_session";
 const SESSION_DURATION_MS = 24 * 60 * 60 * 1000;
@@ -25,19 +26,20 @@ function isAuthorizedEmail(email: unknown): email is string {
   );
 }
 
-export function createCuratorToken(email: string, request: Request): string | null {
+export async function createCuratorToken(email: string, request: Request): Promise<string | null> {
   const secret = sessionSecret();
   if (!secret || !isAuthorizedEmail(email)) return null;
+  const sessionVersion = await getAdminSessionVersion();
 
   const payload = Buffer.from(JSON.stringify({
     sub: email.toLowerCase(), role: "admin", fp: fingerprint(request),
-    iat: Date.now(), exp: Date.now() + SESSION_DURATION_MS,
+    iat: Date.now(), exp: Date.now() + SESSION_DURATION_MS, sv: sessionVersion,
   })).toString("base64url");
   const signature = crypto.createHmac("sha256", secret).update(payload).digest("base64url");
   return `${payload}.${signature}`;
 }
 
-export function verifyCuratorToken(token: string | null | undefined, request: Request): { valid: boolean; email?: string } {
+export async function verifyCuratorToken(token: string | null | undefined, request: Request): Promise<{ valid: boolean; email?: string }> {
   const secret = sessionSecret();
   if (!secret || !token) return { valid: false };
   const [payload, signature, extra] = token.split(".");
@@ -49,7 +51,7 @@ export function verifyCuratorToken(token: string | null | undefined, request: Re
 
   try {
     const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
-    if (decoded.role !== "admin" || !decoded.exp || decoded.exp < Date.now() || decoded.fp !== fingerprint(request) || !isAuthorizedEmail(decoded.sub)) {
+    if (decoded.role !== "admin" || !decoded.exp || decoded.exp < Date.now() || decoded.fp !== fingerprint(request) || !isAuthorizedEmail(decoded.sub) || decoded.sv !== await getAdminSessionVersion()) {
       return { valid: false };
     }
     return { valid: true, email: decoded.sub };
@@ -58,7 +60,7 @@ export function verifyCuratorToken(token: string | null | undefined, request: Re
   }
 }
 
-export function curatorSession(request: Request) {
+export async function curatorSession(request: Request) {
   const token = request.headers.get("cookie")?.split(";").map((part) => part.trim())
     .find((part) => part.startsWith(`${SESSION_COOKIE}=`))?.slice(SESSION_COOKIE.length + 1);
   return verifyCuratorToken(token, request);

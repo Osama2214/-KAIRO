@@ -4,7 +4,7 @@ import {
   MAX_PIN_ATTEMPTS,
   PIN_LOCKOUT_MS,
 } from "@/config/adminConfig";
-import { verifyServerPin } from "@/lib/adminPinStore";
+import { verifyAdminPin } from "@/lib/adminSecurityStore";
 import { checkRateLimitKey, resetRateLimitKey, getClientIp } from "@/lib/rateLimit";
 import { createCuratorToken, isTrustedOrigin } from "@/lib/serverAuth";
 
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     }
 
     // 4. Verify PIN strictly against authoritative server PIN store
-    const isMatch = verifyServerPin(pin);
+    const isMatch = await verifyAdminPin(pin);
 
     if (isMatch) {
       // Clear failed rate limit counters upon successful verification
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
       resetRateLimitKey(`pin:ip:${clientIp}`);
 
       // Issue signed curator session token bound to client fingerprint
-      const token = createCuratorToken(email, request);
+      const token = await createCuratorToken(email, request);
       if (!token) {
         return NextResponse.json({ success: false, message: "Admin session configuration is incomplete." }, { status: 503 });
       }

@@ -18,7 +18,7 @@ import { curatorSession, isTrustedOrigin } from "@/lib/serverAuth";
  */
 export async function GET(request: Request) {
   try {
-    if (!curatorSession(request).valid) {
+    if (!(await curatorSession(request)).valid) {
       return NextResponse.json({ success: false, message: "Curator authorization required." }, { status: 401, headers: { "Cache-Control": "no-store" } });
     }
 
@@ -224,7 +224,7 @@ export async function POST(request: Request) {
  */
 export async function PATCH(request: Request) {
   try {
-    if (!isTrustedOrigin(request) || !curatorSession(request).valid) {
+    if (!isTrustedOrigin(request) || !(await curatorSession(request)).valid) {
       return NextResponse.json(
         { success: false, message: "Curator administrator authorization required." },
         { status: 403 }

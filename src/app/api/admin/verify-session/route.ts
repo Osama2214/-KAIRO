@@ -3,7 +3,7 @@ import { curatorSession } from "@/lib/serverAuth";
 
 export async function POST(request: Request) {
   try {
-    const verification = curatorSession(request);
+    const verification = await curatorSession(request);
     if (!verification.valid) {
       return NextResponse.json(
         { valid: false, message: "Invalid, tampered, or expired curator session." },

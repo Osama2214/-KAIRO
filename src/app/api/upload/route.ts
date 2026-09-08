@@ -76,7 +76,7 @@ function isValidImageMagicBytes(buffer: Buffer): { valid: boolean; detectedMime?
 
 export async function POST(request: Request) {
   try {
-    if (!isTrustedOrigin(request) || !curatorSession(request).valid) {
+    if (!isTrustedOrigin(request) || !(await curatorSession(request)).valid) {
       return NextResponse.json({ success: false, message: "Curator authorization required for uploads." }, { status: 401 });
     }
     const clientIp = getClientIp(request);

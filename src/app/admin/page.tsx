@@ -166,8 +166,6 @@ export default function AdminPage() {
     updateGenre,
     deleteGenre,
     logoutAdmin,
-    updateAdminPin,
-    updateAdminPinHash,
     adminEmails,
     addAdminEmail,
     removeAdminEmail,
@@ -213,6 +211,7 @@ export default function AdminPage() {
   const [genreDrafts, setGenreDrafts] = useState<Record<string, GenreInfo>>({});
   const [currentPinInput, setCurrentPinInput] = useState("");
   const [newPinInput, setNewPinInput] = useState("");
+  const [confirmPinInput, setConfirmPinInput] = useState("");
   const [isUpdatingPin, setIsUpdatingPin] = useState(false);
   const [newAdminEmailInput, setNewAdminEmailInput] = useState("");
 
@@ -3972,16 +3971,16 @@ export default function AdminPage() {
                     <span>Master Security PIN</span>
                   </h2>
                   <span className="text-[10px] font-mono text-gold/80 px-2 py-0.5 bg-gold/10 border border-gold/20 rounded-xs">
-                    SHA-256 Hash
+                    Encrypted in Neon
                   </span>
                 </div>
                 <p className="text-xs text-text-muted leading-relaxed">
-                  Protected with server-side cryptography and brute-force lockout.
+                  Stored as a one-way server-side hash. Updating it signs every admin session out.
                 </p>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
                   <input
                     type="password"
-                    maxLength={8}
+                    maxLength={64}
                     value={currentPinInput}
                     onChange={(e) => setCurrentPinInput(e.target.value)}
                     placeholder="Current PIN"
@@ -3989,10 +3988,18 @@ export default function AdminPage() {
                   />
                   <input
                     type="password"
-                    maxLength={8}
+                    maxLength={64}
                     value={newPinInput}
                     onChange={(e) => setNewPinInput(e.target.value)}
-                    placeholder="New 4-8 digit PIN"
+                    placeholder="New PIN (10+ chars)"
+                    className="w-full sm:w-44 bg-ink border border-ink-border text-paper px-3 py-2 text-xs rounded-sm focus:border-gold outline-none font-mono"
+                  />
+                  <input
+                    type="password"
+                    maxLength={64}
+                    value={confirmPinInput}
+                    onChange={(e) => setConfirmPinInput(e.target.value)}
+                    placeholder="Confirm new PIN"
                     className="w-full sm:w-44 bg-ink border border-ink-border text-paper px-3 py-2 text-xs rounded-sm focus:border-gold outline-none font-mono"
                   />
                   <button
@@ -4005,19 +4012,23 @@ export default function AdminPage() {
                         showToast("Please enter your current Security PIN.");
                         return;
                       }
-                      if (cleanNew.length < 4) {
-                        showToast("New PIN must be at least 4 digits.");
+                      if (cleanNew.length < 10) {
+                        showToast("New PIN must be at least 10 characters.");
+                        return;
+                      }
+                      if (cleanNew !== confirmPinInput.trim()) {
+                        showToast("New PIN confirmation does not match.");
                         return;
                       }
                       setIsUpdatingPin(true);
                       const res = await changeAdminPinWithServer(cleanCurrent, cleanNew);
                       setIsUpdatingPin(false);
                       if (res.success) {
-                        if (res.newPinHash) updateAdminPinHash(res.newPinHash);
-                        updateAdminPin(cleanNew);
                         setCurrentPinInput("");
                         setNewPinInput("");
-                        showToast("Security PIN updated successfully.");
+                        setConfirmPinInput("");
+                        logoutAdmin();
+                        showToast("PIN updated. Please sign in again.");
                       } else {
                         showToast(res.message || "Failed to update Security PIN.");
                       }
