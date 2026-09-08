@@ -7,7 +7,6 @@ import { useUIStore } from "@/store/useUIStore";
 import { useWelcomeOffer } from "@/hooks/useWelcomeOffer";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
-import { useTranslation } from "@/hooks/useTranslation";
 
 interface TimeRemaining {
   hours: number;
@@ -28,7 +27,6 @@ function calculateTimeRemaining(expiresAt: number): TimeRemaining {
 }
 
 export function GlobalWelcomeOfferBar() {
-  const { locale } = useTranslation();
   const announcement = useStorefrontStore((state) => state.announcement);
   const applyCoupon = useCartStore((state) => state.applyCoupon);
   const appliedCoupon = useCartStore((state) => state.appliedCoupon);
@@ -114,23 +112,19 @@ export function GlobalWelcomeOfferBar() {
   return (
     <aside
       aria-label="Exclusive Welcome Offer"
-      className="relative z-50 w-full bg-linear-to-r from-ink via-ink-surface to-ink border-b border-gold/35 text-paper px-3 sm:px-6 py-2 sm:py-2.5 shadow-[0_4px_25px_rgba(212,175,55,0.08)] backdrop-blur-md animate-in fade-in duration-300"
+      className="relative z-50 w-full bg-ink-surface border-b border-gold/30 text-paper px-3 sm:px-6 py-2 shadow-[0_4px_20px_rgba(212,175,55,0.06)] animate-in fade-in duration-300"
     >
-      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-4 text-xs font-mono">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4 text-xs font-mono min-w-0">
         
         {/* Left Side: Personalized Grant Badge & Info */}
-        <div className="flex items-center gap-2 sm:gap-3 text-center sm:text-left flex-wrap justify-center sm:justify-start">
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-gold/15 border border-gold/40 text-gold text-[10px] font-bold uppercase tracking-wider shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-gold animate-ping" />
-            {locale === "ar" ? "منحة المقتنين" : "PATRON GRANT"}
-          </span>
-          <p className="text-paper-muted leading-tight text-[11px] sm:text-xs font-sans">
-            {locale === "ar" ? <>خصم 20% على أول طلب.</> : <>20% off your first order.</>}
+        <div className="flex items-center gap-2 min-w-0">
+          <p className="text-paper-muted leading-tight text-[11px] sm:text-xs font-sans whitespace-nowrap">
+            <span className="sm:hidden">20% OFF</span><span className="hidden sm:inline">20% off your first order.</span>
           </p>
           <button
             type="button"
             onClick={handleApplyOffer}
-            className="inline-flex items-center gap-1 px-2 py-0.5 bg-ink border border-dashed border-gold/70 rounded-xs text-gold font-bold text-xs tracking-wider hover:bg-gold/15 transition-colors cursor-pointer"
+            className="inline-flex min-w-0 items-center gap-1 px-2 py-0.5 bg-ink border border-dashed border-gold/60 rounded-xs text-gold font-bold text-[11px] tracking-wider hover:bg-gold/15 transition-colors cursor-pointer whitespace-nowrap"
             title="Click to copy & apply voucher"
           >
             <span>{voucherCode}</span>
@@ -148,7 +142,7 @@ export function GlobalWelcomeOfferBar() {
             <div className="flex items-center gap-1.5 text-text-muted text-[11px]">
               <Clock className="w-3 h-3 text-gold animate-pulse shrink-0" />
               <span className="text-[10px] text-text-muted hidden md:inline">
-                {locale === "ar" ? "ينتهي خلال:" : "ENDS IN:"}
+                ENDS IN:
               </span>
               <span className="text-gold font-bold">
                 {pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}
@@ -169,12 +163,12 @@ export function GlobalWelcomeOfferBar() {
             {copied || isApplied ? (
               <>
                 <Check strokeWidth={2.5} className="w-3 h-3" />
-                <span>{copied ? (locale === "ar" ? "تم التفعيل!" : "APPLIED!") : (locale === "ar" ? "مفعل (-20%)" : "APPLIED (-20%)")}</span>
+                <span>{copied ? "APPLIED!" : "APPLIED (-20%)"}</span>
               </>
             ) : (
               <>
                 <Sparkles className="w-3 h-3 text-ink" />
-                <span>{locale === "ar" ? "تفعيل خصم 20%" : "CLAIM 20% OFF"}</span>
+                <span className="hidden sm:inline">CLAIM 20% OFF</span><span className="sm:hidden">CLAIM</span>
               </>
             )}
           </button>
