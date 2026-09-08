@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   getAllServerOrders,
+  getServerOrdersByCustomerEmail,
   saveServerOrder,
   updateServerOrderStatus,
   ServerOrder,
@@ -31,6 +32,34 @@ export async function GET(request: Request) {
     return NextResponse.json(
       { success: false, message: "Failed to retrieve orders." },
       { status: 500 }
+    );
+  }
+}
+
+/**
+ * GET: Retrieve the authenticated Google patron's own central orders.
+ * The e-mail is taken from the signed HttpOnly session, never from the URL.
+ */
+export async function getMyOrders(request: Request) {
+  const session = patronSession(request);
+  if (!session.valid || !session.email) {
+    return NextResponse.json(
+      { success: false, message: "Sign in with Google to view live order updates." },
+      { status: 401, headers: { "Cache-Control": "no-store" } }
+    );
+  }
+
+  try {
+    const orders = await getServerOrdersByCustomerEmail(session.email);
+    return NextResponse.json(
+      { success: true, orders, total: orders.length },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  } catch (error) {
+    console.error("GET /api/orders/mine error:", error);
+    return NextResponse.json(
+      { success: false, message: "Failed to retrieve your orders." },
+      { status: 500, headers: { "Cache-Control": "no-store" } }
     );
   }
 }
@@ -175,20 +204,13 @@ export async function POST(request: Request) {
 
     const saved = await saveServerOrder(sanitizedOrder);
 
-    // 6. Asynchronously trigger emails in background (without blocking response)
-    (async () => {
-      try {
-        const { sendAdminNewOrderNotification, sendCustomerOrderStatusUpdateEmail } = await import("@/lib/email");
-        // Dispatch admin alert
-        await sendAdminNewOrderNotification(saved);
-        // Dispatch customer registration/confirmation notice
-        if (saved.customerEmail) {
-          await sendCustomerOrderStatusUpdateEmail(saved);
-        }
-      } catch (mailErr) {
-        console.error("[ORDER EMAIL DISPATCH ERROR]:", mailErr);
-      }
-    })();
+    // Wait for dispatch to start and settle before the serverless response ends.
+    // Vercel may freeze work scheduled after a response is returned.
+    const { sendAdminNewOrderNotification, sendCustomerOrderStatusUpdateEmail } = await import("@/lib/email");
+    await Promise.allSettled([
+      sendAdminNewOrderNotification(saved),
+      ...(saved.customerEmail ? [sendCustomerOrderStatusUpdateEmail(saved)] : []),
+    ]);
 
     return NextResponse.json({
       success: true,
@@ -241,29 +263,19 @@ export async function PATCH(request: Request) {
 
     const { updated, previous } = result;
 
-    // Asynchronously dispatch notification emails to customer based on changes
-    (async () => {
-      try {
-        const { sendCustomerOrderStatusUpdateEmail, sendCustomerOrderShippedEmail } = await import("@/lib/email");
-        
-        const isNowShipped = updated.status === "Shipped";
-        const wasShipped = previous.status === "Shipped";
-        const newTrackingAdded =
-          isNowShipped &&
-          ((updated.trackingNumber && updated.trackingNumber !== previous.trackingNumber) ||
-            (updated.trackingUrl && updated.trackingUrl !== previous.trackingUrl));
+    const { sendCustomerOrderStatusUpdateEmail, sendCustomerOrderShippedEmail } = await import("@/lib/email");
+    const isNowShipped = updated.status === "Shipped";
+    const wasShipped = previous.status === "Shipped";
+    const newTrackingAdded =
+      isNowShipped &&
+      ((updated.trackingNumber && updated.trackingNumber !== previous.trackingNumber) ||
+        (updated.trackingUrl && updated.trackingUrl !== previous.trackingUrl));
 
-        if ((isNowShipped && !wasShipped) || newTrackingAdded) {
-          // If order transitioned to Shipped or tracking details were updated
-          await sendCustomerOrderShippedEmail(updated);
-        } else if (updated.status !== previous.status) {
-          // Status updated to any other stage (Confirmed, Processing, Delivered, Cancelled)
-          await sendCustomerOrderStatusUpdateEmail(updated, previous.status);
-        }
-      } catch (err) {
-        console.error("[ORDER UPDATE EMAIL ERROR]:", err);
-      }
-    })();
+    if ((isNowShipped && !wasShipped) || newTrackingAdded) {
+      await sendCustomerOrderShippedEmail(updated);
+    } else if (updated.status !== previous.status) {
+      await sendCustomerOrderStatusUpdateEmail(updated, previous.status);
+    }
 
     return NextResponse.json({
       success: true,

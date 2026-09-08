@@ -213,6 +213,35 @@ export async function getAllServerOrders(): Promise<ServerOrder[]> {
 }
 
 /**
+ * Loads only the orders owned by one verified patron. This avoids loading the
+ * full order archive into a customer-facing request as the database grows.
+ */
+export async function getServerOrdersByCustomerEmail(email: string): Promise<ServerOrder[]> {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) return [];
+
+  if (sql) {
+    try {
+      await ensureDatabaseSchema();
+      const rows = await sql`
+        SELECT payload FROM kairo_orders
+        WHERE LOWER(customer_email) = ${normalizedEmail}
+        ORDER BY created_at DESC
+      `;
+      return rows
+        .map((row) => parseOrderPayload(row.payload))
+        .filter((order): order is ServerOrder => order !== null);
+    } catch (error) {
+      console.error("Error reading customer orders from Neon store:", error);
+      return [];
+    }
+  }
+
+  const orders = await getAllServerOrders();
+  return orders.filter((order) => order.customerEmail?.trim().toLowerCase() === normalizedEmail);
+}
+
+/**
  * Safely persists orders with sequential atomic writes
  */
 async function persistOrders(orders: ServerOrder[] | ServerOrder): Promise<void> {

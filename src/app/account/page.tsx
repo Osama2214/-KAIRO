@@ -580,6 +580,35 @@ function AccountContent() {
     return () => cancelAnimationFrame(raf);
   }, [currentUser, activeGovernorates]);
 
+  // Google patrons receive a signed server session. Refresh their orders from
+  // Neon so an admin status change appears without relying on stale browser
+  // storage. The local list remains the fallback for legacy/guest orders.
+  useEffect(() => {
+    if (!currentUser?.email || currentUser.provider !== "google") return;
+
+    let disposed = false;
+    const refreshCentralOrders = async () => {
+      try {
+        const response = await fetch("/api/orders/mine", { cache: "no-store" });
+        const payload = await response.json().catch(() => null);
+        if (!disposed && payload?.success && Array.isArray(payload.orders)) {
+          setOrders(payload.orders as SavedOrder[]);
+        }
+      } catch {
+        // Keep the locally stored copy visible during a transient network error.
+      }
+    };
+
+    void refreshCentralOrders();
+    const interval = window.setInterval(refreshCentralOrders, 30_000);
+    window.addEventListener("focus", refreshCentralOrders);
+    return () => {
+      disposed = true;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshCentralOrders);
+    };
+  }, [currentUser?.email, currentUser?.provider]);
+
   const handlePrintInvoice = (order: SavedOrder) => {
     // Create an isolated hidden iframe dedicated strictly to the invoice receipt
     const iframe = document.createElement("iframe");

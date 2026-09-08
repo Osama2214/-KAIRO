@@ -1,6 +1,28 @@
 import nodemailer from "nodemailer";
 import { ServerOrder } from "./orderStore";
-import { AUTHORIZED_ADMIN_EMAILS } from "@/config/adminConfig";
+
+function appUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (configured) return configured.replace(/\/+$/, "");
+  const vercelHost = process.env.VERCEL_URL?.trim();
+  if (vercelHost) return `https://${vercelHost.replace(/^https?:\/\//, "").replace(/\/+$/, "")}`;
+  return "http://localhost:3000";
+}
+
+function adminNotificationRecipients(): string[] {
+  const configured = [
+    process.env.ADMIN_EMAIL,
+    process.env.ADMIN_EMAILS,
+    process.env.GMAIL_USER,
+    process.env.SMTP_USER,
+  ]
+    .filter(Boolean)
+    .flatMap((value) => String(value).split(","))
+    .map((email) => email.trim().toLowerCase())
+    .filter((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+
+  return [...new Set(configured)];
+}
 
 interface SendOtpEmailOptions {
   to: string;
@@ -243,16 +265,7 @@ export async function sendVerificationEmail({
  */
 export async function sendAdminNewOrderNotification(order: ServerOrder): Promise<void> {
   try {
-    const adminRecipients: string[] = [];
-    const envAdmin = process.env.ADMIN_EMAIL || process.env.GMAIL_USER || process.env.SMTP_USER;
-    if (envAdmin && !adminRecipients.includes(envAdmin)) {
-      adminRecipients.push(envAdmin);
-    }
-    for (const email of AUTHORIZED_ADMIN_EMAILS) {
-      if (!adminRecipients.includes(email)) {
-        adminRecipients.push(email);
-      }
-    }
+    const adminRecipients = adminNotificationRecipients();
 
     if (adminRecipients.length === 0) return;
 
@@ -400,7 +413,7 @@ export async function sendAdminNewOrderNotification(order: ServerOrder): Promise
 
               <!-- Call to Action -->
               <div style="text-align: center; margin-top: 26px;">
-                <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/admin" 
+                <a href="${appUrl()}/admin" 
                    style="display: inline-block; background-color: #D4AF37; color: #0a0a0a; font-weight: bold; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; padding: 12px 24px; text-decoration: none; border-radius: 3px;">
                   Open Admin Console to Inspect Order
                 </a>
@@ -423,7 +436,7 @@ export async function sendAdminNewOrderNotification(order: ServerOrder): Promise
 </html>
     `;
 
-    const text = `KAIRO Admin Alert: New Order #${order.id} placed by ${order.customerName || "Collector"} for ${order.total} EGP. Open admin dashboard to inspect: ${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/admin`;
+    const text = `KAIRO Admin Alert: New Order #${order.id} placed by ${order.customerName || "Collector"} for ${order.total} EGP. Open admin dashboard to inspect: ${appUrl()}/admin`;
 
     await dispatchGenericEmail({
       to: adminRecipients,
@@ -446,6 +459,7 @@ export async function sendCustomerOrderStatusUpdateEmail(
 ): Promise<void> {
   try {
     if (!order.customerEmail) return;
+    const orderUrl = `${appUrl()}/account?tab=ORDERS&newOrder=${encodeURIComponent(order.id)}`;
 
     const statusTitle = order.status;
     let statusDescription = `Your order #${order.id} has been updated to: "${order.status}".`;
@@ -528,7 +542,7 @@ export async function sendCustomerOrderStatusUpdateEmail(
 
               <!-- Portal Access Button -->
               <div style="text-align: center; margin-top: 28px;">
-                <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/profile" 
+                <a href="${orderUrl}" 
                    style="display: inline-block; background-color: #1e1e1e; border: 1px solid #D4AF37; color: #D4AF37; font-weight: bold; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; padding: 10px 22px; text-decoration: none; border-radius: 3px;">
                   View Full Order History & Timeline
                 </a>
@@ -551,7 +565,7 @@ export async function sendCustomerOrderStatusUpdateEmail(
 </html>
     `;
 
-    const text = `Order #${order.id} update: Your order status is now "${order.status}". View details at: ${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/profile`;
+    const text = `Order #${order.id} update: Your order status is now "${order.status}". View details at: ${orderUrl}`;
 
     await dispatchGenericEmail({
       to: order.customerEmail,
@@ -751,7 +765,7 @@ export async function sendCustomerOrderAutoCancelledEmail(order: ServerOrder): P
               </p>
 
               <div style="text-align: center; margin-top: 24px;">
-                <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}" 
+                <a href="${appUrl()}" 
                    style="display: inline-block; background-color: #D4AF37; color: #0a0a0a; font-weight: bold; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; padding: 11px 22px; text-decoration: none; border-radius: 3px;">
                   Re-order from Catalog
                 </a>
