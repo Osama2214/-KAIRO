@@ -976,7 +976,13 @@ export const useStorefrontStore = create<StorefrontState>()(
     }),
     {
       name: "kairo_storefront_cms_v3",
-      storage: createJSONStorage(() => localStorage),
+      // Storefront business data is loaded from Neon by StorefrontDataSync.
+      // This no-op storage prevents CMS/catalogue data from being written locally.
+      storage: createJSONStorage(() => ({
+        getItem: () => null,
+        setItem: () => undefined,
+        removeItem: () => undefined,
+      })),
       partialize: (state) => ({
         volumes: state.volumes,
         series: state.series,

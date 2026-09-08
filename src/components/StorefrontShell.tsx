@@ -10,6 +10,7 @@ import { CinematicIntro } from "@/components/CinematicIntro";
 import { LiveVisualEditor } from "@/components/admin/LiveVisualEditor";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { useLanguageStore } from "@/store/useLanguageStore";
+import { StorefrontDataSync } from "@/components/StorefrontDataSync";
 
 export function StorefrontShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -25,11 +26,12 @@ export function StorefrontShell({ children }: { children: React.ReactNode }) {
   }, [arabicLanguageEnabled, locale, setLocale]);
 
   if (isAdmin) {
-    return <main className="flex-1 w-full overflow-x-clip relative">{children}</main>;
+    return <><StorefrontDataSync /><main className="flex-1 w-full overflow-x-clip relative">{children}</main></>;
   }
 
   return (
     <>
+      <StorefrontDataSync />
       <Navbar />
       <main className="flex-1 w-full overflow-x-clip relative">{children}</main>
       <Footer />
