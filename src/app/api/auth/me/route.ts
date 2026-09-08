@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { patronSession } from "@/lib/patronAuth";
+import { patronSessionFromCookies } from "@/lib/patronAuth";
 import { getUserByEmail, toSanitizedUser } from "@/lib/userStore";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const session = patronSession(request);
+    const session = await patronSessionFromCookies();
     if (!session.valid || !session.email) {
       return NextResponse.json({ authenticated: false }, { status: 401, headers: { "Cache-Control": "no-store" } });
     }
