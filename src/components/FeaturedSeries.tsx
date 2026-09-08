@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { KairoImage } from "@/components/KairoImage";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { ALL_SERIES } from "@/data/manga";
@@ -131,9 +132,10 @@ export function FeaturedSeries() {
             {/* Right Column: Clean, Pure Art Presentation */}
             <div className="lg:col-span-5 flex items-center justify-center lg:justify-end w-full">
               <div className="relative w-full max-w-[350px] xs:max-w-[390px] sm:max-w-[440px] lg:max-w-[450px] aspect-[3/4] rounded-sm overflow-hidden border border-ink-border/80 shadow-[0_25px_80px_rgba(0,0,0,0.9)] group">
-                <img
+                <KairoImage
                   src={image}
                   alt={title}
+                  sizes="(max-width: 1023px) 100vw, 450px"
                   className="w-full h-full object-cover object-top filter brightness-95 contrast-105 transition-transform duration-700 ease-out group-hover:scale-105"
                 />
 

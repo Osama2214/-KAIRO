@@ -1,6 +1,7 @@
 import { writeFile, readFile, mkdir } from "fs/promises";
 import path from "path";
 import { existsSync } from "fs";
+import { neon } from "@neondatabase/serverless";
 
 export interface ServerOrderItem {
   id?: string;
@@ -56,6 +57,52 @@ const ORDERS_DIR = path.join(process.cwd(), "data");
 const ORDERS_FILE = path.join(ORDERS_DIR, "orders.json");
 
 let writeQueue = Promise.resolve();
+const databaseUrl = process.env.DATABASE_URL;
+const sql = databaseUrl ? neon(databaseUrl) : null;
+let schemaReady: Promise<void> | null = null;
+
+/**
+ * Vercel's filesystem is ephemeral, so production uses Neon/Postgres whenever
+ * DATABASE_URL is configured. The JSON file remains a development fallback.
+ */
+async function ensureDatabaseSchema(): Promise<void> {
+  if (!sql) return;
+  if (!schemaReady) {
+    schemaReady = (async () => {
+      await sql`
+        CREATE TABLE IF NOT EXISTS kairo_orders (
+          id TEXT PRIMARY KEY,
+          payload JSONB NOT NULL,
+          created_at BIGINT NOT NULL,
+          updated_at BIGINT NOT NULL,
+          customer_email TEXT,
+          customer_phone TEXT
+        )
+      `;
+      await sql`
+        CREATE INDEX IF NOT EXISTS kairo_orders_created_at_idx
+        ON kairo_orders (created_at DESC)
+      `;
+      await sql`
+        CREATE INDEX IF NOT EXISTS kairo_orders_customer_email_idx
+        ON kairo_orders (customer_email)
+      `;
+    })().catch((error) => {
+      schemaReady = null;
+      throw error;
+    });
+  }
+  await schemaReady;
+}
+
+function parseOrderPayload(payload: unknown): ServerOrder | null {
+  try {
+    const parsed = typeof payload === "string" ? JSON.parse(payload) : payload;
+    return parsed && typeof parsed === "object" ? (parsed as ServerOrder) : null;
+  } catch {
+    return null;
+  }
+}
 
 async function ensureOrdersFile(): Promise<void> {
   if (!existsSync(ORDERS_DIR)) {
@@ -121,6 +168,24 @@ export function processExpiredPendingOrders(orders: ServerOrder[]): { orders: Se
  * Loads all orders from central server storage and processes any expired orders
  */
 export async function getAllServerOrders(): Promise<ServerOrder[]> {
+  if (sql) {
+    try {
+      await ensureDatabaseSchema();
+      const rows = await sql`SELECT payload FROM kairo_orders ORDER BY created_at DESC`;
+      const orders = rows
+        .map((row) => parseOrderPayload(row.payload))
+        .filter((order): order is ServerOrder => order !== null);
+      const { orders: processed, hasChanges } = processExpiredPendingOrders(orders);
+      if (hasChanges) {
+        await Promise.all(processed.map((order) => persistOrders(order)));
+      }
+      return processed;
+    } catch (error) {
+      console.error("Error reading Neon orders store:", error);
+      return [];
+    }
+  }
+
   if (globalThis.__kairo_orders_cache) {
     const { orders: processed, hasChanges } = processExpiredPendingOrders(globalThis.__kairo_orders_cache);
     if (hasChanges) {
@@ -150,7 +215,39 @@ export async function getAllServerOrders(): Promise<ServerOrder[]> {
 /**
  * Safely persists orders with sequential atomic writes
  */
-async function persistOrders(orders: ServerOrder[]): Promise<void> {
+async function persistOrders(orders: ServerOrder[] | ServerOrder): Promise<void> {
+  if (sql) {
+    const ordersToSave = Array.isArray(orders) ? orders : [orders];
+    await ensureDatabaseSchema();
+    await Promise.all(
+      ordersToSave.map(async (order) => {
+        const createdAt = order.createdAt || Date.now();
+        const updatedAt = order.updatedAt || Date.now();
+        await sql`
+          INSERT INTO kairo_orders (
+            id, payload, created_at, updated_at, customer_email, customer_phone
+          ) VALUES (
+            ${order.id},
+            ${JSON.stringify(order)}::jsonb,
+            ${createdAt},
+            ${updatedAt},
+            ${order.customerEmail || null},
+            ${order.customerPhone || null}
+          )
+          ON CONFLICT (id) DO UPDATE SET
+            payload = EXCLUDED.payload,
+            updated_at = EXCLUDED.updated_at,
+            customer_email = EXCLUDED.customer_email,
+            customer_phone = EXCLUDED.customer_phone
+        `;
+      })
+    );
+    return;
+  }
+
+  if (!Array.isArray(orders)) {
+    throw new Error("Local order persistence requires the full orders list.");
+  }
   globalThis.__kairo_orders_cache = orders;
   writeQueue = writeQueue.then(async () => {
     try {
@@ -193,7 +290,7 @@ export async function saveServerOrder(order: ServerOrder): Promise<ServerOrder> 
     updatedList = [enrichedOrder, ...orders];
   }
 
-  await persistOrders(updatedList);
+  await persistOrders(sql ? enrichedOrder : updatedList);
   return enrichedOrder;
 }
 
@@ -231,7 +328,6 @@ export async function updateServerOrderStatus(
 
   const updatedList = [...orders];
   updatedList[idx] = updated;
-  await persistOrders(updatedList);
+  await persistOrders(sql ? updated : updatedList);
   return { updated, previous: current };
 }
-

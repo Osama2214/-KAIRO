@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { KairoImage } from "@/components/KairoImage";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search, ArrowRight, Heart } from "lucide-react";
@@ -161,10 +162,10 @@ export function MangaDiscovery() {
               className="group bg-ink-surface/40 border border-ink-border/70 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:shadow-xl hover:shadow-black/50 select-none"
             >
               <div className="relative aspect-[3/4] overflow-hidden bg-ink">
-                <img
+                <KairoImage
                   src={volume.coverImage}
                   alt={volume.title}
-                  draggable={false}
+                  sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
                 />
 

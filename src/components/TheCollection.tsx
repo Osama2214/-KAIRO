@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect } from "react";
+import { KairoImage } from "@/components/KairoImage";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ShoppingBag, Eye } from "lucide-react";
@@ -950,10 +951,10 @@ export function TheCollection() {
 
               {/* Right Art (Deep bleed across with wide smoky feather fade) */}
               <div className="absolute inset-y-0 right-0 rtl:right-auto rtl:left-0 w-[55%] xs:w-[58%] h-full overflow-hidden pointer-events-none z-10">
-                <img
+                <KairoImage
                   src={vol1.coverImage}
                   alt={vol1.title}
-                  draggable={false}
+                  sizes="(max-width: 639px) 55vw, 0px"
                   className="w-full h-full object-cover object-[center_20%] pointer-events-none group-hover:scale-105 transition-transform duration-700 ease-out"
                 />
                 <div className="absolute inset-0 bg-linear-to-r rtl:bg-linear-to-l from-[#0a0a0d] via-[#0a0a0d]/85 25%, via-[#0a0a0d]/45 60%, to-transparent pointer-events-none z-10" />
@@ -968,10 +969,10 @@ export function TheCollection() {
 
             {/* DESKTOP / TABLET LAYOUT (sm+): Full Portrait Cover */}
             <div className="hidden sm:block w-full h-full relative">
-              <img
+              <KairoImage
                 src={vol1.coverImage}
                 alt={vol1.title}
-                draggable={false}
+                sizes="(max-width: 639px) 0px, 33vw"
                 className="w-full h-full object-cover pointer-events-none group-hover:scale-105 transition-transform duration-700 ease-out transform-gpu [backface-visibility:hidden] [-webkit-backface-visibility:hidden]"
               />
               {/* Book spine curvature lighting */}
@@ -1055,10 +1056,10 @@ export function TheCollection() {
 
               {/* Right Art (Deep bleed across with wide smoky feather fade) */}
               <div className="absolute inset-y-0 right-0 rtl:right-auto rtl:left-0 w-[55%] xs:w-[58%] h-full overflow-hidden pointer-events-none z-10">
-                <img
+                <KairoImage
                   src={vol2.coverImage}
                   alt={vol2.title}
-                  draggable={false}
+                  sizes="(max-width: 639px) 55vw, 0px"
                   className="w-full h-full object-cover object-[center_20%] pointer-events-none group-hover:scale-105 transition-transform duration-700 ease-out"
                 />
                 <div className="absolute inset-0 bg-linear-to-r rtl:bg-linear-to-l from-[#0a0a0d] via-[#0a0a0d]/85 25%, via-[#0a0a0d]/45 60%, to-transparent pointer-events-none z-10" />
@@ -1073,10 +1074,10 @@ export function TheCollection() {
 
             {/* DESKTOP / TABLET LAYOUT (sm+): Full Portrait Cover */}
             <div className="hidden sm:block w-full h-full relative">
-              <img
+              <KairoImage
                 src={vol2.coverImage}
                 alt={vol2.title}
-                draggable={false}
+                sizes="(max-width: 639px) 0px, 33vw"
                 className="w-full h-full object-cover pointer-events-none group-hover:scale-105 transition-transform duration-700 ease-out transform-gpu [backface-visibility:hidden] [-webkit-backface-visibility:hidden]"
               />
               {/* Book spine curvature lighting */}
@@ -1157,10 +1158,10 @@ export function TheCollection() {
 
               {/* Right Art (Deep bleed across with wide smoky feather fade) */}
               <div className="absolute inset-y-0 right-0 rtl:right-auto rtl:left-0 w-[55%] xs:w-[58%] h-full overflow-hidden pointer-events-none z-10">
-                <img
+                <KairoImage
                   src={vol3.coverImage}
                   alt={vol3.title}
-                  draggable={false}
+                  sizes="(max-width: 639px) 55vw, 0px"
                   className="w-full h-full object-cover object-[center_20%] pointer-events-none group-hover:scale-105 transition-transform duration-700 ease-out"
                 />
                 <div className="absolute inset-0 bg-linear-to-r rtl:bg-linear-to-l from-[#0a0a0d] via-[#0a0a0d]/85 25%, via-[#0a0a0d]/45 60%, to-transparent pointer-events-none z-10" />
@@ -1175,10 +1176,10 @@ export function TheCollection() {
 
             {/* DESKTOP / TABLET LAYOUT (sm+): Full Portrait Cover */}
             <div className="hidden sm:block w-full h-full relative">
-              <img
+              <KairoImage
                 src={vol3.coverImage}
                 alt={vol3.title}
-                draggable={false}
+                sizes="(max-width: 639px) 0px, 33vw"
                 className="w-full h-full object-cover pointer-events-none group-hover:scale-105 transition-transform duration-700 ease-out transform-gpu [backface-visibility:hidden] [-webkit-backface-visibility:hidden]"
               />
               {/* Book spine curvature lighting */}
@@ -1280,4 +1281,3 @@ export function TheCollection() {
     </section>
   );
 }
-

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { KairoImage } from "@/components/KairoImage";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { GENRES } from "@/data/manga";
@@ -63,9 +64,10 @@ export function GenreBento() {
             >
               {/* Artwork Background with Zoom on Hover */}
               <div className="absolute inset-0 overflow-hidden">
-                <img
+                <KairoImage
                   src={genre.coverImage}
                   alt={genre.name}
+                  sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
                   className="w-full h-full object-cover opacity-35 group-hover:opacity-55 group-hover:scale-110 transition-all duration-700 ease-out"
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-ink via-ink/60 to-transparent" />

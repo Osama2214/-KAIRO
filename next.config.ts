@@ -32,6 +32,18 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "dw9to29mmj727.cloudfront.net", pathname: "/products/**" },
+      { protocol: "https", hostname: "images-na.ssl-images-amazon.com", pathname: "/images/**" },
+      { protocol: "https", hostname: "s4.anilist.co", pathname: "/file/anilistcdn/media/**" },
+      { protocol: "https", hostname: "uploads.mangadex.org", pathname: "/covers/**" },
+      { protocol: "https", hostname: "images.unsplash.com", pathname: "/**" },
+    ],
+    formats: ["image/webp"],
+    minimumCacheTTL: 2_592_000,
+    qualities: [75],
+  },
   async headers() {
     return [
       {

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback } from "react";
+import { KairoImage } from "@/components/KairoImage";
 import { useRouter } from "next/navigation";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
@@ -177,10 +178,10 @@ export function TrendingCarousel() {
                 >
                   {/* Cover Image Container */}
                   <div className="relative aspect-[3/4] overflow-hidden bg-ink">
-                    <img
+                    <KairoImage
                       src={volume.coverImage}
                       alt={volume.title}
-                      draggable={false}
+                      sizes="(max-width: 639px) 78vw, (max-width: 1023px) 42vw, 25vw"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out pointer-events-none"
                     />
 

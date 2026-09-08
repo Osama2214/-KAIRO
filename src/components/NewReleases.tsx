@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { KairoImage } from "@/components/KairoImage";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Star, ShoppingBag, Eye, ArrowRight, Heart } from "lucide-react";
@@ -102,10 +103,10 @@ export function NewReleases() {
             >
               {/* Cover Media */}
               <div className="relative aspect-[3/4] overflow-hidden bg-ink">
-                <img
+                <KairoImage
                   src={volume.coverImage}
                   alt={volume.title}
-                  draggable={false}
+                  sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out pointer-events-none"
                 />
 

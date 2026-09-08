@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 
 import { useStorefrontStore } from "@/store/useStorefrontStore";
@@ -129,10 +130,15 @@ export function Hero() {
       {/* Mobile & iPad Cinematic Cover Backdrop (< lg screens): Automatic smooth crossfade between images */}
       <div className="lg:hidden absolute inset-0 z-0 overflow-hidden select-none">
         {mobileHeroImages.map((src, idx) => (
-          <img
+          <Image
             key={src}
             src={src}
             alt={featuredVolume?.title || "KAIRO Manga Hero"}
+            fill
+            sizes="100vw"
+            preload={idx === 0}
+            loading={idx === 0 ? undefined : "lazy"}
+            decoding="async"
             className={`absolute inset-0 w-full h-full object-cover object-[70%_center] filter transition-all duration-1000 ease-in-out ${
               idx === 0
                 ? "contrast-105 brightness-100"
@@ -281,9 +287,13 @@ export function Hero() {
             className="relative w-full max-w-[280px] md:max-w-[320px] lg:max-w-[420px] xl:max-w-[450px] aspect-[3/4] rounded-sm overflow-hidden border border-ink-border/80 shadow-[0_30px_100px_rgba(0,0,0,0.95)] group will-change-transform"
           >
             {/* Background Artwork */}
-            <img
+            <Image
               src={featuredVolume?.coverImage || "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1200&auto=format&fit=crop"}
               alt={featuredVolume?.title || "KAIRO Manga Hero Cover"}
+              fill
+              sizes="(max-width: 1023px) 0px, (max-width: 1280px) 320px, 450px"
+              preload
+              decoding="async"
               className="w-full h-full object-cover object-center transition-transform duration-1000 group-hover:scale-105 filter contrast-105"
             />
 
