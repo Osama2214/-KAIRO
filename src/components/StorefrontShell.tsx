@@ -15,7 +15,7 @@ export function StorefrontShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/admin");
 
-  const arabicLanguageEnabled = useStorefrontStore((state) => state.arabicLanguageEnabled ?? true);
+  const arabicLanguageEnabled = useStorefrontStore((state) => state.arabicLanguageEnabled ?? false);
   const { locale, setLocale } = useLanguageStore();
 
   useEffect(() => {
@@ -40,4 +40,3 @@ export function StorefrontShell({ children }: { children: React.ReactNode }) {
     </>
   );
 }
-

@@ -513,8 +513,9 @@ export const useStorefrontStore = create<StorefrontState>()(
       mangaDiscoveryArabicConfig: DEFAULT_MANGA_DISCOVERY_ARABIC_CONFIG,
       trendingArabicConfig: DEFAULT_TRENDING_ARABIC_CONFIG,
       genreBentoArabicConfig: DEFAULT_GENRE_BENTO_ARABIC_CONFIG,
-      arabicLanguageEnabled: true,
-      setArabicLanguageEnabled: (enabled) => set({ arabicLanguageEnabled: enabled }),
+      arabicLanguageEnabled: false,
+      // KAIRO is intentionally English-only in the public storefront.
+      setArabicLanguageEnabled: () => set({ arabicLanguageEnabled: false }),
       isAdminAuthenticated: false,
       isVisualEditorActive: true,
       activeLiveEditTarget: null,
@@ -887,7 +888,7 @@ export const useStorefrontStore = create<StorefrontState>()(
           mangaDiscoveryArabicConfig: DEFAULT_MANGA_DISCOVERY_ARABIC_CONFIG,
           trendingArabicConfig: DEFAULT_TRENDING_ARABIC_CONFIG,
           genreBentoArabicConfig: DEFAULT_GENRE_BENTO_ARABIC_CONFIG,
-          arabicLanguageEnabled: true,
+          arabicLanguageEnabled: false,
         });
       },
 
@@ -918,7 +919,7 @@ export const useStorefrontStore = create<StorefrontState>()(
           mangaDiscoveryArabicConfig: state.mangaDiscoveryArabicConfig,
           trendingArabicConfig: state.trendingArabicConfig,
           genreBentoArabicConfig: state.genreBentoArabicConfig,
-          arabicLanguageEnabled: state.arabicLanguageEnabled ?? true,
+          arabicLanguageEnabled: false,
         };
         return JSON.stringify(exportPayload, null, 2);
       },
@@ -965,7 +966,7 @@ export const useStorefrontStore = create<StorefrontState>()(
             mangaDiscoveryArabicConfig: { ...DEFAULT_MANGA_DISCOVERY_ARABIC_CONFIG, ...(parsed.mangaDiscoveryArabicConfig || {}) },
             trendingArabicConfig: { ...DEFAULT_TRENDING_ARABIC_CONFIG, ...(parsed.trendingArabicConfig || {}) },
             genreBentoArabicConfig: { ...DEFAULT_GENRE_BENTO_ARABIC_CONFIG, ...(parsed.genreBentoArabicConfig || {}) },
-            arabicLanguageEnabled: typeof parsed.arabicLanguageEnabled === "boolean" ? parsed.arabicLanguageEnabled : true,
+            arabicLanguageEnabled: false,
           });
           return true;
         } catch {
@@ -998,7 +999,7 @@ export const useStorefrontStore = create<StorefrontState>()(
         mangaDiscoveryArabicConfig: state.mangaDiscoveryArabicConfig,
         trendingArabicConfig: state.trendingArabicConfig,
         genreBentoArabicConfig: state.genreBentoArabicConfig,
-        arabicLanguageEnabled: state.arabicLanguageEnabled ?? true,
+        arabicLanguageEnabled: false,
         adminPinHash: state.adminPinHash,
         isAdminAuthenticated: state.isAdminAuthenticated,
         adminSessionToken: state.adminSessionToken,
@@ -1047,11 +1048,7 @@ export const useStorefrontStore = create<StorefrontState>()(
         } else {
           merged.genreBentoArabicConfig = DEFAULT_GENRE_BENTO_ARABIC_CONFIG;
         }
-        if (typeof persisted?.arabicLanguageEnabled === "boolean") {
-          merged.arabicLanguageEnabled = persisted.arabicLanguageEnabled;
-        } else {
-          merged.arabicLanguageEnabled = true;
-        }
+        merged.arabicLanguageEnabled = false;
         if (persisted?.trendingConfig) {
           merged.trendingConfig = { ...DEFAULT_TRENDING_CONFIG, ...persisted.trendingConfig };
         }

@@ -160,8 +160,6 @@ export default function AdminPage() {
     updateMangaDiscoveryArabicConfig,
     trendingArabicConfig,
     updateTrendingArabicConfig,
-    arabicLanguageEnabled,
-    setArabicLanguageEnabled,
     addGenre,
     updateGenre,
     deleteGenre,
@@ -1341,35 +1339,6 @@ export default function AdminPage() {
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 shrink-0">
-                  {/* Master Storefront Arabic Toggle */}
-                  <div className="flex items-center gap-2 bg-ink border border-ink-border px-3 py-1.5 rounded-sm">
-                    <span className="text-[11px] text-text-muted">Arabic Storefront:</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const next = !arabicLanguageEnabled;
-                        setArabicLanguageEnabled(next);
-                        showToast(
-                          next
-                            ? "Arabic language enabled storefront-wide."
-                            : "Arabic language disabled. Storefront reverted to English."
-                        );
-                      }}
-                      className={`px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-xs transition-colors cursor-pointer ${
-                        arabicLanguageEnabled
-                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
-                          : "bg-vermilion/20 text-vermilion border border-vermilion/40"
-                      }`}
-                      title={
-                        arabicLanguageEnabled
-                          ? "Click to disable Arabic on the entire storefront"
-                          : "Click to enable Arabic on the storefront"
-                      }
-                    >
-                      {arabicLanguageEnabled ? "Active" : "Disabled"}
-                    </button>
-                  </div>
-
                   {/* CMS Language Switcher */}
                   <div className="flex items-center gap-1 bg-ink border border-ink-border p-1 rounded-sm">
                     <button
@@ -3915,49 +3884,27 @@ export default function AdminPage() {
                 </p>
               </div>
 
-              {/* 1. Storefront Arabic Language Control */}
+              {/* 1. Storefront language policy */}
               <div className="p-4 sm:p-6 bg-ink-surface border border-ink-border rounded-sm space-y-3 sm:space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                     <Globe className="w-3.5 h-3.5" />
-                    <span>Arabic Language Support</span>
+                    <span>Storefront Language</span>
                   </h2>
                   <span
-                    className={`text-[10px] px-2 py-0.5 uppercase tracking-wider rounded-xs font-bold ${
-                      arabicLanguageEnabled
-                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                        : "bg-vermilion/15 text-vermilion border border-vermilion/30"
-                    }`}
+                    className="text-[10px] px-2 py-0.5 uppercase tracking-wider rounded-xs font-bold bg-ink-elevated text-text-muted border border-ink-border"
                   >
-                    {arabicLanguageEnabled ? "Enabled" : "Disabled"}
+                    English only
                   </span>
                 </div>
                 <p className="text-xs text-text-muted leading-relaxed">
-                  Enable or disable Arabic language across the public storefront.
+                  The customer storefront is locked to English. The language switcher is hidden from visitors.
                 </p>
                 <div className="pt-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = !arabicLanguageEnabled;
-                      setArabicLanguageEnabled(next);
-                      showToast(
-                        next
-                          ? "Arabic language enabled storefront-wide."
-                          : "Arabic language disabled. Storefront reverted to English."
-                      );
-                    }}
-                    className={`px-4 py-2 text-xs uppercase tracking-wider rounded-sm transition-colors border cursor-pointer font-bold inline-flex items-center gap-2 ${
-                      arabicLanguageEnabled
-                        ? "bg-ink-elevated hover:bg-vermilion/20 hover:text-vermilion hover:border-vermilion/50 text-paper border-ink-border"
-                        : "bg-gold hover:bg-gold-muted text-ink border-transparent"
-                    }`}
-                  >
+                  <button type="button" disabled className="px-4 py-2 text-xs uppercase tracking-wider rounded-sm border font-bold inline-flex items-center gap-2 bg-ink text-text-muted border-ink-border cursor-not-allowed opacity-70">
                     <Globe className="w-3.5 h-3.5" />
                     <span>
-                      {arabicLanguageEnabled
-                        ? "Disable Arabic"
-                        : "Enable Arabic"}
+                      Language switching disabled
                     </span>
                   </button>
                 </div>

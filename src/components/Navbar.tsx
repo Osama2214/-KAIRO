@@ -18,7 +18,7 @@ export function Navbar() {
   const mounted = useMounted();
   const { t, locale, toggleLanguage, isRTL } = useTranslation();
   const isArabic = locale === "ar";
-  const arabicLanguageEnabled = useStorefrontStore((state) => state.arabicLanguageEnabled ?? true);
+  const arabicLanguageEnabled = useStorefrontStore((state) => state.arabicLanguageEnabled ?? false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeHash, setActiveHash] = useState("");
