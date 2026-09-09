@@ -416,8 +416,6 @@ export interface StorefrontState {
   mangaDiscoveryArabicConfig: MangaDiscoveryArabicConfig;
   trendingArabicConfig: TrendingArabicConfig;
   genreBentoArabicConfig: GenreBentoArabicConfig;
-  arabicLanguageEnabled: boolean;
-  setArabicLanguageEnabled: (enabled: boolean) => void;
 
   // Admin Access & Live Visual Editor
   isAdminAuthenticated: boolean;
@@ -511,10 +509,6 @@ export const useStorefrontStore = create<StorefrontState>()(
       mangaDiscoveryArabicConfig: DEFAULT_MANGA_DISCOVERY_ARABIC_CONFIG,
       trendingArabicConfig: DEFAULT_TRENDING_ARABIC_CONFIG,
       genreBentoArabicConfig: DEFAULT_GENRE_BENTO_ARABIC_CONFIG,
-      // Arabic is available; the CMS no longer overrides this, since no admin
-      // control was ever wired to setArabicLanguageEnabled.
-      arabicLanguageEnabled: true,
-      setArabicLanguageEnabled: (enabled) => set({ arabicLanguageEnabled: enabled }),
       isAdminAuthenticated: false,
       isVisualEditorActive: true,
       activeLiveEditTarget: null,
@@ -906,7 +900,6 @@ export const useStorefrontStore = create<StorefrontState>()(
           mangaDiscoveryArabicConfig: DEFAULT_MANGA_DISCOVERY_ARABIC_CONFIG,
           trendingArabicConfig: DEFAULT_TRENDING_ARABIC_CONFIG,
           genreBentoArabicConfig: DEFAULT_GENRE_BENTO_ARABIC_CONFIG,
-          arabicLanguageEnabled: true,
         });
       },
 
@@ -937,7 +930,6 @@ export const useStorefrontStore = create<StorefrontState>()(
           mangaDiscoveryArabicConfig: state.mangaDiscoveryArabicConfig,
           trendingArabicConfig: state.trendingArabicConfig,
           genreBentoArabicConfig: state.genreBentoArabicConfig,
-          arabicLanguageEnabled: state.arabicLanguageEnabled,
         };
         return JSON.stringify(exportPayload, null, 2);
       },
@@ -984,7 +976,6 @@ export const useStorefrontStore = create<StorefrontState>()(
             mangaDiscoveryArabicConfig: { ...DEFAULT_MANGA_DISCOVERY_ARABIC_CONFIG, ...(parsed.mangaDiscoveryArabicConfig || {}) },
             trendingArabicConfig: { ...DEFAULT_TRENDING_ARABIC_CONFIG, ...(parsed.trendingArabicConfig || {}) },
             genreBentoArabicConfig: { ...DEFAULT_GENRE_BENTO_ARABIC_CONFIG, ...(parsed.genreBentoArabicConfig || {}) },
-            arabicLanguageEnabled: parsed.arabicLanguageEnabled ?? true,
           });
           return true;
         } catch {
@@ -1023,7 +1014,6 @@ export const useStorefrontStore = create<StorefrontState>()(
         mangaDiscoveryArabicConfig: state.mangaDiscoveryArabicConfig,
         trendingArabicConfig: state.trendingArabicConfig,
         genreBentoArabicConfig: state.genreBentoArabicConfig,
-        arabicLanguageEnabled: state.arabicLanguageEnabled,
       }),
       merge: (persistedState: unknown, currentState: StorefrontState): StorefrontState => {
         const persisted = persistedState as Partial<StorefrontState> | undefined;
@@ -1068,7 +1058,6 @@ export const useStorefrontStore = create<StorefrontState>()(
         } else {
           merged.genreBentoArabicConfig = DEFAULT_GENRE_BENTO_ARABIC_CONFIG;
         }
-        merged.arabicLanguageEnabled = persisted?.arabicLanguageEnabled ?? true;
         if (persisted?.trendingConfig) {
           merged.trendingConfig = { ...DEFAULT_TRENDING_CONFIG, ...persisted.trendingConfig };
         }

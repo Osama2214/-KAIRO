@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { useStorefrontStore } from "./useStorefrontStore";
 
 export type Locale = "en" | "ar";
 
@@ -10,61 +9,38 @@ interface LanguageState {
   toggleLanguage: () => void;
 }
 
+/** Keeps the document element in step with the active locale. */
+function applyLocaleToDocument(locale: Locale) {
+  if (typeof document === "undefined") return;
+  document.documentElement.lang = locale;
+  document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
+}
+
+/**
+ * Arabic is always available. The switch used to be gated behind an
+ * `arabicLanguageEnabled` flag that lived in the CMS payload but had no admin
+ * control wired to it, so the stored `false` hid the button permanently.
+ */
 export const useLanguageStore = create<LanguageState>()(
   persist(
     (set, get) => ({
       locale: "en",
-      setLocale: (targetLocale: Locale) => {
-        const arabicAllowed = useStorefrontStore.getState().arabicLanguageEnabled ?? true;
-        const finalLocale: Locale = !arabicAllowed && targetLocale === "ar" ? "en" : targetLocale;
-        set({ locale: finalLocale });
-        if (typeof document !== "undefined") {
-          document.documentElement.lang = finalLocale;
-          document.documentElement.dir = finalLocale === "ar" ? "rtl" : "ltr";
-        }
+      setLocale: (locale: Locale) => {
+        set({ locale });
+        applyLocaleToDocument(locale);
       },
       toggleLanguage: () => {
-        const arabicAllowed = useStorefrontStore.getState().arabicLanguageEnabled ?? true;
-        if (!arabicAllowed) {
-          // Arabic disabled by admin; remain on English
-          set({ locale: "en" });
-          if (typeof document !== "undefined") {
-            document.documentElement.lang = "en";
-            document.documentElement.dir = "ltr";
-          }
-          return;
-        }
         const nextLocale: Locale = get().locale === "en" ? "ar" : "en";
         set({ locale: nextLocale });
-        if (typeof document !== "undefined") {
-          document.documentElement.lang = nextLocale;
-          document.documentElement.dir = nextLocale === "ar" ? "rtl" : "ltr";
-        }
+        applyLocaleToDocument(nextLocale);
       },
     }),
     {
       name: "kairo_locale",
       storage: createJSONStorage(() => localStorage),
       onRehydrateStorage: () => (state) => {
-        if (state && typeof document !== "undefined") {
-          const arabicAllowed = useStorefrontStore.getState().arabicLanguageEnabled ?? true;
-          const initialLocale = !arabicAllowed && state.locale === "ar" ? "en" : state.locale;
-          if (initialLocale !== state.locale) {
-            state.locale = initialLocale;
-          }
-          document.documentElement.lang = initialLocale;
-          document.documentElement.dir = initialLocale === "ar" ? "rtl" : "ltr";
-        }
+        if (state) applyLocaleToDocument(state.locale);
       },
     }
   )
 );
-
-// Subscribe to admin updates: if Arabic is disabled, revert immediately to English
-if (typeof window !== "undefined") {
-  useStorefrontStore.subscribe((state) => {
-    if (state.arabicLanguageEnabled === false && useLanguageStore.getState().locale === "ar") {
-      useLanguageStore.getState().setLocale("en");
-    }
-  });
-}

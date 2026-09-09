@@ -13,14 +13,12 @@ import { GlobalWelcomeOfferBar } from "@/components/GlobalWelcomeOfferBar";
 import { useWelcomeOffer } from "@/hooks/useWelcomeOffer";
 import { clearYujiSavedScroll } from "@/components/SmoothScrollProvider";
 import { useTranslation } from "@/hooks/useTranslation";
-import { useStorefrontStore } from "@/store/useStorefrontStore";
 
 export function Navbar() {
   const pathname = usePathname();
   const mounted = useMounted();
   const { t, locale, toggleLanguage, isRTL } = useTranslation();
   const isArabic = locale === "ar";
-  const arabicLanguageEnabled = useStorefrontStore((state) => state.arabicLanguageEnabled ?? true);
   const [isScrolled, setIsScrolled] = useState(false);
   const isHomepage = pathname === "/";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -235,20 +233,18 @@ export function Navbar() {
 
           {/* Right Action Icons */}
           <div className="flex items-center gap-0.5 sm:gap-2">
-            {/* Language Switcher */}
-            {arabicLanguageEnabled && (
-              <button
-                onClick={toggleLanguage}
-                className="h-8 px-1.5 sm:px-2.5 flex items-center gap-1 text-paper-muted/90 hover:text-gold transition-all rounded-sm hover:bg-ink-surface/80 border border-ink-border/80 hover:border-gold/50 focus:outline-none cursor-pointer"
-                title={locale === "en" ? "تبديل إلى اللغة العربية" : "Switch to English"}
-                aria-label="Toggle language"
-              >
-                <Globe strokeWidth={1.5} className="w-3.5 h-3.5 text-gold" />
-                <span className="text-[11px] font-bold font-sans tracking-wide">
-                  {locale === "en" ? "العربية" : "EN"}
-                </span>
-              </button>
-            )}
+            {/* Language Switcher — always available */}
+            <button
+              onClick={toggleLanguage}
+              className="h-8 px-1.5 sm:px-2.5 flex items-center gap-1 text-paper-muted/90 hover:text-gold transition-all rounded-sm hover:bg-ink-surface/80 border border-ink-border/80 hover:border-gold/50 focus:outline-none cursor-pointer"
+              title={locale === "en" ? "تبديل إلى اللغة العربية" : "Switch to English"}
+              aria-label="Toggle language"
+            >
+              <Globe strokeWidth={1.5} className="w-3.5 h-3.5 text-gold" />
+              <span className="text-[11px] font-bold font-sans tracking-wide">
+                {locale === "en" ? "العربية" : "EN"}
+              </span>
+            </button>
 
             {/* Search Trigger */}
             <button
@@ -572,8 +568,7 @@ export function Navbar() {
               </div>
 
               {/* Language Switch Button */}
-              {arabicLanguageEnabled && (
-                <div className="relative z-10 self-center">
+              <div className="relative z-10 self-center">
                   <button
                     type="button"
                     onClick={() => {
@@ -585,8 +580,7 @@ export function Navbar() {
                     <Globe strokeWidth={1.4} className="w-3.5 h-3.5 md:w-4 md:h-4 text-gold" />
                     <span>{locale === "en" ? "العربية" : "ENGLISH"}</span>
                   </button>
-                </div>
-              )}
+              </div>
             </div>
           </div>
         </div>

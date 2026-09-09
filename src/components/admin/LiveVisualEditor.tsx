@@ -105,7 +105,6 @@ export function LiveVisualEditor() {
     updateGenreBentoArabicConfig,
     updateMangaDiscoveryConfig,
     updateMangaDiscoveryArabicConfig,
-    arabicLanguageEnabled,
     logoutAdmin,
   } = useStorefrontStore();
 
@@ -269,18 +268,16 @@ export function LiveVisualEditor() {
             </Link>
 
             {/* Storefront Language Live Switch */}
-            {(arabicLanguageEnabled ?? true) && (
-              <button
-                type="button"
-                onClick={toggleLanguage}
-                className="shrink-0 flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-full bg-ink-surface hover:bg-ink-border border border-ink-border text-paper-muted hover:text-paper transition-colors text-[10px] sm:text-[11px] font-mono font-bold tracking-wider cursor-pointer"
-                title="Toggle Storefront Language"
-              >
-                <span className={locale === "ar" ? "text-gold" : "text-text-muted"}>AR</span>
-                <span className="text-text-muted text-[9px]">/</span>
-                <span className={locale === "en" ? "text-gold" : "text-text-muted"}>EN</span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              className="shrink-0 flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-full bg-ink-surface hover:bg-ink-border border border-ink-border text-paper-muted hover:text-paper transition-colors text-[10px] sm:text-[11px] font-mono font-bold tracking-wider cursor-pointer"
+              title="Toggle Storefront Language"
+            >
+              <span className={locale === "ar" ? "text-gold" : "text-text-muted"}>AR</span>
+              <span className="text-text-muted text-[9px]">/</span>
+              <span className={locale === "en" ? "text-gold" : "text-text-muted"}>EN</span>
+            </button>
 
             {/* Actions: Minimize & Logout */}
             <div className="flex items-center gap-0.5 pl-1 border-l border-ink-border shrink-0">
