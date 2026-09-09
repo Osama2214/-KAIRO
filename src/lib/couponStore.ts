@@ -32,11 +32,26 @@ function normalize(row: Record<string, unknown>): WelcomeCoupon {
   return { code: String(row.code), expiresAt: Number(row.expires_at), used: row.used_at !== null && row.used_at !== undefined, discountPercent: Number(row.discount_percent) };
 }
 
-export async function getOrCreateWelcomeCoupon(email: string): Promise<WelcomeCoupon> {
+/**
+ * Returns the patron's welcome coupon, issuing one only for a genuinely new
+ * patron.
+ *
+ * This used to mint a coupon for anyone who did not already have a row, so a
+ * long-standing customer — someone who registered before the coupon table
+ * existed and has ordered many times — was handed a fresh welcome offer the
+ * first time they signed in. A patron who already has orders is not new.
+ */
+export async function getOrCreateWelcomeCoupon(email: string): Promise<WelcomeCoupon | null> {
   await ensureSchema();
   const normalizedEmail = email.trim().toLowerCase();
   const existing = await sql!`SELECT code, expires_at, used_at, discount_percent FROM kairo_welcome_coupons WHERE email = ${normalizedEmail}`;
+  // An already-issued coupon still belongs to them, whatever their history.
   if (existing[0]) return normalize(existing[0]);
+
+  const priorOrders = await sql!`
+    SELECT 1 FROM kairo_orders WHERE LOWER(customer_email) = ${normalizedEmail} LIMIT 1
+  `;
+  if (priorOrders.length > 0) return null;
 
   const coupon = `YUJI-${crypto.randomBytes(5).toString("hex").toUpperCase()}`;
   const expiresAt = Date.now() + 24 * 60 * 60 * 1000;

@@ -7,7 +7,9 @@ export async function GET(request: Request) {
     const session = patronSession(request);
     if (!session.valid || !session.email) return NextResponse.json({ success: false }, { status: 401, headers: { "Cache-Control": "no-store" } });
     const coupon = await getOrCreateWelcomeCoupon(session.email);
-    return NextResponse.json({ success: true, coupon }, { headers: { "Cache-Control": "no-store" } });
+    // No coupon means this patron is not eligible; the client treats a missing
+    // coupon as "no offer" and renders nothing.
+    return NextResponse.json({ success: true, coupon: coupon ?? null }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Welcome coupon error:", error);
     return NextResponse.json({ success: false }, { status: 503, headers: { "Cache-Control": "no-store" } });

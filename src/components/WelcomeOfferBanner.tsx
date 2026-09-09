@@ -33,27 +33,24 @@ export function WelcomeOfferBanner() {
   const { mounted, currentUser, hasOffer, voucherCode, expiresAt, firstName } = useWelcomeOffer();
 
   const [copied, setCopied] = useState(false);
-  const [timeLeft, setTimeLeft] = useState<TimeRemaining | null>(() =>
-    expiresAt ? calculateTimeRemaining(expiresAt) : null
-  );
+  // Re-render once a second; the remaining time itself is derived below so it
+  // is never stale on the first paint.
+  const [, tick] = useState(0);
 
   // Real-time countdown timer
   useEffect(() => {
     if (!expiresAt) return;
-
     const interval = setInterval(() => {
-      const remaining = calculateTimeRemaining(expiresAt);
-      setTimeLeft(remaining);
-      if (remaining.isExpired) {
-        clearInterval(interval);
-      }
+      tick((value) => value + 1);
+      if (calculateTimeRemaining(expiresAt).isExpired) clearInterval(interval);
     }, 1000);
-
     return () => clearInterval(interval);
-  }, [expiresAt, setTimeLeft]);
+  }, [expiresAt]);
+
+  const timeLeft: TimeRemaining | null = expiresAt ? calculateTimeRemaining(expiresAt) : null;
 
   // If claimed, no expiry, or already expired, do not render banner
-  if (!mounted || !currentUser || !hasOffer || !expiresAt || (timeLeft && timeLeft.isExpired)) {
+  if (!mounted || !currentUser || !hasOffer || !expiresAt || !timeLeft || timeLeft.isExpired) {
     return null;
   }
 

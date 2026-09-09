@@ -27,7 +27,7 @@ export function Navbar() {
   const totalCartCount = useCartStore((state) => state.getTotalItems());
   const totalWishlistCount = useWishlistStore((state) => state.getTotalItems());
   const { openCart, openSearch } = useUIStore();
-  const { hasOffer: hasWelcomeOffer, currentUser } = useWelcomeOffer();
+  const { hasOffer: hasWelcomeOffer, voucherCode: welcomeVoucherCode, currentUser } = useWelcomeOffer();
   const headerRef = useRef<HTMLElement>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
 
@@ -507,7 +507,7 @@ export function Navbar() {
               <div className="p-2.5 md:p-3.5 bg-gold/10 border border-gold/40 rounded-xs flex items-center justify-between gap-2 text-xs md:text-sm font-mono">
                 <div className="flex items-center gap-1.5 md:gap-2 text-gold truncate">
                   <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" />
-                  <span className="truncate">20% Grant: <strong>{currentUser?.welcomeDiscountCode}</strong></span>
+                  <span className="truncate">20% Grant: <strong>{welcomeVoucherCode}</strong></span>
                 </div>
                 <Link
                   href="/account"

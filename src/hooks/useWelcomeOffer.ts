@@ -20,11 +20,14 @@ export function useWelcomeOffer() {
     const load = async () => {
       const response = await fetch("/api/coupons/welcome", { cache: "no-store" }).catch(() => null);
       const data = response ? await response.json().catch(() => null) : null;
-      if (!cancelled && data?.success && data.coupon) {
-        setCoupon(data.coupon);
-      } else if (!cancelled && attempts++ < 3) {
-        window.setTimeout(load, 500);
+      if (cancelled) return;
+      if (data?.success) {
+        // A successful response with no coupon is a real answer: this patron is
+        // not eligible. Retrying it three times only delayed the same result.
+        setCoupon(data.coupon ?? null);
+        return;
       }
+      if (attempts++ < 3) window.setTimeout(load, 500);
     };
     load();
     return () => { cancelled = true; };

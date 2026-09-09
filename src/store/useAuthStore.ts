@@ -70,9 +70,6 @@ export interface UserProfile {
   orders: SavedOrder[];
   cart?: CartItem[];
   wishlist?: MangaVolume[];
-  welcomeOfferExpiresAt?: number;
-  welcomeOfferClaimed?: boolean;
-  welcomeDiscountCode?: string;
 }
 
 interface AuthState {
@@ -110,26 +107,6 @@ interface AuthState {
   initSession: () => Promise<void>;
 }
 
-export function ensureWelcomeOffer(user: UserProfile): UserProfile {
-  const hasOrders = Array.isArray(user.orders) && user.orders.length > 0;
-  if (user.welcomeOfferClaimed || hasOrders) {
-    return user.welcomeOfferClaimed ? user : { ...user, welcomeOfferClaimed: true };
-  }
-
-  const cleanFirstName = (user.name ? user.name.trim().split(" ")[0] : "PATRON")
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, "");
-  const code = user.welcomeDiscountCode || `${cleanFirstName || "PATRON"}-FIRST20`;
-  const expiresAt = user.welcomeOfferExpiresAt || (Date.now() + 24 * 60 * 60 * 1000);
-
-  return {
-    ...user,
-    welcomeDiscountCode: code,
-    welcomeOfferExpiresAt: expiresAt,
-    welcomeOfferClaimed: false,
-  };
-}
-
 export const useAuthStore = create<AuthState>((set, get) => ({
   currentUser: null,
   isLoading: false,
@@ -153,11 +130,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           return;
         }
         if (data.authenticated && data.user) {
-          const userWithOffer = ensureWelcomeOffer({
+          const userWithOffer: UserProfile = {
             ...data.user,
             tier: data.user.role === "admin" ? "Archive Master" : "Collector",
             orders: [],
-          });
+          };
           set({ currentUser: userWithOffer, isInitialized: true });
 
           // Fetch user's authentic orders from server
@@ -209,7 +186,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       const rawUser = data.user;
-      const userProfile: UserProfile = ensureWelcomeOffer({
+      const userProfile: UserProfile = {
         id: rawUser.id,
         name: rawUser.name,
         email: rawUser.email,
@@ -222,7 +199,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         tier: rawUser.role === "admin" ? "Archive Master" : "Collector",
         joinedDate: rawUser.joinedDate || new Date().toISOString().split("T")[0],
         orders: [],
-      });
+      };
 
       set({ currentUser: userProfile, isLoading: false });
 
@@ -294,7 +271,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       const rawUser = resData.user;
-      const newUser: UserProfile = ensureWelcomeOffer({
+      const newUser: UserProfile = {
         id: rawUser.id,
         name: rawUser.name,
         email: rawUser.email,
@@ -307,7 +284,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         tier: "Collector",
         joinedDate: rawUser.joinedDate || new Date().toISOString().split("T")[0],
         orders: [],
-      });
+      };
 
       set({ currentUser: newUser, isLoading: false });
       return { success: true };
@@ -326,7 +303,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return { success: false, message: "Invalid email from Google account." };
     }
 
-    const user: UserProfile = ensureWelcomeOffer({
+    const user: UserProfile = {
       id: profile.id,
       name: sanitizeInput(profile.name) || "Google Patron",
       email: normalizedEmail,
@@ -341,7 +318,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       tier: profile.role === "admin" ? "Archive Master" : "Collector",
       joinedDate: profile.joinedDate || new Date().toISOString().split("T")[0],
       orders: [],
-    });
+    };
 
     set({ currentUser: user });
 
@@ -402,7 +379,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       currentUser: {
         ...currentUser,
         orders: [order, ...filtered],
-        welcomeOfferClaimed: true,
       },
     });
   },
