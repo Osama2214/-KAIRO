@@ -27,7 +27,6 @@ export function Hero() {
   const heroArabicContent = useStorefrontStore((state) => state.heroArabicContent);
   const volumes = useStorefrontStore((state) => state.volumes);
   const shippingConfig = useStorefrontStore((state) => state.shippingConfig);
-  const shippingArabicConfig = useStorefrontStore((state) => state.shippingArabicConfig);
 
   const featuredVolume =
     volumes.find((v) => v.id === heroContent.featuredVolumeId) ||
@@ -75,9 +74,6 @@ export function Hero() {
   }, [mobileHeroImages.length]);
 
   const isAr = locale === "ar";
-  const hubName = mounted
-    ? (isAr ? (shippingArabicConfig?.hubName || t.shipping.hubTitle) : (shippingConfig.hubName || t.shipping.hubTitle))
-    : t.shipping.hubTitle;
   const headlineLine1 = mounted
     ? (isAr ? (heroArabicContent?.headlineLine1 || t.hero.headlineLine1) : (heroContent.headlineLine1 || t.hero.headlineLine1))
     : t.hero.headlineLine1;
@@ -180,13 +176,11 @@ export function Hero() {
         {/* Left Column: Bold & Confident Editorial Headline & Actions */}
         <div className="lg:col-span-7 flex flex-col space-y-3 sm:space-y-5 lg:space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700 w-full max-w-xl lg:max-w-none">
           
-          {/* Top Metadata: Badge & Live Edit */}
+          {/* Top Metadata: archive mark & Live Edit */}
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 sm:gap-2.5">
-              <span className="text-xs text-text-muted font-serif">
-                YUJI アーカイブ // {hubName}
-              </span>
-            </div>
+            <span className="text-xs text-text-muted font-serif">
+              YUJI アーカイブ
+            </span>
             <LiveEditButton target={{ type: "hero" }} label="Edit Hero" variant="floating" size="xs" />
           </div>
 

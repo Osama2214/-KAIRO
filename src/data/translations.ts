@@ -60,7 +60,7 @@ export const translations = {
       stat1Val: "1,400+",
       stat1Lbl: "Volumes Archived",
       stat2Val: "100%",
-      stat2Lbl: "Licensed Imports",
+      stat2Lbl: "Premium Quality Editions",
       stat3Val: "24-48h",
       stat3Lbl: "All Egypt Delivery",
     },
@@ -341,11 +341,11 @@ export const translations = {
       primaryCta: "استكشف المانجا",
       secondaryCta: "أحدث الإصدارات",
       stat1Val: "+١,٤٠٠",
-      stat1Lbl: "مجلد في الأرشيف",
+      stat1Lbl: "مجلّد في الأرشيف",
       stat2Val: "١٠٠٪",
-      stat2Lbl: "إصدارات أصلية مرخصة",
+      stat2Lbl: "إصدارات بأعلى جودة",
       stat3Val: "٢٤-٤٨ ساعة",
-      stat3Lbl: "شحن لجميع محافظات مصر",
+      stat3Lbl: "توصيل لكل محافظات مصر",
     },
     announcement: {
       defaultText:

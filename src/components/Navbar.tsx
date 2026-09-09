@@ -178,7 +178,7 @@ export function Navbar() {
         ref={headerRef}
         className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 ${
           isScrolled
-            ? "bg-ink/85 backdrop-blur-md border-b border-ink-border/80 shadow-2xl"
+            ? "bg-ink/70 backdrop-blur-sm border-b border-ink-border/60 shadow-xl"
             : "bg-transparent"
         }`}
       >
@@ -232,16 +232,17 @@ export function Navbar() {
           </nav>
 
           {/* Right Action Icons */}
-          <div className="flex items-center gap-0.5 sm:gap-2">
-            {/* Language Switcher — always available */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Language Switcher — full label at every size. There is room for it
+                now that wishlist and account moved into the mobile drawer. */}
             <button
               onClick={toggleLanguage}
-              className="h-8 px-1.5 sm:px-2.5 flex items-center gap-1 text-paper-muted/90 hover:text-gold transition-all rounded-sm hover:bg-ink-surface/80 border border-ink-border/80 hover:border-gold/50 focus:outline-none cursor-pointer"
+              className="flex h-8 px-1.5 sm:px-2.5 items-center gap-1 text-paper-muted/90 hover:text-gold transition-all rounded-sm hover:bg-ink-surface/80 focus:outline-none cursor-pointer shrink-0"
               title={locale === "en" ? "تبديل إلى اللغة العربية" : "Switch to English"}
               aria-label="Toggle language"
             >
-              <Globe strokeWidth={1.5} className="w-3.5 h-3.5 text-gold" />
-              <span className="text-[11px] font-bold font-sans tracking-wide">
+              <Globe strokeWidth={1.5} className="w-3.5 h-3.5 text-gold shrink-0" />
+              <span className="text-[11px] font-bold font-sans tracking-wide whitespace-nowrap">
                 {locale === "en" ? "العربية" : "EN"}
               </span>
             </button>
@@ -259,10 +260,10 @@ export function Navbar() {
               </span>
             </button>
 
-            {/* Wishlist */}
+            {/* Wishlist — reachable from the mobile drawer's quick actions */}
             <Link
               href="/account?tab=WISHLIST"
-              className="relative h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center text-paper-muted/80 hover:text-gold transition-all rounded-sm hover:bg-ink-surface/80 border border-transparent hover:border-ink-border/60"
+              className="relative hidden sm:flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center text-paper-muted/80 hover:text-gold transition-all rounded-sm hover:bg-ink-surface/80 border border-transparent hover:border-ink-border/60"
               title="Curated Wishlist"
               aria-label="View Wishlist"
             >
@@ -279,10 +280,10 @@ export function Navbar() {
               )}
             </Link>
 
-            {/* Account / Dashboard */}
+            {/* Account — reachable from the mobile drawer's quick actions */}
             <Link
               href="/account"
-              className="h-8 w-8 sm:h-9 sm:w-auto sm:px-2.5 flex items-center justify-center gap-2 text-paper-muted/80 hover:text-gold transition-all rounded-sm hover:bg-ink-surface/80 border border-transparent hover:border-ink-border/60 cursor-pointer"
+              className="hidden sm:flex h-8 w-8 sm:h-9 sm:w-auto sm:px-2.5 items-center justify-center gap-2 text-paper-muted/80 hover:text-gold transition-all rounded-sm hover:bg-ink-surface/80 border border-transparent hover:border-ink-border/60 cursor-pointer"
               title={mounted && currentUser ? `Patron: ${currentUser.name} (${currentUser.id})` : "Sign In / Register"}
               aria-label="User Account"
             >
@@ -555,31 +556,16 @@ export function Navbar() {
               </Link>
             </div>
 
-            {/* Subtle Japanese Kanji Watermark & Language Controls */}
-            <div className="relative pt-8 md:pt-14 pb-4 md:pb-8 flex flex-col items-start justify-end overflow-hidden min-h-[140px] md:min-h-[220px]">
-              {/* Two Faint Japanese Kanji Characters shifted right & down (YUJI - YUJI) */}
+            {/* Faint Japanese watermark. The language switch that used to sit here
+                now lives in the header at every screen size. */}
+            <div className="relative pt-8 md:pt-14 pb-4 md:pb-8 overflow-hidden min-h-[140px] md:min-h-[220px]">
               <div
                 className="absolute -right-2 md:-right-6 -bottom-4 md:-bottom-8 pointer-events-none select-none z-0"
                 aria-hidden="true"
               >
                 <span className="text-[120px] xs:text-[145px] md:text-[220px] font-serif font-bold text-white/[0.035] tracking-[0.1em] leading-none">
-                  YUJI
+                  ユウジ
                 </span>
-              </div>
-
-              {/* Language Switch Button */}
-              <div className="relative z-10 self-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      toggleLanguage();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="py-1.5 md:py-2 px-3.5 md:px-5 rounded-full bg-[#121216]/90 hover:bg-ink-surface border border-ink-border/80 hover:border-gold/40 text-paper-muted hover:text-gold flex items-center gap-2 md:gap-2.5 text-[10.5px] md:text-xs font-mono transition-colors cursor-pointer shadow-sm"
-                  >
-                    <Globe strokeWidth={1.4} className="w-3.5 h-3.5 md:w-4 md:h-4 text-gold" />
-                    <span>{locale === "en" ? "العربية" : "ENGLISH"}</span>
-                  </button>
               </div>
             </div>
           </div>

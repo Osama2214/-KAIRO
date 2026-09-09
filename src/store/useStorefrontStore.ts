@@ -212,7 +212,7 @@ const DEFAULT_HERO_CONTENT: HeroContent = {
   stat1Value: "1,400+",
   stat1Label: "Volumes Archived",
   stat2Value: "100%",
-  stat2Label: "Licensed Imports",
+  stat2Label: "Premium Quality Editions",
   stat3Value: "24-48h",
   stat3Label: "All Egypt Delivery",
   featuredVolumeId: "tokyo-ghoul-1",
@@ -304,11 +304,11 @@ const DEFAULT_HERO_ARABIC_CONTENT: HeroArabicContent = {
   secondaryCtaText: "أحدث الإصدارات",
   secondaryCtaLink: "#new-releases",
   stat1Value: "+١,٤٠٠",
-  stat1Label: "مجلد في الأرشيف",
+  stat1Label: "مجلّد في الأرشيف",
   stat2Value: "١٠٠٪",
-  stat2Label: "إصدارات أصلية مرخصة",
+  stat2Label: "إصدارات بأعلى جودة",
   stat3Value: "٢٤-٤٨ ساعة",
-  stat3Label: "شحن لجميع محافظات مصر",
+  stat3Label: "توصيل لكل محافظات مصر",
 };
 
 const DEFAULT_ANNOUNCEMENT_ARABIC: AnnouncementArabicConfig = {
