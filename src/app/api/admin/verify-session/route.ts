@@ -1,5 +1,6 @@
 ﻿import { NextResponse } from "next/server";
 import { curatorSession } from "@/lib/serverAuth";
+import { authorizedAdminEmails } from "@/config/adminConfig";
 
 export async function POST(request: Request) {
   try {
@@ -14,8 +15,11 @@ export async function POST(request: Request) {
     return NextResponse.json({
       valid: true,
       email: verification.email,
+      // Delivered here rather than bundled into the client, so the curator
+      // allow-list is never readable by an anonymous visitor.
+      adminEmails: authorizedAdminEmails(),
       message: "Valid curator session.",
-    });
+    }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return NextResponse.json(
       { valid: false, message: "Session check failed." },

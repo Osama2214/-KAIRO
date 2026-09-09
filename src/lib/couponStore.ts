@@ -38,7 +38,7 @@ export async function getOrCreateWelcomeCoupon(email: string): Promise<WelcomeCo
   const existing = await sql!`SELECT code, expires_at, used_at, discount_percent FROM kairo_welcome_coupons WHERE email = ${normalizedEmail}`;
   if (existing[0]) return normalize(existing[0]);
 
-  const coupon = `KAIRO-${crypto.randomBytes(5).toString("hex").toUpperCase()}`;
+  const coupon = `YUJI-${crypto.randomBytes(5).toString("hex").toUpperCase()}`;
   const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
   try {
     const created = await sql!`
@@ -65,4 +65,19 @@ export async function redeemWelcomeCoupon(code: string, email: string, orderId: 
     RETURNING discount_percent
   `;
   return rows[0] ? Number(rows[0].discount_percent) : null;
+}
+
+/**
+ * Releases a coupon that was redeemed for an order that then failed to save.
+ * Without this a patron's single welcome coupon was burned by a server error
+ * they had no way to recover from.
+ */
+export async function releaseWelcomeCoupon(orderId: string): Promise<void> {
+  if (!orderId) return;
+  await ensureSchema();
+  await sql!`
+    UPDATE kairo_welcome_coupons
+    SET used_at = NULL, used_order_id = NULL
+    WHERE used_order_id = ${orderId}
+  `;
 }

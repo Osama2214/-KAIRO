@@ -1,13 +1,17 @@
 ﻿import { NextResponse } from "next/server";
 import { verifyOtp } from "@/lib/otpStore";
 import { checkRateLimitKey, getClientIp } from "@/lib/rateLimit";
+import { isTrustedOrigin } from "@/lib/serverAuth";
 
 export async function POST(request: Request) {
   try {
+    if (!isTrustedOrigin(request)) {
+      return NextResponse.json({ success: false, message: "Invalid request origin." }, { status: 403 });
+    }
     const clientIp = getClientIp(request);
 
     // 1. IP-level rate limiting: max 15 verification attempts per 15 minutes per IP
-    const ipCheck = checkRateLimitKey(`verify_otp:ip:${clientIp}`, 15, 15 * 60 * 1000);
+    const ipCheck = await checkRateLimitKey(`verify_otp:ip:${clientIp}`, 15, 15 * 60 * 1000);
     if (!ipCheck.allowed) {
       return NextResponse.json(
         {
@@ -29,7 +33,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = verifyOtp(cleanEmail, cleanCode);
+    const result = await verifyOtp(cleanEmail, cleanCode);
     if (!result.success) {
       return NextResponse.json(
         { success: false, message: result.message },

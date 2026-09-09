@@ -1,6 +1,15 @@
+import "server-only";
+
+import { neon } from "@neondatabase/serverless";
+
 /**
- * KAIRO Archive Server-Side Rate Limiter
- * Provides sliding-window IP and identifier rate limiting for security-sensitive API routes.
+ * YUJI Archive Server-Side Rate Limiter
+ *
+ * Counters live in Neon rather than process memory. On Vercel each request may
+ * land on a different lambda instance and every cold start begins with an empty
+ * map, so an in-memory limiter let brute-force attempts through simply by
+ * spreading across instances. The in-memory path below remains only as a local
+ * development fallback when DATABASE_URL is unset.
  */
 
 interface RateLimitRecord {
@@ -9,50 +18,72 @@ interface RateLimitRecord {
 }
 
 declare global {
-  var __kairo_rate_limit_store: Map<string, RateLimitRecord> | undefined;
+  var __yuji_rate_limit_store: Map<string, RateLimitRecord> | undefined;
 }
 
-const rateLimitStore = globalThis.__kairo_rate_limit_store || new Map<string, RateLimitRecord>();
-globalThis.__kairo_rate_limit_store = rateLimitStore;
+const memoryStore = globalThis.__yuji_rate_limit_store || new Map<string, RateLimitRecord>();
+globalThis.__yuji_rate_limit_store = memoryStore;
 
-/**
- * Periodically purge expired records to prevent memory leakage
- */
-function cleanupExpired() {
+const databaseUrl = process.env.DATABASE_URL;
+const sql = databaseUrl ? neon(databaseUrl) : null;
+let schemaReady: Promise<void> | null = null;
+
+async function ensureSchema(): Promise<void> {
+  if (!sql) return;
+  if (!schemaReady) {
+    schemaReady = (async () => {
+      await sql`
+        CREATE TABLE IF NOT EXISTS kairo_rate_limits (
+          key TEXT PRIMARY KEY,
+          count INTEGER NOT NULL,
+          reset_at BIGINT NOT NULL
+        )
+      `;
+      await sql`CREATE INDEX IF NOT EXISTS kairo_rate_limits_reset_at_idx ON kairo_rate_limits (reset_at)`;
+    })().catch((error) => {
+      schemaReady = null;
+      throw error;
+    });
+  }
+  await schemaReady;
+}
+
+function cleanupExpiredMemory() {
   const now = Date.now();
-  for (const [key, record] of rateLimitStore.entries()) {
-    if (record.resetAt <= now) {
-      rateLimitStore.delete(key);
-    }
+  for (const [key, record] of memoryStore.entries()) {
+    if (record.resetAt <= now) memoryStore.delete(key);
   }
 }
 
-// Run cleanup every 5 minutes
 if (typeof setInterval !== "undefined") {
-  const interval = setInterval(cleanupExpired, 5 * 60 * 1000);
+  const interval = setInterval(cleanupExpiredMemory, 5 * 60 * 1000);
   if (interval.unref) interval.unref();
 }
 
 /**
- * Resolves client IP address from standard proxy headers
+ * Resolves client IP address from headers the hosting platform sets itself.
  */
 export function getClientIp(request: Request): string {
-  // 1. Cloudflare edge IP header (cannot be spoofed from client)
-  const cfIp = request.headers.get("cf-connecting-ip");
-  if (cfIp) return cfIp.trim();
+  // The former first choice here was `cf-connecting-ip`, which this
+  // deployment's edge never writes — so a caller could send a fresh value on
+  // every request and get a fresh bucket each time, defeating the limiter.
+  const vercelIp = request.headers.get("x-vercel-forwarded-for");
+  if (vercelIp) {
+    const ip = vercelIp.split(",")[0].trim();
+    if (ip) return ip;
+  }
 
-  // 2. Nginx / reverse-proxy real IP header
   const realIp = request.headers.get("x-real-ip");
   if (realIp) return realIp.trim();
 
-  // 3. Fallback to standard forwarded-for
+  // Vercel rewrites x-forwarded-for, so its first entry is the true client.
   const forwardedFor = request.headers.get("x-forwarded-for");
   if (forwardedFor) {
     const ip = forwardedFor.split(",")[0].trim();
     if (ip) return ip;
   }
 
-  return "127.0.0.1";
+  return "unknown";
 }
 
 export interface RateLimitResult {
@@ -62,59 +93,77 @@ export interface RateLimitResult {
   resetSeconds: number;
 }
 
-/**
- * Checks and increments rate limit for a specific key
- * @param key Unique key (e.g. "otp:ip:1.2.3.4" or "pin:user@kairo.eg")
- * @param maxAttempts Maximum allowed requests within window
- * @param windowMs Time window in milliseconds
- */
-export function checkRateLimitKey(
-  key: string,
-  maxAttempts: number,
-  windowMs: number
-): RateLimitResult {
-  const now = Date.now();
-  const record = rateLimitStore.get(key);
-
-  if (!record || record.resetAt <= now) {
-    // New or expired window
-    rateLimitStore.set(key, {
-      count: 1,
-      resetAt: now + windowMs,
-    });
-    return {
-      allowed: true,
-      limit: maxAttempts,
-      remaining: maxAttempts - 1,
-      resetSeconds: Math.ceil(windowMs / 1000),
-    };
-  }
-
-  if (record.count >= maxAttempts) {
-    const resetSeconds = Math.max(1, Math.ceil((record.resetAt - now) / 1000));
-    return {
-      allowed: false,
-      limit: maxAttempts,
-      remaining: 0,
-      resetSeconds,
-    };
-  }
-
-  record.count += 1;
-  const remaining = Math.max(0, maxAttempts - record.count);
-  const resetSeconds = Math.max(1, Math.ceil((record.resetAt - now) / 1000));
-
+function result(count: number, resetAt: number, maxAttempts: number, now: number): RateLimitResult {
+  const resetSeconds = Math.max(1, Math.ceil((resetAt - now) / 1000));
   return {
-    allowed: true,
+    allowed: count <= maxAttempts,
     limit: maxAttempts,
-    remaining,
+    remaining: Math.max(0, maxAttempts - count),
     resetSeconds,
   };
 }
 
+function checkInMemory(key: string, maxAttempts: number, windowMs: number): RateLimitResult {
+  const now = Date.now();
+  const record = memoryStore.get(key);
+
+  if (!record || record.resetAt <= now) {
+    memoryStore.set(key, { count: 1, resetAt: now + windowMs });
+    return result(1, now + windowMs, maxAttempts, now);
+  }
+
+  if (record.count >= maxAttempts) return result(maxAttempts + 1, record.resetAt, maxAttempts, now);
+
+  record.count += 1;
+  return result(record.count, record.resetAt, maxAttempts, now);
+}
+
 /**
- * Resets rate limit for a specific key (e.g. upon successful authentication)
+ * Atomically increments the counter for a key and reports whether the caller is
+ * still within the window.
+ *
+ * @param key Unique key (e.g. "login:ip:1.2.3.4" or "pin:email:user@kairo.eg")
+ * @param maxAttempts Maximum allowed requests within the window
+ * @param windowMs Window length in milliseconds
  */
-export function resetRateLimitKey(key: string) {
-  rateLimitStore.delete(key);
+export async function checkRateLimitKey(
+  key: string,
+  maxAttempts: number,
+  windowMs: number
+): Promise<RateLimitResult> {
+  const now = Date.now();
+  if (!sql) return checkInMemory(key, maxAttempts, windowMs);
+
+  try {
+    await ensureSchema();
+    // A single statement so concurrent requests cannot both read a stale count.
+    const rows = await sql`
+      INSERT INTO kairo_rate_limits (key, count, reset_at)
+      VALUES (${key}, 1, ${now + windowMs})
+      ON CONFLICT (key) DO UPDATE SET
+        count = CASE WHEN kairo_rate_limits.reset_at <= ${now} THEN 1 ELSE kairo_rate_limits.count + 1 END,
+        reset_at = CASE WHEN kairo_rate_limits.reset_at <= ${now} THEN ${now + windowMs} ELSE kairo_rate_limits.reset_at END
+      RETURNING count, reset_at
+    `;
+    const row = rows[0];
+    if (!row) return checkInMemory(key, maxAttempts, windowMs);
+    return result(Number(row.count), Number(row.reset_at), maxAttempts, now);
+  } catch (error) {
+    console.error("Rate limit store unavailable, falling back to memory:", error);
+    return checkInMemory(key, maxAttempts, windowMs);
+  }
+}
+
+/**
+ * Clears a key's counter, e.g. after a successful authentication.
+ */
+export async function resetRateLimitKey(key: string): Promise<void> {
+  memoryStore.delete(key);
+  if (!sql) return;
+  try {
+    await ensureSchema();
+    await sql`DELETE FROM kairo_rate_limits WHERE key = ${key}`;
+  } catch (error) {
+    console.error("Failed to reset rate limit key:", error);
+  }
 }

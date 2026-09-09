@@ -18,6 +18,7 @@ export interface CartItem {
 interface CartState {
   items: CartItem[];
   appliedCoupon: string | null;
+  hydrateFromCatalog: (volumes: MangaVolume[]) => void;
   discountPercent: number;
   freeShippingGranted: boolean;
   addItem: (volume: MangaVolume, quantity?: number) => void;
@@ -96,6 +97,35 @@ export const useCartStore = create<CartState>()(
       clearCart: () => {
         set({ items: [], appliedCoupon: null, discountPercent: 0, freeShippingGranted: false });
       },
+      /**
+       * Rebuilds the display fields of every cart line from the live catalogue.
+       * Only the volume id and quantity survive a reload, so titles, cover art
+       * and — importantly — prices are always the server's current values
+       * rather than whatever was cached in this browser.
+       */
+      hydrateFromCatalog: (volumes: MangaVolume[]) => {
+        if (!Array.isArray(volumes) || volumes.length === 0) return;
+        const byId = new Map(volumes.map((volume) => [volume.id, volume]));
+        set({
+          items: get().items.flatMap((item) => {
+            const volume = byId.get(item.volumeId);
+            // A line whose product left the catalogue cannot be ordered.
+            if (!volume) return [];
+            const availableStock = typeof volume.stock === "number" ? volume.stock : 9999;
+            return [{
+              ...item,
+              title: volume.title,
+              seriesTitle: volume.seriesTitle,
+              volumeNumber: volume.volumeNumber,
+              price: volume.price,
+              coverImage: volume.coverImage,
+              format: volume.format,
+              maxStock: availableStock,
+              quantity: Math.max(1, Math.min(item.quantity, availableStock)),
+            }];
+          }),
+        });
+      },
       applyCoupon: (code: string, _percent = 20, freeShipping = true) => {
         void _percent;
         const cleanCode = code.trim().toUpperCase();
@@ -105,7 +135,9 @@ export const useCartStore = create<CartState>()(
 
         // The browser can only stage a server-issued code. The API redeems it
         // atomically against Neon when the order is created.
-        if (!/^KAIRO-[A-F0-9]{10}$/.test(cleanCode)) {
+        // New codes are YUJI-; KAIRO- is still accepted so vouchers issued
+        // before the rename can still be redeemed by the patrons holding them.
+        if (!/^(YUJI|KAIRO)-[A-F0-9]{10}$/.test(cleanCode)) {
           return {
             success: false,
             message: "Use the private coupon shown on your account.",
@@ -150,6 +182,37 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: "kairo_cart_storage",
+      // Persist the bare minimum: which product, how many. Titles, cover art
+      // and prices are re-read from the catalogue on load, so a stale browser
+      // can never show — or check out against — an out-of-date price.
+      partialize: (state) => ({
+        items: state.items.map((item) => ({
+          id: item.id,
+          volumeId: item.volumeId,
+          quantity: item.quantity,
+        })),
+      }),
+      merge: (persisted, current) => {
+        const stored = (persisted as { items?: Array<Partial<CartItem>> } | undefined)?.items;
+        if (!Array.isArray(stored)) return current;
+        return {
+          ...current,
+          items: stored
+            .filter((item): item is Partial<CartItem> & { volumeId: string } => Boolean(item?.volumeId))
+            .map((item) => ({
+              id: item.id || `${item.volumeId}-restored`,
+              volumeId: item.volumeId,
+              quantity: Math.max(1, Number(item.quantity) || 1),
+              // Placeholders until hydrateFromCatalog runs with live data.
+              title: "",
+              seriesTitle: "",
+              volumeNumber: 0,
+              price: 0,
+              coverImage: "",
+              format: "",
+            })),
+        };
+      },
     }
   )
 );

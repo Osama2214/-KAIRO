@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 
-type KairoImageProps = {
+type YujiImageProps = {
   src: string;
   alt: string;
   className?: string;
@@ -11,7 +11,7 @@ type KairoImageProps = {
 };
 
 /** Product/editorial imagery served through Next's optimizer and cache. */
-export function KairoImage({ src, alt, className, sizes, preload = false }: KairoImageProps) {
+export function YujiImage({ src, alt, className, sizes, preload = false }: YujiImageProps) {
   return (
     <Image
       src={src}

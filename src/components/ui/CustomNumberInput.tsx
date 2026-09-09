@@ -178,7 +178,7 @@ export function CustomNumberInput({
         </span>
       )}
 
-      {/* Custom KAIRO Luxury Stepper Controls */}
+      {/* Custom YUJI Luxury Stepper Controls */}
       <div className="flex flex-col h-full w-7 shrink-0 border-l border-ink-border divide-y divide-ink-border/70 bg-ink-surface/70 select-none">
         <button
           type="button"

@@ -9,6 +9,11 @@ function appUrl(): string {
   return "http://localhost:3000";
 }
 
+/** Collapses newlines so customer text cannot split an SMTP header. */
+function headerSafe(str: unknown, max = 80): string {
+  return String(str ?? "").replace(/\s+/g, " ").trim().slice(0, max);
+}
+
 function escapeHtml(str: unknown): string {
   if (str === null || str === undefined) return "";
   return String(str)
@@ -61,7 +66,7 @@ function createSmtpTransporter() {
         pass: smtpPass.replace(/\s+/g, ""),
       },
     }),
-    from: process.env.SMTP_FROM || `"KAIRO Archive" <${smtpUser}>`,
+    from: process.env.SMTP_FROM || `"YUJI Archive" <${smtpUser}>`,
     user: smtpUser,
   };
 }
@@ -94,7 +99,9 @@ async function dispatchGenericEmail({
         html,
       });
 
-      console.log(`[KAIRO EMAIL DISPATCH] Successfully sent email to: ${recipients} | Subject: ${subject}`);
+      if (process.env.NODE_ENV !== "production") {
+        console.log(`[YUJI EMAIL DISPATCH] Sent to: ${recipients} | Subject: ${subject}`);
+      }
       return {
         success: true,
         sentViaSmtp: true,
@@ -102,7 +109,7 @@ async function dispatchGenericEmail({
       };
     } catch (smtpError: unknown) {
       const err = smtpError as Error;
-      console.error("[KAIRO EMAIL DISPATCH] SMTP Error:", err?.message || smtpError);
+      console.error("[YUJI EMAIL DISPATCH] SMTP Error:", err?.message || smtpError);
     }
   }
 
@@ -117,7 +124,7 @@ async function dispatchGenericEmail({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: process.env.RESEND_FROM || "KAIRO Archive <onboarding@resend.dev>",
+          from: process.env.RESEND_FROM || "YUJI Archive <onboarding@resend.dev>",
           to: Array.isArray(to) ? to : [to],
           subject,
           html,
@@ -125,7 +132,9 @@ async function dispatchGenericEmail({
       });
 
       if (res.ok) {
-        console.log(`[KAIRO EMAIL DISPATCH] Successfully sent email via Resend to: ${recipients}`);
+        if (process.env.NODE_ENV !== "production") {
+          console.log(`[YUJI EMAIL DISPATCH] Sent via Resend to: ${recipients}`);
+        }
         return {
           success: true,
           sentViaSmtp: true,
@@ -133,18 +142,30 @@ async function dispatchGenericEmail({
         };
       }
     } catch (resendError: unknown) {
-      console.error("[KAIRO EMAIL DISPATCH] Resend Error:", resendError);
+      console.error("[YUJI EMAIL DISPATCH] Resend Error:", resendError);
     }
   }
 
   // 3. Terminal Log Fallback for Dev
   if (process.env.NODE_ENV !== "production") {
     console.log("------------------------------------------------------------");
-    console.log(`[KAIRO EMAIL DISPATCH - DEV LOG]`);
+    console.log(`[YUJI EMAIL DISPATCH - DEV LOG]`);
     console.log(`Recipient: ${recipients}`);
     console.log(`Subject: ${subject}`);
     console.log(`Text Preview: ${text.slice(0, 160)}...`);
     console.log("------------------------------------------------------------");
+  }
+
+  // Neither SMTP nor Resend delivered. In development the log above is the
+  // intended outcome; in production this is a real failure and callers such as
+  // /api/send-otp must not tell the patron to check an inbox that will stay empty.
+  if (process.env.NODE_ENV === "production") {
+    console.error("[YUJI EMAIL DISPATCH] No working transport configured; message not sent.");
+    return {
+      success: false,
+      sentViaSmtp: false,
+      message: "Email service is not configured. Please contact support.",
+    };
   }
 
   return {
@@ -155,14 +176,14 @@ async function dispatchGenericEmail({
 }
 
 /**
- * Creates an authentic luxury HTML email template matching KAIRO's Japanese design language
+ * Creates an authentic luxury HTML email template matching YUJI's Japanese design language
  */
 function generateOtpHtmlEmail(code: string, recipientEmail: string, purpose: "REGISTER" | "RESET_PASSWORD" = "REGISTER"): string {
   const isReset = purpose === "RESET_PASSWORD";
   const title = isReset ? "Password Reset Protocol" : "Patron Registration Protocol";
   const introText = isReset
-    ? `Use the one-time security code below to reset the password for your KAIRO Patron account (<strong style="color: #f5f3ef;">${recipientEmail}</strong>):`
-    : `Use the one-time security code below to verify your email (<strong style="color: #f5f3ef;">${recipientEmail}</strong>) and complete your KAIRO Patron registration:`;
+    ? `Use the one-time security code below to reset the password for your YUJI Patron account (<strong style="color: #f5f3ef;">${recipientEmail}</strong>):`
+    : `Use the one-time security code below to verify your email (<strong style="color: #f5f3ef;">${recipientEmail}</strong>) and complete your YUJI Patron registration:`;
   const warningText = isReset
     ? "If you did not request a password reset, your account credentials remain unchanged and secure. You can safely ignore this email."
     : "If you did not request this verification code, you can safely ignore this email. No account will be created without this verification code.";
@@ -173,7 +194,7 @@ function generateOtpHtmlEmail(code: string, recipientEmail: string, purpose: "RE
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${isReset ? "KAIRO Password Reset" : "KAIRO Security Code"}</title>
+  <title>${isReset ? "YUJI Password Reset" : "YUJI Security Code"}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #0a0a0a; color: #f5f3ef; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #0a0a0a; padding: 40px 10px;">
@@ -186,10 +207,10 @@ function generateOtpHtmlEmail(code: string, recipientEmail: string, purpose: "RE
           <tr>
             <td style="padding: 32px 32px 24px; text-align: center; border-bottom: 1px solid #222222; background: linear-gradient(180deg, #181818 0%, #121212 100%);">
               <div style="display: inline-block; background-color: #D94A3A; color: #ffffff; width: 32px; height: 32px; line-height: 32px; font-size: 15px; font-weight: bold; border-radius: 3px; margin-bottom: 12px; font-family: serif;">
-                回路
+                YUJI
               </div>
               <h1 style="margin: 0; font-size: 19px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; color: #f5f3ef;">
-                KAIRO ARCHIVE
+                YUJI ARCHIVE
               </h1>
               <p style="margin: 6px 0 0; font-size: 11px; font-family: monospace; letter-spacing: 1.5px; color: #888888; text-transform: uppercase;">
                 ${title}
@@ -230,7 +251,7 @@ function generateOtpHtmlEmail(code: string, recipientEmail: string, purpose: "RE
           <tr>
             <td style="padding: 20px 32px; background-color: #0e0e0e; border-top: 1px solid #1f1f1f; text-align: center;">
               <p style="margin: 0 0 4px; font-size: 10px; font-family: monospace; color: #666666; letter-spacing: 0.5px;">
-                精神と物質の回路 • 100% LICENSED JAPANESE ARCHIVE
+                物語と記憶のかたち • 100% LICENSED JAPANESE ARCHIVE
               </p>
               <p style="margin: 0; font-size: 10px; font-family: monospace; color: #444444;">
                 Central Archival Hub • 6th of October City, Giza, Egypt
@@ -257,10 +278,10 @@ export async function sendVerificationEmail({
 }: SendOtpEmailOptions): Promise<{ success: boolean; message: string; sentViaSmtp?: boolean }> {
   const isReset = purpose === "RESET_PASSWORD";
   const emailSubject = isReset
-    ? `[KAIRO ARCHIVE] Password Reset Verification Code: ${code}`
-    : `Your KAIRO Verification Code: ${code}`;
+    ? `[YUJI ARCHIVE] Password Reset Verification Code: ${code}`
+    : `Your YUJI Verification Code: ${code}`;
   const html = generateOtpHtmlEmail(code, to, purpose);
-  const text = `Your KAIRO verification code is: ${code}. It expires in 10 minutes.`;
+  const text = `Your YUJI verification code is: ${code}. It expires in 10 minutes.`;
 
   return dispatchGenericEmail({
     to,
@@ -319,7 +340,7 @@ export async function sendAdminNewOrderNotification(order: ServerOrder): Promise
               <div style="display: flex; align-items: center; justify-content: space-between;">
                 <div>
                   <span style="font-family: monospace; font-size: 11px; letter-spacing: 2px; color: #D4AF37; text-transform: uppercase;">
-                    KAIRO ADMIN ARCHIVE ALERT
+                    YUJI ADMIN ARCHIVE ALERT
                   </span>
                   <h1 style="margin: 4px 0 0; font-size: 20px; font-weight: 800; color: #ffffff;">
                     New Order Received: #${order.id}
@@ -333,7 +354,7 @@ export async function sendAdminNewOrderNotification(order: ServerOrder): Promise
           <tr>
             <td style="padding: 26px 30px;">
               <p style="margin: 0 0 18px; font-size: 14px; color: #cccccc;">
-                A new archival collection order has been placed on KAIRO and registered in the central system.
+                A new archival collection order has been placed on YUJI and registered in the central system.
               </p>
 
               <!-- Order Summary Card -->
@@ -406,13 +427,13 @@ export async function sendAdminNewOrderNotification(order: ServerOrder): Promise
                 ${
                   order.discountAmount
                     ? `<tr>
-                        <td style="color: #4ade80;">Discount (${order.appliedCoupon || "Voucher"}):</td>
+                        <td style="color: #4ade80;">Discount (${escapeHtml(order.appliedCoupon || "Voucher")}):</td>
                         <td align="right" style="color: #4ade80;">-${order.discountAmount} EGP</td>
                       </tr>`
                     : ""
                 }
                 <tr>
-                  <td style="color: #888;">Shipping (${order.customerGovernorate || "Standard"}):</td>
+                  <td style="color: #888;">Shipping (${escapeHtml(order.customerGovernorate || "Standard")}):</td>
                   <td align="right" style="color: #ccc;">${order.shippingCost === 0 ? "FREE" : `${order.shippingCost} EGP`}</td>
                 </tr>
                 <tr style="border-top: 1px solid #333; font-size: 15px; font-weight: bold;">
@@ -434,7 +455,7 @@ export async function sendAdminNewOrderNotification(order: ServerOrder): Promise
           <!-- Footer -->
           <tr>
             <td style="padding: 16px 30px; background-color: #0b0b0b; border-top: 1px solid #1f1f1f; text-align: center; font-family: monospace; font-size: 10px; color: #666;">
-              KAIRO CENTRAL ORDER SYSTEM • AUTOMATED DISPATCH ALERT
+              YUJI CENTRAL ORDER SYSTEM • AUTOMATED DISPATCH ALERT
             </td>
           </tr>
 
@@ -446,16 +467,16 @@ export async function sendAdminNewOrderNotification(order: ServerOrder): Promise
 </html>
     `;
 
-    const text = `KAIRO Admin Alert: New Order #${order.id} placed by ${order.customerName || "Collector"} for ${order.total} EGP. Open admin dashboard to inspect: ${appUrl()}/admin`;
+    const text = `YUJI Admin Alert: New Order #${order.id} placed by ${headerSafe(order.customerName) || "Collector"} for ${order.total} EGP. Open admin dashboard to inspect: ${appUrl()}/admin`;
 
     await dispatchGenericEmail({
       to: adminRecipients,
-      subject: `[KAIRO ADMIN] New Order Placed: #${order.id} (${order.total} EGP - ${order.customerName || "Collector"})`,
+      subject: `[YUJI ADMIN] New Order Placed: #${order.id} (${order.total} EGP - ${headerSafe(order.customerName) || "Collector"})`,
       html,
       text,
     });
   } catch (err) {
-    console.error("[KAIRO EMAIL DISPATCH] Error in sendAdminNewOrderNotification:", err);
+    console.error("[YUJI EMAIL DISPATCH] Error in sendAdminNewOrderNotification:", err);
   }
 }
 
@@ -472,7 +493,7 @@ export async function sendCustomerOrderStatusUpdateEmail(
     const orderUrl = `${appUrl()}/account?tab=ORDERS&newOrder=${encodeURIComponent(order.id)}`;
 
     const statusTitle = order.status;
-    let statusDescription = `Your order #${order.id} has been updated to: "${order.status}".`;
+    let statusDescription = `Your order #${order.id} has been updated to: "${escapeHtml(order.status)}".`;
 
     if (order.status === "Confirmed") {
       statusDescription = "Your order has been officially confirmed and registered in our central archival queue.";
@@ -498,7 +519,7 @@ export async function sendCustomerOrderStatusUpdateEmail(
           <tr>
             <td style="padding: 28px 30px 20px; text-align: center; border-bottom: 1px solid #222; background: linear-gradient(180deg, #181818 0%, #121212 100%);">
               <div style="display: inline-block; background-color: #D94A3A; color: #ffffff; width: 30px; height: 30px; line-height: 30px; font-size: 14px; font-weight: bold; border-radius: 3px; margin-bottom: 10px; font-family: serif;">
-                回路
+                YUJI
               </div>
               <h1 style="margin: 0; font-size: 18px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: #ffffff;">
                 Order Status Update
@@ -542,11 +563,11 @@ export async function sendCustomerOrderStatusUpdateEmail(
                 </tr>
                 <tr>
                   <td style="padding: 6px 0;">Payment Method:</td>
-                  <td align="right" style="color: #f5f3ef;">${order.paymentMethod?.toUpperCase() || "CASH"}</td>
+                  <td align="right" style="color: #f5f3ef;">${escapeHtml(order.paymentMethod?.toUpperCase() || "CASH")}</td>
                 </tr>
                 <tr>
                   <td style="padding: 6px 0;">Delivery Destination:</td>
-                  <td align="right" style="color: #f5f3ef;">${order.customerGovernorate || "Egypt"}</td>
+                  <td align="right" style="color: #f5f3ef;">${escapeHtml(order.customerGovernorate || "Egypt")}</td>
                 </tr>
               </table>
 
@@ -563,7 +584,7 @@ export async function sendCustomerOrderStatusUpdateEmail(
           <!-- Footer -->
           <tr>
             <td style="padding: 18px 30px; background-color: #0b0b0b; border-top: 1px solid #1f1f1f; text-align: center; font-family: monospace; font-size: 10px; color: #555;">
-              KAIRO Central Archival Hub • 6th of October City, Giza, Egypt
+              YUJI Central Archival Hub • 6th of October City, Giza, Egypt
             </td>
           </tr>
 
@@ -579,12 +600,12 @@ export async function sendCustomerOrderStatusUpdateEmail(
 
     await dispatchGenericEmail({
       to: order.customerEmail,
-      subject: `[KAIRO] Order #${order.id} Status Update: ${order.status}`,
+      subject: `[YUJI] Order #${order.id} Status Update: ${headerSafe(order.status)}`,
       html,
       text,
     });
   } catch (err) {
-    console.error("[KAIRO EMAIL DISPATCH] Error in sendCustomerOrderStatusUpdateEmail:", err);
+    console.error("[YUJI EMAIL DISPATCH] Error in sendCustomerOrderStatusUpdateEmail:", err);
   }
 }
 
@@ -623,7 +644,7 @@ export async function sendCustomerOrderShippedEmail(order: ServerOrder): Promise
                 Your Order Has Shipped!
               </h1>
               <p style="margin: 6px 0 0; font-size: 12px; font-family: monospace; color: #888;">
-                ORDER #${order.id} • ${order.customerGovernorate || "Egypt"}
+                ORDER #${escapeHtml(order.id)} • ${escapeHtml(order.customerGovernorate || "Egypt")}
               </p>
             </td>
           </tr>
@@ -635,7 +656,7 @@ export async function sendCustomerOrderShippedEmail(order: ServerOrder): Promise
                 Dear <strong style="color: #ffffff;">${escapeHtml(order.customerName) || "Patron"}</strong>,
               </p>
               <p style="margin: 0 0 22px; font-size: 14px; line-height: 1.6; color: #cccccc;">
-                Great news! Your archival manga volumes have departed the KAIRO fulfillment vault and are currently in transit with our logistics carrier.
+                Great news! Your archival manga volumes have departed the YUJI fulfillment vault and are currently in transit with our logistics carrier.
               </p>
 
               <!-- Logistics Waybill Card -->
@@ -697,8 +718,8 @@ export async function sendCustomerOrderShippedEmail(order: ServerOrder): Promise
 
               <!-- Delivery Destination -->
               <p style="margin: 0; font-size: 12px; line-height: 1.6; color: #888;">
-                Delivering to: <strong style="color: #eee;">${order.customerAddress || ""}, ${order.customerGovernorate || "Egypt"}</strong>. 
-                Our courier will contact you at <strong style="color: #D4AF37;">${order.customerPhone || ""}</strong> prior to final delivery.
+                Delivering to: <strong style="color: #eee;">${escapeHtml(order.customerAddress || "")}, ${escapeHtml(order.customerGovernorate || "Egypt")}</strong>. 
+                Our courier will contact you at <strong style="color: #D4AF37;">${escapeHtml(order.customerPhone || "")}</strong> prior to final delivery.
               </p>
             </td>
           </tr>
@@ -706,7 +727,7 @@ export async function sendCustomerOrderShippedEmail(order: ServerOrder): Promise
           <!-- Footer -->
           <tr>
             <td style="padding: 20px 30px; background-color: #0b0b0b; border-top: 1px solid #1f1f1f; text-align: center; font-family: monospace; font-size: 10px; color: #555;">
-              精神と物質の回路 • 100% LICENSED JAPANESE ARCHIVE
+              物語と記憶のかたち • 100% LICENSED JAPANESE ARCHIVE
               <div style="margin-top: 4px; color: #444;">Central Archival Hub • 6th of October City, Giza, Egypt</div>
             </td>
           </tr>
@@ -719,16 +740,16 @@ export async function sendCustomerOrderShippedEmail(order: ServerOrder): Promise
 </html>
     `;
 
-    const text = `KAIRO Order #${order.id} Shipped! Courier: ${courier}, Tracking Number: ${trackingNumber}.${trackingUrl ? ` Track online: ${trackingUrl}` : ""}`;
+    const text = `YUJI Order #${order.id} Shipped! Courier: ${courier}, Tracking Number: ${trackingNumber}.${trackingUrl ? ` Track online: ${trackingUrl}` : ""}`;
 
     await dispatchGenericEmail({
       to: order.customerEmail,
-      subject: `[KAIRO] Your Order Has Shipped! Tracking #${trackingNumber} (Order #${order.id})`,
+      subject: `[YUJI] Your Order Has Shipped! Tracking #${trackingNumber} (Order #${order.id})`,
       html,
       text,
     });
   } catch (err) {
-    console.error("[KAIRO EMAIL DISPATCH] Error in sendCustomerOrderShippedEmail:", err);
+    console.error("[YUJI EMAIL DISPATCH] Error in sendCustomerOrderShippedEmail:", err);
   }
 }
 
@@ -786,7 +807,7 @@ export async function sendCustomerOrderAutoCancelledEmail(order: ServerOrder): P
           <!-- Footer -->
           <tr>
             <td style="padding: 16px 30px; background-color: #0b0b0b; border-top: 1px solid #1f1f1f; text-align: center; font-family: monospace; font-size: 10px; color: #555;">
-              KAIRO Central Archival Hub • Customer Care
+              YUJI Central Archival Hub • Customer Care
             </td>
           </tr>
 
@@ -798,15 +819,15 @@ export async function sendCustomerOrderAutoCancelledEmail(order: ServerOrder): P
 </html>
     `;
 
-    const text = `Order #${order.id} was automatically cancelled due to payment hold expiration (36 hours). Please contact KAIRO if you have already transferred.`;
+    const text = `Order #${order.id} was automatically cancelled due to payment hold expiration (36 hours). Please contact YUJI if you have already transferred.`;
 
     await dispatchGenericEmail({
       to: order.customerEmail,
-      subject: `[KAIRO] Order #${order.id} Cancelled (Payment Window Expired)`,
+      subject: `[YUJI] Order #${order.id} Cancelled (Payment Window Expired)`,
       html,
       text,
     });
   } catch (err) {
-    console.error("[KAIRO EMAIL DISPATCH] Error in sendCustomerOrderAutoCancelledEmail:", err);
+    console.error("[YUJI EMAIL DISPATCH] Error in sendCustomerOrderAutoCancelledEmail:", err);
   }
 }

@@ -27,7 +27,7 @@ function normalizePath(path: string): string {
   return clean || "/";
 }
 
-export function saveKairoScroll(path: string, y: number) {
+export function saveYujiScroll(path: string, y: number) {
   if (typeof window === "undefined") return;
   const rounded = Math.max(0, Math.round(y));
   const hKey = getHistoryKey();
@@ -41,7 +41,7 @@ export function saveKairoScroll(path: string, y: number) {
   } catch {}
 }
 
-export function getKairoSavedScroll(path: string): number {
+export function getYujiSavedScroll(path: string): number {
   if (typeof window === "undefined") return 0;
   const hKey = getHistoryKey();
   const nPath = normalizePath(path);
@@ -65,7 +65,7 @@ export function getKairoSavedScroll(path: string): number {
   return 0;
 }
 
-export function clearKairoSavedScroll(path: string) {
+export function clearYujiSavedScroll(path: string) {
   if (typeof window === "undefined") return;
   const hKey = getHistoryKey();
   const nPath = normalizePath(path);
@@ -141,16 +141,16 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
   const revealRestoration = (immediate = false) => {
     if (typeof document === "undefined") return;
     if (immediate) {
-      document.documentElement.classList.remove("kairo-restoring");
-      document.documentElement.classList.remove("kairo-loading");
+      document.documentElement.classList.remove("yuji-restoring");
+      document.documentElement.classList.remove("yuji-loading");
       return;
     }
     const start = mountTimeRef.current || Date.now();
     const elapsed = Date.now() - start;
     const minDelay = Math.max(0, 260 - elapsed);
     setTimeout(() => {
-      document.documentElement.classList.remove("kairo-restoring");
-      document.documentElement.classList.remove("kairo-loading");
+      document.documentElement.classList.remove("yuji-restoring");
+      document.documentElement.classList.remove("yuji-loading");
     }, minDelay);
   };
 
@@ -302,7 +302,7 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
       try {
         const y = window.__lenis ? window.__lenis.scroll : window.scrollY;
         if (y > 20 || userIsScrollingRef.current) {
-          saveKairoScroll(pathnameRef.current, y);
+          saveYujiScroll(pathnameRef.current, y);
         }
       } catch {}
     };
@@ -312,13 +312,19 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
       gsap.registerPlugin(ScrollTrigger);
     }
 
+    // Hijacking the wheel is disorienting for anyone who has asked the system
+    // for reduced motion; leave native scrolling alone for them.
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
     // Initialize Lenis with fast, snappy, responsive velocity settings
     const lenis = new Lenis({
-      duration: 0.55,
+      duration: prefersReducedMotion ? 0 : 0.55,
+      smoothWheel: !prefersReducedMotion,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: "vertical",
       gestureOrientation: "vertical",
-      smoothWheel: true,
       wheelMultiplier: 1.4,
       touchMultiplier: 1.2,
       syncTouch: false,
@@ -338,7 +344,7 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
     lenisRef.current = lenis;
     window.__lenis = lenis;
 
-    const initialSavedY = getKairoSavedScroll(pathnameRef.current);
+    const initialSavedY = getYujiSavedScroll(pathnameRef.current);
     if (initialSavedY > 30) {
       lenis.scrollTo(initialSavedY, { immediate: true });
     }
@@ -360,7 +366,7 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
       const now = Date.now();
       if (now - lastSavedTime.current > 75) {
         lastSavedTime.current = now;
-        saveKairoScroll(pathnameRef.current, currentY);
+        saveYujiScroll(pathnameRef.current, currentY);
       }
     };
     lenis.on("scroll", handleLenisScroll);
@@ -504,7 +510,7 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
     // Save scroll position of the page we are leaving if it had meaningful scroll
     const scrollBeforeTransition = lenis ? lenis.scroll : window.scrollY;
     if (prevPath !== currentPath && scrollBeforeTransition > 30) {
-      saveKairoScroll(prevPath, scrollBeforeTransition);
+      saveYujiScroll(prevPath, scrollBeforeTransition);
     }
 
     const hash = window.location.hash;
@@ -537,7 +543,7 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
     isPopStateRef.current = false;
 
     // Retrieve saved scroll position for this specific route
-    const savedY = getKairoSavedScroll(currentPath);
+    const savedY = getYujiSavedScroll(currentPath);
 
     // Case 2: If we are returning via Back/Forward (popstate) OR reloading the page (F5 / initial mount)
     // with an active saved position, RESTORE IT!

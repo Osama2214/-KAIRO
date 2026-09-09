@@ -8,12 +8,12 @@ export async function GET() {
   try {
     const session = await patronSessionFromCookies();
     if (!session.valid || !session.email) {
-      return NextResponse.json({ authenticated: false }, { status: 401, headers: { "Cache-Control": "no-store" } });
+      return NextResponse.json({ authenticated: false }, { headers: { "Cache-Control": "no-store" } });
     }
 
     const user = await getUserByEmail(session.email);
     if (!user) {
-      return NextResponse.json({ authenticated: false }, { status: 401, headers: { "Cache-Control": "no-store" } });
+      return NextResponse.json({ authenticated: false }, { headers: { "Cache-Control": "no-store" } });
     }
 
     return NextResponse.json({

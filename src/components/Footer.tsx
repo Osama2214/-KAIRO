@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import yujiLogo from "../../public/yuji-logo.png";
 import { usePathname } from "next/navigation";
 import { Copyright } from "lucide-react";
 import { PolicyModal, PolicyTab } from "./PolicyModal";
@@ -49,9 +51,9 @@ export function Footer() {
 
   return (
     <footer className="bg-ink border-t border-ink-border/80 pt-12 sm:pt-16 pb-5 sm:pb-12 text-text-muted relative overflow-hidden">
-      {/* Background Japanese Watermark */}
-      <div className="absolute -bottom-10 right-4 font-serif text-[180px] font-bold text-white/[0.015] pointer-events-none select-none">
-        回路
+      {/* Background Wordmark Watermark */}
+      <div className="absolute -bottom-8 right-4 font-sans text-[150px] font-extrabold tracking-tight text-white/[0.015] pointer-events-none select-none">
+        yuji
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10">
@@ -61,13 +63,12 @@ export function Footer() {
           {/* Brand Info */}
           <div className="col-span-2 space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 bg-vermilion rounded-sm flex items-center justify-center text-paper font-serif font-bold text-xs">
-                  回路
-                </div>
-                <span className="font-extrabold tracking-[0.25em] text-lg text-paper uppercase">
-                  KAIRO
-                </span>
+              <div className="flex items-center">
+                <Image
+                  src={yujiLogo}
+                  alt="YUJI — Manga, Books, More"
+                  className="h-11 w-auto brightness-[0.88]"
+                />
               </div>
               <LiveEditButton target={{ type: "editorial" }} label="Edit Policies & Quotes" variant="floating" size="xs" />
             </div>
@@ -173,11 +174,11 @@ export function Footer() {
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-[11px] font-mono tracking-wider text-text-muted font-sans text-center sm:text-left">
             <Copyright strokeWidth={1.6} className="w-3.5 h-3.5 text-gold shrink-0" />
             <span>{new Date().getFullYear()}</span>
-            <span className="text-paper font-semibold">KAIRO PUBLISHING ARCHIVE.</span>
+            <span className="text-paper font-semibold">YUJI PUBLISHING ARCHIVE.</span>
             <span className="text-text-muted/75">{locale === "ar" ? "جميع الحقوق محفوظة." : "ALL RIGHTS RESERVED."}</span>
           </div>
           <div className="flex flex-wrap items-center justify-center sm:justify-end gap-4 sm:gap-6 font-sans text-xs">
-            <span className="text-gold font-serif">精神と物質の回路</span>
+            <span className="text-gold font-serif">物語と記憶のかたち</span>
             <button
               type="button"
               onClick={() => openPolicy("privacy")}

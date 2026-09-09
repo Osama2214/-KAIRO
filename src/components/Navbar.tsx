@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import yujiMark from "../../public/yuji-mark.png";
 import { usePathname } from "next/navigation";
 import { Search, ShoppingBag, User, Menu, X, Heart, Sparkles, Globe, ArrowRight } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
@@ -9,7 +11,7 @@ import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
 import { useUIStore } from "@/store/useUIStore";
 import { GlobalWelcomeOfferBar } from "@/components/GlobalWelcomeOfferBar";
 import { useWelcomeOffer } from "@/hooks/useWelcomeOffer";
-import { clearKairoSavedScroll } from "@/components/SmoothScrollProvider";
+import { clearYujiSavedScroll } from "@/components/SmoothScrollProvider";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 
@@ -18,7 +20,7 @@ export function Navbar() {
   const mounted = useMounted();
   const { t, locale, toggleLanguage, isRTL } = useTranslation();
   const isArabic = locale === "ar";
-  const arabicLanguageEnabled = useStorefrontStore((state) => state.arabicLanguageEnabled ?? false);
+  const arabicLanguageEnabled = useStorefrontStore((state) => state.arabicLanguageEnabled ?? true);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeHash, setActiveHash] = useState("");
@@ -81,7 +83,7 @@ export function Navbar() {
   const handleLogoClick = (e: React.MouseEvent) => {
     setMobileMenuOpen(false);
     try {
-      clearKairoSavedScroll("/");
+      clearYujiSavedScroll("/");
       sessionStorage.removeItem("kairo_scroll_/");
     } catch {}
     if (pathname === "/") {
@@ -131,7 +133,7 @@ export function Navbar() {
     if (pathname === href) {
       e.preventDefault();
       try {
-        clearKairoSavedScroll(href);
+        clearYujiSavedScroll(href);
         sessionStorage.removeItem(`kairo_scroll_${href}`);
       } catch {}
       if (window.__lenis) {
@@ -189,23 +191,21 @@ export function Navbar() {
             isScrolled ? "py-2.5 sm:py-3.5" : "py-3 sm:py-5"
           }`}
         >
-          {/* Brand Logo & Japanese Seal */}
+          {/* Brand Logo */}
           <Link
             href="/"
             onClick={handleLogoClick}
-            className="group flex items-center gap-2.5 sm:gap-3.5 tracking-tight focus:outline-none cursor-pointer shrink-0"
+            aria-label="YUJI — Manga, Books, More"
+            className="group flex items-center focus:outline-none cursor-pointer shrink-0"
           >
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-sm bg-vermilion/90 flex items-center justify-center text-paper font-serif font-bold text-[11px] sm:text-xs border border-vermilion/50 shadow-sm transition-transform duration-300 group-hover:scale-105">
-              回路
-            </div>
-            <div className="flex flex-col">
-              <span className="font-extrabold tracking-[0.2em] sm:tracking-[0.25em] text-base sm:text-lg text-paper uppercase transition-colors group-hover:text-vermilion">
-                KAIRO
-              </span>
-              <span className="text-[8px] sm:text-[9px] tracking-[0.18em] sm:tracking-[0.2em] text-text-muted uppercase font-mono -mt-1">
-                EDITORIAL MANGA
-              </span>
-            </div>
+            <Image
+              src={yujiMark}
+              alt="YUJI — Manga, Books, More"
+              priority
+              className={`w-auto brightness-[0.88] transition-all duration-300 group-hover:brightness-100 ${
+                isScrolled ? "h-9 sm:h-10" : "h-11 sm:h-12"
+              }`}
+            />
           </Link>
 
           {/* Desktop Navigation Links */}
@@ -555,13 +555,13 @@ export function Navbar() {
 
             {/* Subtle Japanese Kanji Watermark & Language Controls */}
             <div className="relative pt-8 md:pt-14 pb-4 md:pb-8 flex flex-col items-start justify-end overflow-hidden min-h-[140px] md:min-h-[220px]">
-              {/* Two Faint Japanese Kanji Characters shifted right & down (回路 - KAIRO) */}
+              {/* Two Faint Japanese Kanji Characters shifted right & down (YUJI - YUJI) */}
               <div
                 className="absolute -right-2 md:-right-6 -bottom-4 md:-bottom-8 pointer-events-none select-none z-0"
                 aria-hidden="true"
               >
                 <span className="text-[120px] xs:text-[145px] md:text-[220px] font-serif font-bold text-white/[0.035] tracking-[0.1em] leading-none">
-                  回路
+                  YUJI
                 </span>
               </div>
 

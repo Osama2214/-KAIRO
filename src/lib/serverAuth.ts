@@ -1,7 +1,7 @@
 import "server-only";
 
 import crypto from "crypto";
-import { AUTHORIZED_ADMIN_EMAILS } from "@/config/adminConfig";
+import { isAuthorizedAdminEmail } from "@/config/adminConfig";
 import { getAdminSessionVersion } from "@/lib/adminSecurityStore";
 
 const SESSION_COOKIE = "kairo_curator_session";
@@ -20,13 +20,7 @@ function fingerprint(request: Request): string {
     .slice(0, 16);
 }
 
-function isAuthorizedEmail(email: unknown): email is string {
-  if (typeof email !== "string") return false;
-  const clean = email.trim().toLowerCase();
-  const envAdmin = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  if (envAdmin && envAdmin === clean) return true;
-  return AUTHORIZED_ADMIN_EMAILS.some((allowed) => allowed.trim().toLowerCase() === clean);
-}
+const isAuthorizedEmail = isAuthorizedAdminEmail;
 
 export async function createCuratorToken(email: string, request: Request): Promise<string | null> {
   const secret = sessionSecret();
@@ -75,7 +69,7 @@ export function isTrustedOrigin(request: Request): boolean {
 
   const cleanOrigin = origin.trim().replace(/\/+$/, "");
   const allowed = new Set<string>([
-    "https://kairo-rosy-five.vercel.app",
+    "https://yuji-rosy-five.vercel.app",
   ]);
 
   const configured = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "");

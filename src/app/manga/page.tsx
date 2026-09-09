@@ -678,7 +678,7 @@ function MangaCatalogContent() {
                   ? `عرض ${paginatedVolumes.length} من ${filteredVolumes.length} مجلداً`
                   : `SHOWING ${(currentPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(currentPage * ITEMS_PER_PAGE, filteredVolumes.length)} OF ${filteredVolumes.length}`}
               </span>
-              <span className="text-gold font-serif">回路書庫</span>
+              <span className="text-gold font-serif">悠久の書庫</span>
             </div>
 
             {filteredVolumes.length === 0 ? (

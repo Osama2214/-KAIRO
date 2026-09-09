@@ -3,13 +3,17 @@ import crypto from "crypto";
 import { saveOtp } from "@/lib/otpStore";
 import { sendVerificationEmail } from "@/lib/email";
 import { checkRateLimitKey, getClientIp } from "@/lib/rateLimit";
+import { isTrustedOrigin } from "@/lib/serverAuth";
 
 export async function POST(request: Request) {
   try {
+    if (!isTrustedOrigin(request)) {
+      return NextResponse.json({ success: false, message: "Invalid request origin." }, { status: 403 });
+    }
     const clientIp = getClientIp(request);
 
     // 1. IP-level rate limiting: max 6 OTP requests per 10 minutes per IP
-    const ipCheck = checkRateLimitKey(`send_otp:ip:${clientIp}`, 6, 10 * 60 * 1000);
+    const ipCheck = await checkRateLimitKey(`send_otp:ip:${clientIp}`, 6, 10 * 60 * 1000);
     if (!ipCheck.allowed) {
       return NextResponse.json(
         {
@@ -32,11 +36,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Cryptographically secure 6-digit numeric OTP code
+    // 2. Per-address throttle: an IP limit alone let one caller rotate targets
+    // and dispatch mail to many different inboxes.
+    const emailCheck = await checkRateLimitKey(`send_otp:email:${email}`, 5, 60 * 60 * 1000);
+    if (!emailCheck.allowed) {
+      return NextResponse.json(
+        { success: false, message: "Too many codes requested for this address. Please try again later.", waitSec: emailCheck.resetSeconds },
+        { status: 429 }
+      );
+    }
+
+    // 3. Cryptographically secure 6-digit numeric OTP code
     const code = crypto.randomInt(100000, 1000000).toString();
 
     // 3. Store OTP server-side with 45s cooldown and 10min expiry
-    const saveResult = saveOtp(email, code);
+    const saveResult = await saveOtp(email, code);
     if (!saveResult.success) {
       return NextResponse.json(
         { success: false, message: saveResult.message, waitSec: saveResult.waitSec },

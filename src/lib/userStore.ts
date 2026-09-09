@@ -162,3 +162,34 @@ export async function updateUserPassword(email: string, newPassword: string): Pr
   `;
   return res.length > 0;
 }
+
+/**
+ * Finds an existing patron by email, or provisions one for a federated (OAuth)
+ * sign-in. Without a persisted row, /api/auth/me cannot resolve the session on
+ * the next page load and the patron appears signed out after every refresh.
+ */
+export async function upsertOAuthUser(data: {
+  email: string;
+  name?: string;
+  phone?: string;
+  address?: string;
+  governorate?: string;
+}): Promise<SanitizedUser> {
+  if (!sql) throw new Error("Database connection unavailable.");
+  await ensureUserSchema();
+
+  const normalized = data.email.trim().toLowerCase();
+  const existing = await getUserByEmail(normalized);
+  if (existing) return toSanitizedUser(existing);
+
+  return createUser({
+    email: normalized,
+    // OAuth patrons never sign in with a password; store an unguessable one so
+    // the credentials path can never match this row.
+    password: crypto.randomBytes(32).toString("hex"),
+    name: data.name?.trim() || normalized.split("@")[0],
+    phone: data.phone?.trim() || "",
+    address: data.address?.trim() || "",
+    governorate: data.governorate?.trim() || "Cairo",
+  });
+}

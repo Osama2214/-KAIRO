@@ -91,9 +91,17 @@ interface AuthState {
     address: string;
   }) => Promise<{ success: boolean; message?: string }>;
   loginWithGoogle: (profile: {
+    id: string;
     email: string;
     name: string;
     avatar?: string;
+    role?: "admin" | "customer";
+    phone?: string;
+    governorate?: string;
+    city?: string;
+    address?: string;
+    deliveryNotes?: string;
+    joinedDate?: string;
   }) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => void;
@@ -131,8 +139,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const res = await fetch("/api/auth/me", { cache: "no-store" });
 
-      // Only log out if the server explicitly says "not authenticated" (401)
-      // — any other error (500, network fail, timeout) keeps the current state
+      // 401 is still honoured for older deployments; the route now answers 200
+      // with authenticated:false, since "not signed in" is not a client error.
       if (res.status === 401) {
         set({ currentUser: null, isInitialized: true });
         return;
@@ -140,6 +148,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (res.ok) {
         const data = await res.json();
+        if (data.authenticated === false) {
+          set({ currentUser: null, isInitialized: true });
+          return;
+        }
         if (data.authenticated && data.user) {
           const userWithOffer = ensureWelcomeOffer({
             ...data.user,
@@ -305,27 +317,47 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+  // `profile` must come from /api/auth/google, which persists the patron and
+  // sets the HttpOnly session cookie. Never synthesise an identity here — a
+  // client-only profile disappears on the next refresh.
   loginWithGoogle: async (profile) => {
     const normalizedEmail = sanitizeInput(profile.email).toLowerCase();
-    if (!validateEmail(normalizedEmail)) {
+    if (!profile.id || !validateEmail(normalizedEmail)) {
       return { success: false, message: "Invalid email from Google account." };
     }
 
     const user: UserProfile = ensureWelcomeOffer({
-      id: `KRO-${Math.floor(10000 + Math.random() * 90000)}`,
+      id: profile.id,
       name: sanitizeInput(profile.name) || "Google Patron",
       email: normalizedEmail,
+      role: profile.role || "customer",
       avatar: profile.avatar,
       provider: "google",
-      phone: "+20 100 000 0000",
-      governorate: "Cairo",
-      address: "Central Archival Hub, Cairo",
-      tier: "Collector",
-      joinedDate: new Date().toISOString().split("T")[0],
+      phone: profile.phone || "",
+      governorate: profile.governorate || "Cairo",
+      city: profile.city,
+      address: profile.address || "",
+      deliveryNotes: profile.deliveryNotes,
+      tier: profile.role === "admin" ? "Archive Master" : "Collector",
+      joinedDate: profile.joinedDate || new Date().toISOString().split("T")[0],
       orders: [],
     });
 
     set({ currentUser: user });
+
+    // Pull authentic orders now that a real server session exists.
+    try {
+      const ordersRes = await fetch("/api/orders/mine", { cache: "no-store" });
+      if (ordersRes.ok) {
+        const ordersData = await ordersRes.json();
+        if (ordersData.success && Array.isArray(ordersData.orders)) {
+          set((state) => ({
+            currentUser: state.currentUser ? { ...state.currentUser, orders: ordersData.orders } : null,
+          }));
+        }
+      }
+    } catch {}
+
     return { success: true };
   },
 

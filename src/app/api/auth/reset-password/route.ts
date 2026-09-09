@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     }
 
     const clientIp = getClientIp(request);
-    const rateCheck = checkRateLimitKey(`reset_pass:ip:${clientIp}`, 10, 15 * 60 * 1000);
+    const rateCheck = await checkRateLimitKey(`reset_pass:ip:${clientIp}`, 10, 15 * 60 * 1000);
     if (!rateCheck.allowed) {
       return NextResponse.json(
         { success: false, message: "Too many password reset attempts. Please try again later." },
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     }
 
     // 1. Verify OTP server-side
-    const otpVerification = verifyOtp(email, otp);
+    const otpVerification = await verifyOtp(email, otp);
     if (!otpVerification.success) {
       return NextResponse.json(
         { success: false, message: otpVerification.message || "Invalid or expired verification code." },

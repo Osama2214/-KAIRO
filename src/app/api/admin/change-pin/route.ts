@@ -9,7 +9,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "Valid curator authorization required." }, { status: 401 });
     }
     const clientIp = getClientIp(request);
-    if (!checkRateLimitKey(`pin_change:${clientIp}`, 5, 15 * 60 * 1000).allowed) {
+    if (!(await checkRateLimitKey(`pin_change:${clientIp}`, 5, 15 * 60 * 1000)).allowed) {
       return NextResponse.json({ success: false, message: "Too many PIN-change attempts. Please wait." }, { status: 429 });
     }
     const body = await request.json().catch(() => ({}));

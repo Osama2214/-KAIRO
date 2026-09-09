@@ -55,7 +55,7 @@ export function AdminLoginOverlay() {
             <KeyRound className="w-7 h-7 text-gold" />
           </div>
           <span className="text-[10px] font-mono tracking-[0.3em] text-gold uppercase block mb-1">
-            KAIRO ARCHIVE CONSOLE
+            YUJI ARCHIVE CONSOLE
           </span>
           <h1 className="text-xl font-bold font-sans text-paper uppercase tracking-wider">
             Curator Access

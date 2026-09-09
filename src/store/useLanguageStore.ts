@@ -15,7 +15,7 @@ export const useLanguageStore = create<LanguageState>()(
     (set, get) => ({
       locale: "en",
       setLocale: (targetLocale: Locale) => {
-        const arabicAllowed = useStorefrontStore.getState().arabicLanguageEnabled ?? false;
+        const arabicAllowed = useStorefrontStore.getState().arabicLanguageEnabled ?? true;
         const finalLocale: Locale = !arabicAllowed && targetLocale === "ar" ? "en" : targetLocale;
         set({ locale: finalLocale });
         if (typeof document !== "undefined") {
@@ -24,7 +24,7 @@ export const useLanguageStore = create<LanguageState>()(
         }
       },
       toggleLanguage: () => {
-        const arabicAllowed = useStorefrontStore.getState().arabicLanguageEnabled ?? false;
+        const arabicAllowed = useStorefrontStore.getState().arabicLanguageEnabled ?? true;
         if (!arabicAllowed) {
           // Arabic disabled by admin; remain on English
           set({ locale: "en" });
@@ -47,7 +47,7 @@ export const useLanguageStore = create<LanguageState>()(
       storage: createJSONStorage(() => localStorage),
       onRehydrateStorage: () => (state) => {
         if (state && typeof document !== "undefined") {
-          const arabicAllowed = useStorefrontStore.getState().arabicLanguageEnabled ?? false;
+          const arabicAllowed = useStorefrontStore.getState().arabicLanguageEnabled ?? true;
           const initialLocale = !arabicAllowed && state.locale === "ar" ? "en" : state.locale;
           if (initialLocale !== state.locale) {
             state.locale = initialLocale;

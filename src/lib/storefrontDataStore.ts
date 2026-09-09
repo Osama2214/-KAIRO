@@ -46,19 +46,40 @@ function validVolumes(payload: Record<string, unknown> | null): MangaVolume[] {
 async function syncCatalogItems(payload: Record<string, unknown> | null): Promise<void> {
   await ensureSchema();
   const volumes = validVolumes(payload);
-  // A CMS save is the single source of truth for product data. Products absent
-  // from it become inactive instead of being purchasable by a stale client.
-  await sql!`UPDATE kairo_catalog_items SET active = FALSE, updated_at = NOW()`;
-  await Promise.all(volumes.map((volume) => sql!`
-    INSERT INTO kairo_catalog_items (id, payload, price, stock, active, updated_at)
-    VALUES (${volume.id}, ${JSON.stringify(volume)}::jsonb, ${volume.price}, ${Math.max(0, Math.floor(volume.stock))}, TRUE, NOW())
-    ON CONFLICT (id) DO UPDATE SET
-      payload = EXCLUDED.payload,
-      price = EXCLUDED.price,
-      stock = EXCLUDED.stock,
-      active = TRUE,
-      updated_at = NOW()
-  `));
+  if (volumes.length === 0) return;
+
+  const rows = volumes.map((volume) => ({
+    id: volume.id,
+    payload: volume,
+    price: volume.price,
+    stock: Math.max(0, Math.floor(volume.stock)),
+  }));
+
+  // A CMS save is the single source of truth for product data: products absent
+  // from it become inactive rather than remaining purchasable from a stale
+  // client. The upsert and the deactivation happen in ONE statement — as two
+  // statements there was a window where every item was inactive, and any
+  // checkout landing in it failed with "no longer have enough stock".
+  await sql!`
+    WITH incoming AS (
+      SELECT id, payload, price, stock
+      FROM jsonb_to_recordset(${JSON.stringify(rows)}::jsonb)
+        AS item(id TEXT, payload JSONB, price NUMERIC, stock INTEGER)
+    ), upserted AS (
+      INSERT INTO kairo_catalog_items (id, payload, price, stock, active, updated_at)
+      SELECT id, payload, price, stock, TRUE, NOW() FROM incoming
+      ON CONFLICT (id) DO UPDATE SET
+        payload = EXCLUDED.payload,
+        price = EXCLUDED.price,
+        stock = EXCLUDED.stock,
+        active = TRUE,
+        updated_at = NOW()
+      RETURNING id
+    )
+    UPDATE kairo_catalog_items
+    SET active = FALSE, updated_at = NOW()
+    WHERE active = TRUE AND id NOT IN (SELECT id FROM incoming)
+  `;
 }
 
 export async function getStorefrontData(): Promise<Record<string, unknown> | null> {

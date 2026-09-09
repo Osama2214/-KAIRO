@@ -80,7 +80,7 @@ export function PolicyModal({
 
           <div className="relative z-10">
             <div className="flex items-center gap-2 text-gold font-mono text-[10px] tracking-widest uppercase mb-1">
-              <span>{isArabic ? "أرشيف كايرو الرسمي" : "KAIRO ARCHIVE CODEX"}</span>
+              <span>{isArabic ? "أرشيف كايرو الرسمي" : "YUJI ARCHIVE CODEX"}</span>
               <span>/</span>
               <span>{isArabic ? "سياسات الخدمة والضمان" : "CUSTOMER CARE & POLICIES"}</span>
             </div>
@@ -242,14 +242,14 @@ export function PolicyModal({
                     </div>
                   </div>
 
-                  {/* Official KAIRO Japanese Collector Hanko Seal */}
+                  {/* Official YUJI Japanese Collector Hanko Seal */}
                   <div className="flex items-center gap-2.5 px-3 py-1.5 bg-ink/90 border border-gold/30 rounded-xs self-start sm:self-auto shadow-sm">
                     <div className="w-8 h-8 bg-vermilion rounded-xs flex items-center justify-center text-paper font-serif font-extrabold text-xs shadow-sm ring-1 ring-vermilion/50">
-                      回路
+                      YUJI
                     </div>
                     <div className="flex flex-col text-left leading-tight">
                       <span className="text-gold font-mono text-[9px] font-bold tracking-widest uppercase">
-                        KAIRO ARCHIVE
+                        YUJI ARCHIVE
                       </span>
                       <span className="text-paper font-serif text-[11px] font-bold tracking-wider">
                         公式認証・正規品
@@ -261,7 +261,7 @@ export function PolicyModal({
                 <p className="text-paper mb-3">
                   {isArabic
                     ? "تضمن هذه الوثيقة أن جميع مجلدات المانجا والكتب الفنية المعروضة في منصة كايرو مستوردة بشكل قانوني ورسمي من أصحاب الحقوق المعتمدين، بما في ذلك Shueisha و Kodansha و Hakusensha و Shogakukan و Square Enix، إضافةً إلى الدور العالمية المرخصة (Dark Horse, Viz Media)."
-                    : "This document certifies that every volume distributed through KAIRO Publishing Archive is imported directly from official licensed rights holders, including Shueisha, Kodansha, Hakusensha, Shogakukan, Square Enix, and authorized Western imprints (Dark Horse, Viz Media)."}
+                    : "This document certifies that every volume distributed through YUJI Publishing Archive is imported directly from official licensed rights holders, including Shueisha, Kodansha, Hakusensha, Shogakukan, Square Enix, and authorized Western imprints (Dark Horse, Viz Media)."}
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px] font-mono pt-2">
@@ -308,7 +308,7 @@ export function PolicyModal({
                 <p className="text-paper">
                   {isArabic
                     ? "خصوصيتك أولويتنا المطلقة. تلتزم كايرو بأعلى معايير حماية البيانات وبقانون حماية البيانات الشخصية المصري (قانون رقم 151 لسنة 2020)."
-                    : "Your privacy is paramount. KAIRO adheres to strict data minimization standards and the Egyptian Data Protection Law (Law No. 151 of 2020)."}
+                    : "Your privacy is paramount. YUJI adheres to strict data minimization standards and the Egyptian Data Protection Law (Law No. 151 of 2020)."}
                 </p>
               </div>
 
@@ -360,7 +360,7 @@ export function PolicyModal({
                 <p className="text-paper">
                   {isArabic
                     ? "عند تأكيد طلبك في كايرو، فإنك توافق على الشروط والضوابط التالية المصممة لضمان تجربة اقتناء مريحة وموثوقة."
-                    : "By placing an order on KAIRO, you agree to the following terms designed to ensure collector satisfaction across Egypt."}
+                    : "By placing an order on YUJI, you agree to the following terms designed to ensure collector satisfaction across Egypt."}
                 </p>
               </div>
 
@@ -413,7 +413,7 @@ export function PolicyModal({
 
         {/* Footer actions */}
         <div className="p-4 border-t border-ink-border bg-ink-surface/80 flex items-center justify-between text-[11px] font-mono">
-          <span className="text-gold font-serif">精神と物質の回路 • KAIRO OFFICIAL ARCHIVE</span>
+          <span className="text-gold font-serif">物語と記憶のかたち • YUJI OFFICIAL ARCHIVE</span>
           <button
             onClick={onClose}
             className="px-4 py-2 bg-ink border border-ink-border hover:border-gold/60 text-paper rounded-xs transition-colors cursor-pointer uppercase tracking-wider"

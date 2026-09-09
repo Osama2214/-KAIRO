@@ -18,6 +18,11 @@ interface Particle {
 
 function hasSeenIntro(): boolean {
   if (typeof window === "undefined") return true;
+  // A full-screen animated takeover is exactly what reduced-motion asks us not
+  // to play, so treat it as already seen.
+  try {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return true;
+  } catch {}
   try {
     // 1. In-memory flag (survives client-side route navigation in same tab/window)
     if ((window as unknown as { __kairo_intro_seen?: boolean }).__kairo_intro_seen) return true;
@@ -330,10 +335,10 @@ export function CinematicIntro() {
               <div className="flex items-center justify-between border-b border-gold/30 pb-2.5">
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 bg-vermilion rounded-xs flex items-center justify-center text-paper font-serif font-bold text-[10px] shadow-sm">
-                    回路
+                    YUJI
                   </div>
                   <span className="font-mono text-[9px] tracking-widest text-gold uppercase font-bold">
-                    KAIRO ARCHIVE
+                    YUJI ARCHIVE
                   </span>
                 </div>
                 <span className="text-[10px] font-mono text-paper-muted uppercase tracking-wider font-semibold">
@@ -386,7 +391,7 @@ export function CinematicIntro() {
               style={{ transform: "rotateY(-90deg)" }}
             >
               <span className="writing-mode-vertical font-serif text-[11px] tracking-widest text-gold font-bold">
-                回路
+                YUJI
               </span>
               <span className="writing-mode-vertical font-sans text-[8px] font-extrabold text-paper tracking-wider">
                 01
@@ -409,13 +414,13 @@ export function CinematicIntro() {
           <div className="flex items-center justify-center gap-3 mb-1.5">
             <span className="h-px w-10 bg-linear-to-r from-transparent to-gold/60" />
             <span className="font-serif text-gold text-xs sm:text-sm tracking-[0.45em] uppercase">
-              精神と物質の回路
+              物語と記憶のかたち
             </span>
             <span className="h-px w-10 bg-linear-to-l from-transparent to-gold/60" />
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-[0.38em] uppercase text-paper font-sans">
-            KAIRO
+            YUJI
           </h1>
 
           <p className="mt-2 text-[10px] sm:text-[11px] font-mono tracking-[0.32em] text-text-muted uppercase">

@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     }
 
     // IP-level rate limiting
-    const ipCheck = checkRateLimitKey(`login:ip:${clientIp}`, 15, 15 * 60 * 1000);
+    const ipCheck = await checkRateLimitKey(`login:ip:${clientIp}`, 15, 15 * 60 * 1000);
     if (!ipCheck.allowed) {
       return NextResponse.json(
         { success: false, message: `Too many login attempts from this network. Try again in ${Math.ceil(ipCheck.resetSeconds / 60)} minutes.` },
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
 
     // Account-level rate limiting
     const accountKey = `login:account:${email}`;
-    const accountCheck = checkRateLimitKey(accountKey, 5, 15 * 60 * 1000);
+    const accountCheck = await checkRateLimitKey(accountKey, 5, 15 * 60 * 1000);
     if (!accountCheck.allowed) {
       return NextResponse.json(
         { success: false, message: `Account temporarily locked due to consecutive failed attempts. Please try again in ${Math.ceil(accountCheck.resetSeconds / 60)} minutes.` },
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     }
 
     // Login success: reset rate limiter
-    resetRateLimitKey(accountKey);
+    await resetRateLimitKey(accountKey);
 
     const sanitized = toSanitizedUser(user);
     const token = createVerifiedPatronToken(sanitized.id, sanitized.email);

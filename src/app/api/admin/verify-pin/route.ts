@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
-import {
-  AUTHORIZED_ADMIN_EMAILS,
-  MAX_PIN_ATTEMPTS,
-  PIN_LOCKOUT_MS,
-} from "@/config/adminConfig";
+import { isAuthorizedAdminEmail } from "@/config/adminConfig";
+import { MAX_PIN_ATTEMPTS, PIN_LOCKOUT_MS } from "@/config/adminPublic";
 import { verifyAdminPin } from "@/lib/adminSecurityStore";
 import { checkRateLimitKey, resetRateLimitKey, getClientIp } from "@/lib/rateLimit";
 import { createCuratorToken, isTrustedOrigin } from "@/lib/serverAuth";
@@ -26,7 +23,7 @@ export async function POST(request: Request) {
     }
 
     // 1. IP-level rate limiting (max 15 attempts per 15 minutes per IP)
-    const ipCheck = checkRateLimitKey(`pin:ip:${clientIp}`, 15, PIN_LOCKOUT_MS);
+    const ipCheck = await checkRateLimitKey(`pin:ip:${clientIp}`, 15, PIN_LOCKOUT_MS);
     if (!ipCheck.allowed) {
       return NextResponse.json(
         {
@@ -41,7 +38,7 @@ export async function POST(request: Request) {
 
     // 2. Email-level rate limiting & lockout
     const emailKey = `pin:email:${email}`;
-    const emailCheck = checkRateLimitKey(emailKey, MAX_PIN_ATTEMPTS, PIN_LOCKOUT_MS);
+    const emailCheck = await checkRateLimitKey(emailKey, MAX_PIN_ATTEMPTS, PIN_LOCKOUT_MS);
     if (!emailCheck.allowed) {
       return NextResponse.json(
         {
@@ -56,11 +53,7 @@ export async function POST(request: Request) {
     }
 
     // 3. Check if email is on the authorized curator admin list
-    const envAdmin = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-    const isAuthorized = (envAdmin && envAdmin === email) || AUTHORIZED_ADMIN_EMAILS.some(
-      (e) => e.trim().toLowerCase() === email
-    );
-    if (!isAuthorized) {
+    if (!isAuthorizedAdminEmail(email)) {
       return NextResponse.json(
         {
           success: false,
@@ -76,8 +69,8 @@ export async function POST(request: Request) {
 
     if (isMatch) {
       // Clear failed rate limit counters upon successful verification
-      resetRateLimitKey(emailKey);
-      resetRateLimitKey(`pin:ip:${clientIp}`);
+      await resetRateLimitKey(emailKey);
+      await resetRateLimitKey(`pin:ip:${clientIp}`);
 
       // Issue signed curator session token bound to client fingerprint
       const token = await createCuratorToken(email, request);
@@ -87,7 +80,7 @@ export async function POST(request: Request) {
 
       const response = NextResponse.json({
         success: true,
-        message: "Master Curator authentication verified. Welcome to KAIRO Admin Console.",
+        message: "Master Curator authentication verified. Welcome to YUJI Admin Console.",
       });
 
       // Set hardened HTTP-Only security cookie

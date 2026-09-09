@@ -4,6 +4,7 @@ import "./globals.css";
 import { StorefrontShell } from "@/components/StorefrontShell";
 import { MangaReaderModal } from "@/components/MangaReaderModal";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
+import { SITE_URL, SITE_NAME, DEFAULT_OG_IMAGE } from "@/lib/seo";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -56,10 +57,36 @@ export const viewport: Viewport = {
   themeColor: "#0D0D0F",
 };
 
+const SITE_DESCRIPTION =
+  "Manga, light novels, and stories worth getting lost in. Premium editorial editions, authentic Japanese prints, and collector's boxsets.";
+
 export const metadata: Metadata = {
-  title: "KAIRO (回路) — High-End Japanese Manga & Editorial Storefront",
-  description: "Manga, light novels, and stories worth getting lost in. Premium editorial editions, authentic Japanese prints, and collector's boxsets.",
-  keywords: ["Manga", "Light Novels", "KAIRO", "Japanese Books", "Jujutsu Kaisen", "One Piece", "Berserk"],
+  // metadataBase makes the relative OG/Twitter image paths below resolve to
+  // absolute URLs; without it shared links rendered no preview.
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "YUJI — Manga, Books, More",
+    template: "%s | YUJI",
+  },
+  description: SITE_DESCRIPTION,
+  keywords: ["Manga", "Light Novels", "YUJI", "Japanese Books", "Jujutsu Kaisen", "One Piece", "Berserk"],
+  applicationName: SITE_NAME,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: "YUJI — Manga, Books, More",
+    description: SITE_DESCRIPTION,
+    url: "/",
+    images: [{ url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: "YUJI — Manga, Books, More" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "YUJI — Manga, Books, More",
+    description: SITE_DESCRIPTION,
+    images: [DEFAULT_OG_IMAGE],
+  },
+  robots: { index: true, follow: true },
 };
 
 import { AtmosphericBackground } from "@/components/AtmosphericBackground";
@@ -76,15 +103,30 @@ export default function RootLayout({
       className={`${manrope.variable} ${cinzel.variable} ${cormorant.variable} ${notoSansJP.variable} ${shippori.variable} ${jetbrains.variable} antialiased selection:bg-vermilion selection:text-white`}
     >
       <body suppressHydrationWarning className="min-h-screen bg-ink text-paper font-sans flex flex-col relative">
-        <div id="kairo-restore-loader" aria-hidden="true">
-          <div className="kairo-loader-bg-glow" />
-          <div className="kairo-loader-content">
-            <div className="kairo-loader-kanji">回路</div>
-            <div className="kairo-loader-brand">K A I R O</div>
-            <div className="kairo-loader-bar">
-              <div className="kairo-loader-bar-fill" />
+        {/*
+          The locale is persisted client-side, so the server always renders
+          lang="en". Applying the stored choice before first paint avoids an
+          LTR flash for an Arabic reader; useLanguageStore keeps it in sync
+          afterwards.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              'try{var s=JSON.parse(localStorage.getItem("kairo_locale")||"{}");' +
+              'var l=(s&&s.state&&s.state.locale)==="ar"?"ar":"en";' +
+              'document.documentElement.lang=l;' +
+              'document.documentElement.dir=l==="ar"?"rtl":"ltr";}catch(e){}',
+          }}
+        />
+        <div id="yuji-restore-loader" aria-hidden="true">
+          <div className="yuji-loader-bg-glow" />
+          <div className="yuji-loader-content">
+            <div className="yuji-loader-kanji">yuji</div>
+            <div className="yuji-loader-brand">K A I R O</div>
+            <div className="yuji-loader-bar">
+              <div className="yuji-loader-bar-fill" />
             </div>
-            <div className="kairo-loader-caption">RESTORING ARCHIVE</div>
+            <div className="yuji-loader-caption">RESTORING ARCHIVE</div>
           </div>
         </div>
         <SmoothScrollProvider>

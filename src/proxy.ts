@@ -1,7 +1,7 @@
 ﻿import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import crypto from "crypto";
-import { AUTHORIZED_ADMIN_EMAILS } from "@/config/adminConfig";
+import { isAuthorizedAdminEmail } from "@/config/adminConfig";
 
 const SESSION_SECRET = process.env.ADMIN_SESSION_SECRET;
 
@@ -27,9 +27,7 @@ function isCuratorAuthorized(token: string | null | undefined): boolean {
     if (!payload.exp || payload.exp < Date.now() || payload.role !== "admin") {
       return false;
     }
-    return AUTHORIZED_ADMIN_EMAILS.some(
-      (e) => e.trim().toLowerCase() === (payload.sub || "").toLowerCase()
-    );
+    return isAuthorizedAdminEmail(payload.sub);
   } catch {
     return false;
   }

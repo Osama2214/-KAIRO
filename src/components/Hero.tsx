@@ -75,9 +75,6 @@ export function Hero() {
   }, [mobileHeroImages.length]);
 
   const isAr = locale === "ar";
-  const badgeText = mounted
-    ? (isAr ? (heroArabicContent?.badgeText || t.hero.badge) : (heroContent.badgeText || t.hero.badge))
-    : t.hero.badge;
   const hubName = mounted
     ? (isAr ? (shippingArabicConfig?.hubName || t.shipping.hubTitle) : (shippingConfig.hubName || t.shipping.hubTitle))
     : t.shipping.hubTitle;
@@ -133,7 +130,7 @@ export function Hero() {
           <Image
             key={src}
             src={src}
-            alt={featuredVolume?.title || "KAIRO Manga Hero"}
+            alt={featuredVolume?.title || "YUJI Manga Hero"}
             fill
             sizes="100vw"
             preload={idx === 0}
@@ -172,7 +169,7 @@ export function Hero() {
 
       {/* Large Ultra-Faint Japanese Watermark Accents in Void (Desktop) */}
       <div className="absolute top-1/3 -left-3 writing-mode-vertical font-serif text-6xl md:text-8xl font-bold text-paper/[0.015] pointer-events-none select-none tracking-[0.35em] hidden lg:block">
-        {heroContent.japaneseWatermark1 || "回路・物語の始まり"}
+        {heroContent.japaneseWatermark1 || "物語の始まり"}
       </div>
       <div className="absolute bottom-1/4 -right-3 writing-mode-vertical font-serif text-6xl md:text-8xl font-bold text-paper/[0.012] pointer-events-none select-none tracking-[0.35em] hidden lg:block">
         {heroContent.japaneseWatermark2 || "精神と物質の調和"}
@@ -186,11 +183,8 @@ export function Hero() {
           {/* Top Metadata: Badge & Live Edit */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-2.5">
-              <span className="text-[10px] sm:text-xs font-mono tracking-[0.24em] text-gold uppercase font-medium">
-                {badgeText.includes("—") && !badgeText.endsWith("—") ? `${badgeText} —` : badgeText}
-              </span>
-              <span className="text-xs text-text-muted font-serif hidden sm:inline">
-                回路アーカイブ // {hubName}
+              <span className="text-xs text-text-muted font-serif">
+                YUJI アーカイブ // {hubName}
               </span>
             </div>
             <LiveEditButton target={{ type: "hero" }} label="Edit Hero" variant="floating" size="xs" />
@@ -289,7 +283,7 @@ export function Hero() {
             {/* Background Artwork */}
             <Image
               src={featuredVolume?.coverImage || "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1200&auto=format&fit=crop"}
-              alt={featuredVolume?.title || "KAIRO Manga Hero Cover"}
+              alt={featuredVolume?.title || "YUJI Manga Hero Cover"}
               fill
               sizes="(max-width: 1023px) 0px, (max-width: 1280px) 320px, 450px"
               preload
@@ -302,7 +296,7 @@ export function Hero() {
 
             {/* Japanese Seal Watermark on Artwork */}
             <div className="absolute top-4 sm:top-5 right-4 sm:right-5 p-2 sm:p-2.5 rounded-sm bg-ink/75 backdrop-blur-md border border-ink-border/80 text-vermilion font-serif font-bold text-xs shadow-lg">
-              回路
+              YUJI
             </div>
 
             {/* Live Edit Hero Card Button */}

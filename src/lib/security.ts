@@ -1,5 +1,5 @@
 /**
- * KAIRO Security & Cryptography Utilities
+ * YUJI Security & Cryptography Utilities
  * Provides:
  * - SHA-256 salted password hashing
  * - Secure Cookie session management (Strict SameSite, Secure)
@@ -8,10 +8,8 @@
  * - Brute-force protection & rate limiting
  */
 
-import { PIN_SALT } from "@/config/adminConfig";
-
-const SALT = "kairo_patron_sec_salt_2026_";
-const RATE_LIMIT_KEY = "kairo_auth_rate_limit";
+const SALT = "yuji_patron_sec_salt_2026_";
+const RATE_LIMIT_KEY = "yuji_auth_rate_limit";
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 60 * 1000; // 60 seconds lockout after 5 consecutive failures
 
@@ -38,45 +36,6 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 /**
- * Sets a secure session cookie backed by server-side HttpOnly cookie
- */
-export async function setSessionCookie(userId: string, email: string, days = 7) {
-  const cleanEmail = email.toLowerCase().trim();
-
-  // 1. Establish hardened HttpOnly cookie via server API
-  if (typeof fetch !== "undefined") {
-    try {
-      await fetch("/api/auth/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid: userId, email: cleanEmail }),
-      });
-    } catch {
-      // Offline fallback
-    }
-  }
-
-  // 2. Client-side state fallback
-  if (typeof document === "undefined") return;
-  const expires = new Date();
-  expires.setDate(expires.getDate() + days);
-  const isSecure = typeof window !== "undefined" && window.location.protocol === "https:";
-  
-  const payload = {
-    uid: userId,
-    email: cleanEmail,
-    iat: Date.now(),
-    exp: expires.getTime(),
-  };
-  
-  const token = typeof window !== "undefined" && window.btoa 
-    ? window.btoa(encodeURIComponent(JSON.stringify(payload))) 
-    : "";
-
-  document.cookie = `kairo_session=${token}; expires=${expires.toUTCString()}; path=/; SameSite=Strict${isSecure ? "; Secure" : ""}`;
-}
-
-/**
  * Clears both client and server session cookies thoroughly upon logout
  */
 export async function clearSessionCookie() {
@@ -95,31 +54,7 @@ export async function clearSessionCookie() {
   // 2. Clear client-accessible cookies
   if (typeof document === "undefined") return;
   const isSecure = typeof window !== "undefined" && window.location.protocol === "https:";
-  document.cookie = `kairo_session=; Max-Age=0; path=/; SameSite=Strict; expires=Thu, 01 Jan 1970 00:00:00 GMT${isSecure ? "; Secure" : ""}`;
   document.cookie = `kairo_curator_session=; Max-Age=0; path=/; SameSite=Strict; expires=Thu, 01 Jan 1970 00:00:00 GMT${isSecure ? "; Secure" : ""}`;
-}
-
-/**
- * Reads and verifies the current session cookie
- */
-export function getSessionCookie(): { uid: string; email: string; exp: number } | null {
-  if (typeof document === "undefined") return null;
-  const cookies = document.cookie.split(";");
-  for (const cookie of cookies) {
-    const [name, val] = cookie.trim().split("=");
-    if (name === "kairo_session" && val) {
-      try {
-        const decoded = decodeURIComponent(atob(val));
-        const parsed = JSON.parse(decoded);
-        if (parsed.exp && parsed.exp > Date.now()) {
-          return parsed;
-        }
-      } catch {
-        return null;
-      }
-    }
-  }
-  return null;
 }
 
 /**
@@ -357,28 +292,6 @@ export async function verifyOtpCode(email: string, code: string): Promise<{ succ
   } catch {
     return { success: false, message: "Network error verifying code." };
   }
-}
-
-/**
- * Computes a SHA-256 hash of an admin PIN with salt
- */
-export async function hashAdminPin(pin: string): Promise<string> {
-  const clean = pin.trim();
-  if (typeof window === "undefined" || !window.crypto || !window.crypto.subtle) {
-    let hash = 0;
-    const str = PIN_SALT + clean;
-    for (let i = 0; i < str.length; i++) {
-      hash = (hash << 5) - hash + str.charCodeAt(i);
-      hash |= 0;
-    }
-    return `kro_pin_${Math.abs(hash)}`;
-  }
-
-  const encoder = new TextEncoder();
-  const data = encoder.encode(PIN_SALT + clean);
-  const hashBuffer = await window.crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 export interface AdminPinVerificationResult {

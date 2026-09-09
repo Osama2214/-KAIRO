@@ -116,9 +116,8 @@ async function ensureOrdersFile(): Promise<void> {
 /**
  * Automatically evaluates and cancels electronic payment orders that exceeded 36 hours without admin verification
  */
-export function processExpiredPendingOrders(orders: ServerOrder[]): { orders: ServerOrder[]; hasChanges: boolean } {
+export function processExpiredPendingOrders(orders: ServerOrder[]): { orders: ServerOrder[]; changed: ServerOrder[]; hasChanges: boolean } {
   const now = Date.now();
-  let hasChanges = false;
   const expiredOrdersToNotify: ServerOrder[] = [];
 
   const updatedOrders = orders.map((order) => {
@@ -129,7 +128,6 @@ export function processExpiredPendingOrders(orders: ServerOrder[]): { orders: Se
 
     if (isElectronic && isPending && !isAlreadyCancelled && orderTime > 0) {
       if (now - orderTime >= PAYMENT_HOLD_TIMEOUT_MS) {
-        hasChanges = true;
         const timeline = order.timeline || [];
         const expiredOrder: ServerOrder = {
           ...order,
@@ -172,7 +170,7 @@ export function processExpiredPendingOrders(orders: ServerOrder[]): { orders: Se
     })();
   }
 
-  return { orders: updatedOrders, hasChanges };
+  return { orders: updatedOrders, changed: expiredOrdersToNotify, hasChanges: expiredOrdersToNotify.length > 0 };
 }
 
 /**
@@ -186,9 +184,11 @@ export async function getAllServerOrders(): Promise<ServerOrder[]> {
       const orders = rows
         .map((row) => parseOrderPayload(row.payload))
         .filter((order): order is ServerOrder => order !== null);
-      const { orders: processed, hasChanges } = processExpiredPendingOrders(orders);
-      if (hasChanges) {
-        await Promise.all(processed.map((order) => persistOrders(order)));
+      const { orders: processed, changed } = processExpiredPendingOrders(orders);
+      // Persist only the orders that expired. This used to rewrite every row in
+      // the table whenever a single order timed out.
+      if (changed.length > 0) {
+        await Promise.all(changed.map((order) => persistOrders(order)));
       }
       return processed;
     } catch (error) {
@@ -308,9 +308,6 @@ async function persistOrders(orders: ServerOrder[] | ServerOrder): Promise<void>
  * Adds or updates an order in central storage
  */
 export async function saveServerOrder(order: ServerOrder): Promise<ServerOrder> {
-  const orders = await getAllServerOrders();
-  const existingIdx = orders.findIndex((o) => o.id === order.id);
-
   const createdAt = order.createdAt || Date.now();
   const isElectronic = order.paymentMethod === "wallet" || order.paymentMethod === "instapay";
   const expiresAt = isElectronic ? createdAt + PAYMENT_HOLD_TIMEOUT_MS : undefined;
@@ -322,15 +319,20 @@ export async function saveServerOrder(order: ServerOrder): Promise<ServerOrder> 
     updatedAt: Date.now(),
   };
 
-  let updatedList: ServerOrder[];
-  if (existingIdx >= 0) {
-    updatedList = [...orders];
-    updatedList[existingIdx] = { ...updatedList[existingIdx], ...enrichedOrder };
-  } else {
-    updatedList = [enrichedOrder, ...orders];
+  if (sql) {
+    // A single upsert; loading the full archive to append one order made every
+    // checkout scale with the number of orders ever placed.
+    await persistOrders(enrichedOrder);
+    return enrichedOrder;
   }
 
-  await persistOrders(sql ? enrichedOrder : updatedList);
+  const orders = await getAllServerOrders();
+  const existingIdx = orders.findIndex((o) => o.id === enrichedOrder.id);
+  const updatedList = existingIdx >= 0 ? [...orders] : [enrichedOrder, ...orders];
+  if (existingIdx >= 0) {
+    updatedList[existingIdx] = { ...updatedList[existingIdx], ...enrichedOrder };
+  }
+  await persistOrders(updatedList);
   return enrichedOrder;
 }
 
@@ -346,11 +348,10 @@ export async function updateServerOrderStatus(
   orderId: string,
   updates: Partial<ServerOrder>
 ): Promise<UpdateOrderResult | null> {
-  const orders = await getAllServerOrders();
-  const idx = orders.findIndex((o) => o.id === orderId);
-  if (idx < 0) return null;
-
-  const current = orders[idx];
+  const orders = sql ? [] : await getAllServerOrders();
+  const idx = sql ? -1 : orders.findIndex((o) => o.id === orderId);
+  const current = sql ? await getServerOrderById(orderId) : (idx >= 0 ? orders[idx] : null);
+  if (!current) return null;
   
   // If payment status is marked verified, clear the expiration requirement
   let expiresAt = current.expiresAt;
@@ -378,8 +379,53 @@ export async function updateServerOrderStatus(
     }
   }
 
+  if (sql) {
+    await persistOrders(updated);
+    return { updated, previous: current };
+  }
+
   const updatedList = [...orders];
   updatedList[idx] = updated;
-  await persistOrders(sql ? updated : updatedList);
+  await persistOrders(updatedList);
   return { updated, previous: current };
+}
+
+/**
+ * Loads a single order by reference without pulling the whole archive.
+ */
+export async function getServerOrderById(orderId: string): Promise<ServerOrder | null> {
+  if (!sql) {
+    const orders = await getAllServerOrders();
+    return orders.find((order) => order.id === orderId) || null;
+  }
+  await ensureDatabaseSchema();
+  const rows = await sql`SELECT payload FROM kairo_orders WHERE id = ${orderId} LIMIT 1`;
+  return rows[0] ? parseOrderPayload(rows[0].payload) : null;
+}
+
+/**
+ * Loads a bounded set of orders by reference. Used by the status poller so it
+ * never has to read every order in the table to answer for a handful of ids.
+ */
+export async function getServerOrdersByIds(orderIds: string[]): Promise<ServerOrder[]> {
+  const ids = [...new Set(orderIds.filter(Boolean))].slice(0, 30);
+  if (ids.length === 0) return [];
+
+  if (!sql) {
+    const orders = await getAllServerOrders();
+    const idSet = new Set(ids);
+    return orders.filter((order) => idSet.has(order.id));
+  }
+
+  await ensureDatabaseSchema();
+  const rows = await sql`
+    SELECT payload FROM kairo_orders
+    WHERE id IN (SELECT jsonb_array_elements_text(${JSON.stringify(ids)}::jsonb))
+  `;
+  const orders = rows
+    .map((row) => parseOrderPayload(row.payload))
+    .filter((order): order is ServerOrder => order !== null);
+  const { orders: processed, changed } = processExpiredPendingOrders(orders);
+  if (changed.length > 0) await Promise.all(changed.map((order) => persistOrders(order)));
+  return processed;
 }

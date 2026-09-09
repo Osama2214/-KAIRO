@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     }
 
     const clientIp = getClientIp(request);
-    const rateCheck = checkRateLimitKey(`register:ip:${clientIp}`, 5, 10 * 60 * 1000);
+    const rateCheck = await checkRateLimitKey(`register:ip:${clientIp}`, 5, 10 * 60 * 1000);
     if (!rateCheck.allowed) {
       return NextResponse.json(
         { success: false, message: "Too many registration attempts. Please try again later." },

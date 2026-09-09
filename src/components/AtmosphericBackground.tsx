@@ -145,7 +145,7 @@ export function AtmosphericBackground() {
 
       {/* 3. Giant Subtle Japanese Calligraphy Watermarks (Moving with the page) */}
       <div className="absolute top-[12%] right-[5%] font-serif text-[180px] sm:text-[240px] font-bold text-white/[0.02] animate-kanji-float pointer-events-none leading-none select-none">
-        回路
+        YUJI
       </div>
       <div className="absolute bottom-[20%] left-[4%] font-serif text-[140px] sm:text-[190px] font-bold text-white/[0.015] animate-kanji-float-reverse pointer-events-none leading-none select-none">
         幽玄

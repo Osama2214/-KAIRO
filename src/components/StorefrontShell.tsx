@@ -1,22 +1,30 @@
 "use client";
 
 import React, { useEffect } from "react";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CartDrawer } from "@/components/CartDrawer";
 import { SearchModal } from "@/components/SearchModal";
 import { CinematicIntro } from "@/components/CinematicIntro";
-import { LiveVisualEditor } from "@/components/admin/LiveVisualEditor";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { useLanguageStore } from "@/store/useLanguageStore";
 import { StorefrontDataSync } from "@/components/StorefrontDataSync";
+
+// Curator-only UI: kept out of the storefront bundle so shoppers never
+// download the visual editor. It renders null for everyone else anyway.
+const LiveVisualEditor = dynamic(
+  () => import("@/components/admin/LiveVisualEditor").then((m) => m.LiveVisualEditor),
+  { ssr: false }
+);
 
 export function StorefrontShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/admin");
 
-  const arabicLanguageEnabled = useStorefrontStore((state) => state.arabicLanguageEnabled ?? false);
+  const arabicLanguageEnabled = useStorefrontStore((state) => state.arabicLanguageEnabled ?? true);
+  const isAdminAuthenticated = useStorefrontStore((state) => state.isAdminAuthenticated);
   const { locale, setLocale } = useLanguageStore();
 
   useEffect(() => {
@@ -38,7 +46,7 @@ export function StorefrontShell({ children }: { children: React.ReactNode }) {
       <CartDrawer />
       <SearchModal />
       <CinematicIntro />
-      <LiveVisualEditor />
+      {isAdminAuthenticated && <LiveVisualEditor />}
     </>
   );
 }

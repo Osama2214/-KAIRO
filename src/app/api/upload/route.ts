@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
 import path from "path";
-import crypto from "crypto";
+import sharp from "sharp";
 import { checkRateLimitKey, getClientIp } from "@/lib/rateLimit";
 import { curatorSession, isTrustedOrigin } from "@/lib/serverAuth";
+import { saveMedia } from "@/lib/mediaStore";
 
 // Allowed MIME types and corresponding extensions
 const ALLOWED_MIME_TYPES: Record<string, string> = {
@@ -15,8 +15,12 @@ const ALLOWED_MIME_TYPES: Record<string, string> = {
   "image/avif": ".avif",
 };
 
-// Maximum file size: 10MB
+// Maximum accepted upload: 10MB before re-encoding.
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+// Stored covers are capped so a single image cannot bloat the database.
+const MAX_IMAGE_WIDTH = 1600;
+const MAX_IMAGE_HEIGHT = 2400;
 
 /**
  * Validates actual binary magic bytes of the buffer to prevent polyglot / masked executable attacks
@@ -82,7 +86,7 @@ export async function POST(request: Request) {
     const clientIp = getClientIp(request);
 
     // 1. Check Rate Limiting (IP Level: max 15 uploads per 10 minutes to prevent disk exhaustion DoS)
-    const rateCheck = checkRateLimitKey(`upload:ip:${clientIp}`, 15, 10 * 60 * 1000);
+    const rateCheck = await checkRateLimitKey(`upload:ip:${clientIp}`, 15, 10 * 60 * 1000);
     if (!rateCheck.allowed) {
       return NextResponse.json(
         {
@@ -146,30 +150,33 @@ export async function POST(request: Request) {
       );
     }
 
-    // 6. Generate cryptographically random, safe filename (avoids path traversal / overwrites)
-    const hash = crypto.randomBytes(12).toString("hex");
-    const safeBaseName = (path.basename(file.name, path.extname(file.name)) || "image")
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, "-")
-      .slice(0, 20);
-    const finalFilename = `${safeBaseName}-${Date.now()}-${hash}${extension || ".jpg"}`;
+    // 6. Re-encode through sharp. This strips any metadata (and anything hiding
+    // in it), normalises the format, and keeps stored covers to a sane size.
+    let optimised: Buffer;
+    try {
+      optimised = await sharp(buffer)
+        .rotate()
+        .resize({ width: MAX_IMAGE_WIDTH, height: MAX_IMAGE_HEIGHT, fit: "inside", withoutEnlargement: true })
+        .webp({ quality: 82 })
+        .toBuffer();
+    } catch {
+      return NextResponse.json(
+        { success: false, message: "The image could not be processed. Please try a different file." },
+        { status: 400 }
+      );
+    }
 
-    // 7. Ensure directory exists and write to public/uploads
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
-    await mkdir(uploadsDir, { recursive: true });
-    const targetFilePath = path.join(uploadsDir, finalFilename);
-
-    await writeFile(targetFilePath, buffer);
-
-    const publicUrl = `/uploads/${finalFilename}`;
+    // 7. Persist to Neon. Vercel's filesystem is read-only, so the previous
+    // write to public/uploads failed in production on every single upload.
+    const stored = await saveMedia(optimised, "image/webp");
 
     return NextResponse.json({
       success: true,
-      url: publicUrl,
-      filename: finalFilename,
-      size: file.size,
-      mimeType: magicCheck.detectedMime || declaredMime,
-      message: "Image verified and uploaded successfully to server.",
+      url: stored.url,
+      filename: `${stored.id}.webp`,
+      size: stored.size,
+      mimeType: "image/webp",
+      message: "Image verified and stored successfully.",
     });
   } catch (error) {
     console.error("Image upload error:", error);

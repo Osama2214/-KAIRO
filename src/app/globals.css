@@ -17,7 +17,7 @@ html {
 }
 
 /* Luxury archive restore loader overlay */
-#kairo-restore-loader {
+#yuji-restore-loader {
   position: fixed;
   inset: 0;
   z-index: 999999;
@@ -32,8 +32,8 @@ html {
   transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.28s ease;
 }
 
-html.kairo-restoring #kairo-restore-loader,
-html.kairo-loading #kairo-restore-loader {
+html.yuji-restoring #yuji-restore-loader,
+html.yuji-loading #yuji-restore-loader {
   opacity: 1 !important;
   visibility: visible !important;
   pointer-events: auto !important;
@@ -199,7 +199,7 @@ input[type="number"] {
 /* Atmospheric Subtle Japanese Typographic Watermark Background (Replaces Dot Grid) */
 .bg-japanese-pattern,
 .bg-noise {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='460' height='280' viewBox='0 0 460 280'%3E%3Ctext x='20' y='45' fill='%23F4F0E8' fill-opacity='0.024' font-family='sans-serif' font-size='12' letter-spacing='9'%3E回路・東京アーカイブ・物語%3C/text%3E%3Ctext x='210' y='115' fill='%23F4F0E8' fill-opacity='0.018' font-family='sans-serif' font-size='11' letter-spacing='7'%3E精神と物質の輪郭・全巻%3C/text%3E%3Ctext x='35' y='185' fill='%23F4F0E8' fill-opacity='0.022' font-family='sans-serif' font-size='12' letter-spacing='8'%3E幽玄の美・黒白の記憶%3C/text%3E%3Ctext x='240' y='255' fill='%23F4F0E8' fill-opacity='0.016' font-family='sans-serif' font-size='10' letter-spacing='6'%3E第１巻・物語の始まり%3C/text%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='460' height='280' viewBox='0 0 460 280'%3E%3Ctext x='20' y='45' fill='%23F4F0E8' fill-opacity='0.024' font-family='sans-serif' font-size='12' letter-spacing='9'%3E東京アーカイブ・物語%3C/text%3E%3Ctext x='210' y='115' fill='%23F4F0E8' fill-opacity='0.018' font-family='sans-serif' font-size='11' letter-spacing='7'%3E精神と物質の輪郭・全巻%3C/text%3E%3Ctext x='35' y='185' fill='%23F4F0E8' fill-opacity='0.022' font-family='sans-serif' font-size='12' letter-spacing='8'%3E幽玄の美・黒白の記憶%3C/text%3E%3Ctext x='240' y='255' fill='%23F4F0E8' fill-opacity='0.016' font-family='sans-serif' font-size='10' letter-spacing='6'%3E第１巻・物語の始まり%3C/text%3E%3C/svg%3E");
 }
 
 
@@ -440,8 +440,8 @@ input[type="number"] {
   }
 }
 
-/* KAIRO Restore Loader */
-#kairo-restore-loader {
+/* YUJI Restore Loader */
+#yuji-restore-loader {
   position: fixed;
   inset: 0;
   z-index: 999999;
@@ -456,21 +456,21 @@ input[type="number"] {
   transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.28s ease;
 }
 
-html.kairo-restoring #kairo-restore-loader,
-html.kairo-loading #kairo-restore-loader {
+html.yuji-restoring #yuji-restore-loader,
+html.yuji-loading #yuji-restore-loader {
   opacity: 1 !important;
   visibility: visible !important;
   pointer-events: auto !important;
 }
 
-.kairo-loader-bg-glow {
+.yuji-loader-bg-glow {
   position: absolute;
   inset: 0;
   background: radial-gradient(circle at 50% 45%, rgba(199, 167, 108, 0.09) 0%, rgba(8, 8, 10, 0.98) 65%);
   pointer-events: none;
 }
 
-.kairo-loader-content {
+.yuji-loader-content {
   position: relative;
   z-index: 2;
   display: flex;
@@ -480,7 +480,7 @@ html.kairo-loading #kairo-restore-loader {
   text-align: center;
 }
 
-.kairo-loader-kanji {
+.yuji-loader-kanji {
   font-family: var(--font-shippori), "Shippori Mincho", serif;
   font-size: 2.25rem;
   font-weight: 700;
@@ -489,10 +489,10 @@ html.kairo-loading #kairo-restore-loader {
   margin-right: -0.15em;
   margin-bottom: 0.35rem;
   text-shadow: 0 0 24px rgba(199, 167, 108, 0.4);
-  animation: kairoKanjiGlow 1.6s ease-in-out infinite alternate;
+  animation: yujiKanjiGlow 1.6s ease-in-out infinite alternate;
 }
 
-.kairo-loader-brand {
+.yuji-loader-brand {
   font-family: var(--font-cinzel), "Cinzel", Georgia, serif;
   font-size: 0.8rem;
   font-weight: 700;
@@ -503,7 +503,7 @@ html.kairo-loading #kairo-restore-loader {
   margin-bottom: 1.25rem;
 }
 
-.kairo-loader-bar {
+.yuji-loader-bar {
   width: 72px;
   height: 2px;
   background: rgba(199, 167, 108, 0.18);
@@ -513,7 +513,7 @@ html.kairo-loading #kairo-restore-loader {
   margin-bottom: 0.9rem;
 }
 
-.kairo-loader-bar-fill {
+.yuji-loader-bar-fill {
   position: absolute;
   top: 0;
   left: 0;
@@ -521,10 +521,10 @@ html.kairo-loading #kairo-restore-loader {
   bottom: 0;
   background: linear-gradient(90deg, transparent, #C7A76C, #F4F0E8, #C7A76C, transparent);
   border-radius: 9999px;
-  animation: kairoShimmer 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation: yujiShimmer 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-.kairo-loader-caption {
+.yuji-loader-caption {
   font-family: var(--font-mono), "JetBrains Mono", monospace;
   font-size: 0.62rem;
   font-weight: 600;
@@ -534,7 +534,7 @@ html.kairo-loading #kairo-restore-loader {
   text-transform: uppercase;
 }
 
-@keyframes kairoKanjiGlow {
+@keyframes yujiKanjiGlow {
   0% {
     transform: scale(0.97);
     opacity: 0.85;
@@ -547,11 +547,39 @@ html.kairo-loading #kairo-restore-loader {
   }
 }
 
-@keyframes kairoShimmer {
+@keyframes yujiShimmer {
   0% {
     transform: translateX(-100%);
   }
   100% {
     transform: translateX(100%);
+  }
+}
+
+/*
+ * Reduced motion.
+ *
+ * The storefront leans on GSAP, Lenis and a cinematic intro. None of that
+ * previously checked the user's motion preference, which for anyone with a
+ * vestibular disorder makes the site actively unpleasant to use. Animations are
+ * collapsed to something instantaneous rather than removed, so nothing that
+ * depends on an animation-end callback gets stuck mid-transition.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  #yuji-restore-loader {
+    display: none !important;
   }
 }

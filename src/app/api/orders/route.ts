@@ -11,9 +11,16 @@ import { checkRateLimitKey, getClientIp } from "@/lib/rateLimit";
 import { DEFAULT_GOVERNORATE_RATES } from "@/data/governorates";
 import { curatorSession, isTrustedOrigin } from "@/lib/serverAuth";
 import { patronSession } from "@/lib/patronAuth";
-import { redeemWelcomeCoupon } from "@/lib/couponStore";
-import { CatalogReservationError, reserveCatalogItems } from "@/lib/storefrontDataStore";
+import { redeemWelcomeCoupon, releaseWelcomeCoupon } from "@/lib/couponStore";
+import { CatalogReservationError, reserveCatalogItems, restoreCatalogItems } from "@/lib/storefrontDataStore";
 import { validateEgyptianPhone } from "@/lib/security";
+import { createOrderId } from "@/lib/orderId";
+import {
+  GUEST_ORDER_COOKIE,
+  GUEST_ORDER_COOKIE_MAX_AGE,
+  createGuestOrderToken,
+  guestOrderIdsFromRequest,
+} from "@/lib/guestOrderToken";
 
 /**
  * GET: Retrieve orders from central server database
@@ -74,7 +81,7 @@ export async function POST(request: Request) {
     const clientIp = getClientIp(request);
 
     // Rate limiting: Max 6 orders per 10 minutes per IP
-    const rateCheck = checkRateLimitKey(`order_create:ip:${clientIp}`, 6, 10 * 60 * 1000);
+    const rateCheck = await checkRateLimitKey(`order_create:ip:${clientIp}`, 6, 10 * 60 * 1000);
     if (!rateCheck.allowed) {
       return NextResponse.json(
         {
@@ -86,12 +93,18 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => null);
-    if (!body || !body.id || !Array.isArray(body.items) || body.items.length === 0 || body.items.length > 20) {
+    if (!body || !Array.isArray(body.items) || body.items.length === 0 || body.items.length > 20) {
       return NextResponse.json(
-        { success: false, message: "Invalid order data. Cart items and order ID are required." },
+        { success: false, message: "Invalid order data. Cart items are required." },
         { status: 400 }
       );
     }
+
+    // The order reference is minted here, never accepted from the browser. A
+    // client-supplied id let anyone overwrite an existing order through the
+    // upsert in saveServerOrder, and the old 4-digit random space collided
+    // between real customers after roughly a hundred orders.
+    const orderId = createOrderId();
 
     const customerEmail = String(body.customerEmail || "").toLowerCase().trim();
     const rawCustomerPhone = String(body.customerPhone || "").trim();
@@ -156,7 +169,6 @@ export async function POST(request: Request) {
     const rawCode = String(body.appliedCoupon || "").trim().toUpperCase();
     if (rawCode) {
       const session = patronSession(request);
-      const orderId = String(body.id).trim().slice(0, 32);
       // A coupon belongs to the signed-in patron, not to data sent by the browser.
       if (!session.valid || !session.email || session.email !== customerEmail) {
         couponMessage = "Sign in with the coupon owner to use this code.";
@@ -213,7 +225,7 @@ export async function POST(request: Request) {
       : ["Order Placed", "Confirmed", "Preparing Dispatch"];
 
     const sanitizedOrder: ServerOrder = {
-      id: String(body.id).trim().slice(0, 32),
+      id: orderId,
       date: new Date().toISOString().split("T")[0],
       items: validatedItems,
       subtotal: Math.round(computedSubtotal * 100) / 100,
@@ -231,15 +243,28 @@ export async function POST(request: Request) {
       customerAddress: String(customerAddress).slice(0, 250),
       customerGovernorate: governorate.slice(0, 50),
       timeline: initialTimeline,
-      trackingNumber: String(body.trackingNumber || "").slice(0, 50),
-      trackingUrl: body.trackingUrl ? String(body.trackingUrl).slice(0, 300) : undefined,
-      courier: String(body.courier || "Egypt Tracked Express").slice(0, 100),
+      // Courier fields are set by the curator when the parcel actually ships.
+      trackingNumber: "",
+      trackingUrl: undefined,
+      courier: "Egypt Tracked Express",
       estimatedDelivery: String(body.estimatedDelivery || "24-48h").slice(0, 100),
       createdAt: now,
       expiresAt,
     };
 
-    const saved = await saveServerOrder(sanitizedOrder);
+    // Stock is already decremented and the coupon already marked used. If the
+    // write fails now, both must be given back — otherwise a transient database
+    // error silently destroyed inventory and burned the patron's one coupon.
+    let saved;
+    try {
+      saved = await saveServerOrder(sanitizedOrder);
+    } catch (saveError) {
+      await Promise.allSettled([
+        restoreCatalogItems(validatedItems),
+        ...(appliedCoupon ? [releaseWelcomeCoupon(orderId)] : []),
+      ]);
+      throw saveError;
+    }
 
     // Wait for dispatch to start and settle before the serverless response ends.
     // Vercel may freeze work scheduled after a response is returned.
@@ -249,7 +274,7 @@ export async function POST(request: Request) {
       ...(saved.customerEmail ? [sendCustomerOrderStatusUpdateEmail(saved)] : []),
     ]);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       order: saved,
       couponNotice: couponMessage,
@@ -257,6 +282,22 @@ export async function POST(request: Request) {
         ? "Order registered. Please transfer payment within 36 hours (1.5 days) to avoid automatic cancellation."
         : "Order placed and archived in central system.",
     });
+
+    // Record ownership of this order in an HttpOnly cookie so a returning guest
+    // can be shown their own delivery details without any of it being stored in
+    // the browser where scripts — or the next person on this device — can read it.
+    const guestToken = createGuestOrderToken([saved.id, ...guestOrderIdsFromRequest(request)]);
+    if (guestToken) {
+      response.cookies.set(GUEST_ORDER_COOKIE, guestToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: GUEST_ORDER_COOKIE_MAX_AGE,
+      });
+    }
+
+    return response;
   } catch (error) {
     console.error("POST /api/orders error:", error);
     return NextResponse.json(
@@ -289,6 +330,22 @@ export async function PATCH(request: Request) {
     const rawUpdates = body.updates && typeof body.updates === "object" ? body.updates : {};
     const allowedFields = ["status", "paymentStatus", "timeline", "trackingNumber", "trackingUrl", "courier", "estimatedDelivery"];
     const updates = Object.fromEntries(Object.entries(rawUpdates).filter(([key]) => allowedFields.includes(key)));
+
+    // This value becomes an href in the customer's shipping e-mail, so restrict
+    // it to real web URLs rather than trusting whatever was typed.
+    if (updates.trackingUrl !== undefined) {
+      const candidate = String(updates.trackingUrl || "").trim().slice(0, 300);
+      if (!candidate) {
+        updates.trackingUrl = undefined;
+      } else if (/^https?:\/\//i.test(candidate)) {
+        updates.trackingUrl = candidate;
+      } else {
+        return NextResponse.json(
+          { success: false, message: "Tracking link must be an http(s) URL." },
+          { status: 400 }
+        );
+      }
+    }
     const result = await updateServerOrderStatus(String(body.orderId).slice(0, 32), updates);
 
     if (!result) {

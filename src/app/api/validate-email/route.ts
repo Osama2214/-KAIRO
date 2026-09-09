@@ -1,6 +1,7 @@
 ﻿import { NextResponse } from "next/server";
 import dns from "dns/promises";
 import { checkRateLimitKey, getClientIp } from "@/lib/rateLimit";
+import { isTrustedOrigin } from "@/lib/serverAuth";
 
 // In-memory DNS cache to prevent repeated DNS amplification or network queries
 interface DnsCacheEntry {
@@ -12,11 +13,11 @@ interface DnsCacheEntry {
 }
 
 declare global {
-  var __kairo_dns_cache: Map<string, DnsCacheEntry> | undefined;
+  var __yuji_dns_cache: Map<string, DnsCacheEntry> | undefined;
 }
 
-const dnsCache = globalThis.__kairo_dns_cache || new Map<string, DnsCacheEntry>();
-globalThis.__kairo_dns_cache = dnsCache;
+const dnsCache = globalThis.__yuji_dns_cache || new Map<string, DnsCacheEntry>();
+globalThis.__yuji_dns_cache = dnsCache;
 
 // Common typos map
 const TYPO_DOMAINS: Record<string, string> = {
@@ -73,10 +74,13 @@ const KNOWN_VALID_DOMAINS = new Set([
 
 export async function POST(request: Request) {
   try {
+    if (!isTrustedOrigin(request)) {
+      return NextResponse.json({ success: false, message: "Invalid request origin." }, { status: 403 });
+    }
     const clientIp = getClientIp(request);
 
     // 1. IP Rate Limiting (max 30 email checks per minute per IP)
-    const rateCheck = checkRateLimitKey(`validate_email:ip:${clientIp}`, 30, 60 * 1000);
+    const rateCheck = await checkRateLimitKey(`validate_email:ip:${clientIp}`, 30, 60 * 1000);
     if (!rateCheck.allowed) {
       return NextResponse.json(
         {

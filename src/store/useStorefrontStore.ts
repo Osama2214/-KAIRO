@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { MangaVolume, Series, GenreInfo, ALL_VOLUMES, ALL_SERIES, GENRES } from "@/data/manga";
-import { DEFAULT_ADMIN_PIN, DEFAULT_PIN_HASH, AUTHORIZED_ADMIN_EMAILS } from "@/config/adminConfig";
 import { DEFAULT_GOVERNORATE_RATES, EgyptGovernorate, EGYPT_GOVERNORATES } from "@/data/governorates";
 
 export interface HeroContent {
@@ -204,7 +203,7 @@ const DEFAULT_HERO_CONTENT: HeroContent = {
   headlineLine2: "STORY",
   headline: "DISCOVER YOUR NEXT STORY",
   subheadline: "Manga, light novels, and stories worth getting lost in. From pristine First Editions and oversize Deluxe hardcovers to complete collector slipcase box sets.",
-  japaneseWatermark1: "回路・物語の始まり",
+  japaneseWatermark1: "物語の始まり",
   japaneseWatermark2: "精神と物質の調和",
   primaryCtaText: "EXPLORE MANGA",
   primaryCtaLink: "/manga",
@@ -222,7 +221,7 @@ const DEFAULT_HERO_CONTENT: HeroContent = {
 const DEFAULT_ANNOUNCEMENT: AnnouncementConfig = {
   enabled: true,
   text: "INAUGURAL PATRON GRANT — RECEIVE 20% OFF YOUR FIRST CURATED ARCHIVE WITH VOUCHER",
-  voucherCode: "KAIRO20",
+  voucherCode: "YUJI20",
   discountPercent: 20,
 };
 
@@ -246,9 +245,9 @@ const DEFAULT_SHIPPING_CONFIG: ShippingConfig = {
 
 const DEFAULT_EDITORIAL: EditorialConfig = {
   siteTagline: "Japanese Manga & Editorial Storefront",
-  footerQuote: "In the quiet chambers between panels, human truths linger. KAIRO stands as an altar to physical print, Japanese craft, and uncompromising sequential art.",
+  footerQuote: "In the quiet chambers between panels, human truths linger. YUJI stands as an altar to physical print, Japanese craft, and uncompromising sequential art.",
   contactEmail: "concierge@kairo.archive",
-  authenticityGuaranteeText: "Every single volume in the KAIRO archive is sourced directly from certified Tokyo and Kyoto publishing houses. We guarantee 100% genuine Kodansha, Shueisha, Shogakukan, and Dark Horse editorial pressings.",
+  authenticityGuaranteeText: "Every single volume in the YUJI archive is sourced directly from certified Tokyo and Kyoto publishing houses. We guarantee 100% genuine Kodansha, Shueisha, Shogakukan, and Dark Horse editorial pressings.",
   shippingPolicyText: "Orders are hand-packaged using archival protective sleeves, reinforced corner bumpers, and moisture-resistant sealing. Dispatched daily across Cairo, Giza, Alexandria, and all Egyptian governorates.",
   returnPolicyText: "We honor a 14-day archival integrity inspection. If your volume arrives with any structural binding defect, spine dent, or print anomaly, our concierge provides immediate replacement.",
   footerDescription: "An editorial archive celebrating sequential art, Japanese literary epics, and tactile physical printing craftsmanship.",
@@ -424,8 +423,6 @@ export interface StorefrontState {
   isAdminAuthenticated: boolean;
   isVisualEditorActive: boolean;
   activeLiveEditTarget: LiveEditTarget | null;
-  adminPin?: string;
-  adminPinHash: string;
   adminSessionToken?: string | null;
   adminEmails: string[];
 
@@ -477,10 +474,8 @@ export interface StorefrontState {
 
   // Admin Auth Actions
   loginAdmin: (pin: string, userEmail?: string) => boolean;
-  loginAdminWithToken: (token: string, pinHash?: string) => void;
+  loginAdminWithToken: (token: string) => void;
   logoutAdmin: () => void;
-  updateAdminPin: (newPin: string) => void;
-  updateAdminPinHash: (newHash: string) => void;
   addAdminEmail: (email: string) => void;
   removeAdminEmail: (email: string) => void;
   isAuthorizedAdmin: (email?: string) => boolean;
@@ -516,16 +511,17 @@ export const useStorefrontStore = create<StorefrontState>()(
       mangaDiscoveryArabicConfig: DEFAULT_MANGA_DISCOVERY_ARABIC_CONFIG,
       trendingArabicConfig: DEFAULT_TRENDING_ARABIC_CONFIG,
       genreBentoArabicConfig: DEFAULT_GENRE_BENTO_ARABIC_CONFIG,
-      arabicLanguageEnabled: false,
-      // KAIRO is intentionally English-only in the public storefront.
-      setArabicLanguageEnabled: () => set({ arabicLanguageEnabled: false }),
+      // Arabic is available; the CMS no longer overrides this, since no admin
+      // control was ever wired to setArabicLanguageEnabled.
+      arabicLanguageEnabled: true,
+      setArabicLanguageEnabled: (enabled) => set({ arabicLanguageEnabled: enabled }),
       isAdminAuthenticated: false,
       isVisualEditorActive: true,
       activeLiveEditTarget: null,
-      adminPin: DEFAULT_ADMIN_PIN,
-      adminPinHash: DEFAULT_PIN_HASH,
       adminSessionToken: null,
-      adminEmails: AUTHORIZED_ADMIN_EMAILS,
+      // Seeded from the curator-gated API once an admin signs in; shipping the
+      // real allow-list as a default put those addresses in the public bundle.
+      adminEmails: [],
 
       setVisualEditorActive: (active) => set({ isVisualEditorActive: active }),
       openLiveEdit: (target) => set({ activeLiveEditTarget: target }),
@@ -775,7 +771,7 @@ export const useStorefrontStore = create<StorefrontState>()(
           "editorialConfig", "featuredSeriesConfig", "collectionConfig", "genreBentoConfig", "trendingConfig",
           "newReleasesConfig", "mangaDiscoveryConfig", "heroArabicContent", "announcementArabic",
           "shippingArabicConfig", "editorialArabicConfig", "newReleasesArabicConfig", "mangaDiscoveryArabicConfig",
-          "trendingArabicConfig", "genreBentoArabicConfig", "arabicLanguageEnabled",
+          "trendingArabicConfig", "genreBentoArabicConfig",
         ];
         const data = Object.fromEntries(DATA_KEYS.map((k) => [k, state[k]]));
         try {
@@ -835,12 +831,8 @@ export const useStorefrontStore = create<StorefrontState>()(
         return true;
       },
 
-      loginAdminWithToken: (token, pinHash) => {
-        set({
-          isAdminAuthenticated: true,
-          adminSessionToken: token,
-          ...(pinHash ? { adminPinHash: pinHash } : {}),
-        });
+      loginAdminWithToken: (token) => {
+        set({ isAdminAuthenticated: true, adminSessionToken: token });
       },
 
       logoutAdmin: () => {
@@ -865,23 +857,11 @@ export const useStorefrontStore = create<StorefrontState>()(
         } catch {}
       },
 
-      updateAdminPin: (newPin) => {
-        if (newPin && newPin.length >= 4) {
-          set({ adminPin: newPin });
-        }
-      },
-
-      updateAdminPinHash: (newHash) => {
-        if (newHash && newHash.length >= 32) {
-          set({ adminPinHash: newHash });
-        }
-      },
-
       addAdminEmail: (email) => {
         const normalized = email.trim().toLowerCase();
         if (!normalized) return;
         set((state) => {
-          const list = state.adminEmails || AUTHORIZED_ADMIN_EMAILS;
+          const list = state.adminEmails || [];
           if (list.includes(normalized)) return state;
           return { adminEmails: [...list, normalized] };
         });
@@ -890,7 +870,7 @@ export const useStorefrontStore = create<StorefrontState>()(
       removeAdminEmail: (email) => {
         const normalized = email.trim().toLowerCase();
         set((state) => {
-          const list = state.adminEmails || AUTHORIZED_ADMIN_EMAILS;
+          const list = state.adminEmails || [];
           if (list.length <= 1) return state; // Never remove all admins
           return { adminEmails: list.filter((e) => e.toLowerCase() !== normalized) };
         });
@@ -898,7 +878,7 @@ export const useStorefrontStore = create<StorefrontState>()(
 
       isAuthorizedAdmin: (email) => {
         if (!email) return false;
-        const list = get().adminEmails || AUTHORIZED_ADMIN_EMAILS;
+        const list = get().adminEmails || [];
         return list.some((e) => e.trim().toLowerCase() === email.trim().toLowerCase());
       },
 
@@ -926,7 +906,7 @@ export const useStorefrontStore = create<StorefrontState>()(
           mangaDiscoveryArabicConfig: DEFAULT_MANGA_DISCOVERY_ARABIC_CONFIG,
           trendingArabicConfig: DEFAULT_TRENDING_ARABIC_CONFIG,
           genreBentoArabicConfig: DEFAULT_GENRE_BENTO_ARABIC_CONFIG,
-          arabicLanguageEnabled: false,
+          arabicLanguageEnabled: true,
         });
       },
 
@@ -957,7 +937,7 @@ export const useStorefrontStore = create<StorefrontState>()(
           mangaDiscoveryArabicConfig: state.mangaDiscoveryArabicConfig,
           trendingArabicConfig: state.trendingArabicConfig,
           genreBentoArabicConfig: state.genreBentoArabicConfig,
-          arabicLanguageEnabled: false,
+          arabicLanguageEnabled: state.arabicLanguageEnabled,
         };
         return JSON.stringify(exportPayload, null, 2);
       },
@@ -1004,7 +984,7 @@ export const useStorefrontStore = create<StorefrontState>()(
             mangaDiscoveryArabicConfig: { ...DEFAULT_MANGA_DISCOVERY_ARABIC_CONFIG, ...(parsed.mangaDiscoveryArabicConfig || {}) },
             trendingArabicConfig: { ...DEFAULT_TRENDING_ARABIC_CONFIG, ...(parsed.trendingArabicConfig || {}) },
             genreBentoArabicConfig: { ...DEFAULT_GENRE_BENTO_ARABIC_CONFIG, ...(parsed.genreBentoArabicConfig || {}) },
-            arabicLanguageEnabled: false,
+            arabicLanguageEnabled: parsed.arabicLanguageEnabled ?? true,
           });
           return true;
         } catch {
@@ -1043,7 +1023,7 @@ export const useStorefrontStore = create<StorefrontState>()(
         mangaDiscoveryArabicConfig: state.mangaDiscoveryArabicConfig,
         trendingArabicConfig: state.trendingArabicConfig,
         genreBentoArabicConfig: state.genreBentoArabicConfig,
-        arabicLanguageEnabled: false,
+        arabicLanguageEnabled: state.arabicLanguageEnabled,
       }),
       merge: (persistedState: unknown, currentState: StorefrontState): StorefrontState => {
         const persisted = persistedState as Partial<StorefrontState> | undefined;
@@ -1088,7 +1068,7 @@ export const useStorefrontStore = create<StorefrontState>()(
         } else {
           merged.genreBentoArabicConfig = DEFAULT_GENRE_BENTO_ARABIC_CONFIG;
         }
-        merged.arabicLanguageEnabled = false;
+        merged.arabicLanguageEnabled = persisted?.arabicLanguageEnabled ?? true;
         if (persisted?.trendingConfig) {
           merged.trendingConfig = { ...DEFAULT_TRENDING_CONFIG, ...persisted.trendingConfig };
         }

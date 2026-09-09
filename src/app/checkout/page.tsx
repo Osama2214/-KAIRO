@@ -12,6 +12,7 @@ import { formatPrice } from "@/lib/utils";
 import { CustomSelect } from "@/components/CustomSelect";
 import { useWelcomeOffer } from "@/hooks/useWelcomeOffer";
 import { EGYPT_GOVERNORATES, DEFAULT_GOVERNORATE_RATES } from "@/data/governorates";
+import { rememberGuestOrder } from "@/lib/guestOrders";
 import { sanitizeInput, validateEgyptianPhone } from "@/lib/security";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -155,8 +156,9 @@ export default function CheckoutPage() {
 
     const isPendingPayment = paymentMethod === "wallet" || paymentMethod === "instapay";
 
-    const newOrder: SavedOrder = {
-      id: `KRO-${Math.floor(1000 + Math.random() * 9000)}`,
+    // No `id` and no tracking number here: the server mints the order
+    // reference and the curator fills in courier details when it ships.
+    const newOrder: Omit<SavedOrder, "id"> = {
       date: new Date().toISOString().split("T")[0],
       items: items.map((item) => ({
         id: item.id,
@@ -190,8 +192,6 @@ export default function CheckoutPage() {
       timeline: isPendingPayment
         ? ["Order Placed", "Pending Payment Verification"]
         : ["Order Placed", "Confirmed", "Preparing Dispatch"],
-      trackingNumber: `EG-OCT-${Math.floor(10000 + Math.random() * 90000)}-CAI`,
-      courier: "Bosta Egypt Express",
       estimatedDelivery: `${shippingConfig?.deliveryEstimate || "24-48h"} (${formData.governorate})`,
     };
 
@@ -218,12 +218,9 @@ export default function CheckoutPage() {
       if (currentUser) {
         addOrderToUser(finalizedOrder);
       } else {
-        // Fallback for guest checkout: save to localStorage deduplicated
-        const existingOrders = JSON.parse(localStorage.getItem("kairo_orders") || "[]");
-        const filtered = Array.isArray(existingOrders)
-          ? existingOrders.filter((o: SavedOrder) => o?.id !== newOrder.id)
-          : [];
-        localStorage.setItem("kairo_orders", JSON.stringify([finalizedOrder, ...filtered]));
+        // Guest checkout keeps only the order reference on this device. The
+        // details — including the delivery address — stay on the server.
+        rememberGuestOrder(finalizedOrder.id, finalizedOrder.date);
       }
 
       clearCart();

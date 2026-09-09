@@ -38,12 +38,12 @@ import {
   Zap,
 } from "lucide-react";
 import { ALL_VOLUMES, MangaVolume } from "@/data/manga";
-import { AUTHORIZED_ADMIN_EMAILS } from "@/config/adminConfig";
 import { EGYPT_GOVERNORATES } from "@/data/governorates";
 import { useCartStore } from "@/store/useCartStore";
 import { useStorefrontStore, getActiveGovernorates } from "@/store/useStorefrontStore";
 import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
 import { useUIStore } from "@/store/useUIStore";
+import { fetchGuestOrders, readGuestOrderRefs } from "@/lib/guestOrders";
 import { useAuthStore, SavedOrder, SavedOrderItem } from "@/store/useAuthStore";
 import { useReaderStore } from "@/store/useReaderStore";
 import { formatPrice } from "@/lib/utils";
@@ -163,9 +163,6 @@ function AccountContent() {
 
   // Google OAuth States
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [showGoogleModal, setShowGoogleModal] = useState(false);
-  const [customGoogleEmail, setCustomGoogleEmail] = useState("");
-  const [customGoogleName, setCustomGoogleName] = useState("");
 
   useEffect(() => {
     // Preload Google Identity Services script
@@ -215,14 +212,14 @@ function AccountContent() {
                   const res = await fetch("/api/auth/google", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ accessToken: tokenResponse.access_token, uid: `google-${crypto.randomUUID()}` }),
+                    body: JSON.stringify({ accessToken: tokenResponse.access_token }),
                   });
                   const data = await res.json().catch(() => null);
-                  if (!data?.success || !data.profile?.email) throw new Error("Google profile verification failed");
+                  if (!data?.success || !data.user?.id) throw new Error("Google profile verification failed");
                   await loginWithGoogle({
-                    email: data.profile.email,
-                    name: data.profile.name || data.profile.email.split("@")[0],
-                    avatar: data.profile.picture,
+                    ...data.user,
+                    name: data.user.name || data.profile?.name || data.user.email.split("@")[0],
+                    avatar: data.profile?.picture,
                   });
                 } catch (fetchErr) {
                   console.error("Failed to verify Google account", fetchErr);
@@ -250,8 +247,10 @@ function AccountContent() {
       }
     }
 
-    // Fallback interactive Google account picker when no Client ID is provided yet
-    setShowGoogleModal(true);
+    // Without a configured Client ID there is no way to prove the account is
+    // real, and a client-only "session" would vanish on the next refresh.
+    setIsGoogleLoading(false);
+    setAuthError("Google sign-in is not configured. Please sign in with your email and password.");
   };
 
   // Auth Portal State
@@ -474,7 +473,8 @@ function AccountContent() {
   }, [activeGovernorates, isArabic]);
 
   useEffect(() => {
-    const raf = requestAnimationFrame(() => {
+    // async: the guest branch below resolves order references against the server.
+    const raf = requestAnimationFrame(async () => {
       if (currentUser) {
         const matchedGov = activeGovernorates.find((g) =>
           g.value.toLowerCase().includes((currentUser.governorate || "").toLowerCase()) ||
@@ -516,14 +516,14 @@ function AccountContent() {
         }
         setOrders(uniqueOrders);
       } else {
-        // Guest user: load authentic orders placed as guest from localStorage
+        // Guest user: the device holds order references only, so the records
+        // are read back from the server rather than from localStorage.
         const guestOrders: SavedOrder[] = [];
         if (typeof window !== "undefined") {
           try {
-            const raw = localStorage.getItem("kairo_orders");
-            if (raw) {
-              const parsed = JSON.parse(raw);
-              if (Array.isArray(parsed)) {
+            const parsed = (await fetchGuestOrders()) as unknown as SavedOrder[];
+            {
+              {
                 const seen = new Set<string>();
                 for (const ord of parsed) {
                   if (!ord?.id || seen.has(ord.id)) continue;
@@ -599,19 +599,9 @@ function AccountContent() {
         // 2. Guest user or fallback: sync status of locally known order IDs from Neon DB
         const currentOrderIds = (orders || []).map((o) => o.id).filter(Boolean);
         if (typeof window !== "undefined") {
-          try {
-            const raw = localStorage.getItem("kairo_orders");
-            if (raw) {
-              const parsed: SavedOrder[] = JSON.parse(raw);
-              if (Array.isArray(parsed)) {
-                for (const ord of parsed) {
-                  if (ord?.id && !currentOrderIds.includes(ord.id)) {
-                    currentOrderIds.push(ord.id);
-                  }
-                }
-              }
-            }
-          } catch {}
+          for (const ref of readGuestOrderRefs()) {
+            if (!currentOrderIds.includes(ref.id)) currentOrderIds.push(ref.id);
+          }
         }
 
         if (currentOrderIds.length > 0) {
@@ -622,7 +612,11 @@ function AccountContent() {
           });
           const data = await res.json().catch(() => null);
           if (!disposed && data?.success && Array.isArray(data.orders) && data.orders.length > 0) {
-            const updatedMap = new Map<string, SavedOrder>(data.orders.map((o: SavedOrder) => [o.id, o]));
+            // The endpoint returns status fields only — never the customer's
+            // address or phone — so these are merged over the local order.
+            const updatedMap = new Map<string, Partial<SavedOrder>>(
+              data.orders.map((o: Partial<SavedOrder>) => [o.id, o])
+            );
             setOrders((prev) =>
               prev.map((ord) => {
                 const fresh = updatedMap.get(ord.id);
@@ -630,20 +624,6 @@ function AccountContent() {
               })
             );
 
-            // Update local storage so guest gets fresh data immediately
-            try {
-              const raw = localStorage.getItem("kairo_orders");
-              if (raw) {
-                const parsed: SavedOrder[] = JSON.parse(raw);
-                if (Array.isArray(parsed)) {
-                  const updatedLocal = parsed.map((ord) => {
-                    const fresh = updatedMap.get(ord.id);
-                    return fresh ? { ...ord, ...fresh } : ord;
-                  });
-                  localStorage.setItem("kairo_orders", JSON.stringify(updatedLocal));
-                }
-              }
-            } catch {}
           }
         }
       } catch {
@@ -701,7 +681,7 @@ function AccountContent() {
       <html lang="en">
         <head>
           <meta charset="utf-8">
-          <title>INVOICE_${order.id}_KAIRO</title>
+          <title>INVOICE_${order.id}_YUJI</title>
           <style>
             @page {
               size: A4 portrait;
@@ -855,8 +835,8 @@ function AccountContent() {
           <div class="receipt-card">
             <div class="header">
               <div class="brand-row">
-                <div class="brand-seal">回路</div>
-                <span class="brand-name">KAIRO PUBLISHING ARCHIVE</span>
+                <div class="brand-seal">YUJI</div>
+                <span class="brand-name">YUJI PUBLISHING ARCHIVE</span>
               </div>
               <div class="hub-line">6th of October Central Archival Hub • Giza, Egypt</div>
               <div class="receipt-h1">OFFICIAL ORDER RECEIPT</div>
@@ -907,7 +887,7 @@ function AccountContent() {
             <div class="stamp-section">
               <div>
                 <span class="stamp-title">AUTHENTICITY VERIFIED:</span><br>
-                KAIRO EGYPT ARCHIVE SEAL #KRO-OCT-88219
+                YUJI EGYPT ARCHIVE SEAL #KRO-OCT-88219
               </div>
               <div style="text-align: right;">
                 <span>DISPATCH STATUS:</span><br>
@@ -916,7 +896,7 @@ function AccountContent() {
             </div>
 
             <div class="footer-strip">
-              精神と物質の回路 • 100% LICENSED JAPANESE EDITIONS • 14-DAY COLLECTOR REPLACEMENT GUARANTEE
+              物語と記憶のかたち • 100% LICENSED JAPANESE EDITIONS • 14-DAY COLLECTOR REPLACEMENT GUARANTEE
             </div>
           </div>
         </body>
@@ -1124,7 +1104,7 @@ function AccountContent() {
       if (!res.success) {
         setAuthError(res.message || "Failed to finalize registration.");
       } else {
-        setAuthSuccess("Patron account verified & created! Welcome to KAIRO Archive.");
+        setAuthSuccess("Patron account verified & created! Welcome to YUJI Archive.");
         setIsOtpStep(false);
       }
     } catch {
@@ -1538,20 +1518,7 @@ function AccountContent() {
     }
 
     // 2. Standard Patron Authentication Portal
-    const activeGuestOrder = newOrderId
-      ? orders.find((o) => o.id === newOrderId) ||
-        (() => {
-          if (typeof window === "undefined") return null;
-          try {
-            const raw = localStorage.getItem("kairo_orders");
-            if (raw) {
-              const parsed: SavedOrder[] = JSON.parse(raw);
-              return Array.isArray(parsed) ? parsed.find((o) => o.id === newOrderId) || null : null;
-            }
-          } catch {}
-          return null;
-        })()
-      : null;
+    const activeGuestOrder = newOrderId ? orders.find((o) => o.id === newOrderId) || null : null;
 
     return (
       <div className="min-h-[calc(100dvh-80px)] bg-transparent text-paper pt-24 pb-12 px-4 sm:px-6 md:px-12 flex items-center justify-center relative">
@@ -1560,7 +1527,7 @@ function AccountContent() {
           {/* Header */}
           <div className="text-center space-y-1.5 border-b border-ink-border/80 pb-4">
             <h1 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-tight font-sans text-paper">
-              KAIRO
+              YUJI
             </h1>
             <p className="text-xs text-text-muted font-mono">
               Sign in to access your archive.
@@ -1863,115 +1830,6 @@ function AccountContent() {
           </button>
         </div>
 
-        {/* Google Account Selection Modal */}
-        {showGoogleModal && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-ink-surface border border-gold/40 rounded-sm max-w-sm w-full p-6 shadow-2xl space-y-5 relative animate-in zoom-in-95 duration-200">
-              
-              {/* Close Button */}
-              <button
-                type="button"
-                onClick={() => setShowGoogleModal(false)}
-                className="absolute top-4 right-4 text-text-muted hover:text-paper cursor-pointer p-1"
-                aria-label="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
-
-              {/* Google Modal Header */}
-              <div className="text-center space-y-2 pt-1">
-                <div className="w-10 h-10 mx-auto rounded-full bg-paper flex items-center justify-center shadow-md">
-                  <GoogleIcon className="w-5 h-5" />
-                </div>
-                <h3 className="text-base font-bold text-paper font-sans">
-                  Sign in with Google
-                </h3>
-                <p className="text-xs text-text-muted font-mono">
-                  Choose an account to continue to <strong className="text-gold">KAIRO ARCHIVE</strong>
-                </p>
-              </div>
-
-              {/* Account List */}
-              <div className="space-y-2 font-mono text-xs">
-                {/* Detected / Primary Google Account */}
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setIsGoogleLoading(true);
-                    setShowGoogleModal(false);
-                    await loginWithGoogle({
-                      name: "Osama Hamad",
-                      email: "osamahamad261981@gmail.com",
-                      avatar: "https://api.dicebear.com/7.x/initials/svg?seed=OsamaHamad",
-                    });
-                    setIsGoogleLoading(false);
-                  }}
-                  className="w-full p-3 bg-ink hover:bg-gold/10 border border-ink-border hover:border-gold/60 rounded-xs flex items-center gap-3 transition-colors text-left cursor-pointer group"
-                >
-                  <div className="w-9 h-9 rounded-full bg-linear-to-tr from-amber-600 to-gold text-ink font-bold font-sans flex items-center justify-center text-sm shadow-sm shrink-0">
-                    OH
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-paper font-bold block truncate group-hover:text-gold transition-colors">
-                      Osama Hamad
-                    </span>
-                    <span className="text-[10px] text-text-muted block truncate">
-                      osamahamad261981@gmail.com
-                    </span>
-                  </div>
-                  <ArrowRight className={`w-3.5 h-3.5 text-text-muted group-hover:text-gold group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 ${isRTL ? "rotate-180" : ""} transition-all shrink-0`} />
-                </button>
-
-                {/* Custom Google Account Form */}
-                <div className="pt-2 border-t border-ink-border/80 space-y-2">
-                  <span className="text-[10px] text-text-muted uppercase block">
-                    Or enter another Google account:
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="Full Name (e.g. Ahmed Ali)"
-                    value={customGoogleName}
-                    onChange={(e) => setCustomGoogleName(e.target.value)}
-                    className="w-full bg-ink border border-ink-border px-3 py-2 text-paper text-xs rounded-xs focus:border-gold outline-none cursor-text caret-gold"
-                  />
-                  <input
-                    type="email"
-                    placeholder="Google Email (e.g. user@gmail.com)"
-                    value={customGoogleEmail}
-                    onChange={(e) => setCustomGoogleEmail(e.target.value)}
-                    className="w-full bg-ink border border-ink-border px-3 py-2 text-paper text-xs rounded-xs focus:border-gold outline-none cursor-text caret-gold"
-                  />
-                  <button
-                    type="button"
-                    disabled={!customGoogleEmail.includes("@")}
-                    onClick={async () => {
-                      if (!customGoogleEmail.trim()) return;
-                      setIsGoogleLoading(true);
-                      setShowGoogleModal(false);
-                      await loginWithGoogle({
-                        name: customGoogleName.trim() || customGoogleEmail.split("@")[0],
-                        email: customGoogleEmail.trim().toLowerCase(),
-                        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(customGoogleName || customGoogleEmail)}`,
-                      });
-                      setIsGoogleLoading(false);
-                    }}
-                    className="w-full py-2 bg-gold text-ink font-bold text-xs uppercase tracking-wider rounded-xs hover:bg-paper transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    Continue with this Account
-                  </button>
-                </div>
-              </div>
-
-              {/* Note */}
-              <div className="pt-2 border-t border-ink-border/60 text-center">
-                <span className="text-[9px] font-mono text-text-muted">
-                  OAuth Verified • Instant Patron Access
-                </span>
-              </div>
-
-            </div>
-          </div>
-        )}
 
       </div>
     );
@@ -2015,7 +1873,7 @@ function AccountContent() {
           </div>
 
           <div className="flex items-center gap-2.5 w-full sm:w-auto">
-            {currentUser && AUTHORIZED_ADMIN_EMAILS.includes(currentUser.email) && (
+            {currentUser?.role === "admin" && (
               <Link
                 href="/admin"
                 className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3.5 py-2.5 bg-gold/15 hover:bg-gold text-gold hover:text-ink border border-gold/40 text-xs font-mono font-bold uppercase tracking-wider rounded-xs transition-all cursor-pointer text-center"
@@ -3204,10 +3062,10 @@ function AccountContent() {
             <div className="border-b border-ink-border/80 print:border-black/20 pb-4 text-center space-y-1">
               <div className="flex items-center justify-center gap-2 mb-1.5">
                 <div className="w-6 h-6 bg-vermilion rounded-xs flex items-center justify-center text-paper font-serif font-bold text-xs print:bg-neutral-900 print:text-white">
-                  回路
+                  YUJI
                 </div>
                 <span className="font-extrabold tracking-[0.2em] text-sm uppercase text-paper print:text-black font-sans">
-                  KAIRO PUBLISHING ARCHIVE
+                  YUJI PUBLISHING ARCHIVE
                 </span>
               </div>
               <span className="text-[9px] sm:text-[10px] font-mono tracking-[0.25em] sm:tracking-[0.3em] text-gold print:text-neutral-700 uppercase block">
@@ -3268,7 +3126,7 @@ function AccountContent() {
             <div className="p-2.5 sm:p-3 bg-ink-surface/50 print:bg-neutral-50 border border-ink-border print:border-black/20 rounded-xs flex flex-col xs:flex-row xs:items-center justify-between gap-1.5 text-[9px] sm:text-[10px] font-mono text-text-muted print:text-neutral-700">
               <div>
                 <span className="text-gold print:text-black block font-semibold">AUTHENTICITY STAMP:</span>
-                <span>KAIRO EGYPT SEAL #KRO-OCT-88219</span>
+                <span>YUJI EGYPT SEAL #KRO-OCT-88219</span>
               </div>
               <div className="xs:text-right">
                 <span className="block">TRACKING CODE:</span>
