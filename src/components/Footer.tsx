@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import yujiLogo from "../../public/yuji-logo.png";
+import storeLogo from "../../public/mangaworld-logo.png";
 import { usePathname } from "next/navigation";
 import { Copyright } from "lucide-react";
 import { PolicyModal, PolicyTab } from "./PolicyModal";
@@ -53,7 +53,7 @@ export function Footer() {
     <footer className="bg-ink border-t border-ink-border/80 pt-12 sm:pt-16 pb-5 sm:pb-12 text-text-muted relative overflow-hidden">
       {/* Background Wordmark Watermark */}
       <div className="absolute -bottom-8 right-4 font-sans text-[150px] font-extrabold tracking-tight text-white/[0.015] pointer-events-none select-none">
-        yuji
+        manga-world
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10">
@@ -65,8 +65,8 @@ export function Footer() {
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <Image
-                  src={yujiLogo}
-                  alt="YUJI — Manga, Books, More"
+                  src={storeLogo}
+                  alt="Manga World — Manga, Light Novels & Collector Editions"
                   className="h-11 w-auto brightness-[0.88]"
                 />
               </div>
@@ -174,7 +174,7 @@ export function Footer() {
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-[11px] font-mono tracking-wider text-text-muted font-sans text-center sm:text-left">
             <Copyright strokeWidth={1.6} className="w-3.5 h-3.5 text-gold shrink-0" />
             <span>{new Date().getFullYear()}</span>
-            <span className="text-paper font-semibold">YUJI PUBLISHING ARCHIVE.</span>
+            <span className="text-paper font-semibold">MANGA WORLD PUBLISHING ARCHIVE.</span>
             <span className="text-text-muted/75">{locale === "ar" ? "جميع الحقوق محفوظة." : "ALL RIGHTS RESERVED."}</span>
           </div>
           <div className="flex flex-wrap items-center justify-center sm:justify-end gap-4 sm:gap-6 font-sans text-xs">

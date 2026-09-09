@@ -3,7 +3,7 @@ import "server-only";
 import { neon } from "@neondatabase/serverless";
 
 /**
- * YUJI Archive Server-Side Rate Limiter
+ * MANGA WORLD Archive Server-Side Rate Limiter
  *
  * Counters live in Neon rather than process memory. On Vercel each request may
  * land on a different lambda instance and every cold start begins with an empty
@@ -18,11 +18,11 @@ interface RateLimitRecord {
 }
 
 declare global {
-  var __yuji_rate_limit_store: Map<string, RateLimitRecord> | undefined;
+  var __mangaworld_rate_limit_store: Map<string, RateLimitRecord> | undefined;
 }
 
-const memoryStore = globalThis.__yuji_rate_limit_store || new Map<string, RateLimitRecord>();
-globalThis.__yuji_rate_limit_store = memoryStore;
+const memoryStore = globalThis.__mangaworld_rate_limit_store || new Map<string, RateLimitRecord>();
+globalThis.__mangaworld_rate_limit_store = memoryStore;
 
 const databaseUrl = process.env.DATABASE_URL;
 const sql = databaseUrl ? neon(databaseUrl) : null;

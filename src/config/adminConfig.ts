@@ -2,7 +2,7 @@ import "server-only";
 
 /**
  * =======================================================================
- * 🏛️ YUJI — Admin Access Configuration (SERVER ONLY)
+ * 🏛️ MANGA WORLD — Admin Access Configuration (SERVER ONLY)
  * =======================================================================
  *
  * This module must never be imported from client code: it names the real

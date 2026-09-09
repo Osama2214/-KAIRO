@@ -4,7 +4,7 @@ import crypto from "crypto";
 import { neon } from "@neondatabase/serverless";
 
 /**
- * YUJI Archive OTP Store
+ * MANGA WORLD Archive OTP Store
  *
  * Codes live in Neon, not process memory. On Vercel `send-otp` and `verify-otp`
  * routinely execute on different lambda instances, so an in-memory map meant a
@@ -35,14 +35,14 @@ interface OtpRecord {
 }
 
 declare global {
-  var __yuji_otp_store: Map<string, OtpRecord> | undefined;
+  var __mangaworld_otp_store: Map<string, OtpRecord> | undefined;
 }
 
-const memoryStore = globalThis.__yuji_otp_store || new Map<string, OtpRecord>();
-globalThis.__yuji_otp_store = memoryStore;
+const memoryStore = globalThis.__mangaworld_otp_store || new Map<string, OtpRecord>();
+globalThis.__mangaworld_otp_store = memoryStore;
 
 function digest(email: string, code: string): string {
-  const secret = process.env.PATRON_SESSION_SECRET || process.env.ADMIN_SESSION_SECRET || "yuji-otp";
+  const secret = process.env.PATRON_SESSION_SECRET || process.env.ADMIN_SESSION_SECRET || "manga-world-otp";
   return crypto.createHmac("sha256", secret).update(`${email.toLowerCase()}:${code}`).digest("hex");
 }
 

@@ -219,7 +219,7 @@ export function LiveVisualEditor() {
             className="flex items-center gap-2 px-4 py-2 bg-ink/95 border border-gold/60 text-gold rounded-full shadow-2xl backdrop-blur-md hover:scale-105 transition-all text-xs font-mono cursor-pointer font-bold tracking-wider uppercase"
             title="Expand Curator Toolbar"
           >
-            <span className="font-serif text-vermilion">YUJI</span>
+            <span className="font-serif text-vermilion">MANGA WORLD</span>
             <span>CURATOR</span>
             <Maximize2 className="w-3.5 h-3.5 text-paper-muted" />
           </button>
@@ -227,7 +227,7 @@ export function LiveVisualEditor() {
           <div className="inline-flex flex-nowrap justify-center items-center gap-1.5 px-3 py-2 bg-ink/95 border border-gold/50 rounded-2xl shadow-2xl backdrop-blur-md text-xs font-mono text-paper">
             {/* Curator Badge — hidden on very small screens */}
             <div className="hidden sm:flex items-center gap-2 pr-2 border-r border-ink-border shrink-0">
-              <span className="font-serif text-sm font-bold text-vermilion">YUJI</span>
+              <span className="font-serif text-sm font-bold text-vermilion">MANGA WORLD</span>
               <span className="font-bold tracking-wider text-[11px] text-paper">CURATOR</span>
             </div>
 
@@ -1035,7 +1035,7 @@ function AnnouncementLiveEditModal({
   const [editLang, setEditLang] = useState<"en" | "ar">(currentLocale);
   const [form, setForm] = useState<AnnouncementConfig>(initialConfig);
   const [arabicForm, setArabicForm] = useState<AnnouncementArabicConfig>(
-    initialArabicConfig || { text: "استخدم كود YUJI10 للحصول على خصم 10% عند أول طلب لك" }
+    initialArabicConfig || { text: "استخدم كود MANGA WORLD10 للحصول على خصم 10% عند أول طلب لك" }
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -1804,10 +1804,10 @@ function EditorialLiveEditModal({
     initialArabicConfig || {
       siteTagline: "أرشيف المانجا اليابانية الفاخرة والطبعات الأصلية في مصر",
       footerQuote: "كل صفحة تُقلب هي بوابة لعالم استثنائي، ومجلدات المقتنين تُصنع لتبقى حية عبر الأجيال.",
-      authenticityGuaranteeText: "نضمن أصالة 100% لجميع المجلدات والروايات المعروضة في YUJI. طبعات يابانية رسمية ومرخصة بدون أي نسخ مقلدة.",
+      authenticityGuaranteeText: "نضمن أصالة 100% لجميع المجلدات والروايات المعروضة في MANGA WORLD. طبعات يابانية رسمية ومرخصة بدون أي نسخ مقلدة.",
       shippingPolicyText: "شحن مغلف بعناية فائقة ضد الصدمات والرطوبة، يصلك خلال 24-48 ساعة لجميع أنحاء مصر.",
       returnPolicyText: "حق الاستبدال الفوري خلال 14 يوماً في حالة وجود أي عيب طباعي أو تلف ناتج عن الشحن.",
-      footerDescription: "دار YUJI — الأرشيف التحريري الأول في مصر المتخصص في استيراد وتوفير أندر مجلدات المانجا والروايات الخفيفة وبوكس سيت المقتنين الأصلية بأعلى معايير الجودة.",
+      footerDescription: "دار MANGA WORLD — الأرشيف التحريري الأول في مصر المتخصص في استيراد وتوفير أندر مجلدات المانجا والروايات الخفيفة وبوكس سيت المقتنين الأصلية بأعلى معايير الجودة.",
       hubCities: "مدينة 6 أكتوبر • القاهرة • الإسكندرية • كافة المحافظات",
     }
   );

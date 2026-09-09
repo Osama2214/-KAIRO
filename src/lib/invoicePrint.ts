@@ -1,5 +1,5 @@
 ﻿/**
- * YUJI Archival Invoice & Packing Slip Printer
+ * MANGA WORLD Archival Invoice & Packing Slip Printer
  * Generates an official, high-resolution physical packing slip / invoice for customer shipments.
  */
 
@@ -78,7 +78,7 @@ export function printCustomerInvoice(order: SavedOrder, customer?: UserProfile |
     <html lang="en">
       <head>
         <meta charset="utf-8">
-        <title>YUJI_PACKING_INVOICE_${order.id}</title>
+        <title>MANGA WORLD_PACKING_INVOICE_${order.id}</title>
         <style>
           @page {
             size: A4 portrait;
@@ -306,8 +306,8 @@ export function printCustomerInvoice(order: SavedOrder, customer?: UserProfile |
           <div class="header">
             <div class="brand-col">
               <div class="brand-title">
-                <span class="brand-kanji">YUJI</span>
-                <span class="brand-text">YUJI ARCHIVE</span>
+                <span class="brand-kanji">MANGA WORLD</span>
+                <span class="brand-text">MANGA WORLD ARCHIVE</span>
               </div>
               <div class="hub-text">
                 Central Fulfillment Hub • 6th of October City, Giza, Egypt
@@ -399,7 +399,7 @@ export function printCustomerInvoice(order: SavedOrder, customer?: UserProfile |
           <div class="seal-banner">
             <div>
               <strong style="color: #0f172a;">AUTHENTICITY VERIFICATION:</strong>
-              <span style="color: #475569;">YUJI EGYPT SEAL #KRO-OCT-88219</span>
+              <span style="color: #475569;">MANGA WORLD EGYPT SEAL #KRO-OCT-88219</span>
             </div>
             <div>
               <strong style="color: #0f172a; margin-right: 6px;">TRACKING #:</strong>
@@ -408,7 +408,7 @@ export function printCustomerInvoice(order: SavedOrder, customer?: UserProfile |
           </div>
 
           <div class="footer-note">
-            Thank you for being a YUJI patron. • Concierge & Inquiries: concierge@kairo.archive
+            Thank you for being a MANGA WORLD patron. • Concierge & Inquiries: concierge@kairo.archive
           </div>
         </div>
       </body>

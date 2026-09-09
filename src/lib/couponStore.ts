@@ -53,7 +53,7 @@ export async function getOrCreateWelcomeCoupon(email: string): Promise<WelcomeCo
   `;
   if (priorOrders.length > 0) return null;
 
-  const coupon = `YUJI-${crypto.randomBytes(5).toString("hex").toUpperCase()}`;
+  const coupon = `MW-${crypto.randomBytes(5).toString("hex").toUpperCase()}`;
   const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
   try {
     const created = await sql!`

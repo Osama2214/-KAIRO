@@ -65,24 +65,24 @@ export const metadata: Metadata = {
   // absolute URLs; without it shared links rendered no preview.
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "YUJI — Manga, Books, More",
-    template: "%s | YUJI",
+    default: "Manga World — Manga, Light Novels & Collector Editions",
+    template: "%s | Manga World",
   },
   description: SITE_DESCRIPTION,
-  keywords: ["Manga", "Light Novels", "YUJI", "Japanese Books", "Jujutsu Kaisen", "One Piece", "Berserk"],
+  keywords: ["Manga", "Light Novels", "Manga World", "Japanese Books", "Jujutsu Kaisen", "One Piece", "Berserk"],
   applicationName: SITE_NAME,
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     siteName: SITE_NAME,
-    title: "YUJI — Manga, Books, More",
+    title: "Manga World — Manga, Light Novels & Collector Editions",
     description: SITE_DESCRIPTION,
     url: "/",
-    images: [{ url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: "YUJI — Manga, Books, More" }],
+    images: [{ url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: "Manga World — Manga, Light Novels & Collector Editions" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "YUJI — Manga, Books, More",
+    title: "Manga World — Manga, Light Novels & Collector Editions",
     description: SITE_DESCRIPTION,
     images: [DEFAULT_OG_IMAGE],
   },
@@ -118,15 +118,15 @@ export default function RootLayout({
               'document.documentElement.dir=l==="ar"?"rtl":"ltr";}catch(e){}',
           }}
         />
-        <div id="yuji-restore-loader" aria-hidden="true">
-          <div className="yuji-loader-bg-glow" />
-          <div className="yuji-loader-content">
-            <div className="yuji-loader-kanji">yuji</div>
-            <div className="yuji-loader-brand">K A I R O</div>
-            <div className="yuji-loader-bar">
-              <div className="yuji-loader-bar-fill" />
+        <div id="manga-world-restore-loader" aria-hidden="true">
+          <div className="mw-loader-bg-glow" />
+          <div className="mw-loader-content">
+            <div className="mw-loader-kanji">manga-world</div>
+            <div className="mw-loader-brand">K A I R O</div>
+            <div className="mw-loader-bar">
+              <div className="mw-loader-bar-fill" />
             </div>
-            <div className="yuji-loader-caption">RESTORING ARCHIVE</div>
+            <div className="mw-loader-caption">RESTORING ARCHIVE</div>
           </div>
         </div>
         <SmoothScrollProvider>

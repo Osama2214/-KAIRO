@@ -1,5 +1,5 @@
 /**
- * YUJI Security & Cryptography Utilities
+ * MANGA WORLD Security & Cryptography Utilities
  * Provides:
  * - SHA-256 salted password hashing
  * - Secure Cookie session management (Strict SameSite, Secure)
@@ -8,8 +8,8 @@
  * - Brute-force protection & rate limiting
  */
 
-const SALT = "yuji_patron_sec_salt_2026_";
-const RATE_LIMIT_KEY = "yuji_auth_rate_limit";
+const SALT = "manga-world_patron_sec_salt_2026_";
+const RATE_LIMIT_KEY = "manga-world_auth_rate_limit";
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 60 * 1000; // 60 seconds lockout after 5 consecutive failures
 

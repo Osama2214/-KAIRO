@@ -135,9 +135,9 @@ export const useCartStore = create<CartState>()(
 
         // The browser can only stage a server-issued code. The API redeems it
         // atomically against Neon when the order is created.
-        // New codes are YUJI-; KAIRO- is still accepted so vouchers issued
-        // before the rename can still be redeemed by the patrons holding them.
-        if (!/^(YUJI|KAIRO)-[A-F0-9]{10}$/.test(cleanCode)) {
+        // Current codes are MW-. The older YUJI- and KAIRO- prefixes are still
+        // accepted so a voucher written down before a rename can be redeemed.
+        if (!/^(MW|YUJI|KAIRO)-[A-F0-9]{10}$/.test(cleanCode)) {
           return {
             success: false,
             message: "Use the private coupon shown on your account.",

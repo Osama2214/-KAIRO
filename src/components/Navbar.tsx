@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import yujiMark from "../../public/yuji-mark.png";
+import storeMark from "../../public/mangaworld-mark.png";
 import { usePathname } from "next/navigation";
 import { Search, ShoppingBag, User, Menu, X, Heart, Sparkles, Globe, ArrowRight } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
@@ -11,7 +11,7 @@ import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
 import { useUIStore } from "@/store/useUIStore";
 import { GlobalWelcomeOfferBar } from "@/components/GlobalWelcomeOfferBar";
 import { useWelcomeOffer } from "@/hooks/useWelcomeOffer";
-import { clearYujiSavedScroll } from "@/components/SmoothScrollProvider";
+import { clearMangaWorldSavedScroll } from "@/components/SmoothScrollProvider";
 import { useTranslation } from "@/hooks/useTranslation";
 
 export function Navbar() {
@@ -82,7 +82,7 @@ export function Navbar() {
   const handleLogoClick = (e: React.MouseEvent) => {
     setMobileMenuOpen(false);
     try {
-      clearYujiSavedScroll("/");
+      clearMangaWorldSavedScroll("/");
       sessionStorage.removeItem("kairo_scroll_/");
     } catch {}
     if (pathname === "/") {
@@ -132,7 +132,7 @@ export function Navbar() {
     if (pathname === href) {
       e.preventDefault();
       try {
-        clearYujiSavedScroll(href);
+        clearMangaWorldSavedScroll(href);
         sessionStorage.removeItem(`kairo_scroll_${href}`);
       } catch {}
       if (window.__lenis) {
@@ -194,12 +194,12 @@ export function Navbar() {
           <Link
             href="/"
             onClick={handleLogoClick}
-            aria-label="YUJI — Manga, Books, More"
+            aria-label="Manga World — Manga, Light Novels & Collector Editions"
             className="group flex items-center focus:outline-none cursor-pointer shrink-0"
           >
             <Image
-              src={yujiMark}
-              alt="YUJI — Manga, Books, More"
+              src={storeMark}
+              alt="Manga World — Manga, Light Novels & Collector Editions"
               priority
               className={`w-auto brightness-[0.88] transition-all duration-300 group-hover:brightness-100 ${
                 isScrolled ? "h-9 sm:h-10" : "h-11 sm:h-12"
@@ -564,7 +564,7 @@ export function Navbar() {
                 aria-hidden="true"
               >
                 <span className="text-[120px] xs:text-[145px] md:text-[220px] font-serif font-bold text-white/[0.035] tracking-[0.1em] leading-none">
-                  ユウジ
+                  マンガワールド
                 </span>
               </div>
             </div>

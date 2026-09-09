@@ -1,7 +1,8 @@
 ﻿"use client";
 
 import React, { useState } from "react";
-import { KeyRound, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { KeyRound, ShieldCheck, ArrowLeft } from "lucide-react";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { verifyAdminPinWithServer } from "@/lib/security";
 
@@ -55,7 +56,7 @@ export function AdminLoginOverlay() {
             <KeyRound className="w-7 h-7 text-gold" />
           </div>
           <span className="text-[10px] font-mono tracking-[0.3em] text-gold uppercase block mb-1">
-            YUJI ARCHIVE CONSOLE
+            MANGA WORLD ARCHIVE CONSOLE
           </span>
           <h1 className="text-xl font-bold font-sans text-paper uppercase tracking-wider">
             Curator Access
@@ -99,6 +100,15 @@ export function AdminLoginOverlay() {
             <span>{isSubmittingPin ? "Verifying..." : "Access Console"}</span>
           </button>
         </form>
+
+        {/* Way out: the console is a dead end without the PIN. */}
+        <Link
+          href="/account"
+          className="mt-6 w-full flex items-center justify-center gap-2 py-2.5 text-[11px] font-mono uppercase tracking-widest text-text-muted hover:text-gold border border-ink-border/70 hover:border-gold/40 rounded-sm transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to Account</span>
+        </Link>
       </div>
     </div>
   );

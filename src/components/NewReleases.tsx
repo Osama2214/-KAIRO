@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { YujiImage } from "@/components/YujiImage";
+import { MangaWorldImage } from "@/components/MangaWorldImage";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Star, ShoppingBag, Eye, ArrowRight, Heart } from "lucide-react";
@@ -103,7 +103,7 @@ export function NewReleases() {
             >
               {/* Cover Media */}
               <div className="relative aspect-[3/4] overflow-hidden bg-ink">
-                <YujiImage
+                <MangaWorldImage
                   src={volume.coverImage}
                   alt={volume.title}
                   sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw"

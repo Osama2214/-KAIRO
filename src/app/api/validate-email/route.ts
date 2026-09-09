@@ -13,11 +13,11 @@ interface DnsCacheEntry {
 }
 
 declare global {
-  var __yuji_dns_cache: Map<string, DnsCacheEntry> | undefined;
+  var __mangaworld_dns_cache: Map<string, DnsCacheEntry> | undefined;
 }
 
-const dnsCache = globalThis.__yuji_dns_cache || new Map<string, DnsCacheEntry>();
-globalThis.__yuji_dns_cache = dnsCache;
+const dnsCache = globalThis.__mangaworld_dns_cache || new Map<string, DnsCacheEntry>();
+globalThis.__mangaworld_dns_cache = dnsCache;
 
 // Common typos map
 const TYPO_DOMAINS: Record<string, string> = {

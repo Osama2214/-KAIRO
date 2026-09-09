@@ -335,10 +335,10 @@ export function CinematicIntro() {
               <div className="flex items-center justify-between border-b border-gold/30 pb-2.5">
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 bg-vermilion rounded-xs flex items-center justify-center text-paper font-serif font-bold text-[10px] shadow-sm">
-                    YUJI
+                    MANGA WORLD
                   </div>
                   <span className="font-mono text-[9px] tracking-widest text-gold uppercase font-bold">
-                    YUJI ARCHIVE
+                    MANGA WORLD ARCHIVE
                   </span>
                 </div>
                 <span className="text-[10px] font-mono text-paper-muted uppercase tracking-wider font-semibold">
@@ -391,7 +391,7 @@ export function CinematicIntro() {
               style={{ transform: "rotateY(-90deg)" }}
             >
               <span className="writing-mode-vertical font-serif text-[11px] tracking-widest text-gold font-bold">
-                YUJI
+                MANGA WORLD
               </span>
               <span className="writing-mode-vertical font-sans text-[8px] font-extrabold text-paper tracking-wider">
                 01
@@ -420,7 +420,7 @@ export function CinematicIntro() {
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-[0.38em] uppercase text-paper font-sans">
-            YUJI
+            MANGA WORLD
           </h1>
 
           <p className="mt-2 text-[10px] sm:text-[11px] font-mono tracking-[0.32em] text-text-muted uppercase">

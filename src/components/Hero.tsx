@@ -126,7 +126,7 @@ export function Hero() {
           <Image
             key={src}
             src={src}
-            alt={featuredVolume?.title || "YUJI Manga Hero"}
+            alt={featuredVolume?.title || "MANGA WORLD Manga Hero"}
             fill
             sizes="100vw"
             preload={idx === 0}
@@ -179,7 +179,7 @@ export function Hero() {
           {/* Top Metadata: archive mark & Live Edit */}
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs text-text-muted font-serif">
-              YUJI アーカイブ
+              MANGA WORLD アーカイブ
             </span>
             <LiveEditButton target={{ type: "hero" }} label="Edit Hero" variant="floating" size="xs" />
           </div>
@@ -277,7 +277,7 @@ export function Hero() {
             {/* Background Artwork */}
             <Image
               src={featuredVolume?.coverImage || "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1200&auto=format&fit=crop"}
-              alt={featuredVolume?.title || "YUJI Manga Hero Cover"}
+              alt={featuredVolume?.title || "MANGA WORLD Manga Hero Cover"}
               fill
               sizes="(max-width: 1023px) 0px, (max-width: 1280px) 320px, 450px"
               preload
@@ -290,7 +290,7 @@ export function Hero() {
 
             {/* Japanese Seal Watermark on Artwork */}
             <div className="absolute top-4 sm:top-5 right-4 sm:right-5 p-2 sm:p-2.5 rounded-sm bg-ink/75 backdrop-blur-md border border-ink-border/80 text-vermilion font-serif font-bold text-xs shadow-lg">
-              YUJI
+              MANGA WORLD
             </div>
 
             {/* Live Edit Hero Card Button */}

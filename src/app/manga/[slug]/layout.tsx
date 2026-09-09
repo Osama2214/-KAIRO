@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const title = `${volume.seriesTitle} — ${volume.title}`;
   const description = metaDescription(
     volume.synopsis,
-    `${volume.title} by ${volume.author}. ${volume.format} edition, available from the YUJI archive.`
+    `${volume.title} by ${volume.author}. ${volume.format} edition, available from the MANGA WORLD archive.`
   );
   const image = absoluteImage(volume.coverImage);
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { YujiImage } from "@/components/YujiImage";
+import { MangaWorldImage } from "@/components/MangaWorldImage";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { ALL_SERIES } from "@/data/manga";
@@ -132,7 +132,7 @@ export function FeaturedSeries() {
             {/* Right Column: Clean, Pure Art Presentation */}
             <div className="lg:col-span-5 flex items-center justify-center lg:justify-end w-full">
               <div className="relative w-full max-w-[350px] xs:max-w-[390px] sm:max-w-[440px] lg:max-w-[450px] aspect-[3/4] rounded-sm overflow-hidden border border-ink-border/80 shadow-[0_25px_80px_rgba(0,0,0,0.9)] group">
-                <YujiImage
+                <MangaWorldImage
                   src={image}
                   alt={title}
                   sizes="(max-width: 1023px) 100vw, 450px"
@@ -149,7 +149,7 @@ export function FeaturedSeries() {
 
                 {/* Subtle Japanese Seal in Corner */}
                 <div className="absolute top-4 right-4 px-2.5 py-1 rounded-xs bg-ink/75 backdrop-blur-md border border-ink-border/80 text-vermilion font-serif font-bold text-xs shadow-lg select-none pointer-events-none">
-                  YUJI
+                  MANGA WORLD
                 </div>
               </div>
             </div>
