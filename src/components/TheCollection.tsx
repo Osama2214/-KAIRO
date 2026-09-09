@@ -843,12 +843,12 @@ export function TheCollection() {
             <div className="absolute bottom-2.5 right-2.5 w-2.5 h-2.5 border-b border-r border-gold/60" />
 
             {/* Top Bar of Slipcase - Calm & Refined */}
-            <div className="flex items-center justify-between border-b border-gold/15 pb-2 px-1 relative z-10">
-              <span className="text-[9px] sm:text-[10px] font-mono tracking-[0.22em] text-gold/80 uppercase font-medium">
-                {isArabic ? "صندوق أرشيف كايرو // الإصدار 01" : "YUJI ARCHIVE BOXSET // SERIES"}
+            <div className="flex items-center justify-between gap-2 border-b border-gold/15 pb-2 px-1 relative z-10">
+              <span className="text-[8px] sm:text-[10px] font-mono tracking-[0.1em] sm:tracking-[0.22em] text-gold/80 uppercase font-medium whitespace-nowrap">
+                {isArabic ? "صندوق أرشيف YUJI" : "YUJI ARCHIVE BOXSET"}
               </span>
-              <span className="text-[8px] sm:text-[9px] font-mono text-paper-muted/50 tracking-widest uppercase font-light">
-                {isArabic ? "طبعة أولى • 2026" : "FIRST PRINT EDITION"}
+              <span className="text-[8px] sm:text-[9px] font-mono text-paper-muted/50 tracking-[0.1em] sm:tracking-widest uppercase font-light whitespace-nowrap">
+                {isArabic ? "طبعة أولى" : "FIRST PRINT"}
               </span>
             </div>
 
@@ -858,12 +858,12 @@ export function TheCollection() {
             </div>
 
             {/* Bottom Bar of Slipcase - Calm & Refined */}
-            <div className="flex items-center justify-between border-t border-gold/15 pt-2 px-1 relative z-10">
-              <span className="text-[9px] sm:text-[10px] font-serif text-paper-muted/60 tracking-wider">
+            <div className="flex items-center justify-between gap-2 border-t border-gold/15 pt-2 px-1 relative z-10">
+              <span className="text-[8px] sm:text-[10px] font-serif text-paper-muted/60 tracking-wider whitespace-nowrap">
                 呪術廻戦 完全書架
               </span>
-              <span className="text-[8px] sm:text-[9px] font-mono text-gold/70 tracking-[0.22em] uppercase font-medium">
-                {isArabic ? "صندوق حفظ فاخر" : "DELUXE ARCHIVAL SLIPCASE"}
+              <span className="text-[8px] sm:text-[9px] font-mono text-gold/70 tracking-[0.1em] sm:tracking-[0.22em] uppercase font-medium whitespace-nowrap">
+                {isArabic ? "صندوق حفظ فاخر" : "DELUXE SLIPCASE"}
               </span>
             </div>
           </div>
@@ -1204,7 +1204,7 @@ export function TheCollection() {
                 <button
                   type="button"
                   onClick={handleAddBundle}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 bg-paper text-ink font-extrabold text-xs tracking-[0.2em] uppercase rounded-sm hover:bg-vermilion hover:text-white transition-all duration-300 shadow-xl active:scale-95 cursor-pointer group"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 sm:gap-2.5 px-4 sm:px-8 py-3.5 bg-paper text-ink font-extrabold text-[11px] sm:text-xs tracking-[0.1em] sm:tracking-[0.2em] uppercase rounded-sm hover:bg-vermilion hover:text-white transition-all duration-300 shadow-xl active:scale-95 cursor-pointer group whitespace-nowrap"
                 >
                   <ShoppingBag strokeWidth={1.5} className="w-4 h-4 group-hover:scale-110 transition-transform" />
                   <span>
@@ -1226,7 +1226,7 @@ export function TheCollection() {
               )}
               <Link
                 href={collectionConfig?.secondaryCtaLink || "/manga?format=Box+Set"}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-ink/60 backdrop-blur-md text-paper border border-ink-border font-bold text-xs tracking-[0.16em] uppercase rounded-sm hover:border-gold hover:text-gold transition-all duration-300 cursor-pointer group"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-7 py-3.5 bg-ink/60 backdrop-blur-md text-paper border border-ink-border font-bold text-[11px] sm:text-xs tracking-[0.1em] sm:tracking-[0.16em] uppercase rounded-sm hover:border-gold hover:text-gold transition-all duration-300 cursor-pointer group whitespace-nowrap"
               >
                 <span>{isArabic ? "استكشف كافة المجموعات" : (collectionConfig?.secondaryCtaText || "DISCOVER ALL BOXSETS")}</span>
                 <ArrowRight strokeWidth={1.5} className={`w-3.5 h-3.5 group-hover:translate-x-1.5 transition-transform ${isRTL ? "rotate-180" : ""}`} />

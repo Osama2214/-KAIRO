@@ -43,3 +43,6 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# CMS snapshots written by scripts/sync-storefront-copy.mjs — data, not source
+storefront-backup-*.json
