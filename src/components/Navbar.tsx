@@ -22,6 +22,7 @@ export function Navbar() {
   const isArabic = locale === "ar";
   const arabicLanguageEnabled = useStorefrontStore((state) => state.arabicLanguageEnabled ?? true);
   const [isScrolled, setIsScrolled] = useState(false);
+  const isHomepage = pathname === "/";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeHash, setActiveHash] = useState("");
 
@@ -333,8 +334,13 @@ export function Navbar() {
         </div>
       </header>
 
-      {/* Dynamic spacer — always matches the fixed header height */}
-      <div style={{ height: headerHeight }} aria-hidden="true" />
+      {/*
+        Spacer that reserves room for the fixed header on ordinary pages.
+        The homepage hero is full-bleed and already carries its own top padding
+        to sit beneath the transparent header — adding the spacer there pushed
+        it down and left a detached strip of page background above the artwork.
+      */}
+      {!isHomepage && <div style={{ height: headerHeight }} aria-hidden="true" />}
 
       {/* Mobile Drawer Menu with Smooth Touch Layout and Safe-Area Support */}
       {mobileMenuOpen && (
