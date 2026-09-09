@@ -560,11 +560,11 @@ export function Navbar() {
                 now lives in the header at every screen size. */}
             <div className="relative pt-8 md:pt-14 pb-4 md:pb-8 overflow-hidden min-h-[140px] md:min-h-[220px]">
               <div
-                className="absolute -right-2 md:-right-6 -bottom-4 md:-bottom-8 pointer-events-none select-none z-0"
+                className="absolute -right-10 md:-right-16 -bottom-16 md:-bottom-24 pointer-events-none select-none z-0"
                 aria-hidden="true"
               >
-                <span className="text-[120px] xs:text-[145px] md:text-[220px] font-serif font-bold text-white/[0.035] tracking-[0.1em] leading-none">
-                  マンガワールド
+                <span className="text-[230px] xs:text-[270px] md:text-[380px] font-serif font-bold text-white/[0.022] tracking-[0.02em] leading-none whitespace-nowrap">
+                  漫画
                 </span>
               </div>
             </div>

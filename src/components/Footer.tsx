@@ -51,9 +51,9 @@ export function Footer() {
 
   return (
     <footer className="bg-ink border-t border-ink-border/80 pt-12 sm:pt-16 pb-5 sm:pb-12 text-text-muted relative overflow-hidden">
-      {/* Background Wordmark Watermark */}
-      <div className="absolute -bottom-8 right-4 font-sans text-[150px] font-extrabold tracking-tight text-white/[0.015] pointer-events-none select-none">
-        manga-world
+      {/* Background Japanese Watermark */}
+      <div className="absolute -bottom-20 sm:-bottom-24 -right-8 sm:right-0 font-serif text-[240px] sm:text-[320px] font-bold text-white/[0.014] pointer-events-none select-none whitespace-nowrap leading-none">
+        漫画
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10">
