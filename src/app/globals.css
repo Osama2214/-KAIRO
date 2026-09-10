@@ -616,3 +616,38 @@ html.animeverse-loading #animeverse-restore-loader {
     overflow-x: auto;
   }
 }
+
+/* ── Cinematic intro ──────────────────────────────────────────────────────
+   Entrance choreography runs on a GSAP timeline in CinematicIntro.tsx, so
+   every beat can be offset precisely against the others. The only thing
+   left here is the ambient background drift — it loops for as long as the
+   intro is on screen and never needs to sync with anything else, so it
+   stays on the compositor instead of the timeline. */
+
+@keyframes kairoIntroDrift {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-40px, -26px, 0); }
+}
+
+.kairo-intro-drift {
+  animation: kairoIntroDrift 24s ease-in-out infinite alternate;
+}
+
+/* A second, slower/smaller drift for the balancing kanji watermark, so the
+   two move at visibly different rates rather than in lockstep — a cheap
+   but real parallax-of-depth cue. */
+@keyframes kairoIntroDriftSoft {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(22px, -16px, 0); }
+}
+
+.kairo-intro-drift-soft {
+  animation: kairoIntroDriftSoft 38s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kairo-intro-drift,
+  .kairo-intro-drift-soft {
+    animation: none;
+  }
+}

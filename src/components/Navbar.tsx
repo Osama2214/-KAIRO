@@ -186,7 +186,7 @@ export function Navbar() {
         <GlobalWelcomeOfferBar />
 
         <div
-          className={`max-w-7xl mx-auto px-4 sm:px-6 md:px-10 flex items-center justify-between transition-all duration-300 ${
+          className={`max-w-[1700px] mx-auto px-4 sm:px-6 md:px-10 xl:px-14 2xl:px-20 flex items-center justify-between lg:grid lg:grid-cols-[1fr_auto_1fr] transition-all duration-300 ${
             isScrolled ? "py-2.5 sm:py-3.5" : "py-3 sm:py-5"
           }`}
         >
@@ -232,7 +232,7 @@ export function Navbar() {
           </nav>
 
           {/* Right Action Icons */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 lg:justify-self-end">
             {/* Language Switcher — full label at every size. There is room for it
                 now that wishlist and account moved into the mobile drawer. */}
             <button
