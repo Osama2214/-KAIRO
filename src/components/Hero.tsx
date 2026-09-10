@@ -9,6 +9,7 @@ import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { useMounted } from "@/store/useWishlistStore";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
+import { PLACEHOLDER_COVER } from "@/config/mediaDefaults";
 
 export function Hero() {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -278,7 +279,7 @@ export function Hero() {
           >
             {/* Background Artwork */}
             <Image
-              src={featuredVolume?.coverImage || "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1200&auto=format&fit=crop"}
+              src={featuredVolume?.coverImage || PLACEHOLDER_COVER}
               alt={featuredVolume?.title || "ANIMEVERSE Manga Hero Cover"}
               fill
               sizes="(max-width: 1023px) 0px, (max-width: 1280px) 320px, 450px"
@@ -292,7 +293,7 @@ export function Hero() {
 
             {/* Japanese Seal Watermark on Artwork */}
             <div className="absolute top-4 sm:top-5 right-4 sm:right-5 p-2 sm:p-2.5 rounded-sm bg-ink/75 backdrop-blur-md border border-ink-border/80 text-vermilion font-serif font-bold text-xs shadow-lg">
-              ANIMEVERSE
+              検印
             </div>
 
             {/* Live Edit Hero Card Button */}

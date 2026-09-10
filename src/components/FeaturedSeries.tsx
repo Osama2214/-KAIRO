@@ -149,7 +149,7 @@ export function FeaturedSeries() {
 
                 {/* Subtle Japanese Seal in Corner */}
                 <div className="absolute top-4 right-4 px-2.5 py-1 rounded-xs bg-ink/75 backdrop-blur-md border border-ink-border/80 text-vermilion font-serif font-bold text-xs shadow-lg select-none pointer-events-none">
-                  ANIMEVERSE
+                  検印
                 </div>
               </div>
             </div>

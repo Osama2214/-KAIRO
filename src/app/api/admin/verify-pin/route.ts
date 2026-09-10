@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     }
 
     // 3. Check if email is on the authorized curator admin list
-    if (!isAuthorizedAdminEmail(email)) {
+    if (!(await isAuthorizedAdminEmail(email))) {
       return NextResponse.json(
         {
           success: false,

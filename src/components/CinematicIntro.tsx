@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { SkipForward } from "lucide-react";
 import { useUIStore } from "@/store/useUIStore";
 import { useMounted } from "@/store/useWishlistStore";
+import { INTRO_SHOWCASE_COVER } from "@/config/mediaDefaults";
 
 interface Particle {
   x: number;
@@ -349,7 +350,7 @@ export function CinematicIntro() {
               {/* Artwork Box with Dynamic Diagonal Holographic Sweep */}
               <div className="relative my-auto w-full aspect-[3/4] max-h-[260px] sm:max-h-[280px] rounded-xs overflow-hidden border border-ink-border shadow-2xl mx-auto bg-black group-hover:border-gold/60 transition-colors">
                 <img
-                  src="https://dw9to29mmj727.cloudfront.net/products/1974710025.jpg"
+                  src={INTRO_SHOWCASE_COVER}
                   alt="Jujutsu Kaisen Deluxe First Edition"
                   className="w-full h-full object-cover select-none pointer-events-none"
                   draggable={false}

@@ -3,29 +3,17 @@
 import React, { useState, use } from "react";
 import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
-import {
-  Star,
-  Plus,
-  Minus,
-  ShoppingBag,
-  BookOpen,
-  Share2,
-  ShieldCheck,
-  Truck,
-  ArrowRight,
-  Eye,
-  Check,
-  Heart,
-} from "lucide-react";
+import { Plus, Minus, ShoppingBag, BookOpen, Share2, ShieldCheck, Truck, ArrowRight, Eye, Check, Heart } from "lucide-react";
 import { ALL_VOLUMES } from "@/data/manga";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, volumeBadgeLabel } from "@/lib/utils";
 import { useWelcomeOffer } from "@/hooks/useWelcomeOffer";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
+import { StarRating } from "@/components/StarRating";
 
 interface MangaPageProps {
   params: Promise<{ slug: string }>;
@@ -106,7 +94,7 @@ export default function MangaDetailPage({ params }: MangaPageProps) {
             {volume.seriesTitle}
           </Link>
           <span>/</span>
-          <span className="text-paper-muted">{isArabic ? "المجلد" : "VOL."} {volume.volumeNumber}</span>
+          <span className="text-paper-muted">{volumeBadgeLabel(volume, isArabic)}</span>
         </div>
 
         {/* Top Split Layout: Media Gallery + Purchasing Column */}
@@ -130,11 +118,12 @@ export default function MangaDetailPage({ params }: MangaPageProps) {
 
               {/* Japanese Seal Floating Badge */}
               <div className="absolute top-3 left-3 px-2.5 py-0.5 bg-ink/90 backdrop-blur-md rounded-xs border border-ink-border font-mono text-[9px] sm:text-[10px] text-gold">
-                {isArabic ? "المجلد" : "VOL."} {volume.volumeNumber < 10 ? `0${volume.volumeNumber}` : volume.volumeNumber}
+                {volumeBadgeLabel(volume, isArabic)}
               </div>
             </div>
 
             {/* Quick Preview & Sample Reader Actions (Unobstructed Cover) */}
+            {volume.previewPages.length > 0 && (
             <div className="max-w-sm sm:max-w-md mx-auto space-y-2.5">
               <button
                 type="button"
@@ -161,6 +150,7 @@ export default function MangaDetailPage({ params }: MangaPageProps) {
                 ))}
               </div>
             </div>
+            )}
           </div>
 
           {/* Right Column: Title, Specs, Price, and Cart Action */}
@@ -209,15 +199,7 @@ export default function MangaDetailPage({ params }: MangaPageProps) {
 
               {/* Rating and Reviews */}
               <div className="flex items-center gap-2 sm:gap-3 pt-1 text-xs font-mono flex-wrap">
-                <div className="flex items-center text-gold">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      strokeWidth={1}
-                      className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-gold text-gold"
-                    />
-                  ))}
-                </div>
+                <StarRating value={volume.rating} size="md" />
                 <span className="text-paper font-bold">{volume.rating.toFixed(1)}</span>
                 <span className="text-text-muted text-[11px] sm:text-xs">
                   {isArabic ? `(${volume.reviewCount} تقييم للعملاء)` : `(${volume.reviewCount} customer reviews)`}
@@ -488,7 +470,7 @@ export default function MangaDetailPage({ params }: MangaPageProps) {
                   />
                   <div className="absolute top-2 left-2 pointer-events-none z-10">
                     <span className="px-1.5 sm:px-2 py-0.5 rounded-xs bg-ink/90 text-[8px] sm:text-[9px] font-mono tracking-wider text-gold border border-ink-border">
-                      {isArabic ? "المجلد" : "VOL."} {item.volumeNumber < 10 ? `0${item.volumeNumber}` : item.volumeNumber}
+                      {volumeBadgeLabel(item, isArabic)}
                     </span>
                   </div>
                   <button

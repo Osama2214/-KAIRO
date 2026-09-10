@@ -1,12 +1,13 @@
 "use client";
 
+import { useCatalogSearch } from "@/hooks/useCatalogSearch";
 import React, { useState, useMemo } from "react";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search, ArrowRight, Heart } from "lucide-react";
 import { MangaVolume } from "@/data/manga";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, volumeBadgeLabel } from "@/lib/utils";
 import { useCartStore } from "@/store/useCartStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
@@ -52,30 +53,31 @@ export function MangaDiscovery() {
     router.push(`/manga/${volumeId}`);
   };
 
-  const filteredItems = useMemo(() => {
+  // Tab filtering and text search are separate steps: the tab result is what
+  // the search index is built from, and it only changes when a tab does.
+  const tabFiltered = useMemo(() => {
     let list: MangaVolume[] = [...storeVolumes];
+
+    // A typed query searches the whole shop; the tab only narrows browsing.
+    if (searchTerm.trim()) return list;
 
     if (activeTab === "POPULAR") {
       list = list.filter((v) => v.isTrending);
     } else if (activeTab === "TOP_RATED") {
       list = list.filter((v) => v.rating >= 4.9);
     } else if (activeTab === "BEST_SELLERS") {
-      list = list.filter((v) => v.stock > 25);
+      // Sales volume is not recorded, so review count stands in for it — a
+      // far better proxy than shelf stock, which measures the opposite.
+      list = [...list].sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0));
     } else if (activeTab === "RECENTLY_ADDED") {
       list = list.filter((v) => v.isNewRelease || v.volumeNumber === 1);
     }
 
-    if (!searchTerm.trim()) return list.slice(0, displayCount);
+      return list;
+  }, [activeTab, storeVolumes, searchTerm]);
 
-    const term = searchTerm.toLowerCase();
-    return list.filter(
-      (v) =>
-        v.title.toLowerCase().includes(term) ||
-        v.seriesTitle.toLowerCase().includes(term) ||
-        v.author.toLowerCase().includes(term) ||
-        v.genre.some((g) => g.toLowerCase().includes(term))
-    ).slice(0, displayCount);
-  }, [searchTerm, activeTab, storeVolumes, displayCount]);
+  const ranked = useCatalogSearch(tabFiltered, searchTerm);
+  const filteredItems = useMemo(() => ranked.slice(0, displayCount), [ranked, displayCount]);
 
   return (
     <section className="py-14 sm:py-24 px-4 sm:px-8 md:px-12 bg-ink border-t border-ink-border/60">
@@ -178,7 +180,7 @@ export function MangaDiscovery() {
                 />
                 <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 pointer-events-none z-10">
                   <span className="px-2 py-0.5 rounded-xs bg-ink/90 text-[9px] font-mono tracking-wider text-gold border border-ink-border">
-                    {isArabic ? "المجلد" : "VOL."} {volume.volumeNumber < 10 ? `0${volume.volumeNumber}` : volume.volumeNumber}
+                    {volumeBadgeLabel(volume, isArabic)}
                   </span>
                   {volume.stock <= 0 && (
                     <span className="px-2 py-0.5 rounded-xs bg-red-950/90 border border-red-800/80 text-[8px] font-mono tracking-wider text-red-400 font-bold uppercase">

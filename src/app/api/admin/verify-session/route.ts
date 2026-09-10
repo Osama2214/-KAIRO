@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       email: verification.email,
       // Delivered here rather than bundled into the client, so the curator
       // allow-list is never readable by an anonymous visitor.
-      adminEmails: authorizedAdminEmails(),
+      adminEmails: await authorizedAdminEmails(),
       message: "Valid curator session.",
     }, { headers: { "Cache-Control": "no-store" } });
   } catch {

@@ -10,10 +10,10 @@ import { purgeLegacyGuestOrders } from "@/lib/guestOrders";
 
 const DATA_KEYS = [
   "volumes", "series", "genres", "formats", "heroContent", "announcement", "shippingConfig",
-  "editorialConfig", "featuredSeriesConfig", "collectionConfig", "genreBentoConfig", "trendingConfig",
+  "editorialConfig", "featuredSeriesConfig", "genreBentoConfig", "trendingConfig", "boxSetsConfig", "tickerConfig",
   "newReleasesConfig", "mangaDiscoveryConfig", "heroArabicContent", "announcementArabic",
   "shippingArabicConfig", "editorialArabicConfig", "newReleasesArabicConfig", "mangaDiscoveryArabicConfig",
-  "trendingArabicConfig", "genreBentoArabicConfig",
+  "trendingArabicConfig", "boxSetsArabicConfig", "tickerArabicConfig", "genreBentoArabicConfig",
 ] as const;
 
 function snapshot(state: Record<string, unknown>) {

@@ -111,7 +111,7 @@ export async function createUser(data: {
   const now = Date.now();
   // An address on the curator allow-list is an admin from the moment it
   // registers; promoting it by hand afterwards was easy to forget.
-  const role = data.role || (isAuthorizedAdminEmail(normalized) ? "admin" : "customer");
+  const role = data.role || ((await isAuthorizedAdminEmail(normalized)) ? "admin" : "customer");
 
   await sql`
     INSERT INTO kairo_users (

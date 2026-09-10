@@ -5,6 +5,7 @@ import { X, Save, Trash2, AlertTriangle, ArrowUpRight } from "lucide-react";
 import { GenreInfo } from "@/data/manga";
 import { ImageUploadInput } from "@/components/ImageUploadInput";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
+import { PLACEHOLDER_COVER } from "@/config/mediaDefaults";
 
 interface GenreFormModalProps {
   isOpen: boolean;
@@ -30,7 +31,7 @@ export function GenreFormModal({
       name: "",
       japanese: "",
       description: "",
-      coverImage: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=1000&auto=format&fit=crop",
+      coverImage: PLACEHOLDER_COVER,
       popularTitle: "",
     };
   });
@@ -68,7 +69,7 @@ export function GenreFormModal({
       name: formData.name.trim(),
       japanese: formData.japanese.trim() || formData.name.trim(),
       popularTitle: formData.popularTitle.trim() || "Archival Selection",
-      coverImage: formData.coverImage.trim() || "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=1000&auto=format&fit=crop",
+      coverImage: formData.coverImage.trim() || PLACEHOLDER_COVER,
       description: formData.description.trim() || "Curated manga titles within this canonical category.",
     });
     onClose();
@@ -211,7 +212,7 @@ export function GenreFormModal({
                   className="w-full h-full object-cover opacity-40"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src =
-                      "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=1000&auto=format&fit=crop";
+                      PLACEHOLDER_COVER;
                   }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/60 to-transparent" />

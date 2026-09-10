@@ -51,6 +51,7 @@ import { escapeHtml, validateEmail, validatePassword, validateEgyptianPhone, ver
 import { CustomSelect } from "@/components/CustomSelect";
 import { WelcomeOfferBanner } from "@/components/WelcomeOfferBanner";
 import { useTranslation } from "@/hooks/useTranslation";
+import { PLACEHOLDER_COVER } from "@/config/mediaDefaults";
 
 interface GoogleTokenResponse {
   access_token?: string;
@@ -2250,7 +2251,7 @@ function AccountContent() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
                         {order.items.map((item, i) => {
                           const canonical = getCanonicalVolume(item);
-                          const cover = canonical?.coverImage || item.coverImage || "https://dw9to29mmj727.cloudfront.net/products/1569319014.jpg";
+                          const cover = canonical?.coverImage || item.coverImage || PLACEHOLDER_COVER;
                           const targetVolumeId = canonical?.id || item.volumeId || item.id;
 
                           return (
@@ -2267,7 +2268,7 @@ function AccountContent() {
                                     if (canonical?.coverImage && e.currentTarget.src !== canonical.coverImage) {
                                       e.currentTarget.src = canonical.coverImage;
                                     } else {
-                                      e.currentTarget.src = "https://dw9to29mmj727.cloudfront.net/products/1569319014.jpg";
+                                      e.currentTarget.src = PLACEHOLDER_COVER;
                                     }
                                   }}
                                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

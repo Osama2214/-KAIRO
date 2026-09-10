@@ -34,8 +34,9 @@ import {
   Clock,
   Globe,
   Cloud,
+  Megaphone,
 } from "lucide-react";
-import { useStorefrontStore } from "@/store/useStorefrontStore";
+import { useStorefrontStore, TICKER_SLOTS } from "@/store/useStorefrontStore";
 import { useAuthStore, SavedOrder, UserProfile } from "@/store/useAuthStore";
 import { MangaVolume, Series, GenreInfo } from "@/data/manga";
 import { formatPrice } from "@/lib/utils";
@@ -122,8 +123,10 @@ export default function AdminPage() {
     shippingConfig,
     editorialConfig,
     featuredSeriesConfig,
-    collectionConfig,
     genreBentoConfig,
+    boxSetsConfig,
+    tickerConfig,
+    tickerArabicConfig,
     trendingConfig,
     newReleasesConfig,
     mangaDiscoveryConfig,
@@ -148,8 +151,10 @@ export default function AdminPage() {
     updateShippingConfig,
     updateEditorialConfig,
     updateFeaturedSeriesConfig,
-    updateCollectionConfig,
     updateGenreBentoConfig,
+    updateBoxSetsConfig,
+    updateTickerConfig,
+    updateTickerArabicConfig,
     updateTrendingConfig,
     updateNewReleasesConfig,
     updateMangaDiscoveryConfig,
@@ -192,8 +197,10 @@ export default function AdminPage() {
   }));
   const [editorialForm, setEditorialForm] = useState(editorialConfig);
   const [featuredSeriesForm, setFeaturedSeriesForm] = useState(featuredSeriesConfig);
-  const [collectionForm, setCollectionForm] = useState(collectionConfig);
   const [genreBentoForm, setGenreBentoForm] = useState(genreBentoConfig);
+  const [boxSetsForm, setBoxSetsForm] = useState(boxSetsConfig);
+  const [tickerForm, setTickerForm] = useState(tickerConfig);
+  const [tickerArabicForm, setTickerArabicForm] = useState(tickerArabicConfig);
   const [trendingForm, setTrendingForm] = useState(trendingConfig);
   const [newReleasesForm, setNewReleasesForm] = useState(newReleasesConfig);
   const [mangaDiscoveryForm, setMangaDiscoveryForm] = useState(mangaDiscoveryConfig);
@@ -230,28 +237,45 @@ export default function AdminPage() {
     }
   };
 
-  // Cryptographic server-side session guard
+  // Cryptographic server-side session guard.
+  //
+  // This runs on every load, not only when the client flag is already set.
+  // `isAdminAuthenticated` is deliberately not persisted, so it starts false on
+  // each page load — and because the check used to be skipped in that state,
+  // the curator cookie (valid for 24h) was never consulted and every refresh
+  // dropped back to the PIN screen.
+  const [sessionProbed, setSessionProbed] = useState(false);
   useEffect(() => {
-    if (isAdminAuthenticated) {
-      fetch("/api/admin/verify-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      })
-        .then((r) => r.json())
-        .then((data) => {
-          if (!data.valid) {
-            logoutAdmin();
-            return;
-          }
-          if (Array.isArray(data.adminEmails)) {
-            useStorefrontStore.setState({ adminEmails: data.adminEmails });
-          }
-        })
-        .catch(() => {
-          // Keep active during transient network drops
+    let active = true;
+    fetch("/api/admin/verify-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (!active) return;
+        if (!data.valid) {
+          // Only tear down a session the client believed it had; a plain
+          // "not signed in" must not fire the logout side effects.
+          if (useStorefrontStore.getState().isAdminAuthenticated) logoutAdmin();
+          return;
+        }
+        useStorefrontStore.setState({
+          isAdminAuthenticated: true,
+          ...(Array.isArray(data.adminEmails) ? { adminEmails: data.adminEmails } : {}),
         });
-    }
-  }, [isAdminAuthenticated, logoutAdmin]);
+      })
+      .catch(() => {
+        // Keep any active session during transient network drops
+      })
+      .finally(() => {
+        if (active) setSessionProbed(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [logoutAdmin]);
 
   const [prevShipping, setPrevShipping] = useState(shippingConfig);
   if (shippingConfig !== prevShipping) {
@@ -270,6 +294,26 @@ export default function AdminPage() {
           ...(shippingConfig.governorateRates || {}),
         },
       });
+    }
+  }
+
+  const [prevTicker, setPrevTicker] = useState(tickerConfig);
+  if (tickerConfig !== prevTicker) {
+    setPrevTicker(tickerConfig);
+    if (tickerConfig) setTickerForm(tickerConfig);
+  }
+
+  const [prevTickerArabic, setPrevTickerArabic] = useState(tickerArabicConfig);
+  if (tickerArabicConfig !== prevTickerArabic) {
+    setPrevTickerArabic(tickerArabicConfig);
+    if (tickerArabicConfig) setTickerArabicForm(tickerArabicConfig);
+  }
+
+  const [prevBoxSets, setPrevBoxSets] = useState(boxSetsConfig);
+  if (boxSetsConfig !== prevBoxSets) {
+    setPrevBoxSets(boxSetsConfig);
+    if (boxSetsConfig) {
+      setBoxSetsForm(boxSetsConfig);
     }
   }
 
@@ -583,7 +627,9 @@ export default function AdminPage() {
   }, [formats, volumes]);
 
   // Prevent hydration mismatch between server render (localStorage empty) and client (persisted session)
-  if (!mounted) {
+  // Hold the loading state until the cookie has been checked, so a returning
+  // curator never sees the PIN screen flash before their session is restored.
+  if (!mounted || !sessionProbed) {
     return (
       <div className="min-h-screen w-full bg-ink flex flex-col items-center justify-center p-6 text-center font-mono select-none">
         <div className="w-12 h-12 mx-auto rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center text-gold mb-3 animate-pulse">
@@ -2124,171 +2170,6 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* 6. THE COLLECTION 3D BOXSET */}
-              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-5">
-                <div className="flex items-center justify-between border-b border-ink-border/50 pb-3">
-                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-gold" />
-                    <span>06. The Collection 3D Boxset Showcase</span>
-                  </h2>
-                  <span className="text-[10px] text-text-muted">
-                    Controls the 3D slipcase scroll animation, headline, bundle price, and 3 featured volumes.
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs font-mono">
-                  {/* Headline */}
-                  <div className="flex flex-col justify-end">
-                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                      Section Headline
-                    </label>
-                    <input
-                      type="text"
-                      value={collectionForm.headline}
-                      onChange={(e) => setCollectionForm({ ...collectionForm, headline: e.target.value })}
-                      placeholder="THE COLLECTION"
-                      className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
-                    />
-                  </div>
-
-                  {/* Metadata Badge Text */}
-                  <div className="flex flex-col justify-end">
-                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                      Metadata Badge Text
-                    </label>
-                    <input
-                      type="text"
-                      value={collectionForm.badgeText}
-                      onChange={(e) => setCollectionForm({ ...collectionForm, badgeText: e.target.value })}
-                      placeholder="COMPLETE ARCHIVE • VOL. 01–03"
-                      className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
-                    />
-                  </div>
-
-                  {/* Bundle Price in EGP */}
-                  <div className="flex flex-col justify-end">
-                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                      Boxset Bundle Price (EGP)
-                    </label>
-                    <CustomNumberInput
-                      min={1}
-                      max={100000}
-                      step="any"
-                      prefix="EGP "
-                      className="h-10"
-                      value={collectionForm.price}
-                      onChange={(e) => setCollectionForm({ ...collectionForm, price: parseFloat(e.target.value) || 0 })}
-                    />
-                  </div>
-
-                  {/* Volume 1 */}
-                  <div className="flex flex-col justify-end">
-                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                      Volume 01 (Left Wing)
-                    </label>
-                    <CustomSelect
-                      fullWidth
-                      value={collectionForm.volumeId1}
-                      onChange={(val) => setCollectionForm({ ...collectionForm, volumeId1: val })}
-                      options={volumes.map((v) => ({
-                        value: v.id,
-                        label: `${v.seriesTitle} - Vol. ${v.volumeNumber} (${v.title})`,
-                      }))}
-                      buttonClassName="h-10 bg-ink border-ink-border px-3 text-xs"
-                    />
-                  </div>
-
-                  {/* Volume 2 */}
-                  <div className="flex flex-col justify-end">
-                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                      Volume 02 (Center Hero)
-                    </label>
-                    <CustomSelect
-                      fullWidth
-                      value={collectionForm.volumeId2}
-                      onChange={(val) => setCollectionForm({ ...collectionForm, volumeId2: val })}
-                      options={volumes.map((v) => ({
-                        value: v.id,
-                        label: `${v.seriesTitle} - Vol. ${v.volumeNumber} (${v.title})`,
-                      }))}
-                      buttonClassName="h-10 bg-ink border-ink-border px-3 text-xs"
-                    />
-                  </div>
-
-                  {/* Volume 3 */}
-                  <div className="flex flex-col justify-end">
-                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                      Volume 03 (Right Wing)
-                    </label>
-                    <CustomSelect
-                      fullWidth
-                      value={collectionForm.volumeId3}
-                      onChange={(val) => setCollectionForm({ ...collectionForm, volumeId3: val })}
-                      options={volumes.map((v) => ({
-                        value: v.id,
-                        label: `${v.seriesTitle} - Vol. ${v.volumeNumber} (${v.title})`,
-                      }))}
-                      buttonClassName="h-10 bg-ink border-ink-border px-3 text-xs"
-                    />
-                  </div>
-
-                  {/* Primary CTA */}
-                  <div className="flex flex-col justify-end">
-                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                      Primary CTA Button Label
-                    </label>
-                    <input
-                      type="text"
-                      value={collectionForm.primaryCtaText}
-                      onChange={(e) => setCollectionForm({ ...collectionForm, primaryCtaText: e.target.value })}
-                      placeholder="ADD SET TO CART"
-                      className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
-                    />
-                  </div>
-
-                  {/* Secondary CTA Text */}
-                  <div className="flex flex-col justify-end">
-                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                      Secondary CTA Button Label
-                    </label>
-                    <input
-                      type="text"
-                      value={collectionForm.secondaryCtaText}
-                      onChange={(e) => setCollectionForm({ ...collectionForm, secondaryCtaText: e.target.value })}
-                      placeholder="DISCOVER ALL BOXSETS"
-                      className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
-                    />
-                  </div>
-
-                  {/* Secondary CTA Link */}
-                  <div className="flex flex-col justify-end">
-                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                      Secondary CTA Destination Link
-                    </label>
-                    <input
-                      type="text"
-                      value={collectionForm.secondaryCtaLink}
-                      onChange={(e) => setCollectionForm({ ...collectionForm, secondaryCtaLink: e.target.value })}
-                      placeholder="/manga?format=Box+Set"
-                      className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      updateCollectionConfig(collectionForm);
-                      showToast("The Collection 3D showcase settings saved live.");
-                    }}
-                    className="flex items-center gap-1.5 px-5 py-2.5 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>Save Boxset Settings</span>
-                  </button>
-                </div>
-              </div>
 
               {/* 7. EXPLORE YOUR GENRE BENTO GRID */}
               <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-6">
@@ -2527,6 +2408,159 @@ export default function AdminPage() {
                 </div>
               </div>
 
+
+              {/* 0. SCROLLING ANNOUNCEMENT TICKER */}
+              <div className="p-6 bg-ink-surface border border-vermilion/40 rounded-sm space-y-5">
+                <div className="flex items-center justify-between border-b border-ink-border/50 pb-3 gap-3 flex-wrap">
+                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                    <Megaphone className="w-4 h-4 text-vermilion" />
+                    <span>00. Scrolling Announcement Ticker</span>
+                  </h2>
+                  <label className="flex items-center gap-2 cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={tickerForm.enabled}
+                      onChange={(e) => setTickerForm({ ...tickerForm, enabled: e.target.checked })}
+                      className="w-4 h-4 accent-gold cursor-pointer"
+                    />
+                    <span className={`text-[11px] font-mono font-bold uppercase tracking-wider ${
+                      tickerForm.enabled ? "text-gold" : "text-text-muted"
+                    }`}>
+                      {tickerForm.enabled ? "LIVE ON EVERY PAGE" : "HIDDEN"}
+                    </span>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 font-mono text-xs">
+                  <div className="flex flex-col">
+                    <label className="block text-text-muted mb-1.5">Messages (English) — one per line</label>
+                    <textarea
+                      rows={5}
+                      value={tickerForm.messages.join("\n")}
+                      onChange={(e) => setTickerForm({ ...tickerForm, messages: e.target.value.split("\n") })}
+                      placeholder={"FREE SHIPPING OVER EGP 500\nCASH ON DELIVERY"}
+                      className="w-full bg-ink border border-ink-border text-paper p-3 rounded-sm focus:border-gold outline-none text-[11px] leading-relaxed"
+                    />
+                  </div>
+
+                  <div className="flex flex-col">
+                    <label className="block text-text-muted mb-1.5">الرسائل (بالعربية) — كل رسالة في سطر</label>
+                    <textarea
+                      rows={5}
+                      dir="rtl"
+                      value={tickerArabicForm.messages.join("\n")}
+                      onChange={(e) => setTickerArabicForm({ ...tickerArabicForm, messages: e.target.value.split("\n") })}
+                      placeholder={"شحن مجاني فوق ٥٠٠ جنيه\nالدفع عند الاستلام"}
+                      className="w-full bg-ink border border-ink-border text-paper p-3 rounded-sm focus:border-gold outline-none text-[11px] leading-relaxed"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-mono text-xs">
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-text-muted">Scroll Speed</label>
+                      <span className="text-gold font-bold">{tickerForm.speedSeconds}s per pass</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={10}
+                      max={120}
+                      step={1}
+                      value={tickerForm.speedSeconds}
+                      onChange={(e) => setTickerForm({ ...tickerForm, speedSeconds: parseInt(e.target.value, 10) || 30 })}
+                      className="w-full accent-gold cursor-pointer"
+                    />
+                    <p className="text-[10px] text-text-muted">Lower is faster. The strip pauses while a visitor hovers it.</p>
+                  </div>
+
+                  <div className="flex flex-col justify-end">
+                    <label className="block text-text-muted mb-1.5">Link (optional)</label>
+                    <input
+                      type="text"
+                      value={tickerForm.linkHref ?? ""}
+                      onChange={(e) => setTickerForm({ ...tickerForm, linkHref: e.target.value })}
+                      placeholder="/manga?format=Box+Set"
+                      className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Where it appears */}
+                <div className="space-y-2 font-mono text-xs">
+                  <label className="block text-text-muted">Show it in</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    {TICKER_SLOTS.map((slotOption) => {
+                      const active = (tickerForm.placements ?? []).includes(slotOption.id);
+                      return (
+                        <label
+                          key={slotOption.id}
+                          onClick={() => {
+                            const current = tickerForm.placements ?? [];
+                            setTickerForm({
+                              ...tickerForm,
+                              placements: active
+                                ? current.filter((s) => s !== slotOption.id)
+                                : [...current, slotOption.id],
+                            });
+                          }}
+                          className="flex items-center gap-2.5 text-[11px] text-text-muted hover:text-paper cursor-pointer group select-none py-1.5 px-2 -mx-1 rounded-xs hover:bg-ink-elevated/50 transition-colors"
+                        >
+                          <span
+                            className={`w-4 h-4 rounded-xs border flex items-center justify-center shrink-0 transition-colors ${
+                              active ? "bg-gold border-gold text-ink" : "border-ink-border group-hover:border-paper/60"
+                            }`}
+                          >
+                            {active && <CheckCircle2 strokeWidth={2.5} className="w-3 h-3" />}
+                          </span>
+                          <span>{slotOption.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {(tickerForm.placements ?? []).length === 0 && (
+                    <p className="text-[10px] text-vermilion">Pick at least one spot, or the strip will not show anywhere.</p>
+                  )}
+                </div>
+
+
+                {/* Live preview of the strip itself */}
+                <div className="rounded-xs overflow-hidden border border-ink-border">
+                  <div className="bg-vermilion text-white py-2 px-3 flex items-center gap-8 overflow-hidden">
+                    {(tickerForm.messages.filter((m) => m.trim()).length > 0
+                      ? tickerForm.messages.filter((m) => m.trim())
+                      : ["(no messages yet)"]
+                    ).map((m, i) => (
+                      <span key={i} className="text-[11px] font-mono tracking-wider whitespace-nowrap flex items-center gap-8">
+                        {m}
+                        <span className="text-white/40">◆</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateTickerConfig({
+                        ...tickerForm,
+                        messages: tickerForm.messages.map((m) => m.trim()).filter(Boolean),
+                        placements: tickerForm.placements ?? [],
+                      });
+                      updateTickerArabicConfig({
+                        messages: tickerArabicForm.messages.map((m) => m.trim()).filter(Boolean),
+                      });
+                      showToast("Announcement ticker saved and live across the site.");
+                    }}
+                    className="flex items-center gap-1.5 px-5 py-2.5 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Save Ticker</span>
+                  </button>
+                </div>
+              </div>
+
               {/* 8. TRENDING NOW CAROUSEL & AUTOPLAY */}
               <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-5">
                 <div className="flex items-center justify-between border-b border-ink-border/50 pb-3">
@@ -2660,6 +2694,26 @@ export default function AdminPage() {
                         className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
                       />
                     </div>
+
+                    <div className="flex flex-col justify-end">
+                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                        Cards in the rail
+                      </label>
+                      <CustomNumberInput
+                        min={1}
+                        max={24}
+                        step={1}
+                        className="h-10"
+                        value={trendingForm.minCards ?? 8}
+                        onChange={(e) =>
+                          setTrendingForm({ ...trendingForm, minCards: parseInt(e.target.value, 10) || 8 })
+                        }
+                      />
+                      <p className="text-[10px] text-text-muted mt-1.5 leading-relaxed">
+                        Books you mark as Trending always come first. This only tops the rail up
+                        with the best-rated of the rest when there are fewer than this.
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -2674,6 +2728,144 @@ export default function AdminPage() {
                   >
                     <Save className="w-3.5 h-3.5" />
                     <span>Save Trending Settings</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 8b. BOX SETS CAROUSEL & AUTOPLAY */}
+              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-5">
+                <div className="flex items-center justify-between border-b border-ink-border/50 pb-3">
+                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-vermilion" />
+                    <span>08b. Box Sets Carousel &amp; Card Flipping Controls</span>
+                  </h2>
+                  <span className="text-[10px] text-text-muted">
+                    Cards are filled automatically from every product whose format is &quot;Box Set&quot;.
+                  </span>
+                </div>
+
+                <div className="space-y-4 font-mono text-xs">
+                  {/* Autoplay Toggle & Speed Control */}
+                  <div className="p-4 bg-ink/70 border border-gold/30 rounded-xs space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-ink-border/60">
+                      <div>
+                        <h3 className="text-xs font-bold text-gold uppercase tracking-wider">
+                          Automatic Card Flipping (Autoplay)
+                        </h3>
+                        <p className="text-[10px] text-text-muted mt-1">
+                          Pauses on hover. A single box set never flips, however this is set.
+                        </p>
+                      </div>
+                      <label className="flex items-center gap-2 cursor-pointer shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={boxSetsForm.autoplayEnabled}
+                          onChange={(e) =>
+                            setBoxSetsForm({ ...boxSetsForm, autoplayEnabled: e.target.checked })
+                          }
+                          className="w-4 h-4 accent-gold cursor-pointer"
+                        />
+                        <span className={`text-[11px] font-bold uppercase tracking-wider ${
+                          boxSetsForm.autoplayEnabled ? "text-gold" : "text-text-muted"
+                        }`}>
+                          {boxSetsForm.autoplayEnabled ? "ACTIVE" : "PAUSED"}
+                        </span>
+                      </label>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-text-muted">Flip Delay</label>
+                        <span className="text-gold font-bold">
+                          {(boxSetsForm.autoplaySpeed / 1000).toFixed(1)}s ({boxSetsForm.autoplaySpeed} ms)
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={1500}
+                        max={10000}
+                        step={100}
+                        value={boxSetsForm.autoplaySpeed}
+                        disabled={!boxSetsForm.autoplayEnabled}
+                        onChange={(e) =>
+                          setBoxSetsForm({
+                            ...boxSetsForm,
+                            autoplaySpeed: parseInt(e.target.value, 10) || 4200,
+                          })
+                        }
+                        className="w-full accent-gold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      />
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { label: "FAST", val: 2500 },
+                          { label: "NORMAL", val: 4200 },
+                          { label: "SLOW", val: 6500 },
+                        ].map((preset) => (
+                          <button
+                            key={preset.val}
+                            type="button"
+                            disabled={!boxSetsForm.autoplayEnabled}
+                            onClick={() =>
+                              setBoxSetsForm({ ...boxSetsForm, autoplaySpeed: preset.val })
+                            }
+                            className={`px-2.5 py-1 rounded-xs border text-[10px] font-bold tracking-wider transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
+                              boxSetsForm.autoplaySpeed === preset.val
+                                ? "bg-gold text-ink border-gold"
+                                : "bg-ink-elevated text-text-muted border-ink-border hover:border-gold/60"
+                            }`}
+                          >
+                            {preset.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Typography Inputs */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex flex-col justify-end">
+                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                        Section Badge Text
+                      </label>
+                      <input
+                        type="text"
+                        value={boxSetsForm.badgeText}
+                        onChange={(e) =>
+                          setBoxSetsForm({ ...boxSetsForm, badgeText: e.target.value })
+                        }
+                        placeholder="e.g. COMPLETE COLLECTIONS"
+                        className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                      />
+                    </div>
+
+                    <div className="flex flex-col justify-end">
+                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                        Section Headline Title
+                      </label>
+                      <input
+                        type="text"
+                        value={boxSetsForm.headline}
+                        onChange={(e) =>
+                          setBoxSetsForm({ ...boxSetsForm, headline: e.target.value })
+                        }
+                        placeholder="e.g. BOX SETS"
+                        className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateBoxSetsConfig(boxSetsForm);
+                      showToast("Box sets carousel settings and flip speed saved live.");
+                    }}
+                    className="flex items-center gap-1.5 px-5 py-2.5 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Save Box Sets Settings</span>
                   </button>
                 </div>
               </div>
@@ -4044,13 +4236,9 @@ export default function AdminPage() {
                         </div>
                         <button
                           type="button"
-                          onClick={() => {
-                            if (adminEmails.length <= 1) {
-                              showToast("Cannot remove the only remaining admin account.");
-                              return;
-                            }
-                            removeAdminEmail(email);
-                            showToast(`Removed ${email}`);
+                          onClick={async () => {
+                            const result = await removeAdminEmail(email);
+                            showToast(result.message);
                           }}
                           disabled={adminEmails.length <= 1}
                           className={`p-1.5 rounded-xs transition-colors ${
@@ -4089,9 +4277,10 @@ export default function AdminPage() {
                           showToast("This email is already an authorized curator.");
                           return;
                         }
-                        addAdminEmail(val);
-                        setNewAdminEmailInput("");
-                        showToast(`Granted admin access to ${val}`);
+                        void addAdminEmail(val).then((result) => {
+                          if (result.success) setNewAdminEmailInput("");
+                          showToast(result.message);
+                        });
                       }
                     }}
                     placeholder="e.g. name@gmail.com"
@@ -4109,9 +4298,10 @@ export default function AdminPage() {
                         showToast("This email is already an authorized curator.");
                         return;
                       }
-                      addAdminEmail(val);
-                      setNewAdminEmailInput("");
-                      showToast(`Granted admin access to ${val}`);
+                      void addAdminEmail(val).then((result) => {
+                        if (result.success) setNewAdminEmailInput("");
+                        showToast(result.message);
+                      });
                     }}
                     className="flex items-center justify-center gap-1.5 px-4 py-2 bg-ink-elevated hover:bg-gold hover:text-ink text-paper text-xs uppercase tracking-wider rounded-sm transition-colors border border-ink-border cursor-pointer shrink-0 font-bold"
                   >
@@ -4176,7 +4366,6 @@ export default function AdminPage() {
                       });
                       setEditorialForm(editorialConfig);
                       setFeaturedSeriesForm(featuredSeriesConfig);
-                      setCollectionForm(collectionConfig);
                       setGenreBentoForm(genreBentoConfig);
                       setGenreDrafts({});
                       showToast("All store data reset to factory defaults.");

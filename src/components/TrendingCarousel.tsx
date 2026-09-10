@@ -10,7 +10,8 @@ import { ALL_VOLUMES, MangaVolume } from "@/data/manga";
 import { useCartStore } from "@/store/useCartStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, volumeBadgeLabel } from "@/lib/utils";
+import { PriceTag, PromoBadge } from "@/components/PriceTag";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -29,9 +30,20 @@ export function TrendingCarousel() {
   const autoplayEnabled = trendingConfig?.autoplayEnabled ?? true;
 
   // Curated trending items dynamically populated
+  // How full the rail should be. Curated picks always come first; the top-up
+  // only happens when there are not enough of them to fill it.
+  const MIN_TRENDING = Math.max(1, Math.min(24, trendingConfig?.minCards ?? 8));
+
   const trendingItems = React.useMemo(() => {
-    const items = activeVolumes.filter((v) => v.isTrending);
-    return items.length >= 4 ? items : activeVolumes.slice(0, 8);
+    const picked = activeVolumes.filter((v) => v.isTrending);
+    if (picked.length >= MIN_TRENDING) return picked;
+
+    const chosen = new Set(picked.map((v) => v.id));
+    const fillers = activeVolumes
+      .filter((v) => !chosen.has(v.id))
+      .sort((a, b) => (b.rating || 0) - (a.rating || 0) || (b.reviewCount || 0) - (a.reviewCount || 0));
+
+    return [...picked, ...fillers].slice(0, MIN_TRENDING);
   }, [activeVolumes]);
 
   const plugins = React.useMemo(() => {
@@ -195,8 +207,9 @@ export function TrendingCarousel() {
 
                     {/* Badges */}
                     <div className="absolute top-2.5 start-2.5 flex flex-col gap-1 z-10 pointer-events-none">
+                      <PromoBadge volume={volume} isArabic={isArabic} />
                       <span className="px-2 py-0.5 rounded-xs bg-ink/90 backdrop-blur-md text-[9px] sm:text-[10px] font-mono tracking-wider text-gold border border-ink-border">
-                        {isArabic ? "المجلد" : "VOL."} {volume.volumeNumber < 10 ? `0${volume.volumeNumber}` : volume.volumeNumber}
+                        {volumeBadgeLabel(volume, isArabic)}
                       </span>
                       {volume.format === "Deluxe Edition" && (
                         <span className="px-2 py-0.5 rounded-xs bg-vermilion/90 text-[8px] sm:text-[9px] font-mono tracking-wider text-white">
@@ -216,7 +229,7 @@ export function TrendingCarousel() {
                         <button
                           type="button"
                           disabled
-                          className="flex-1 py-2 sm:py-2.5 bg-ink-surface/90 text-text-muted font-bold text-[9px] sm:text-[10px] tracking-[0.14em] uppercase rounded-sm border border-ink-border cursor-not-allowed flex items-center justify-center gap-1 shadow-lg opacity-90"
+                          className="flex-1 py-2 sm:py-2.5 bg-ink-surface/90 text-text-muted font-bold text-[9px] sm:text-[10px] tracking-[0.14em] uppercase rounded-sm border border-ink-border cursor-not-allowed flex items-center justify-center gap-1 shadow-lg opacity-90 whitespace-nowrap shrink-0"
                         >
                           {isArabic ? "نفد" : "OUT OF STOCK"}
                         </button>
@@ -253,7 +266,7 @@ export function TrendingCarousel() {
                     </div>
 
                     <div className="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-ink-border/50 flex items-center justify-between font-mono text-xs">
-                      <span className="text-paper font-bold text-xs sm:text-sm tracking-wide">{formatPrice(volume.price)}</span>
+                      <PriceTag volume={volume} isArabic={isArabic} />
                       <div className="flex items-center gap-1 text-paper-muted shrink-0 text-[11px] sm:text-xs">
                         <Star strokeWidth={1.5} className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gold fill-gold" />
                         <span>{volume.rating.toFixed(1)}</span>

@@ -31,7 +31,6 @@ import {
   EditorialConfig,
   EditorialArabicConfig,
   FeaturedSeriesConfig,
-  CollectionConfig,
   TrendingConfig,
   TrendingArabicConfig,
   NewReleasesConfig,
@@ -71,7 +70,8 @@ export function LiveVisualEditor() {
     editorialConfig,
     editorialArabicConfig,
     featuredSeriesConfig,
-    collectionConfig,
+    boxSetsConfig,
+    boxSetsArabicConfig,
     trendingConfig,
     trendingArabicConfig,
     newReleasesConfig,
@@ -96,7 +96,8 @@ export function LiveVisualEditor() {
     updateEditorialConfig,
     updateEditorialArabicConfig,
     updateFeaturedSeriesConfig,
-    updateCollectionConfig,
+    updateBoxSetsConfig,
+    updateBoxSetsArabicConfig,
     updateTrendingConfig,
     updateTrendingArabicConfig,
     updateNewReleasesConfig,
@@ -444,20 +445,6 @@ export function LiveVisualEditor() {
         />
       )}
 
-      {/* Collection Modal */}
-      {activeLiveEditTarget?.type === "collection" && (
-        <CollectionLiveEditModal
-          initialConfig={collectionConfig}
-          volumes={volumes}
-          onClose={closeLiveEdit}
-          onSave={(updated) => {
-            updateCollectionConfig(updated);
-            closeLiveEdit();
-            showToast("Collection showcase updated and synced live!");
-          }}
-        />
-      )}
-
       {/* Shipping Config Modal */}
       {activeLiveEditTarget?.type === "shipping" && (
         <ShippingLiveEditModal
@@ -499,6 +486,28 @@ export function LiveVisualEditor() {
       )}
 
       {/* Trending Now Modal */}
+      {/* Box Sets Modal */}
+      {activeLiveEditTarget?.type === "box-sets" && (
+        <TrendingLiveEditModal
+          initialConfig={boxSetsConfig}
+          initialArabicConfig={boxSetsArabicConfig}
+          currentLocale={locale}
+          sectionLabel="Box Sets Carousel"
+          arabicSectionLabel="تعديل نصوص المجموعات الكاملة"
+          onClose={closeLiveEdit}
+          onSave={(updated) => {
+            updateBoxSetsConfig(updated);
+            closeLiveEdit();
+            showToast("Box sets carousel configuration updated and synced live!");
+          }}
+          onSaveArabic={(updated) => {
+            updateBoxSetsArabicConfig(updated);
+            closeLiveEdit();
+            showToast("تم تحديث قسم المجموعات الكاملة بالعربية ومزامنته!");
+          }}
+        />
+      )}
+
       {activeLiveEditTarget?.type === "trending" && (
         <TrendingLiveEditModal
           initialConfig={trendingConfig}
@@ -1251,284 +1260,6 @@ function FeaturedSeriesLiveEditModal({
             />
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-transform hover:scale-105"
-            >
-              <Save className="w-4 h-4" />
-              Save &amp; Sync Live
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function CollectionLiveEditModal({
-  initialConfig,
-  volumes,
-  onClose,
-  onSave,
-}: {
-  initialConfig: CollectionConfig;
-  volumes: MangaVolume[];
-  onClose: () => void;
-  onSave: (config: CollectionConfig) => void;
-}) {
-  useModalScrollLock(true);
-  const [form, setForm] = useState<CollectionConfig>({
-    ...initialConfig,
-    volumeId1: initialConfig.volumeId1 || "jjk-01",
-    volumeId2: initialConfig.volumeId2 || "jjk-02",
-    volumeId3: initialConfig.volumeId3 || "jjk-03",
-    secondaryCtaText: initialConfig.secondaryCtaText || "DISCOVER ALL BOXSETS",
-    secondaryCtaLink: initialConfig.secondaryCtaLink || "/manga?format=Box+Set",
-  });
-
-  const selectedVol1 = volumes.find((v) => v.id === form.volumeId1) || volumes[0];
-  const selectedVol2 = volumes.find((v) => v.id === form.volumeId2) || volumes[1] || volumes[0];
-  const selectedVol3 = volumes.find((v) => v.id === form.volumeId3) || volumes[2] || volumes[0];
-
-  const volumeOptions = React.useMemo(() => {
-    return volumes.map((v) => ({
-      value: v.id,
-      label: `${v.seriesTitle} - Vol. ${v.volumeNumber} (${v.title})`,
-      badge: v.format || "MANGA",
-    }));
-  }, [volumes]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(form);
-  };
-
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-2xl max-h-[90vh] flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50">
-          <div>
-            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider">
-              Live Edit: The Collection 3D Showcase
-            </h3>
-            <p className="text-[11px] font-mono text-text-muted">
-              Configure boxset headline, 3 featured volumes, bundle price, and cart actions.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-text-muted hover:text-paper p-1 cursor-pointer transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
-          {/* 1. Boxset Volumes Selection with Live Covers */}
-          <div className="space-y-3 p-4 bg-ink-surface/40 border border-ink-border rounded-xs">
-            <div className="flex items-center justify-between border-b border-ink-border/50 pb-2">
-              <span className="text-xs font-mono font-bold text-gold uppercase tracking-wider">
-                3D Boxset Volumes (Slipcase Showcase)
-              </span>
-              <span className="text-[10px] font-mono text-text-muted">
-                Left, Center (Hero), and Right volumes
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
-              {/* Volume 01 (Left) */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-9 h-12 rounded-xs overflow-hidden border border-ink-border shrink-0 bg-ink">
-                    {selectedVol1 && (
-                      <img
-                        src={selectedVol1.coverImage}
-                        alt={selectedVol1.title}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <label className="text-[11px] font-mono font-semibold text-paper block uppercase truncate">
-                      Vol 01 (Left)
-                    </label>
-                    <span className="text-[9px] font-mono text-gold block truncate">
-                      {selectedVol1?.seriesTitle}
-                    </span>
-                  </div>
-                </div>
-                <CustomSelect
-                  fullWidth
-                  value={form.volumeId1}
-                  onChange={(val) => setForm({ ...form, volumeId1: val })}
-                  options={volumeOptions}
-                  buttonClassName="bg-ink border-ink-border text-paper h-9 px-2 text-xs"
-                />
-              </div>
-
-              {/* Volume 02 (Center) */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-9 h-12 rounded-xs overflow-hidden border border-gold/50 ring-1 ring-gold/30 shrink-0 bg-ink">
-                    {selectedVol2 && (
-                      <img
-                        src={selectedVol2.coverImage}
-                        alt={selectedVol2.title}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <label className="text-[11px] font-mono font-semibold text-gold block uppercase truncate">
-                      Vol 02 (Center Hero)
-                    </label>
-                    <span className="text-[9px] font-mono text-gold block truncate">
-                      {selectedVol2?.seriesTitle}
-                    </span>
-                  </div>
-                </div>
-                <CustomSelect
-                  fullWidth
-                  value={form.volumeId2}
-                  onChange={(val) => setForm({ ...form, volumeId2: val })}
-                  options={volumeOptions}
-                  buttonClassName="bg-ink border-gold/40 text-paper h-9 px-2 text-xs"
-                />
-              </div>
-
-              {/* Volume 03 (Right) */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-9 h-12 rounded-xs overflow-hidden border border-ink-border shrink-0 bg-ink">
-                    {selectedVol3 && (
-                      <img
-                        src={selectedVol3.coverImage}
-                        alt={selectedVol3.title}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <label className="text-[11px] font-mono font-semibold text-paper block uppercase truncate">
-                      Vol 03 (Right)
-                    </label>
-                    <span className="text-[9px] font-mono text-gold block truncate">
-                      {selectedVol3?.seriesTitle}
-                    </span>
-                  </div>
-                </div>
-                <CustomSelect
-                  fullWidth
-                  value={form.volumeId3}
-                  onChange={(val) => setForm({ ...form, volumeId3: val })}
-                  options={volumeOptions}
-                  buttonClassName="bg-ink border-ink-border text-paper h-9 px-2 text-xs"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* 2. Section Typography & Pricing */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Section Headline
-              </label>
-              <input
-                type="text"
-                value={form.headline || ""}
-                onChange={(e) => setForm({ ...form, headline: e.target.value })}
-                placeholder="THE COLLECTION"
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Metadata Badge Text
-              </label>
-              <input
-                type="text"
-                value={form.badgeText || ""}
-                onChange={(e) => setForm({ ...form, badgeText: e.target.value })}
-                placeholder="COMPLETE ARCHIVE • VOL. 01–03"
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Boxset Bundle Price (EGP)
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={form.price || 29.99}
-                  onChange={(e) =>
-                    setForm({ ...form, price: Math.max(0, parseFloat(e.target.value) || 0) })
-                  }
-                  className="w-full bg-ink-surface border border-ink-border text-gold font-bold px-3 py-2 text-sm rounded-xs focus:border-gold outline-none font-mono"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-text-muted pointer-events-none">
-                  EGP
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Primary CTA Label
-              </label>
-              <input
-                type="text"
-                value={form.primaryCtaText || ""}
-                onChange={(e) => setForm({ ...form, primaryCtaText: e.target.value })}
-                placeholder="ADD SET TO CART"
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Secondary CTA Label
-              </label>
-              <input
-                type="text"
-                value={form.secondaryCtaText || ""}
-                onChange={(e) => setForm({ ...form, secondaryCtaText: e.target.value })}
-                placeholder="DISCOVER ALL BOXSETS"
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Secondary CTA Destination Link
-              </label>
-              <input
-                type="text"
-                value={form.secondaryCtaLink || ""}
-                onChange={(e) => setForm({ ...form, secondaryCtaLink: e.target.value })}
-                placeholder="/manga?format=Box+Set"
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none font-mono text-xs"
-              />
-            </div>
-          </div>
-
-          {/* Footer */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
             <button
               type="button"
@@ -2493,6 +2224,8 @@ function TrendingLiveEditModal({
   initialConfig,
   initialArabicConfig,
   currentLocale = "en",
+  sectionLabel = "Trending Now Carousel",
+  arabicSectionLabel = "تعديل نصوص الأكثر رواجاً بالعربية",
   onClose,
   onSave,
   onSaveArabic,
@@ -2500,6 +2233,8 @@ function TrendingLiveEditModal({
   initialConfig: TrendingConfig;
   initialArabicConfig?: TrendingArabicConfig;
   currentLocale?: "en" | "ar";
+  sectionLabel?: string;
+  arabicSectionLabel?: string;
   onClose: () => void;
   onSave: (config: TrendingConfig) => void;
   onSaveArabic: (config: TrendingArabicConfig) => void;
@@ -2531,10 +2266,10 @@ function TrendingLiveEditModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50 gap-3">
           <div className="min-w-0">
             <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider truncate">
-              Live Edit: Trending Now Carousel
+              Live Edit: {sectionLabel}
             </h3>
             <p className="text-[11px] font-mono text-text-muted truncate">
-              {editLang === "ar" ? "تعديل نصوص الأكثر رواجاً بالعربية" : "Configure carousel speed & section headlines"}
+              {editLang === "ar" ? arabicSectionLabel : "Configure carousel speed & section headlines"}
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">

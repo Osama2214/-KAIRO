@@ -1,13 +1,16 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { X, Save, Plus, Check, Upload, Loader2 } from "lucide-react";
+import { X, Save, Plus, Check, Upload, Loader2, Timer, Package, AlertTriangle } from "lucide-react";
 import { MangaVolume, Series, GenreInfo } from "@/data/manga";
+import { priceVolume } from "@/lib/pricing";
+import { describeBundle, findBundleCycle, indexById, type VolumeLike } from "@/lib/bundle";
 import { CustomSelect } from "@/components/CustomSelect";
 import { CustomNumberInput } from "@/components/ui/CustomNumberInput";
 import { ImageUploadInput } from "@/components/ImageUploadInput";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { useStorefrontStore, DEFAULT_FORMATS } from "@/store/useStorefrontStore";
+import { PLACEHOLDER_BANNER, PLACEHOLDER_COVER } from "@/config/mediaDefaults";
 
 interface VolumeFormModalProps {
   isOpen: boolean;
@@ -15,6 +18,21 @@ interface VolumeFormModalProps {
   onSave: (volume: MangaVolume) => void;
   initialVolume?: MangaVolume | null;
   seriesList: Series[];
+}
+
+/** ISO instant -> the value a datetime-local input wants, in local time. */
+function toLocalInputValue(iso: string | undefined): string {
+  if (!iso) return "";
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return "";
+  return new Date(ms - new Date(ms).getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
+/** The reverse: a local wall-clock value -> a stored ISO instant. */
+function fromLocalInputValue(value: string): string | undefined {
+  if (!value) return undefined;
+  const ms = Date.parse(value);
+  return Number.isFinite(ms) ? new Date(ms).toISOString() : undefined;
 }
 
 function VolumeFormDialog({
@@ -55,7 +73,7 @@ function VolumeFormDialog({
       originalPrice: 14.99,
       rating: 4.9,
       reviewCount: 50,
-      coverImage: "https://images-na.ssl-images-amazon.com/images/P/1974700526.01._SX700_SCLZZZZZZZ_.jpg",
+      coverImage: PLACEHOLDER_COVER,
       synopsis: "",
       format: "Manga",
       pages: 192,
@@ -97,8 +115,8 @@ function VolumeFormDialog({
       genres: selectedGenres.length > 0 ? selectedGenres : ["Action"],
       description: `Curated narrative arc for ${newSeriesTitle.trim()}.`,
       quote: "Canonical series collection.",
-      bannerImage: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=1000&auto=format&fit=crop",
-      featuredImage: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=1000&auto=format&fit=crop",
+      bannerImage: PLACEHOLDER_BANNER,
+      featuredImage: PLACEHOLDER_COVER,
       status: "Ongoing",
       totalVolumes: 1,
       volumes: [],
@@ -164,7 +182,7 @@ function VolumeFormDialog({
       name,
       japanese: kanji,
       description: `Curated canonical ${name} titles.`,
-      coverImage: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=1000&auto=format&fit=crop",
+      coverImage: PLACEHOLDER_COVER,
       popularTitle: formData.title || "Archival Selection",
     };
 
@@ -179,6 +197,7 @@ function VolumeFormDialog({
 
   const [previewPagesInput, setPreviewPagesInput] = useState(() => (initialVolume?.previewPages || []).join("\n"));
   const [isUploadingPreviews, setIsUploadingPreviews] = useState(false);
+  const [isImportingPreviews, setIsImportingPreviews] = useState(false);
   const [previewUploadProgress, setPreviewUploadProgress] = useState<{ total: number; done: number } | null>(null);
   const [previewUploadError, setPreviewUploadError] = useState("");
   const previewFileInputRef = React.useRef<HTMLInputElement>(null);
@@ -231,6 +250,44 @@ function VolumeFormDialog({
     }
   };
 
+  /**
+   * Pulls any pasted page URLs into our own storage when the field loses focus.
+   *
+   * Pages typed in by hand should end up in the same bucket as the uploaded
+   * ones — otherwise the reader hotlinks a host we do not control, and Next's
+   * optimiser refuses any host missing from next.config.
+   */
+  const handlePreviewUrlsBlur = async () => {
+    const lines = previewPagesInput.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (!lines.some((line) => /^https?:\/\//i.test(line))) return;
+
+    setIsImportingPreviews(true);
+    setPreviewUploadError("");
+    try {
+      const imported = await Promise.all(
+        lines.map(async (line) => {
+          if (!/^https?:\/\//i.test(line)) return line;
+          try {
+            const res = await fetch("/api/upload", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ url: line }),
+            });
+            const data = await res.json();
+            // Leave the original in place on failure rather than losing the page.
+            return res.ok && data.success ? data.url : line;
+          } catch {
+            return line;
+          }
+        })
+      );
+      const next = imported.join("\n");
+      if (next !== previewPagesInput.trim()) setPreviewPagesInput(next);
+    } finally {
+      setIsImportingPreviews(false);
+    }
+  };
+
   const currentPreviewUrls = useMemo(() => {
     return previewPagesInput
       .split("\n")
@@ -256,7 +313,73 @@ function VolumeFormDialog({
     }
   };
 
+  // Shows the curator exactly what a shopper pays, through the same module
+  // the server prices with.
+  const promoPreview = (() => {
+    const promo = formData.promo;
+    if (!promo?.percent || !promo?.endsAt) return "";
+    const ends = Date.parse(promo.endsAt);
+    if (!Number.isFinite(ends)) return "";
+    if (ends <= Date.now()) return "That end time has already passed — the offer will not apply.";
+    const priced = priceVolume({ price: Number(formData.price) || 0, originalPrice: formData.originalPrice, promo });
+    if (!priced.activePromo) return "Scheduled — not live yet.";
+    const hours = Math.round((priced.endsInMs || 0) / 3600000);
+    return `Shoppers pay ${priced.price.toFixed(2)} EGP instead of ${Number(formData.price).toFixed(2)} — ends in ${hours}h.`;
+  })();
+
+  // --- Box set contents -----------------------------------------------------
+  const allVolumes = useStorefrontStore((s) => s.volumes);
+  const isBoxSet = formData.format === "Box Set";
+
+  // A box cannot contain itself, and listing another box would let one bundle
+  // silently depend on another's contents.
+  const eligibleMembers = useMemo(
+    () => allVolumes.filter((v) => v.id !== formData.id && v.format !== "Box Set"),
+    [allVolumes, formData.id]
+  );
+
+  const memberIds = useMemo(() => formData.bundleOf || [], [formData.bundleOf]);
+
+  const toggleMember = (id: string) => {
+    const next = memberIds.includes(id)
+      ? memberIds.filter((m) => m !== id)
+      : [...memberIds, id];
+    setFormData((prev) => ({ ...prev, bundleOf: next }));
+  };
+
+  // Everything the curator needs to see before saving: how many boxes this can
+  // actually make, which volume is the bottleneck, and what the contents are
+  // worth — all from the same module the storefront and checkout use.
+  const bundleFacts = useMemo(() => {
+    if (!isBoxSet || memberIds.length === 0) return null;
+    const byId = indexById(allVolumes as unknown as VolumeLike[]);
+    const facts = describeBundle({ bundleOf: memberIds }, byId);
+    const cycle = findBundleCycle(String(formData.id || ""), memberIds, byId);
+    const limiting = facts.limitingMemberId
+      ? allVolumes.find((v) => v.id === facts.limitingMemberId)
+      : null;
+    return { ...facts, cycle, limiting };
+  }, [isBoxSet, memberIds, allVolumes, formData.id]);
+
+
   const handleSubmit = (e: React.FormEvent) => {
+    if (formData.format === "Box Set") {
+      const chosen = formData.bundleOf || [];
+      if (chosen.length === 0) {
+        alert("A box set needs at least one volume in it. Pick its contents below.");
+        return;
+      }
+      if (bundleFacts?.cycle) {
+        alert("A box set cannot contain itself or another box set.");
+        return;
+      }
+      if (bundleFacts && bundleFacts.missing.length > 0) {
+        alert(`These volumes are no longer in the catalogue: ${bundleFacts.missing.join(", ")}`);
+        return;
+      }
+    }
+
+
     e.preventDefault();
 
     const parsedPreviews = previewPagesInput
@@ -279,6 +402,14 @@ function VolumeFormDialog({
       artist: formData.artist || formData.author || "Unknown",
       price: Number(formData.price) || 0,
       originalPrice: formData.originalPrice ? Number(formData.originalPrice) : undefined,
+      // Only a box set carries contents; anything else drops the field so a
+      // format change cannot leave a stale bundle behind.
+      bundleOf: formData.format === "Box Set" ? formData.bundleOf : undefined,
+      // An incomplete offer is dropped rather than stored half-set.
+      promo:
+        formData.promo?.percent && formData.promo?.endsAt
+          ? { ...formData.promo, percent: Number(formData.promo.percent) }
+          : undefined,
       rating: Number(formData.rating) || 5.0,
       reviewCount: Number(formData.reviewCount) || 0,
       coverImage: formData.coverImage || "",
@@ -539,7 +670,7 @@ function VolumeFormDialog({
                   required
                 />
               </div>
-              <div className="flex flex-col justify-end">
+              <div className="flex flex-col justify-end" hidden={isBoxSet}>
                 <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end truncate" title="Original Price (EGP) (Strikethrough)">Original Price (EGP)</label>
                 <CustomNumberInput
                   step="any"
@@ -552,7 +683,7 @@ function VolumeFormDialog({
                   placeholder="e.g. 250"
                 />
               </div>
-              <div className="flex flex-col justify-end">
+              <div className="flex flex-col justify-end" hidden={isBoxSet}>
                 <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end truncate" title="Stock Units Available *">Stock Available *</label>
                 <CustomNumberInput
                   min={0}
@@ -560,7 +691,7 @@ function VolumeFormDialog({
                   className="h-10"
                   value={formData.stock}
                   onChange={(e) => setFormData({ ...formData, stock: parseInt(e.target.value, 10) || 0 })}
-                  required
+                  required={!isBoxSet}
                 />
               </div>
               <div className="flex flex-col justify-end">
@@ -575,6 +706,207 @@ function VolumeFormDialog({
                 />
               </div>
             </div>
+
+              {/* Box Set Contents */}
+              {isBoxSet && (
+                <div className="p-3.5 bg-ink/60 border border-gold/30 rounded-xs space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Package strokeWidth={1.6} className="w-3.5 h-3.5 text-gold" />
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-gold">
+                        Box Contents — {memberIds.length} volume{memberIds.length === 1 ? "" : "s"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, bundleOf: eligibleMembers.map((v) => v.id) })}
+                        className="text-[10px] font-mono uppercase tracking-wider text-text-muted hover:text-gold cursor-pointer"
+                      >
+                        Select all
+                      </button>
+                      <span className="text-ink-border">|</span>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, bundleOf: [] })}
+                        className="text-[10px] font-mono uppercase tracking-wider text-text-muted hover:text-vermilion cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-text-muted leading-relaxed">
+                    Stock and the &quot;before discount&quot; price are worked out from these volumes —
+                    you do not set them for a box. Selling one box takes one copy of every
+                    volume listed here.
+                  </p>
+
+                  <div
+                    data-lenis-prevent
+                    className="max-h-56 overflow-y-auto overscroll-contain space-y-1 pr-1 border-y border-ink-border/60 py-2"
+                  >
+                    {eligibleMembers.length === 0 ? (
+                      <p className="text-[11px] text-text-muted py-2">No volumes available to add yet.</p>
+                    ) : (
+                      eligibleMembers.map((volume) => {
+                        const checked = memberIds.includes(volume.id);
+                        return (
+                          <label
+                            key={volume.id}
+                            onClick={() => toggleMember(volume.id)}
+                            className="flex items-center justify-between gap-2 text-[11px] text-text-muted hover:text-paper cursor-pointer group select-none py-1 px-1 -mx-1 rounded-xs hover:bg-ink-elevated/50"
+                          >
+                            <span className="flex items-center gap-2.5 min-w-0">
+                              <span
+                                className={`w-4 h-4 rounded-xs border flex items-center justify-center shrink-0 transition-colors ${
+                                  checked ? "bg-gold border-gold text-ink" : "border-ink-border group-hover:border-paper/60"
+                                }`}
+                              >
+                                {checked && <Check strokeWidth={2.5} className="w-3 h-3" />}
+                              </span>
+                              <span className="truncate">
+                                Vol. {volume.volumeNumber} — {volume.title}
+                              </span>
+                            </span>
+                            <span className={`font-mono shrink-0 ${volume.stock <= 0 ? "text-vermilion" : "text-text-muted/70"}`}>
+                              {volume.stock} in stock
+                            </span>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {bundleFacts && (
+                    <div className="space-y-1.5 text-[11px] font-mono">
+                      {bundleFacts.cycle ? (
+                        <p className="flex items-start gap-1.5 text-vermilion">
+                          <AlertTriangle strokeWidth={1.8} className="w-3.5 h-3.5 shrink-0 mt-px" />
+                          <span>A box set cannot contain itself or another box set.</span>
+                        </p>
+                      ) : bundleFacts.missing.length > 0 ? (
+                        <p className="flex items-start gap-1.5 text-vermilion">
+                          <AlertTriangle strokeWidth={1.8} className="w-3.5 h-3.5 shrink-0 mt-px" />
+                          <span>Missing from the catalogue: {bundleFacts.missing.join(", ")}</span>
+                        </p>
+                      ) : (
+                        <>
+                          <p className={bundleFacts.stock > 0 ? "text-gold" : "text-vermilion"}>
+                            {bundleFacts.stock > 0
+                              ? `Can assemble ${bundleFacts.stock} box${bundleFacts.stock === 1 ? "" : "es"} right now.`
+                              : "Out of stock — at least one volume in this box has none left."}
+                          </p>
+                          {bundleFacts.limiting && (
+                            <p className="text-text-muted">
+                              Limited by Vol. {bundleFacts.limiting.volumeNumber} — {bundleFacts.limiting.title}
+                              {" "}({bundleFacts.limiting.stock} left).
+                            </p>
+                          )}
+                          <p className="text-text-muted">
+                            Contents are worth {bundleFacts.listPrice.toFixed(2)} EGP separately
+                            {Number(formData.price) > 0 && bundleFacts.listPrice > Number(formData.price)
+                              ? ` — this box saves ${(bundleFacts.listPrice - Number(formData.price)).toFixed(2)} EGP (${Math.round((1 - Number(formData.price) / bundleFacts.listPrice) * 100)}%).`
+                              : "."}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Limited-Time Offer */}
+              <div className="p-3.5 bg-ink/60 border border-vermilion/30 rounded-xs space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Timer strokeWidth={1.6} className="w-3.5 h-3.5 text-vermilion" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-vermilion">Limited-Time Offer</span>
+                  </div>
+                  {formData.promo?.endsAt ? (
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, promo: undefined })}
+                      className="text-[10px] font-mono uppercase tracking-wider text-text-muted hover:text-vermilion cursor-pointer"
+                    >
+                      Remove offer
+                    </button>
+                  ) : (
+                    <span className="text-[10px] text-text-muted">Optional — applied on top of the price above</span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
+                  <div className="flex flex-col justify-end">
+                    <label className="block text-text-muted mb-1.5">Discount %</label>
+                    <CustomNumberInput
+                      min={0}
+                      max={90}
+                      step={1}
+                      className="h-10"
+                      inputClassName="text-vermilion font-bold"
+                      value={formData.promo?.percent ?? ""}
+                      onChange={(e) => {
+                        const percent = parseInt(e.target.value, 10);
+                        setFormData({
+                          ...formData,
+                          promo: Number.isFinite(percent) && percent > 0
+                            ? { ...(formData.promo || { endsAt: "" }), percent }
+                            : undefined,
+                        });
+                      }}
+                      placeholder="e.g. 20"
+                    />
+                  </div>
+                  <div className="flex flex-col justify-end">
+                    <label className="block text-text-muted mb-1.5">Starts (optional)</label>
+                    <input
+                      type="datetime-local"
+                      value={toLocalInputValue(formData.promo?.startsAt)}
+                      onChange={(e) => setFormData({ ...formData, promo: { ...(formData.promo || { percent: 0, endsAt: "" }), startsAt: fromLocalInputValue(e.target.value) } })}
+                      className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                    />
+                  </div>
+                  <div className="flex flex-col justify-end">
+                    <label className="block text-text-muted mb-1.5">Ends *</label>
+                    <input
+                      type="datetime-local"
+                      value={toLocalInputValue(formData.promo?.endsAt)}
+                      onChange={(e) => setFormData({ ...formData, promo: { ...(formData.promo || { percent: 0 }), endsAt: fromLocalInputValue(e.target.value) || "" } })}
+                      className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
+                  <div className="flex flex-col justify-end">
+                    <label className="block text-text-muted mb-1.5">Badge label (EN)</label>
+                    <input
+                      type="text"
+                      maxLength={40}
+                      value={formData.promo?.label ?? ""}
+                      onChange={(e) => setFormData({ ...formData, promo: { ...(formData.promo || { percent: 0, endsAt: "" }), label: e.target.value } })}
+                      placeholder="e.g. WEEKEND DEAL"
+                      className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                    />
+                  </div>
+                  <div className="flex flex-col justify-end">
+                    <label className="block text-text-muted mb-1.5">Badge label (AR)</label>
+                    <input
+                      type="text"
+                      maxLength={40}
+                      dir="rtl"
+                      value={formData.promo?.labelArabic ?? ""}
+                      onChange={(e) => setFormData({ ...formData, promo: { ...(formData.promo || { percent: 0, endsAt: "" }), labelArabic: e.target.value } })}
+                      placeholder="مثال: عرض نهاية الأسبوع"
+                      className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                    />
+                  </div>
+                </div>
+
+                {promoPreview && <p className="text-[11px] font-mono text-gold">{promoPreview}</p>}
+              </div>
+
           </div>
 
           {/* Section: Artwork & Manga Reader Preview */}
@@ -653,6 +985,8 @@ function VolumeFormDialog({
                   rows={3}
                   value={previewPagesInput}
                   onChange={(e) => setPreviewPagesInput(e.target.value)}
+                  onBlur={handlePreviewUrlsBlur}
+                  disabled={isImportingPreviews}
                   placeholder="https://images.../page-1.jpg&#10;https://images.../page-2.jpg&#10;https://images.../page-3.jpg (or click Upload Pages from PC above)"
                   className="w-full bg-ink border border-ink-border text-paper p-3 rounded-sm focus:border-gold outline-none font-mono text-[11px]"
                 />

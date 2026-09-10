@@ -35,8 +35,49 @@ export function ImageUploadInput({
 }: ImageUploadInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  /** Last URL we already handed to the importer, so leaving the field twice is a no-op. */
+  const importedRef = useRef<string>("");
+
+  /**
+   * Pulls a pasted URL into our own object storage.
+   *
+   * A typed-in cover URL is an image source like any other, so it belongs in
+   * the bucket next to the uploaded ones: an external host can rate-limit us,
+   * change the artwork, or disappear, and Next's optimiser only accepts hosts
+   * listed in next.config. On failure the original URL is left in place — the
+   * curator can still save it, it just will not be served from our storage.
+   */
+  const importFromUrl = async (rawUrl: string) => {
+    const source = rawUrl.trim();
+    if (!/^https?:\/\//i.test(source) || source === importedRef.current) return;
+    importedRef.current = source;
+
+    setIsImporting(true);
+    setUploadError("");
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: source }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "Could not import that image URL.");
+
+      if (!data.alreadyStored) {
+        importedRef.current = data.url;
+        onChange(data.url);
+        setUploadSuccess(true);
+        setTimeout(() => setUploadSuccess(false), 3000);
+      }
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : "Could not import that image URL.");
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   const recDimensions = recommendedDimensions || DEFAULT_RECOMMENDED[aspectRatio];
   const effectivePlaceholder =
@@ -77,21 +118,12 @@ export function ImageUploadInput({
       setUploadSuccess(true);
       setTimeout(() => setUploadSuccess(false), 3000);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Upload failed.";
-      // Fallback: convert file to local data URL so user can still see and use it offline
-      try {
-        const reader = new FileReader();
-        reader.onload = () => {
-          if (typeof reader.result === "string") {
-            onChange(reader.result);
-            setUploadSuccess(true);
-            setTimeout(() => setUploadSuccess(false), 3000);
-          }
-        };
-        reader.readAsDataURL(file);
-      } catch {
-        setUploadError(msg);
-      }
+      // A failed upload has to read as failed. This used to fall back to a
+      // base64 data URL and report success, which silently embedded whole
+      // images inside the storefront payload: they never reached object
+      // storage, could not be optimised or cached, and bloated the row that
+      // every visitor downloads.
+      setUploadError(err instanceof Error ? err.message : "Upload failed.");
     } finally {
       setIsUploading(false);
       // Reset file input so user can re-upload same file if desired
@@ -149,6 +181,11 @@ export function ImageUploadInput({
               setUploadError("");
               onChange(e.target.value);
             }}
+            onBlur={(e) => importFromUrl(e.target.value)}
+            onPaste={(e) => {
+              const pasted = e.clipboardData.getData("text");
+              if (/^https?:\/\//i.test(pasted.trim())) setTimeout(() => importFromUrl(pasted), 0);
+            }}
             placeholder={effectivePlaceholder}
             required={required}
             className="w-full h-10 bg-ink border border-ink-border text-paper px-3 pr-8 rounded-sm focus:border-gold outline-none text-xs font-mono truncate"
@@ -173,15 +210,15 @@ export function ImageUploadInput({
         {/* Upload Button */}
         <button
           type="button"
-          disabled={isUploading}
+          disabled={isUploading || isImporting}
           onClick={() => fileInputRef.current?.click()}
           className="h-10 px-3 bg-ink-surface hover:bg-gold/15 border border-ink-border hover:border-gold/60 text-gold text-xs font-mono font-bold uppercase tracking-wider rounded-sm transition-all flex items-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           title="Upload image from your local computer"
         >
-          {isUploading ? (
+          {isUploading || isImporting ? (
             <>
               <Loader2 className="w-3.5 h-3.5 animate-spin text-gold" />
-              <span className="hidden sm:inline">UPLOADING...</span>
+              <span className="hidden sm:inline">{isImporting ? "IMPORTING..." : "UPLOADING..."}</span>
             </>
           ) : uploadSuccess ? (
             <>
@@ -226,7 +263,7 @@ export function ImageUploadInput({
       {uploadSuccess && (
         <div className="text-[11px] font-mono text-emerald-400 flex items-center gap-1 mt-1 animate-in fade-in">
           <Check className="w-3 h-3 shrink-0" />
-          <span>Image stored locally on server at {value}</span>
+          <span className="truncate">Stored in the media bucket: {value}</span>
         </div>
       )}
     </div>

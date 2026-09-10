@@ -24,7 +24,7 @@ const isAuthorizedEmail = isAuthorizedAdminEmail;
 
 export async function createCuratorToken(email: string, request: Request): Promise<string | null> {
   const secret = sessionSecret();
-  if (!secret || !isAuthorizedEmail(email)) return null;
+  if (!secret || !(await isAuthorizedEmail(email))) return null;
   const sessionVersion = await getAdminSessionVersion();
 
   const payload = Buffer.from(JSON.stringify({
@@ -47,7 +47,7 @@ export async function verifyCuratorToken(token: string | null | undefined, reque
 
   try {
     const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
-    if (decoded.role !== "admin" || !decoded.exp || decoded.exp < Date.now() || decoded.fp !== fingerprint(request) || !isAuthorizedEmail(decoded.sub) || decoded.sv !== await getAdminSessionVersion()) {
+    if (decoded.role !== "admin" || !decoded.exp || decoded.exp < Date.now() || decoded.fp !== fingerprint(request) || !(await isAuthorizedEmail(decoded.sub)) || decoded.sv !== await getAdminSessionVersion()) {
       return { valid: false };
     }
     return { valid: true, email: decoded.sub };

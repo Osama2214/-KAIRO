@@ -1,11 +1,19 @@
 ﻿import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import crypto from "crypto";
-import { isAuthorizedAdminEmail } from "@/config/adminConfig";
 
 const SESSION_SECRET = process.env.ADMIN_SESSION_SECRET;
 
-function isCuratorAuthorized(token: string | null | undefined): boolean {
+/**
+ * Cheap cryptographic pre-filter: signature, expiry and role only.
+ *
+ * It deliberately does NOT consult the curator allow-list or the session
+ * version. Those now live in the database, and checking them here would add a
+ * query to every matched request. Each protected route re-verifies the token
+ * in full through `curatorSession()`, which is the authoritative check — this
+ * only turns away obvious junk before it reaches a function.
+ */
+function hasWellFormedCuratorToken(token: string | null | undefined): boolean {
   if (!SESSION_SECRET || SESSION_SECRET.length < 32 || !token || !token.includes(".")) return false;
   const [encodedPayload, signature] = token.split(".");
   if (!encodedPayload || !signature) return false;
@@ -24,10 +32,7 @@ function isCuratorAuthorized(token: string | null | undefined): boolean {
 
   try {
     const payload = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8"));
-    if (!payload.exp || payload.exp < Date.now() || payload.role !== "admin") {
-      return false;
-    }
-    return isAuthorizedAdminEmail(payload.sub);
+    return Boolean(payload.exp && payload.exp >= Date.now() && payload.role === "admin" && payload.sub);
   } catch {
     return false;
   }
@@ -44,7 +49,7 @@ export function proxy(request: NextRequest) {
     const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : null;
     const token = cookieToken || bearerToken;
 
-    if (!isCuratorAuthorized(token)) {
+    if (!hasWellFormedCuratorToken(token)) {
       return NextResponse.json(
         {
           success: false,

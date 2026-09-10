@@ -73,27 +73,58 @@ export interface FeaturedSeriesConfig {
   customImage?: string;
 }
 
-export interface CollectionConfig {
-  headline: string;
-  badgeText: string;
-  price: number;
-  volumeId1: string;
-  volumeId2: string;
-  volumeId3: string;
-  primaryCtaText: string;
-  secondaryCtaText: string;
-  secondaryCtaLink: string;
-}
-
 export interface GenreBentoConfig {
   badgeText: string;
   title: string;
   description: string;
 }
 
+/** Where the strip may appear. Each slot is a real position in the layout. */
+export const TICKER_SLOTS = [
+  { id: "after-hero", label: "Home — under the hero" },
+  { id: "after-new-releases", label: "Home — under New Releases" },
+  { id: "before-discovery", label: "Home — above the search section" },
+  { id: "above-footer", label: "Every page — above the footer" },
+] as const;
+
+export type TickerSlot = (typeof TICKER_SLOTS)[number]["id"];
+
+export interface TickerConfig {
+  enabled: boolean;
+  /** Which slots the strip is shown in. Empty means nowhere. */
+  placements?: TickerSlot[];
+  /** Lines the curator wants marching across the top of every page. */
+  messages: string[];
+  /** One full pass of the track, in seconds. Lower is faster. */
+  speedSeconds: number;
+  /** Optional destination for the whole strip. */
+  linkHref?: string;
+}
+
+export interface TickerArabicConfig {
+  messages: string[];
+}
+
+export interface BoxSetsConfig {
+  badgeText: string;
+  headline: string;
+  autoplayEnabled: boolean;
+  autoplaySpeed: number; // in milliseconds
+}
+
+export interface BoxSetsArabicConfig {
+  badgeText: string;
+  headline: string;
+}
+
 export interface TrendingConfig {
   badgeText: string;
   headline: string;
+  /**
+   * How many cards the rail should carry. Curated picks come first; the rest
+   * is topped up by rating only when there are not enough of them.
+   */
+  minCards?: number;
   autoplayEnabled: boolean;
   autoplaySpeed: number; // in milliseconds
 }
@@ -185,9 +216,37 @@ export interface TrendingArabicConfig {
   headline: string;
 }
 
+const DEFAULT_TICKER_CONFIG: TickerConfig = {
+  enabled: false,
+  messages: [
+    "FREE SHIPPING ON ORDERS OVER EGP 500",
+    "AUTHENTIC VIZ MEDIA ENGLISH EDITIONS",
+    "CASH ON DELIVERY ACROSS EGYPT",
+  ],
+  speedSeconds: 30,
+  linkHref: "",
+  placements: ["after-hero"],
+};
+
+const DEFAULT_TICKER_ARABIC_CONFIG: TickerArabicConfig = {
+  messages: [
+    "شحن مجاني للطلبات فوق ٥٠٠ جنيه",
+    "إصدارات بأعلى جودة",
+    "الدفع عند الاستلام في كل محافظات مصر",
+  ],
+};
+
+const DEFAULT_BOX_SETS_CONFIG: BoxSetsConfig = {
+  badgeText: "COMPLETE COLLECTIONS",
+  headline: "BOX SETS",
+  autoplayEnabled: true,
+  autoplaySpeed: 4200,
+};
+
 const DEFAULT_TRENDING_CONFIG: TrendingConfig = {
   badgeText: "CURATED SELECTION",
   headline: "TRENDING NOW",
+  minCards: 8,
   autoplayEnabled: true,
   autoplaySpeed: 3800,
 };
@@ -268,18 +327,6 @@ const DEFAULT_FEATURED_SERIES: FeaturedSeriesConfig = {
   customImage: "",
 };
 
-const DEFAULT_COLLECTION_CONFIG: CollectionConfig = {
-  headline: "THE COLLECTION",
-  badgeText: "COMPLETE ARCHIVE • VOL. 01–03",
-  price: 29.99,
-  volumeId1: "jjk-01",
-  volumeId2: "jjk-02",
-  volumeId3: "jjk-03",
-  primaryCtaText: "ADD SET TO CART",
-  secondaryCtaText: "DISCOVER ALL BOXSETS",
-  secondaryCtaLink: "/manga?format=Box+Set",
-};
-
 const DEFAULT_GENRE_BENTO: GenreBentoConfig = {
   badgeText: "CATEGORY DIRECTORY",
   title: "EXPLORE YOUR GENRE",
@@ -356,6 +403,11 @@ const DEFAULT_MANGA_DISCOVERY_ARABIC_CONFIG: MangaDiscoveryArabicConfig = {
   catalogLinkText: "الانتقال لكتالوج المانجا الكامل",
 };
 
+const DEFAULT_BOX_SETS_ARABIC_CONFIG: BoxSetsArabicConfig = {
+  badgeText: "المجموعات الكاملة",
+  headline: "طقم المجموعة الكاملة",
+};
+
 const DEFAULT_TRENDING_ARABIC_CONFIG: TrendingArabicConfig = {
   badgeText: "مختارات الأرشيف",
   headline: "الأكثر رواجاً الآن",
@@ -381,12 +433,13 @@ export type LiveEditTarget =
   | { type: "hero" }
   | { type: "hero-card" }
   | { type: "trending" }
+  | { type: "box-sets" }
+  | { type: "ticker" }
   | { type: "new-releases" }
   | { type: "genre-bento" }
   | { type: "announcement" }
   | { type: "featured-series" }
   | { type: "featured-series-card" }
-  | { type: "collection" }
   | { type: "shipping" }
   | { type: "editorial" }
   | { type: "manga-discovery" }
@@ -405,8 +458,9 @@ export interface StorefrontState {
   shippingConfig: ShippingConfig;
   editorialConfig: EditorialConfig;
   featuredSeriesConfig: FeaturedSeriesConfig;
-  collectionConfig: CollectionConfig;
   genreBentoConfig: GenreBentoConfig;
+  tickerConfig: TickerConfig;
+  boxSetsConfig: BoxSetsConfig;
   trendingConfig: TrendingConfig;
   newReleasesConfig: NewReleasesConfig;
   mangaDiscoveryConfig: MangaDiscoveryConfig;
@@ -418,6 +472,8 @@ export interface StorefrontState {
   editorialArabicConfig: EditorialArabicConfig;
   newReleasesArabicConfig: NewReleasesArabicConfig;
   mangaDiscoveryArabicConfig: MangaDiscoveryArabicConfig;
+  tickerArabicConfig: TickerArabicConfig;
+  boxSetsArabicConfig: BoxSetsArabicConfig;
   trendingArabicConfig: TrendingArabicConfig;
   genreBentoArabicConfig: GenreBentoArabicConfig;
 
@@ -451,8 +507,11 @@ export interface StorefrontState {
   updateShippingConfig: (updates: Partial<ShippingConfig>) => void;
   updateEditorialConfig: (updates: Partial<EditorialConfig>) => void;
   updateFeaturedSeriesConfig: (updates: Partial<FeaturedSeriesConfig>) => void;
-  updateCollectionConfig: (updates: Partial<CollectionConfig>) => void;
   updateGenreBentoConfig: (updates: Partial<GenreBentoConfig>) => void;
+  updateTickerConfig: (updates: Partial<TickerConfig>) => void;
+  updateTickerArabicConfig: (updates: Partial<TickerArabicConfig>) => void;
+  updateBoxSetsConfig: (updates: Partial<BoxSetsConfig>) => void;
+  updateBoxSetsArabicConfig: (updates: Partial<BoxSetsArabicConfig>) => void;
   updateTrendingConfig: (updates: Partial<TrendingConfig>) => void;
   updateNewReleasesConfig: (updates: Partial<NewReleasesConfig>) => void;
   updateMangaDiscoveryConfig: (updates: Partial<MangaDiscoveryConfig>) => void;
@@ -478,8 +537,8 @@ export interface StorefrontState {
   loginAdmin: (pin: string, userEmail?: string) => boolean;
   loginAdminWithToken: (token: string) => void;
   logoutAdmin: () => void;
-  addAdminEmail: (email: string) => void;
-  removeAdminEmail: (email: string) => void;
+  addAdminEmail: (email: string) => Promise<{ success: boolean; message: string }>;
+  removeAdminEmail: (email: string) => Promise<{ success: boolean; message: string }>;
   isAuthorizedAdmin: (email?: string) => boolean;
 
   // Utilities
@@ -500,8 +559,9 @@ export const useStorefrontStore = create<StorefrontState>()(
       shippingConfig: DEFAULT_SHIPPING_CONFIG,
       editorialConfig: DEFAULT_EDITORIAL,
       featuredSeriesConfig: DEFAULT_FEATURED_SERIES,
-      collectionConfig: DEFAULT_COLLECTION_CONFIG,
       genreBentoConfig: DEFAULT_GENRE_BENTO,
+      tickerConfig: DEFAULT_TICKER_CONFIG,
+      boxSetsConfig: DEFAULT_BOX_SETS_CONFIG,
       trendingConfig: DEFAULT_TRENDING_CONFIG,
       newReleasesConfig: DEFAULT_NEW_RELEASES_CONFIG,
       mangaDiscoveryConfig: DEFAULT_MANGA_DISCOVERY_CONFIG,
@@ -511,6 +571,8 @@ export const useStorefrontStore = create<StorefrontState>()(
       editorialArabicConfig: DEFAULT_EDITORIAL_ARABIC,
       newReleasesArabicConfig: DEFAULT_NEW_RELEASES_ARABIC_CONFIG,
       mangaDiscoveryArabicConfig: DEFAULT_MANGA_DISCOVERY_ARABIC_CONFIG,
+      tickerArabicConfig: DEFAULT_TICKER_ARABIC_CONFIG,
+      boxSetsArabicConfig: DEFAULT_BOX_SETS_ARABIC_CONFIG,
       trendingArabicConfig: DEFAULT_TRENDING_ARABIC_CONFIG,
       genreBentoArabicConfig: DEFAULT_GENRE_BENTO_ARABIC_CONFIG,
       isAdminAuthenticated: false,
@@ -684,15 +746,29 @@ export const useStorefrontStore = create<StorefrontState>()(
         }));
       },
 
-      updateCollectionConfig: (updates) => {
-        set((state) => ({
-          collectionConfig: { ...state.collectionConfig, ...updates },
-        }));
-      },
-
       updateGenreBentoConfig: (updates) => {
         set((state) => ({
           genreBentoConfig: { ...state.genreBentoConfig, ...updates },
+        }));
+      },
+
+      updateTickerConfig: (updates) => {
+        set((state) => ({ tickerConfig: { ...state.tickerConfig, ...updates } }));
+      },
+
+      updateTickerArabicConfig: (updates) => {
+        set((state) => ({ tickerArabicConfig: { ...state.tickerArabicConfig, ...updates } }));
+      },
+
+      updateBoxSetsConfig: (updates) => {
+        set((state) => ({
+          boxSetsConfig: { ...state.boxSetsConfig, ...updates },
+        }));
+      },
+
+      updateBoxSetsArabicConfig: (updates) => {
+        set((state) => ({
+          boxSetsArabicConfig: { ...state.boxSetsArabicConfig, ...updates },
         }));
       },
 
@@ -766,10 +842,10 @@ export const useStorefrontStore = create<StorefrontState>()(
         const state = get() as unknown as Record<string, unknown>;
         const DATA_KEYS = [
           "volumes", "series", "genres", "formats", "heroContent", "announcement", "shippingConfig",
-          "editorialConfig", "featuredSeriesConfig", "collectionConfig", "genreBentoConfig", "trendingConfig",
+          "editorialConfig", "featuredSeriesConfig", "genreBentoConfig", "trendingConfig", "boxSetsConfig", "tickerConfig",
           "newReleasesConfig", "mangaDiscoveryConfig", "heroArabicContent", "announcementArabic",
           "shippingArabicConfig", "editorialArabicConfig", "newReleasesArabicConfig", "mangaDiscoveryArabicConfig",
-          "trendingArabicConfig", "genreBentoArabicConfig",
+          "trendingArabicConfig", "boxSetsArabicConfig", "tickerArabicConfig", "genreBentoArabicConfig",
         ];
         const data = Object.fromEntries(DATA_KEYS.map((k) => [k, state[k]]));
         try {
@@ -855,23 +931,41 @@ export const useStorefrontStore = create<StorefrontState>()(
         } catch {}
       },
 
-      addAdminEmail: (email) => {
+      // The allow-list is server state. These used to mutate a local array
+      // only, so "Add Admin" granted nothing and the next session check
+      // silently replaced the list with the server's.
+      addAdminEmail: async (email) => {
         const normalized = email.trim().toLowerCase();
-        if (!normalized) return;
-        set((state) => {
-          const list = state.adminEmails || [];
-          if (list.includes(normalized)) return state;
-          return { adminEmails: [...list, normalized] };
-        });
+        if (!normalized) return { success: false, message: "No email supplied." };
+        try {
+          const res = await fetch("/api/admin/emails", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: normalized }),
+          });
+          const json = await res.json().catch(() => ({}));
+          if (Array.isArray(json.adminEmails)) set({ adminEmails: json.adminEmails });
+          return { success: Boolean(json.success), message: json.message || "Could not update the administrator list." };
+        } catch {
+          return { success: false, message: "Network error updating the administrator list." };
+        }
       },
 
-      removeAdminEmail: (email) => {
+      removeAdminEmail: async (email) => {
         const normalized = email.trim().toLowerCase();
-        set((state) => {
-          const list = state.adminEmails || [];
-          if (list.length <= 1) return state; // Never remove all admins
-          return { adminEmails: list.filter((e) => e.toLowerCase() !== normalized) };
-        });
+        if (!normalized) return { success: false, message: "No email supplied." };
+        try {
+          const res = await fetch("/api/admin/emails", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: normalized }),
+          });
+          const json = await res.json().catch(() => ({}));
+          if (Array.isArray(json.adminEmails)) set({ adminEmails: json.adminEmails });
+          return { success: Boolean(json.success), message: json.message || "Could not update the administrator list." };
+        } catch {
+          return { success: false, message: "Network error updating the administrator list." };
+        }
       },
 
       isAuthorizedAdmin: (email) => {
@@ -891,8 +985,9 @@ export const useStorefrontStore = create<StorefrontState>()(
           shippingConfig: DEFAULT_SHIPPING_CONFIG,
           editorialConfig: DEFAULT_EDITORIAL,
           featuredSeriesConfig: DEFAULT_FEATURED_SERIES,
-          collectionConfig: DEFAULT_COLLECTION_CONFIG,
-          genreBentoConfig: DEFAULT_GENRE_BENTO,
+              genreBentoConfig: DEFAULT_GENRE_BENTO,
+          tickerConfig: DEFAULT_TICKER_CONFIG,
+          boxSetsConfig: DEFAULT_BOX_SETS_CONFIG,
           trendingConfig: DEFAULT_TRENDING_CONFIG,
           newReleasesConfig: DEFAULT_NEW_RELEASES_CONFIG,
           mangaDiscoveryConfig: DEFAULT_MANGA_DISCOVERY_CONFIG,
@@ -902,6 +997,8 @@ export const useStorefrontStore = create<StorefrontState>()(
           editorialArabicConfig: DEFAULT_EDITORIAL_ARABIC,
           newReleasesArabicConfig: DEFAULT_NEW_RELEASES_ARABIC_CONFIG,
           mangaDiscoveryArabicConfig: DEFAULT_MANGA_DISCOVERY_ARABIC_CONFIG,
+          tickerArabicConfig: DEFAULT_TICKER_ARABIC_CONFIG,
+          boxSetsArabicConfig: DEFAULT_BOX_SETS_ARABIC_CONFIG,
           trendingArabicConfig: DEFAULT_TRENDING_ARABIC_CONFIG,
           genreBentoArabicConfig: DEFAULT_GENRE_BENTO_ARABIC_CONFIG,
         });
@@ -921,9 +1018,10 @@ export const useStorefrontStore = create<StorefrontState>()(
           shippingConfig: state.shippingConfig,
           editorialConfig: state.editorialConfig,
           featuredSeriesConfig: state.featuredSeriesConfig,
-          collectionConfig: state.collectionConfig,
-          genreBentoConfig: state.genreBentoConfig,
-          trendingConfig: state.trendingConfig,
+            genreBentoConfig: state.genreBentoConfig,
+          tickerConfig: state.tickerConfig,
+        boxSetsConfig: state.boxSetsConfig,
+        trendingConfig: state.trendingConfig,
           newReleasesConfig: state.newReleasesConfig,
           mangaDiscoveryConfig: state.mangaDiscoveryConfig,
           heroArabicContent: state.heroArabicContent,
@@ -932,7 +1030,9 @@ export const useStorefrontStore = create<StorefrontState>()(
           editorialArabicConfig: state.editorialArabicConfig,
           newReleasesArabicConfig: state.newReleasesArabicConfig,
           mangaDiscoveryArabicConfig: state.mangaDiscoveryArabicConfig,
-          trendingArabicConfig: state.trendingArabicConfig,
+          tickerArabicConfig: state.tickerArabicConfig,
+        boxSetsArabicConfig: state.boxSetsArabicConfig,
+        trendingArabicConfig: state.trendingArabicConfig,
           genreBentoArabicConfig: state.genreBentoArabicConfig,
         };
         return JSON.stringify(exportPayload, null, 2);
@@ -967,8 +1067,9 @@ export const useStorefrontStore = create<StorefrontState>()(
             },
             editorialConfig: { ...DEFAULT_EDITORIAL, ...(parsed.editorialConfig || {}) },
             featuredSeriesConfig: { ...DEFAULT_FEATURED_SERIES, ...(parsed.featuredSeriesConfig || {}) },
-            collectionConfig: { ...DEFAULT_COLLECTION_CONFIG, ...(parsed.collectionConfig || {}) },
             genreBentoConfig: { ...DEFAULT_GENRE_BENTO, ...(parsed.genreBentoConfig || {}) },
+            tickerConfig: { ...DEFAULT_TICKER_CONFIG, ...(parsed.tickerConfig || {}) },
+            boxSetsConfig: { ...DEFAULT_BOX_SETS_CONFIG, ...(parsed.boxSetsConfig || {}) },
             trendingConfig: { ...DEFAULT_TRENDING_CONFIG, ...(parsed.trendingConfig || {}) },
             newReleasesConfig: { ...DEFAULT_NEW_RELEASES_CONFIG, ...(parsed.newReleasesConfig || {}) },
             mangaDiscoveryConfig: { ...DEFAULT_MANGA_DISCOVERY_CONFIG, ...(parsed.mangaDiscoveryConfig || {}) },
@@ -978,6 +1079,8 @@ export const useStorefrontStore = create<StorefrontState>()(
             editorialArabicConfig: { ...DEFAULT_EDITORIAL_ARABIC, ...(parsed.editorialArabicConfig || {}) },
             newReleasesArabicConfig: { ...DEFAULT_NEW_RELEASES_ARABIC_CONFIG, ...(parsed.newReleasesArabicConfig || {}) },
             mangaDiscoveryArabicConfig: { ...DEFAULT_MANGA_DISCOVERY_ARABIC_CONFIG, ...(parsed.mangaDiscoveryArabicConfig || {}) },
+            tickerArabicConfig: { ...DEFAULT_TICKER_ARABIC_CONFIG, ...(parsed.tickerArabicConfig || {}) },
+            boxSetsArabicConfig: { ...DEFAULT_BOX_SETS_ARABIC_CONFIG, ...(parsed.boxSetsArabicConfig || {}) },
             trendingArabicConfig: { ...DEFAULT_TRENDING_ARABIC_CONFIG, ...(parsed.trendingArabicConfig || {}) },
             genreBentoArabicConfig: { ...DEFAULT_GENRE_BENTO_ARABIC_CONFIG, ...(parsed.genreBentoArabicConfig || {}) },
           });
@@ -1005,8 +1108,9 @@ export const useStorefrontStore = create<StorefrontState>()(
         shippingConfig: state.shippingConfig,
         editorialConfig: state.editorialConfig,
         featuredSeriesConfig: state.featuredSeriesConfig,
-        collectionConfig: state.collectionConfig,
         genreBentoConfig: state.genreBentoConfig,
+        tickerConfig: state.tickerConfig,
+        boxSetsConfig: state.boxSetsConfig,
         trendingConfig: state.trendingConfig,
         newReleasesConfig: state.newReleasesConfig,
         mangaDiscoveryConfig: state.mangaDiscoveryConfig,
@@ -1016,6 +1120,8 @@ export const useStorefrontStore = create<StorefrontState>()(
         editorialArabicConfig: state.editorialArabicConfig,
         newReleasesArabicConfig: state.newReleasesArabicConfig,
         mangaDiscoveryArabicConfig: state.mangaDiscoveryArabicConfig,
+        tickerArabicConfig: state.tickerArabicConfig,
+        boxSetsArabicConfig: state.boxSetsArabicConfig,
         trendingArabicConfig: state.trendingArabicConfig,
         genreBentoArabicConfig: state.genreBentoArabicConfig,
       }),

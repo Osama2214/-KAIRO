@@ -1,5 +1,6 @@
 "use client";
 
+import { useCatalogSearch } from "@/hooks/useCatalogSearch";
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Search, X, Star, ArrowRight } from "lucide-react";
@@ -30,28 +31,33 @@ export function SearchModal() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isSearchOpen, closeSearch]);
 
-  const filteredVolumes = useMemo(() => {
+  // Tab filtering and text search are separate steps: the tab result is what
+  // the search index is built from, and it only changes when a tab does.
+  const tabFiltered = useMemo(() => {
     let list: MangaVolume[] = [...allVolumes];
+
+    // A typed query searches the whole shop; the tab only narrows browsing.
+    if (query.trim()) return list;
 
     if (activeFilter === "POPULAR") {
       list = list.filter((v) => v.isTrending);
     } else if (activeFilter === "TOP_RATED") {
       list = list.filter((v) => v.rating >= 4.9);
     } else if (activeFilter === "BEST_SELLERS") {
-      list = list.filter((v) => v.stock > 30);
+      // Sales volume is not recorded, so review count stands in for it — a
+      // far better proxy than shelf stock, which measures the opposite.
+      list = [...list].sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0));
     }
 
-    if (!query.trim()) return list.slice(0, 6);
+      return list;
+  }, [activeFilter, allVolumes, query]);
 
-    const q = query.toLowerCase().trim();
-    return list.filter(
-      (v) =>
-        v.title.toLowerCase().includes(q) ||
-        v.seriesTitle.toLowerCase().includes(q) ||
-        v.author.toLowerCase().includes(q) ||
-        v.genre.some((g) => g.toLowerCase().includes(q))
-    );
-  }, [query, activeFilter, allVolumes]);
+  const ranked = useCatalogSearch(tabFiltered, query);
+  // An empty box is a browse, not a search, so it stays a short preview.
+  const filteredVolumes = useMemo(
+    () => (query.trim() ? ranked.slice(0, 24) : ranked.slice(0, 6)),
+    [ranked, query]
+  );
 
   const filterTabs = [
     { id: "ALL" as const, label: t.search.filterAll },

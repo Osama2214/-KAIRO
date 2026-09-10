@@ -4,6 +4,7 @@ import React from "react";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
+import { TickerBar } from "@/components/TickerBar";
 import { Footer } from "@/components/Footer";
 import { CartDrawer } from "@/components/CartDrawer";
 import { SearchModal } from "@/components/SearchModal";
@@ -32,6 +33,7 @@ export function StorefrontShell({ children }: { children: React.ReactNode }) {
       <StorefrontDataSync />
       <Navbar />
       <main className="flex-1 w-full overflow-x-clip relative">{children}</main>
+      <TickerBar slot="above-footer" />
       <Footer />
       <CartDrawer />
       <SearchModal />

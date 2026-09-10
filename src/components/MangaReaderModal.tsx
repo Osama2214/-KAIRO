@@ -375,7 +375,7 @@ export function MangaReaderModal() {
                     </div>
                     <button
                       onClick={handleAddToCartAndClose}
-                      className="px-5 py-2.5 bg-paper text-ink font-bold text-xs font-mono tracking-wider uppercase rounded-xs hover:bg-vermilion hover:text-white transition-all shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 mt-1"
+                      className="px-5 py-2.5 bg-paper text-ink font-bold text-xs font-mono tracking-wider uppercase rounded-xs hover:bg-vermilion hover:text-white transition-all shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 mt-1 whitespace-nowrap shrink-0"
                     >
                       <ShoppingBag strokeWidth={1.4} className="w-4 h-4" />
                       <span>{isArabic ? "أضف للسلة" : "ADD TO CART"}</span>

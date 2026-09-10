@@ -583,3 +583,36 @@ html.animeverse-loading #animeverse-restore-loader {
     display: none !important;
   }
 }
+
+/* Ticker bar: the track scrolls its own width, and a duplicate track sits
+   beside it so the loop restarts with no visible gap. */
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+
+@keyframes ticker-scroll-rtl {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+.ticker-track {
+  animation: ticker-scroll var(--ticker-duration, 30s) linear infinite;
+}
+
+[dir="rtl"] .ticker-track {
+  animation-name: ticker-scroll-rtl;
+}
+
+.group:hover .ticker-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation: none;
+  }
+  .ticker-viewport {
+    overflow-x: auto;
+  }
+}

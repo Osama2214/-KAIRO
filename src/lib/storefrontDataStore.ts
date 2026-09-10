@@ -2,6 +2,8 @@ import "server-only";
 
 import { neon } from "@neondatabase/serverless";
 import { ALL_VOLUMES, MangaVolume } from "@/data/manga";
+import { effectivePrice } from "@/lib/pricing";
+import { applyBundleFacts, expandToPhysicalUnits, indexById, withBundleFacts, type VolumeLike } from "@/lib/bundle";
 
 const databaseUrl = process.env.DATABASE_URL;
 const sql = databaseUrl ? neon(databaseUrl) : null;
@@ -107,7 +109,24 @@ export async function getStorefrontData(): Promise<Record<string, unknown> | nul
         };
       })
     : data.series;
-  return { ...data, volumes, series };
+  // A box set carries no stock of its own; what it can sell comes from the
+  // volumes it is assembled from, worked out here so every surface that
+  // reads this payload sees the same number.
+  const resolvedVolumes = Array.isArray(volumes)
+    ? withBundleFacts(volumes as unknown as VolumeLike[])
+    : volumes;
+  const byId = Array.isArray(resolvedVolumes)
+    ? indexById(resolvedVolumes as unknown as VolumeLike[])
+    : new Map<string, VolumeLike>();
+  const resolvedSeries = Array.isArray(series)
+    ? series.map((entry) => {
+        const record = entry as Record<string, unknown>;
+        return Array.isArray(record.volumes)
+          ? { ...record, volumes: (record.volumes as unknown as VolumeLike[]).map((v) => applyBundleFacts(v, byId)) }
+          : record;
+      })
+    : series;
+  return { ...data, volumes: resolvedVolumes, series: resolvedSeries };
 }
 
 /** Every image URL a storefront payload references. */
@@ -186,11 +205,42 @@ export async function reserveCatalogItems(rawItems: Array<{ id: string; quantity
   if (requestedMap.size === 0 || [...requestedMap.values()].some((quantity) => quantity > 10)) {
     throw new CatalogReservationError("Invalid item quantities.");
   }
-  const requested = [...requestedMap].map(([id, quantity]) => ({ id, quantity }));
+
+  // A box set holds no stock of its own: it is drawn from the volumes it is
+  // assembled from. Resolve the whole active catalogue first so a bundle can be
+  // expanded into the books that actually leave the shelf, and so a box and a
+  // loose copy of one of its volumes in the same basket compete for the same
+  // stock instead of each being checked in isolation.
+  const catalogueRows = await sql!`SELECT payload FROM kairo_catalog_items WHERE active = TRUE`;
+  const catalogue = catalogueRows.map((row) => row.payload as MangaVolume);
+  const byId = indexById(catalogue as unknown as VolumeLike[]);
+
+  const requestedIds = [...requestedMap.keys()];
+  const unknownRequested = requestedIds.filter((id) => !byId.has(id));
+  if (unknownRequested.length > 0) {
+    throw new CatalogReservationError("One or more items are no longer available.");
+  }
+
+  const { units, unknown } = expandToPhysicalUnits(
+    requestedIds.map((id) => ({ id, quantity: requestedMap.get(id) as number })),
+    byId
+  );
+  if (unknown.length > 0) {
+    // A box listing a volume that has since been removed cannot be fulfilled.
+    throw new CatalogReservationError("One or more items are no longer available.");
+  }
+
+  const physical = [...units].map(([id, quantity]) => ({ id, quantity }));
+  if (physical.length === 0) {
+    throw new CatalogReservationError("Invalid item quantities.");
+  }
+
+  // The whole basket succeeds or none of it does: the UPDATE only fires when
+  // every required volume passed its stock check inside the same statement.
   const rows = await sql!`
     WITH requested AS (
       SELECT id, quantity
-      FROM jsonb_to_recordset(${JSON.stringify(requested)}::jsonb) AS item(id TEXT, quantity INTEGER)
+      FROM jsonb_to_recordset(${JSON.stringify(physical)}::jsonb) AS item(id TEXT, quantity INTEGER)
     ), eligible AS (
       SELECT catalog.id
       FROM kairo_catalog_items AS catalog
@@ -202,14 +252,37 @@ export async function reserveCatalogItems(rawItems: Array<{ id: string; quantity
       FROM requested
       WHERE catalog.id = requested.id
         AND (SELECT COUNT(*) FROM eligible) = (SELECT COUNT(*) FROM requested)
-      RETURNING catalog.payload
+      RETURNING catalog.id, catalog.stock
     )
-    SELECT payload FROM updated
+    SELECT id, stock FROM updated
   `;
-  if (rows.length !== requested.length) {
+  if (rows.length !== physical.length) {
     throw new CatalogReservationError("One or more items are unavailable or no longer have enough stock.");
   }
-  return rows.map((row) => ({ ...(row.payload as MangaVolume), stock: Math.max(0, Number((row.payload as MangaVolume).stock) - (requestedMap.get((row.payload as MangaVolume).id) || 0)) }));
+
+  // Stock after the reservation, so a bundle's remaining count reflects the
+  // copies this very order just consumed.
+  const remaining = new Map(rows.map((row) => [String(row.id), Number(row.stock)]));
+  const afterSale = indexById(
+    catalogue.map((item) => ({
+      ...item,
+      stock: remaining.has(String(item.id)) ? (remaining.get(String(item.id)) as number) : item.stock,
+    })) as unknown as VolumeLike[]
+  );
+
+  // Price is settled here, on the server, against the stored catalogue row.
+  // A limited-time offer applies only if it is still running at this moment,
+  // so a shopper who lingered past its end pays the normal price rather than
+  // the one their stale page was showing.
+  const now = Date.now();
+  return requestedIds.map((id) => {
+    const item = byId.get(id) as unknown as MangaVolume;
+    const resolved = applyBundleFacts(item as unknown as VolumeLike, afterSale) as unknown as MangaVolume;
+    return {
+      ...resolved,
+      price: effectivePrice(resolved, now),
+    };
+  });
 }
 
 /**
@@ -225,8 +298,18 @@ export async function restoreCatalogItems(items: Array<{ volumeId?: string; id?:
     const qty = Math.max(1, Math.floor(Number(it.quantity) || 1));
     if (id) restoreMap.set(id, (restoreMap.get(id) || 0) + qty);
   }
+  if (restoreMap.size === 0) return;
 
-  const restored = [...restoreMap].map(([id, quantity]) => ({ id, quantity }));
+  // A cancelled box put thirty-one volumes back, not one box: the credit has
+  // to follow the same expansion the reservation used.
+  const catalogueRows = await sql`SELECT payload FROM kairo_catalog_items`;
+  const byId = indexById(catalogueRows.map((row) => row.payload as VolumeLike));
+  const { units } = expandToPhysicalUnits(
+    [...restoreMap].map(([id, quantity]) => ({ id, quantity })),
+    byId
+  );
+
+  const restored = [...units].map(([id, quantity]) => ({ id, quantity }));
   if (restored.length === 0) return;
 
   await sql`

@@ -2,19 +2,33 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { KeyRound, ShieldCheck, ArrowLeft } from "lucide-react";
+import { KeyRound, ShieldCheck, ArrowLeft, Mail } from "lucide-react";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { verifyAdminPinWithServer } from "@/lib/security";
 
 export function AdminLoginOverlay() {
   const loginAdmin = useStorefrontStore((state) => state.loginAdmin);
+  const currentUserEmail = useAuthStore((state) => state.currentUser?.email || "");
 
+  /**
+   * The console used to sign in as one hard-coded address no matter who was at
+   * the keyboard, so every other curator on the allow-list was locked out and
+   * they all shared one lockout counter. The signed-in patron's address is
+   * pre-filled, and can be overridden for a curator using someone else's
+   * browser.
+   */
+  const [email, setEmail] = useState(currentUserEmail);
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState("");
   const [isSubmittingPin, setIsSubmittingPin] = useState(false);
 
   const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email.trim() || !email.includes("@")) {
+      setPinError("Enter the curator email for this console.");
+      return;
+    }
     if (!pin.trim()) {
       setPinError("PIN is required.");
       return;
@@ -24,7 +38,7 @@ export function AdminLoginOverlay() {
     setPinError("");
 
     try {
-      const res = await verifyAdminPinWithServer("animeversebooks@gmail.com", pin.trim());
+      const res = await verifyAdminPinWithServer(email.trim().toLowerCase(), pin.trim());
       setIsSubmittingPin(false);
 
       if (res.locked) {
@@ -37,7 +51,7 @@ export function AdminLoginOverlay() {
         return;
       }
 
-      loginAdmin(pin.trim(), "animeversebooks@gmail.com");
+      loginAdmin(pin.trim(), email.trim().toLowerCase());
     } catch {
       setIsSubmittingPin(false);
       setPinError("Server error while verifying PIN. Please try again.");
@@ -62,12 +76,27 @@ export function AdminLoginOverlay() {
             Curator Access
           </h1>
           <p className="text-xs text-text-muted mt-1.5 font-mono">
-            Enter your master PIN to access the console
+            Enter your curator email and master PIN
           </p>
         </div>
 
         {/* PIN Form */}
-        <form onSubmit={handlePinSubmit} className="space-y-5">
+        <form onSubmit={handlePinSubmit} className="space-y-4">
+          <div className="relative">
+            <Mail className="w-4 h-4 text-gold/60 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="email"
+              autoComplete="username"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setPinError("");
+              }}
+              placeholder="curator@email.com"
+              className="w-full bg-ink border border-ink-border focus:border-gold pl-10 pr-3 py-3 text-sm font-mono text-paper rounded-sm outline-none transition-colors"
+            />
+          </div>
+
           <div>
             <div className="relative">
               <KeyRound className="w-4 h-4 text-gold/60 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -79,9 +108,10 @@ export function AdminLoginOverlay() {
                   setPin(e.target.value);
                   setPinError("");
                 }}
+                autoComplete="current-password"
                 placeholder="Enter PIN..."
                 className="w-full bg-ink border border-ink-border focus:border-gold px-10 py-3.5 text-center text-lg font-mono tracking-[0.3em] text-paper rounded-sm outline-none transition-colors"
-                autoFocus
+                autoFocus={Boolean(currentUserEmail)}
               />
             </div>
             {pinError && (

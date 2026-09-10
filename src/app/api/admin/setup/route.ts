@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     }
 
     // Only an address already on the curator allow-list may be bootstrapped.
-    if (!isAuthorizedAdminEmail(email)) {
+    if (!(await isAuthorizedAdminEmail(email))) {
       return NextResponse.json(
         { success: false, message: "This email is not on the curator allow-list." },
         { status: 403 }

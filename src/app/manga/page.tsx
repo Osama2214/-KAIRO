@@ -14,13 +14,15 @@ import {
   Heart,
   ChevronLeft,
   ChevronRight,
+  Search,
 } from "lucide-react";
 import { ALL_VOLUMES, GENRES } from "@/data/manga";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
-import { formatPrice } from "@/lib/utils";
+import { useCatalogSearch } from "@/hooks/useCatalogSearch";
+import { formatPrice, volumeBadgeLabel } from "@/lib/utils";
 import { createPortal } from "react-dom";
 import { CustomSelect } from "@/components/CustomSelect";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
@@ -40,7 +42,34 @@ function MangaCatalogContent() {
   const storeFormats = useStorefrontStore((state) => state.formats);
 
   const activeVolumes = storeVolumes && storeVolumes.length > 0 ? storeVolumes : ALL_VOLUMES;
-  const activeGenres = storeGenres && storeGenres.length > 0 ? storeGenres : GENRES;
+  // The genre list follows the CMS and also picks up any genre a volume
+  // carries that the curator has not added to the directory yet, so new
+  // genres never leave their books unfilterable.
+  const activeGenres = useMemo(() => {
+    const base = storeGenres && storeGenres.length > 0 ? storeGenres : GENRES;
+    // Dedupe on both name and id: the directory lists "Dark Fantasy" under
+    // the id "dark", and a volume tagged plain "Dark" slugifies to that same
+    // id — which React saw as two children sharing one key.
+    const knownNames = new Set(base.map((g) => g.name.toLowerCase()));
+    const knownIds = new Set(base.map((g) => g.id.toLowerCase()));
+    const extras: typeof base = [];
+
+    for (const volume of activeVolumes) {
+      for (const name of volume.genre || []) {
+        const label = name.toLowerCase();
+        // The filter compares a selected id against volume genre names, so
+        // the id has to be the lowercased name to stay filterable.
+        if (knownNames.has(label) || knownIds.has(label)) continue;
+        knownNames.add(label);
+        knownIds.add(label);
+        extras.push({ id: label, name, japanese: name, description: "", coverImage: "", popularTitle: "" });
+      }
+    }
+
+    return [...base, ...extras];
+  }, [storeGenres, activeVolumes]);
+
+  const [searchQuery, setSearchQuery] = useState("");
 
   const availableFormats = useMemo(() => {
     const base = storeFormats && storeFormats.length > 0
@@ -133,7 +162,7 @@ function MangaCatalogContent() {
   };
 
   // Filtered and Sorted Volumes
-  const filteredVolumes = useMemo(() => {
+  const preSearchVolumes = useMemo(() => {
     return activeVolumes.filter((volume) => {
       // Sale filter
       if (onSaleOnly && (!volume.originalPrice || volume.originalPrice <= volume.price)) {
@@ -174,6 +203,10 @@ function MangaCatalogContent() {
       return b.rating - a.rating;
     });
   }, [selectedGenres, selectedFormats, inStockOnly, onSaleOnly, effectivePriceMax, sortBy, activeVolumes]);
+
+  // Relevance ordering only makes sense while something is typed; otherwise
+  // the shopper's chosen sort stands.
+  const filteredVolumes = useCatalogSearch(preSearchVolumes, searchQuery);
 
   const activeFilterCount =
     selectedGenres.length +
@@ -241,6 +274,39 @@ function MangaCatalogContent() {
               />
             </div>
           </div>
+        </div>
+
+
+        {/* Catalogue Search */}
+        <div className="relative mb-6">
+          <Search strokeWidth={1.5} className="w-4 h-4 text-gold absolute start-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            placeholder={
+              isArabic
+                ? "ابحث بالاسم، المؤلف، رقم المجلد، أو ISBN..."
+                : "Search by title, author, volume number, or ISBN..."
+            }
+            className="w-full h-[46px] bg-ink-surface border border-ink-border rounded-xs ps-11 pe-11 text-sm text-paper placeholder:text-text-muted/70 focus:border-gold outline-none transition-colors"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery("");
+                setCurrentPage(1);
+              }}
+              className="absolute end-3 top-1/2 -translate-y-1/2 p-1 text-text-muted hover:text-paper transition-colors cursor-pointer"
+              aria-label={isArabic ? "مسح البحث" : "Clear search"}
+            >
+              <X strokeWidth={1.6} className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Active Filter Chips Bar */}
@@ -326,17 +392,17 @@ function MangaCatalogContent() {
               <h4 className="text-xs font-mono tracking-wider text-gold uppercase">
                 {isArabic ? "التصنيف الأدبي" : "GENRE"}
               </h4>
-              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              <div data-lenis-prevent className="space-y-2 max-h-60 overflow-y-auto overscroll-contain pr-1">
                 {activeGenres.map((genre) => {
                   const isChecked = selectedGenres.includes(genre.id.toLowerCase());
                   return (
                     <label
                       key={genre.id}
+                      onClick={() => toggleGenre(genre.id.toLowerCase())}
                       className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer group select-none py-1 gap-2"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div
-                          onClick={() => toggleGenre(genre.id.toLowerCase())}
                           className={`w-4 h-4 rounded-xs border flex items-center justify-center transition-colors shrink-0 ${
                             isChecked
                               ? "bg-gold border-gold text-ink"
@@ -367,11 +433,11 @@ function MangaCatalogContent() {
                   return (
                     <label
                       key={format}
+                      onClick={() => toggleFormat(format)}
                       className="flex items-center justify-between text-xs text-text-muted hover:text-paper cursor-pointer group select-none py-1 gap-2"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div
-                          onClick={() => toggleFormat(format)}
                           className={`w-4 h-4 rounded-xs border flex items-center justify-center transition-colors shrink-0 ${
                             isChecked
                               ? "bg-gold border-gold text-ink"
@@ -511,7 +577,7 @@ function MangaCatalogContent() {
                     <h4 className="text-xs font-mono tracking-wider text-gold uppercase">
                       {isArabic ? "التصنيف الأدبي" : "GENRE"}
                     </h4>
-                    <div className="space-y-2.5 max-h-52 overflow-y-auto pr-1">
+                    <div data-lenis-prevent className="space-y-2.5 max-h-52 overflow-y-auto overscroll-contain pr-1">
                       {activeGenres.map((genre) => {
                         const isChecked = selectedGenres.includes(genre.id.toLowerCase());
                         return (
@@ -730,7 +796,7 @@ function MangaCatalogContent() {
                       />
                       <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 pointer-events-none z-10">
                         <span className="px-2 py-0.5 rounded-xs bg-ink/90 backdrop-blur-md text-[9px] font-mono tracking-wider text-gold border border-ink-border">
-                          VOL. {volume.volumeNumber < 10 ? `0${volume.volumeNumber}` : volume.volumeNumber}
+                          {volumeBadgeLabel(volume, isArabic)}
                         </span>
                         {volume.originalPrice && volume.originalPrice > volume.price && (
                           <span className="px-2 py-0.5 rounded-xs bg-vermilion text-[8px] font-mono font-bold tracking-wider text-white shadow-sm">
@@ -808,8 +874,8 @@ function MangaCatalogContent() {
                         <div className="flex items-center gap-1 mt-1.5 sm:mt-2 text-[11px] font-mono text-text-muted">
                           <Star strokeWidth={1.5} className="w-3 h-3 text-gold fill-gold shrink-0" />
                           <span className="text-paper font-semibold">{volume.rating.toFixed(1)}</span>
-                          <span className="text-[10px] text-text-muted/70">
-                            ({volume.reviewCount})
+                          <span className="text-[10px] text-text-muted/70 truncate">
+                            ({volume.reviewCount.toLocaleString("en-US")}{" "}{isArabic ? "تقييم" : "reviews"})
                           </span>
                         </div>
                       </div>

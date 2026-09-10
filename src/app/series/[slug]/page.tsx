@@ -1,16 +1,9 @@
 "use client";
 
-import React, { use } from "react";
+import React, { use, useMemo } from "react";
 import { notFound, useRouter } from "next/navigation";
-import {
-  Star,
-  BookOpen,
-  Plus,
-  Eye,
-  User,
-  Heart,
-} from "lucide-react";
-import { ALL_SERIES, ALL_VOLUMES } from "@/data/manga";
+import { BookOpen, Plus, Eye, User, Heart } from "lucide-react";
+import { ALL_SERIES, ALL_VOLUMES, type MangaVolume } from "@/data/manga";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
 import { useUIStore } from "@/store/useUIStore";
@@ -18,6 +11,7 @@ import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { formatPrice } from "@/lib/utils";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
+import { StarRating } from "@/components/StarRating";
 
 interface SeriesPageProps {
   params: Promise<{ slug: string }>;
@@ -41,7 +35,16 @@ export default function SeriesPage({ params }: SeriesPageProps) {
     notFound();
   }
 
-  const seriesVolumes = activeVolumes.filter((v) => v.seriesSlug === series.slug);
+  const seriesEntries = activeVolumes.filter((v) => v.seriesSlug === series.slug);
+  // A box set is a way to buy the books, not a book — it does not belong in the
+  // volume grid, the volume count, or the average rating.
+  const seriesVolumes = seriesEntries.filter((v) => v.format !== "Box Set");
+  const seriesBoxes = seriesEntries.filter((v) => v.format === "Box Set");
+
+  // The star row used to read a hard-coded 4.9 regardless of the catalogue.
+  const seriesRating = seriesVolumes.length
+    ? seriesVolumes.reduce((sum, v) => sum + (Number(v.rating) || 0), 0) / seriesVolumes.length
+    : 0;
   const addItem = useCartStore((state) => state.addItem);
   const { toggleWishlist, isInWishlist } = useWishlistStore();
   const mounted = useMounted();
@@ -51,12 +54,65 @@ export default function SeriesPage({ params }: SeriesPageProps) {
     router.push(`/manga/${volumeId}`);
   };
 
+  /**
+   * What "add the whole series" should actually put in the basket.
+   *
+   * Adding every volume one by one ignored the box set sitting right there at a
+   * discount — and, because the box is itself part of the series listing, it
+   * used to be added alongside the volumes it contains, charging twice for the
+   * same books. This picks the box that covers the most of the series, then
+   * tops up with anything it leaves out.
+   */
+  const seriesBasket = useMemo(() => {
+    const wanted = seriesVolumes.filter((v) => v.stock > 0);
+    if (wanted.length === 0) return null;
+
+    const wantedIds = new Set(wanted.map((v) => v.id));
+    const separatelyTotal = wanted.reduce((sum, v) => sum + (Number(v.price) || 0), 0);
+
+    // Only a box that is in stock and cheaper than its own contents is worth
+    // steering someone towards.
+    let bestBox: (typeof seriesBoxes)[number] | null = null;
+    let bestCovered: string[] = [];
+
+    for (const box of seriesBoxes) {
+      if ((box.stock || 0) <= 0) continue;
+      const covered = (box.bundleOf || []).filter((id) => wantedIds.has(id));
+      if (covered.length === 0) continue;
+
+      const coveredValue = covered.reduce((sum, id) => {
+        const volume = wanted.find((v) => v.id === id);
+        return sum + (Number(volume?.price) || 0);
+      }, 0);
+      if (Number(box.price) >= coveredValue) continue;
+
+      if (covered.length > bestCovered.length) {
+        bestBox = box;
+        bestCovered = covered;
+      }
+    }
+
+    if (!bestBox) {
+      return { box: null, extras: wanted, total: separatelyTotal, saving: 0 };
+    }
+
+    const coveredSet = new Set(bestCovered);
+    const extras = wanted.filter((v) => !coveredSet.has(v.id));
+    const total =
+      Number(bestBox.price) + extras.reduce((sum, v) => sum + (Number(v.price) || 0), 0);
+
+    return {
+      box: bestBox,
+      extras,
+      total,
+      saving: Math.max(0, Math.round((separatelyTotal - total) * 100) / 100),
+    };
+  }, [seriesVolumes, seriesBoxes]);
+
   const handleAddAllVolumes = () => {
-    const inStockVolumes = seriesVolumes.filter((v) => v.stock > 0);
-    if (inStockVolumes.length === 0) return;
-    inStockVolumes.forEach((volume) => {
-      addItem(volume, 1);
-    });
+    if (!seriesBasket) return;
+    if (seriesBasket.box) addItem(seriesBasket.box, 1);
+    seriesBasket.extras.forEach((volume: MangaVolume) => addItem(volume, 1));
     openCart();
   };
 
@@ -108,10 +164,8 @@ export default function SeriesPage({ params }: SeriesPageProps) {
               <span>{isArabic ? `تأليف ورسم: ${series.author}` : `Written & Illustrated by ${series.author}`}</span>
             </div>
             <div className="flex items-center gap-1 text-gold">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} strokeWidth={1} className="w-3 sm:w-3.5 h-3 sm:h-3.5 fill-gold text-gold" />
-              ))}
-              <span className="text-paper font-semibold ml-1">4.9 / 5.0</span>
+              <StarRating value={seriesRating} size="sm" />
+              <span className="text-paper font-semibold ml-1">{seriesRating.toFixed(1)} / 5.0</span>
             </div>
             <div className="flex items-center gap-1.5">
               <BookOpen strokeWidth={1.4} className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gold" />
@@ -132,9 +186,17 @@ export default function SeriesPage({ params }: SeriesPageProps) {
             </a>
             <button
               onClick={handleAddAllVolumes}
-              className="w-full sm:w-auto text-center px-5 sm:px-6 py-3 bg-ink-surface border border-ink-border text-paper font-semibold text-xs tracking-[0.15em] sm:tracking-[0.2em] uppercase rounded-sm hover:border-gold hover:text-gold transition-colors active:scale-95"
+              disabled={!seriesBasket}
+              className="w-full sm:w-auto text-center px-5 sm:px-6 py-3 bg-ink-surface border border-ink-border text-paper font-semibold text-xs tracking-[0.15em] sm:tracking-[0.2em] uppercase rounded-sm hover:border-gold hover:text-gold transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isArabic ? "إضافة السلسلة كاملة للسلة" : "ADD ENTIRE SERIES TO CART"}
+              {seriesBasket && seriesBasket.saving > 0 && (
+                <span className="ms-2 text-gold normal-case tracking-normal">
+                  {isArabic
+                    ? `— وفّر ${formatPrice(seriesBasket.saving)}`
+                    : `— save ${formatPrice(seriesBasket.saving)}`}
+                </span>
+              )}
             </button>
           </div>
         </div>

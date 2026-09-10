@@ -1,10 +1,11 @@
 import React from "react";
 import { Hero } from "@/components/Hero";
+import { TickerBar } from "@/components/TickerBar";
 import { TrendingCarousel } from "@/components/TrendingCarousel";
 import { NewReleases } from "@/components/NewReleases";
+import { BoxSets } from "@/components/BoxSets";
 import { GenreBento } from "@/components/GenreBento";
 import { FeaturedSeries } from "@/components/FeaturedSeries";
-import { TheCollection } from "@/components/TheCollection";
 import { MangaDiscovery } from "@/components/MangaDiscovery";
 
 export default function HomePage() {
@@ -14,22 +15,29 @@ export default function HomePage() {
       {/* 03 — Hero Section */}
       <Hero />
 
-      {/* 04 — Trending Now Carousel */}
+      {/* 04 — Scrolling Announcement Strip */}
+      <TickerBar slot="after-hero" />
+
+      {/* 05 — Trending Now Carousel */}
       <TrendingCarousel />
 
-      {/* 05 — New Releases Grid */}
+      {/* 06 — New Releases Grid */}
       <NewReleases />
 
-      {/* 06 — Browse by Genre Bento */}
+      <TickerBar slot="after-new-releases" />
+
+      {/* 07 — Complete Box Sets Carousel */}
+      <BoxSets />
+
+      {/* 08 — Browse by Genre Bento */}
       <GenreBento />
 
-      {/* 07 — Featured Series Editorial Spotlight */}
+      {/* 09 — Featured Series Editorial Spotlight */}
       <FeaturedSeries />
 
-      {/* 08 — The Collection WOW Moment (GSAP ScrollTrigger) */}
-      <TheCollection />
+      <TickerBar slot="before-discovery" />
 
-      {/* 09 — Manga Discovery & Live Search */}
+      {/* 10 — Manga Discovery & Live Search */}
       <MangaDiscovery />
     </>
   );

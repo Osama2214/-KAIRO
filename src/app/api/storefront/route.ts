@@ -6,10 +6,10 @@ export const dynamic = "force-dynamic";
 
 const ALLOWED_KEYS = new Set([
   "volumes", "series", "genres", "formats", "heroContent", "announcement", "shippingConfig",
-  "editorialConfig", "featuredSeriesConfig", "collectionConfig", "genreBentoConfig", "trendingConfig",
+  "editorialConfig", "featuredSeriesConfig", "genreBentoConfig", "trendingConfig", "boxSetsConfig", "tickerConfig",
   "newReleasesConfig", "mangaDiscoveryConfig", "heroArabicContent", "announcementArabic",
   "shippingArabicConfig", "editorialArabicConfig", "newReleasesArabicConfig", "mangaDiscoveryArabicConfig",
-  "trendingArabicConfig", "genreBentoArabicConfig",
+  "trendingArabicConfig", "boxSetsArabicConfig", "tickerArabicConfig", "genreBentoArabicConfig",
 ]);
 
 export async function GET() {

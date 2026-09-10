@@ -8,6 +8,7 @@ import { CustomNumberInput } from "@/components/ui/CustomNumberInput";
 import { ImageUploadInput } from "@/components/ImageUploadInput";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
+import { PLACEHOLDER_BANNER, PLACEHOLDER_COVER } from "@/config/mediaDefaults";
 
 interface SeriesFormModalProps {
   isOpen: boolean;
@@ -45,8 +46,8 @@ function SeriesFormDialog({
       genres: ["Action"],
       description: "",
       quote: "",
-      bannerImage: "https://s4.anilist.co/file/anilistcdn/media/manga/banner/101517-FrJtb3Th3HtF.jpg",
-      featuredImage: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx101517-kWbiEqjC1Bsm.jpg",
+      bannerImage: PLACEHOLDER_BANNER,
+      featuredImage: PLACEHOLDER_COVER,
       status: "Ongoing",
       totalVolumes: 1,
       volumes: [],
@@ -87,7 +88,7 @@ function SeriesFormDialog({
       name,
       japanese: kanji,
       description: `Curated canonical ${name} titles.`,
-      coverImage: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=1000&auto=format&fit=crop",
+      coverImage: PLACEHOLDER_COVER,
       popularTitle: formData.title || "Archival Selection",
     };
 
