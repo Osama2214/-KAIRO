@@ -208,7 +208,7 @@ export function Navbar() {
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-6 xl:gap-10">
+          <nav className="hidden lg:flex items-center gap-4 xl:gap-8 2xl:gap-10">
             {navLinks.map((link) => {
               const active = isLinkActive(link.href);
               return (
@@ -232,7 +232,7 @@ export function Navbar() {
           </nav>
 
           {/* Right Action Icons */}
-          <div className="flex items-center gap-1.5 sm:gap-2 lg:justify-self-end">
+          <div className="flex items-center gap-1 xl:gap-2 lg:justify-self-end">
             {/* Language Switcher — full label at every size. There is room for it
                 now that wishlist and account moved into the mobile drawer. */}
             <button
@@ -242,7 +242,7 @@ export function Navbar() {
               aria-label="Toggle language"
             >
               <Globe strokeWidth={1.5} className="w-3.5 h-3.5 text-gold shrink-0" />
-              <span className="text-[11px] font-bold font-sans tracking-wide whitespace-nowrap">
+              <span className="hidden xl:inline text-[11px] font-bold font-sans tracking-wide whitespace-nowrap">
                 {locale === "en" ? "العربية" : "EN"}
               </span>
             </button>
@@ -255,7 +255,7 @@ export function Navbar() {
               aria-label="Search manga catalog"
             >
               <Search strokeWidth={1.5} className="w-[17px] h-[17px] sm:w-[18px] sm:h-[18px]" />
-              <span className="hidden lg:inline-flex items-center px-1.5 py-0.5 rounded-xs bg-ink-surface border border-ink-border/80 text-[10px] font-mono tracking-wider text-text-muted">
+              <span className="hidden 2xl:inline-flex items-center px-1.5 py-0.5 rounded-xs bg-ink-surface border border-ink-border/80 text-[10px] font-mono tracking-wider text-text-muted">
                 ⌘K
               </span>
             </button>
