@@ -29,6 +29,7 @@ import { CustomSelect } from "@/components/CustomSelect";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
+import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 
 function MangaCatalogContent() {
   const router = useRouter();
@@ -781,10 +782,10 @@ function MangaCatalogContent() {
                   >
                     {/* Media */}
                     <div className="relative aspect-[3/4] overflow-hidden bg-ink">
-                      <img
+                      <AnimeVerseImage
                         src={volume.coverImage}
                         alt={volume.title}
-                        draggable={false}
+                        sizes="(max-width: 1023px) 50vw, 33vw"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
                       />
 

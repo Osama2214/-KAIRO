@@ -14,6 +14,7 @@ import { useWelcomeOffer } from "@/hooks/useWelcomeOffer";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
 import { StarRating } from "@/components/StarRating";
+import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 
 interface MangaPageProps {
   params: Promise<{ slug: string }>;
@@ -102,9 +103,11 @@ export default function MangaDetailPage({ params }: MangaPageProps) {
           {/* Left Column: Large Book Cover & Preview Launcher */}
           <div className="lg:col-span-6 space-y-4 sm:space-y-5">
             <div className="relative aspect-[3/4] max-w-sm sm:max-w-md mx-auto bg-ink-surface rounded-sm border border-ink-border/90 overflow-hidden shadow-[0_20px_70px_rgba(0,0,0,0.85)] group">
-              <img
+              <AnimeVerseImage
                 src={volume.coverImage}
                 alt={volume.title}
+                sizes="(max-width: 639px) 90vw, 448px"
+                preload
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
               />
 
@@ -462,10 +465,10 @@ export default function MangaDetailPage({ params }: MangaPageProps) {
                 className="group bg-ink-surface/40 border border-ink-border/70 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:shadow-xl hover:shadow-black/50 select-none"
               >
                 <div className="relative aspect-[3/4] overflow-hidden bg-ink">
-                  <img
+                  <AnimeVerseImage
                     src={item.coverImage}
                     alt={item.title}
-                    draggable={false}
+                    sizes="(max-width: 1023px) 50vw, 25vw"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
                   />
                   <div className="absolute top-2 left-2 pointer-events-none z-10">

@@ -52,6 +52,7 @@ import { CustomSelect } from "@/components/CustomSelect";
 import { WelcomeOfferBanner } from "@/components/WelcomeOfferBanner";
 import { useTranslation } from "@/hooks/useTranslation";
 import { PLACEHOLDER_COVER } from "@/config/mediaDefaults";
+import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 
 interface GoogleTokenResponse {
   access_token?: string;
@@ -2431,10 +2432,10 @@ function AccountContent() {
                       className="group bg-ink-surface/40 border border-ink-border/70 rounded-sm overflow-hidden hover:border-gold/60 transition-all flex flex-col justify-between cursor-pointer hover:shadow-xl hover:shadow-black/50 select-none"
                     >
                       <div className="relative aspect-[3/4] overflow-hidden bg-ink">
-                        <img
+                        <AnimeVerseImage
                           src={volume.coverImage}
                           alt={volume.title}
-                          draggable={false}
+                          sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
                         />
                         <div className="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 pointer-events-none z-10 flex flex-col gap-1">
@@ -2535,9 +2536,10 @@ function AccountContent() {
                       className="bg-ink-surface/20 border border-ink-border/50 rounded-sm overflow-hidden flex flex-col justify-between select-none opacity-80"
                     >
                       <div className="relative aspect-[3/4] overflow-hidden bg-ink">
-                        <img
+                        <AnimeVerseImage
                           src={volume.coverImage}
                           alt={volume.title}
+                          sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw"
                           className="w-full h-full object-cover filter grayscale contrast-125 pointer-events-none"
                         />
                         <div className="absolute inset-0 bg-ink/70 flex flex-col items-center justify-center p-3 text-center gap-2">
@@ -2642,10 +2644,10 @@ function AccountContent() {
                     {/* Cover Media Container */}
                     <div className="relative aspect-[3/4] overflow-hidden bg-ink">
                       <Link href={`/manga/${volume.id}`} className="block w-full h-full">
-                        <img
+                        <AnimeVerseImage
                           src={volume.coverImage}
                           alt={volume.title}
-                          draggable={false}
+                          sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
                         />
                       </Link>

@@ -15,6 +15,7 @@ import { EGYPT_GOVERNORATES, DEFAULT_GOVERNORATE_RATES } from "@/data/governorat
 import { rememberGuestOrder } from "@/lib/guestOrders";
 import { sanitizeInput, validateEgyptianPhone } from "@/lib/security";
 import { useTranslation } from "@/hooks/useTranslation";
+import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -618,8 +619,8 @@ export default function CheckoutPage() {
             <div data-lenis-prevent className="space-y-4 max-h-80 overflow-y-auto pr-1">
               {items.map((item) => (
                 <div key={item.id} className="flex gap-3 text-xs">
-                  <div className="w-12 h-16 bg-ink rounded-xs overflow-hidden shrink-0 border border-ink-border">
-                    <img src={item.coverImage} alt={item.title} className="w-full h-full object-cover" />
+                  <div className="relative w-12 h-16 bg-ink rounded-xs overflow-hidden shrink-0 border border-ink-border">
+                    <AnimeVerseImage src={item.coverImage} alt={item.title} sizes="48px" className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 flex flex-col justify-between">
                     <div>

@@ -451,6 +451,8 @@ export function CinematicIntro() {
               <Image
                 src={storeMark}
                 alt=""
+                sizes="(max-width: 639px) 300px, 480px"
+                quality={90}
                 priority
                 className="w-auto h-20 sm:h-28 md:h-32 drop-shadow-[0_0_30px_rgba(199,167,108,0.3)]"
               />

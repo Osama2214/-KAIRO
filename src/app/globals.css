@@ -122,11 +122,9 @@ aside {
 
   --font-sans: var(--font-manrope), -apple-system, BlinkMacSystemFont, sans-serif;
   --font-manrope: var(--font-manrope), sans-serif;
-  --font-japanese: var(--font-noto-jp), sans-serif;
   --font-serif: var(--font-shippori), serif;
   --font-mono: var(--font-mono), monospace;
   --font-cinzel: var(--font-cinzel), Georgia, serif;
-  --font-cormorant: var(--font-cormorant), Garamond, serif;
 }
 
 :root {

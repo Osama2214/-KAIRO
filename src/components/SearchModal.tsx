@@ -10,6 +10,7 @@ import { ALL_VOLUMES, MangaVolume } from "@/data/manga";
 import { formatPrice } from "@/lib/utils";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { useTranslation } from "@/hooks/useTranslation";
+import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 
 export function SearchModal() {
   const { t, isRTL } = useTranslation();
@@ -154,10 +155,11 @@ export function SearchModal() {
                   onClick={closeSearch}
                   className="flex gap-3.5 p-3 rounded-sm bg-ink/60 border border-ink-border/60 hover:border-gold/50 hover:bg-ink-elevated transition-all duration-200 group"
                 >
-                  <div className="w-14 h-20 shrink-0 overflow-hidden bg-ink rounded-sm border border-ink-border">
-                    <img
+                  <div className="relative w-14 h-20 shrink-0 overflow-hidden bg-ink rounded-sm border border-ink-border">
+                    <AnimeVerseImage
                       src={volume.coverImage}
                       alt={volume.title}
+                      sizes="56px"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>

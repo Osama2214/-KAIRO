@@ -200,6 +200,8 @@ export function Navbar() {
             <Image
               src={storeMark}
               alt="AnimeVerse — Your Universe of Manga & Collector Editions"
+              sizes="180px"
+              quality={90}
               priority
               className={`w-auto brightness-[0.80] transition-all duration-300 group-hover:brightness-100 ${
                 isScrolled ? "h-9 sm:h-10" : "h-11 sm:h-12"

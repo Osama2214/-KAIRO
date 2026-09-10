@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Manrope, Noto_Sans_JP, Shippori_Mincho, JetBrains_Mono, Cinzel, Cormorant_Garamond } from "next/font/google";
+import { Manrope, Shippori_Mincho, JetBrains_Mono, Cinzel } from "next/font/google";
 import "./globals.css";
 import { StorefrontShell } from "@/components/StorefrontShell";
 import { MangaReaderModal } from "@/components/MangaReaderModal";
@@ -20,25 +20,12 @@ const cinzel = Cinzel({
   display: "swap",
 });
 
-const cormorant = Cormorant_Garamond({
-  subsets: ["latin"],
-  variable: "--font-cormorant",
-  weight: ["400", "500", "600", "700"],
-  style: ["normal", "italic"],
-  display: "swap",
-});
-
-const notoSansJP = Noto_Sans_JP({
-  subsets: ["latin"],
-  variable: "--font-noto-jp",
-  weight: ["400", "500", "700"],
-  display: "swap",
-});
-
 const shippori = Shippori_Mincho({
   subsets: ["latin"],
   variable: "--font-shippori",
-  weight: ["400", "600", "700"],
+  // A CJK family emits one @font-face per unicode subset, so every weight
+  // listed here costs ~90KB of render-blocking CSS. Only 400 and 700 are used.
+  weight: ["400", "700"],
   display: "swap",
 });
 
@@ -100,7 +87,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${manrope.variable} ${cinzel.variable} ${cormorant.variable} ${notoSansJP.variable} ${shippori.variable} ${jetbrains.variable} antialiased selection:bg-vermilion selection:text-white`}
+      className={`${manrope.variable} ${cinzel.variable} ${shippori.variable} ${jetbrains.variable} antialiased selection:bg-vermilion selection:text-white`}
     >
       <body suppressHydrationWarning className="min-h-screen bg-ink text-paper font-sans flex flex-col relative">
         {/*

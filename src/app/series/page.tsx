@@ -7,6 +7,7 @@ import { ALL_SERIES } from "@/data/manga";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
+import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 
 export default function SeriesDirectoryPage() {
   const router = useRouter();
@@ -63,10 +64,10 @@ export default function SeriesDirectoryPage() {
             >
               {/* Top Banner Image with Kanji Watermark */}
               <div className="relative h-44 xs:h-52 sm:h-64 md:h-72 overflow-hidden bg-ink">
-                <img
+                <AnimeVerseImage
                   src={series.bannerImage}
                   alt={series.title}
-                  draggable={false}
+                  sizes="(max-width: 767px) 100vw, 50vw"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out pointer-events-none opacity-60 group-hover:opacity-85"
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-ink via-ink/40 to-transparent" />

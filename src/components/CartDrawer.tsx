@@ -11,6 +11,7 @@ import { useWelcomeOffer } from "@/hooks/useWelcomeOffer";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { useTranslation } from "@/hooks/useTranslation";
+import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 
 export function CartDrawer() {
   const mounted = useMounted();
@@ -166,9 +167,10 @@ export function CartDrawer() {
                 >
                   {/* Thumbnail */}
                   <div className="relative w-18 h-26 shrink-0 overflow-hidden bg-ink-surface rounded-sm border border-ink-border/50">
-                    <img
+                    <AnimeVerseImage
                       src={item.coverImage}
                       alt={item.title}
+                      sizes="72px"
                       className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>

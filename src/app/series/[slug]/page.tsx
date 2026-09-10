@@ -12,6 +12,7 @@ import { formatPrice } from "@/lib/utils";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
 import { StarRating } from "@/components/StarRating";
+import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 
 interface SeriesPageProps {
   params: Promise<{ slug: string }>;
@@ -122,9 +123,11 @@ export default function SeriesPage({ params }: SeriesPageProps) {
       <div className="relative min-h-[380px] sm:min-h-[440px] sm:h-[65vh] flex items-end overflow-hidden border-b border-ink-border/80 pt-20 sm:pt-0">
         {/* Banner Media */}
         <div className="absolute inset-0">
-          <img
+          <AnimeVerseImage
             src={series.bannerImage}
             alt={series.title}
+            sizes="100vw"
+            preload
             className="w-full h-full object-cover object-center filter brightness-50"
           />
           <div className="absolute inset-0 bg-linear-to-t from-ink via-ink/60 to-transparent" />
@@ -236,10 +239,10 @@ export default function SeriesPage({ params }: SeriesPageProps) {
             >
               {/* Media */}
               <div className="relative aspect-[3/4] overflow-hidden bg-ink">
-                <img
+                <AnimeVerseImage
                   src={volume.coverImage}
                   alt={volume.title}
-                  draggable={false}
+                  sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
                 />
 

@@ -71,6 +71,8 @@ export function Footer() {
                 <Image
                   src={storeLogo}
                   alt="AnimeVerse — Your Universe of Manga & Collector Editions"
+                  sizes="164px"
+                  quality={90}
                   className="h-11 w-auto brightness-[0.80]"
                 />
               </div>

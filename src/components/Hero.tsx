@@ -10,6 +10,36 @@ import { useMounted } from "@/store/useWishlistStore";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
 import { PLACEHOLDER_COVER } from "@/config/mediaDefaults";
+import { useImageRetry } from "@/components/AnimeVerseImage";
+
+/**
+ * One frame of the mobile backdrop. Split out so each carries its own retry
+ * state: a frame that fails is re-requested rather than fading in empty.
+ */
+function HeroBackdropFrame({ src, alt, first, active }: { src: string; alt: string; first: boolean; active: boolean }) {
+  const retry = useImageRetry(src);
+  return (
+    <Image
+      key={retry.src}
+      src={retry.src}
+      alt={alt}
+      fill
+      sizes="100vw"
+      quality={90}
+      preload={first}
+      loading={first ? undefined : "lazy"}
+      decoding="async"
+      onError={retry.onError}
+      onLoad={retry.onLoad}
+      // All five frames share one treatment. The old rule gave slide 0 full
+      // brightness and dimmed the rest to 76%, which on artwork this dark
+      // left the characters barely readable.
+      className={`absolute inset-0 w-full h-full object-cover object-[center_62%] filter contrast-[1.08] brightness-[1.05] saturate-[1.05] transition-all duration-1000 ease-in-out ${
+        active ? "opacity-100 scale-100" : "opacity-0 scale-105 pointer-events-none"
+      }`}
+    />
+  );
+}
 
 export function Hero() {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -34,6 +64,8 @@ export function Hero() {
     volumes.find((v) => v.id === heroContent.featuredVolumeId) ||
     volumes.find((v) => v.isFeatured) ||
     volumes[0];
+
+  const featuredCover = useImageRetry(featuredVolume?.coverImage || PLACEHOLDER_COVER);
 
   useEffect(() => {
     let rafId: number;
@@ -126,22 +158,12 @@ export function Hero() {
       {/* Mobile & iPad Cinematic Cover Backdrop (< lg screens): Automatic smooth crossfade between images */}
       <div className="lg:hidden absolute inset-0 z-0 overflow-hidden select-none">
         {mobileHeroImages.map((src, idx) => (
-          <Image
+          <HeroBackdropFrame
             key={src}
             src={src}
             alt={featuredVolume?.title || "ANIMEVERSE Manga Hero"}
-            fill
-            sizes="100vw"
-            quality={90}
-            preload={idx === 0}
-            loading={idx === 0 ? undefined : "lazy"}
-            decoding="async"
-            // All five frames share one treatment. The old rule gave slide 0 full
-            // brightness and dimmed the rest to 76%, which on artwork this dark
-            // left the characters barely readable.
-            className={`absolute inset-0 w-full h-full object-cover object-[center_62%] filter contrast-[1.08] brightness-[1.05] saturate-[1.05] transition-all duration-1000 ease-in-out ${
-              idx === bgIndex ? "opacity-100 scale-100" : "opacity-0 scale-105 pointer-events-none"
-            }`}
+            first={idx === 0}
+            active={idx === bgIndex}
           />
         ))}
         {/* Soft Top Vignette for Navbar Legibility */}
@@ -279,12 +301,16 @@ export function Hero() {
           >
             {/* Background Artwork */}
             <Image
-              src={featuredVolume?.coverImage || PLACEHOLDER_COVER}
+              key={featuredCover.src}
+              src={featuredCover.src}
               alt={featuredVolume?.title || "ANIMEVERSE Manga Hero Cover"}
               fill
               sizes="(max-width: 1023px) 0px, (max-width: 1280px) 320px, 450px"
+              quality={90}
               preload
               decoding="async"
+              onError={featuredCover.onError}
+              onLoad={featuredCover.onLoad}
               className="w-full h-full object-cover object-center transition-transform duration-1000 group-hover:scale-105 filter contrast-105"
             />
 
