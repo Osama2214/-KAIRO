@@ -4,8 +4,9 @@ import { getMedia } from "@/lib/mediaStore";
  * Serves a curator-uploaded image. Content is immutable — the id is derived
  * from random bytes at upload time — so it can be cached indefinitely.
  */
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string[] | string }> }) {
+  const raw = (await params).id;
+  const id = Array.isArray(raw) ? raw.join("/") : raw;
   const media = await getMedia(id);
   if (!media) return new Response("Not found", { status: 404 });
 

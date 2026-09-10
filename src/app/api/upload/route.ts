@@ -18,9 +18,14 @@ const ALLOWED_MIME_TYPES: Record<string, string> = {
 // Maximum accepted upload: 10MB before re-encoding.
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-// Stored covers are capped so a single image cannot bloat the database.
-const MAX_IMAGE_WIDTH = 1600;
-const MAX_IMAGE_HEIGHT = 2400;
+// Object storage is cheap, so the cap exists to keep pages fast rather than to
+// save space. These dimensions cover a full-bleed cover on a 3x phone.
+const MAX_IMAGE_WIDTH = 1800;
+const MAX_IMAGE_HEIGHT = 2700;
+
+// Quality first: 92 with effort 6 keeps gradients and screentone clean on the
+// dark artwork this shop sells, and still lands far below the source PNG.
+const WEBP_QUALITY = 92;
 
 /**
  * Validates actual binary magic bytes of the buffer to prevent polyglot / masked executable attacks
@@ -156,8 +161,14 @@ export async function POST(request: Request) {
     try {
       optimised = await sharp(buffer)
         .rotate()
-        .resize({ width: MAX_IMAGE_WIDTH, height: MAX_IMAGE_HEIGHT, fit: "inside", withoutEnlargement: true })
-        .webp({ quality: 82 })
+        .resize({
+          width: MAX_IMAGE_WIDTH,
+          height: MAX_IMAGE_HEIGHT,
+          fit: "inside",
+          withoutEnlargement: true,
+          kernel: "lanczos3",
+        })
+        .webp({ quality: WEBP_QUALITY, effort: 6, smartSubsample: true })
         .toBuffer();
     } catch {
       return NextResponse.json(
@@ -166,8 +177,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // 7. Persist to Neon. Vercel's filesystem is read-only, so the previous
-    // write to public/uploads failed in production on every single upload.
+    // 7. Persist to object storage (R2 when configured, Neon otherwise).
+    // Vercel's filesystem is read-only, so the original write to public/uploads
+    // failed in production on every single upload.
     const stored = await saveMedia(optimised, "image/webp");
 
     return NextResponse.json({

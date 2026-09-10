@@ -110,14 +110,50 @@ export async function getStorefrontData(): Promise<Record<string, unknown> | nul
   return { ...data, volumes, series };
 }
 
+/** Every image URL a storefront payload references. */
+function imageUrlsIn(payload: Record<string, unknown> | null): string[] {
+  const urls: string[] = [];
+  const walk = (node: unknown): void => {
+    if (typeof node === "string") return;
+    if (Array.isArray(node)) return node.forEach(walk);
+    if (node && typeof node === "object") {
+      for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+        if (typeof value === "string" && /image|cover|banner|preview/i.test(key)) urls.push(value);
+        else walk(value);
+      }
+    }
+  };
+  walk(payload);
+  return urls;
+}
+
 export async function saveStorefrontData(payload: Record<string, unknown>): Promise<void> {
   await ensureSchema();
+
+  // Snapshot the previous images so anything the curator just removed can be
+  // deleted from object storage instead of lingering forever.
+  const previousRows = await sql!`SELECT payload FROM kairo_storefront_data WHERE id = 1`;
+  const previous = previousRows[0]?.payload as Record<string, unknown> | undefined;
+
   await sql!`
     INSERT INTO kairo_storefront_data (id, payload, updated_at)
     VALUES (1, ${JSON.stringify(payload)}::jsonb, NOW())
     ON CONFLICT (id) DO UPDATE SET payload = EXCLUDED.payload, updated_at = NOW()
   `;
   await syncCatalogItems(payload);
+
+  try {
+    const stillUsed = new Set(imageUrlsIn(payload));
+    const orphans = imageUrlsIn(previous || null).filter((url) => !stillUsed.has(url));
+    if (orphans.length > 0) {
+      const { deleteMediaByUrls } = await import("@/lib/mediaStore");
+      const removed = await deleteMediaByUrls(orphans);
+      if (removed > 0) console.log(`Removed ${removed} unreferenced image(s) from storage.`);
+    }
+  } catch (error) {
+    // Never fail a CMS save because cleanup could not run.
+    console.error("Image cleanup after storefront save failed:", error);
+  }
 }
 
 export class CatalogReservationError extends Error {

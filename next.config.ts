@@ -39,6 +39,11 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "s4.anilist.co", pathname: "/file/anilistcdn/media/**" },
       { protocol: "https", hostname: "uploads.mangadex.org", pathname: "/covers/**" },
       { protocol: "https", hostname: "images.unsplash.com", pathname: "/**" },
+      // Cloudflare R2: the bucket's own r2.dev subdomain and any custom domain.
+      { protocol: "https", hostname: "*.r2.dev", pathname: "/**" },
+      ...(process.env.R2_PUBLIC_HOSTNAME
+        ? [{ protocol: "https" as const, hostname: process.env.R2_PUBLIC_HOSTNAME, pathname: "/**" }]
+        : []),
     ],
     formats: ["image/webp"],
     minimumCacheTTL: 2_592_000,
