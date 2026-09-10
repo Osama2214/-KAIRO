@@ -16,11 +16,12 @@ export function Hero() {
   const { t, locale } = useTranslation();
 
   const [bgIndex, setBgIndex] = useState(0);
-  const mobileHeroImages = [
+  const mobileHeroImages: string[] = [
     "/images/hero-mobile-bg.webp",
     "/images/hero-mobile-bg-2.webp",
     "/images/hero-mobile-bg-3.webp",
     "/images/hero-mobile-bg-4.webp",
+    "/images/hero-mobile-bg-5.webp",
   ];
 
   const heroContent = useStorefrontStore((state) => state.heroContent);
@@ -67,6 +68,7 @@ export function Hero() {
 
   // Automatic smooth transition between mobile hero backgrounds (8 seconds per slide)
   useEffect(() => {
+    if (mobileHeroImages.length < 2) return;
     const timer = setInterval(() => {
       setBgIndex((prev) => (prev + 1) % mobileHeroImages.length);
     }, 8000);
@@ -126,31 +128,31 @@ export function Hero() {
           <Image
             key={src}
             src={src}
-            alt={featuredVolume?.title || "MANGA WORLD Manga Hero"}
+            alt={featuredVolume?.title || "ANIMEVERSE Manga Hero"}
             fill
             sizes="100vw"
+            quality={90}
             preload={idx === 0}
             loading={idx === 0 ? undefined : "lazy"}
             decoding="async"
-            className={`absolute inset-0 w-full h-full object-cover object-[70%_center] filter transition-all duration-1000 ease-in-out ${
-              idx === 0
-                ? "contrast-105 brightness-100"
-                : "contrast-110 brightness-[0.76]"
-            } ${
+            // All five frames share one treatment. The old rule gave slide 0 full
+            // brightness and dimmed the rest to 76%, which on artwork this dark
+            // left the characters barely readable.
+            className={`absolute inset-0 w-full h-full object-cover object-[center_62%] filter contrast-[1.08] brightness-[1.05] saturate-[1.05] transition-all duration-1000 ease-in-out ${
               idx === bgIndex ? "opacity-100 scale-100" : "opacity-0 scale-105 pointer-events-none"
             }`}
           />
         ))}
         {/* Soft Top Vignette for Navbar Legibility */}
-        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-ink/75 via-ink/20 to-transparent pointer-events-none" />
+        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-ink/60 via-ink/15 to-transparent pointer-events-none" />
         {/* Soft Left Vignette for Text Contrast leaving Artwork Vibrant */}
-        <div className="absolute inset-y-0 left-0 w-3/5 bg-gradient-to-r from-ink/55 via-ink/20 to-transparent pointer-events-none" />
+        <div className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-ink/70 via-ink/25 to-transparent pointer-events-none" />
         {/* Soft Bottom Vignette */}
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-ink/35 to-transparent pointer-events-none" />
 
         {/* Minimalist Slide Indicator Dots on Mobile & iPad (Bottom-Right) */}
         <div className="absolute bottom-5 right-5 sm:bottom-6 sm:right-6 z-20 flex items-center gap-1.5 pointer-events-auto">
-          {mobileHeroImages.map((_, idx) => (
+          {mobileHeroImages.length > 1 && mobileHeroImages.map((_, idx) => (
             <button
               key={idx}
               onClick={() => setBgIndex(idx)}
@@ -179,7 +181,7 @@ export function Hero() {
           {/* Top Metadata: archive mark & Live Edit */}
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs text-text-muted font-serif">
-              MANGA WORLD アーカイブ
+              ANIMEVERSE アーカイブ
             </span>
             <LiveEditButton target={{ type: "hero" }} label="Edit Hero" variant="floating" size="xs" />
           </div>
@@ -277,7 +279,7 @@ export function Hero() {
             {/* Background Artwork */}
             <Image
               src={featuredVolume?.coverImage || "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=1200&auto=format&fit=crop"}
-              alt={featuredVolume?.title || "MANGA WORLD Manga Hero Cover"}
+              alt={featuredVolume?.title || "ANIMEVERSE Manga Hero Cover"}
               fill
               sizes="(max-width: 1023px) 0px, (max-width: 1280px) 320px, 450px"
               preload
@@ -290,7 +292,7 @@ export function Hero() {
 
             {/* Japanese Seal Watermark on Artwork */}
             <div className="absolute top-4 sm:top-5 right-4 sm:right-5 p-2 sm:p-2.5 rounded-sm bg-ink/75 backdrop-blur-md border border-ink-border/80 text-vermilion font-serif font-bold text-xs shadow-lg">
-              MANGA WORLD
+              ANIMEVERSE
             </div>
 
             {/* Live Edit Hero Card Button */}

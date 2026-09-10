@@ -417,7 +417,7 @@ export default function AdminPage() {
           customer: {
             id: `PATRON-${o.id}`,
             name: o.customerName || "Collector",
-            email: o.customerEmail || "patron@kairo.archive",
+            email: o.customerEmail || "guest@animeversebooks.com",
             phone: o.customerPhone || "+20 100 000 0000",
             governorate: o.customerGovernorate || "Cairo",
             address: o.customerAddress || "Cairo, Egypt",
@@ -442,7 +442,7 @@ export default function AdminPage() {
           customer: {
             id: `PATRON-${o.id}`,
             name: o.customerName || "Collector",
-            email: o.customerEmail || "patron@kairo.archive",
+            email: o.customerEmail || "guest@animeversebooks.com",
             phone: o.customerPhone || "+20 100 000 0000",
             governorate: o.customerGovernorate || "Cairo",
             address: o.customerAddress || "Cairo, Egypt",
@@ -590,7 +590,7 @@ export default function AdminPage() {
           <Shield className="w-5 h-5" />
         </div>
         <div className="text-xs font-bold text-gold tracking-widest uppercase">
-          MANGA WORLD ARCHIVE — CURATOR CONSOLE
+          ANIMEVERSE ARCHIVE — CURATOR CONSOLE
         </div>
         <div className="text-[10px] text-text-muted mt-1 tracking-wider uppercase">
           Initializing secure environment...
@@ -646,7 +646,7 @@ export default function AdminPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `manga-world-archive-backup-${new Date().toISOString().split("T")[0]}.json`;
+    a.download = `animeverse-archive-backup-${new Date().toISOString().split("T")[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
     showToast("Archival catalog JSON backup exported.");
@@ -686,10 +686,10 @@ export default function AdminPage() {
         <div className="flex items-center gap-2 sm:gap-4">
           <Link href="/" className="flex items-center gap-1.5 group shrink-0">
             <span className="font-serif text-gold text-sm sm:text-lg font-bold group-hover:scale-105 transition-transform leading-none">
-              MANGA WORLD
+              ANIMEVERSE
             </span>
             <span className="font-cinzel text-sm sm:text-base font-bold text-paper tracking-wider whitespace-nowrap">
-              MANGA WORLD
+              ANIMEVERSE
             </span>
           </Link>
           <span className="hidden xs:inline-block text-[9px] sm:text-[11px] font-mono text-gold bg-gold/10 px-2 py-0.5 rounded uppercase tracking-wider border border-gold/30 whitespace-nowrap">
@@ -4094,7 +4094,7 @@ export default function AdminPage() {
                         showToast(`Granted admin access to ${val}`);
                       }
                     }}
-                    placeholder="e.g. curator@kairo.archive"
+                    placeholder="e.g. name@gmail.com"
                     className="flex-1 bg-ink border border-ink-border text-paper px-3 py-2 text-xs rounded-sm focus:border-gold outline-none font-mono"
                   />
                   <button

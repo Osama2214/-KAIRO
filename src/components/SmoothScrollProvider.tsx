@@ -27,7 +27,7 @@ function normalizePath(path: string): string {
   return clean || "/";
 }
 
-export function saveMangaWorldScroll(path: string, y: number) {
+export function saveAnimeVerseScroll(path: string, y: number) {
   if (typeof window === "undefined") return;
   const rounded = Math.max(0, Math.round(y));
   const hKey = getHistoryKey();
@@ -41,7 +41,7 @@ export function saveMangaWorldScroll(path: string, y: number) {
   } catch {}
 }
 
-export function getMangaWorldSavedScroll(path: string): number {
+export function getAnimeVerseSavedScroll(path: string): number {
   if (typeof window === "undefined") return 0;
   const hKey = getHistoryKey();
   const nPath = normalizePath(path);
@@ -65,7 +65,7 @@ export function getMangaWorldSavedScroll(path: string): number {
   return 0;
 }
 
-export function clearMangaWorldSavedScroll(path: string) {
+export function clearAnimeVerseSavedScroll(path: string) {
   if (typeof window === "undefined") return;
   const hKey = getHistoryKey();
   const nPath = normalizePath(path);
@@ -141,16 +141,16 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
   const revealRestoration = (immediate = false) => {
     if (typeof document === "undefined") return;
     if (immediate) {
-      document.documentElement.classList.remove("manga-world-restoring");
-      document.documentElement.classList.remove("manga-world-loading");
+      document.documentElement.classList.remove("animeverse-restoring");
+      document.documentElement.classList.remove("animeverse-loading");
       return;
     }
     const start = mountTimeRef.current || Date.now();
     const elapsed = Date.now() - start;
     const minDelay = Math.max(0, 260 - elapsed);
     setTimeout(() => {
-      document.documentElement.classList.remove("manga-world-restoring");
-      document.documentElement.classList.remove("manga-world-loading");
+      document.documentElement.classList.remove("animeverse-restoring");
+      document.documentElement.classList.remove("animeverse-loading");
     }, minDelay);
   };
 
@@ -302,7 +302,7 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
       try {
         const y = window.__lenis ? window.__lenis.scroll : window.scrollY;
         if (y > 20 || userIsScrollingRef.current) {
-          saveMangaWorldScroll(pathnameRef.current, y);
+          saveAnimeVerseScroll(pathnameRef.current, y);
         }
       } catch {}
     };
@@ -344,7 +344,7 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
     lenisRef.current = lenis;
     window.__lenis = lenis;
 
-    const initialSavedY = getMangaWorldSavedScroll(pathnameRef.current);
+    const initialSavedY = getAnimeVerseSavedScroll(pathnameRef.current);
     if (initialSavedY > 30) {
       lenis.scrollTo(initialSavedY, { immediate: true });
     }
@@ -366,7 +366,7 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
       const now = Date.now();
       if (now - lastSavedTime.current > 75) {
         lastSavedTime.current = now;
-        saveMangaWorldScroll(pathnameRef.current, currentY);
+        saveAnimeVerseScroll(pathnameRef.current, currentY);
       }
     };
     lenis.on("scroll", handleLenisScroll);
@@ -510,7 +510,7 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
     // Save scroll position of the page we are leaving if it had meaningful scroll
     const scrollBeforeTransition = lenis ? lenis.scroll : window.scrollY;
     if (prevPath !== currentPath && scrollBeforeTransition > 30) {
-      saveMangaWorldScroll(prevPath, scrollBeforeTransition);
+      saveAnimeVerseScroll(prevPath, scrollBeforeTransition);
     }
 
     const hash = window.location.hash;
@@ -543,7 +543,7 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
     isPopStateRef.current = false;
 
     // Retrieve saved scroll position for this specific route
-    const savedY = getMangaWorldSavedScroll(currentPath);
+    const savedY = getAnimeVerseSavedScroll(currentPath);
 
     // Case 2: If we are returning via Back/Forward (popstate) OR reloading the page (F5 / initial mount)
     // with an active saved position, RESTORE IT!

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 
-type MangaWorldImageProps = {
+type AnimeVerseImageProps = {
   src: string;
   alt: string;
   className?: string;
@@ -11,7 +11,7 @@ type MangaWorldImageProps = {
 };
 
 /** Product/editorial imagery served through Next's optimizer and cache. */
-export function MangaWorldImage({ src, alt, className, sizes, preload = false }: MangaWorldImageProps) {
+export function AnimeVerseImage({ src, alt, className, sizes, preload = false }: AnimeVerseImageProps) {
   return (
     <Image
       src={src}

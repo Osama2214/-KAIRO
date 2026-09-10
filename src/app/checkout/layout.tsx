@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Checkout",
-  description: "Complete your MANGA WORLD order with cash on delivery, wallet, or InstaPay.",
+  description: "Complete your ANIMEVERSE order with cash on delivery, wallet, or InstaPay.",
   alternates: { canonical: "/checkout" },
-  openGraph: { title: "Checkout", description: "Complete your MANGA WORLD order with cash on delivery, wallet, or InstaPay.", url: "/checkout" },
+  openGraph: { title: "Checkout", description: "Complete your ANIMEVERSE order with cash on delivery, wallet, or InstaPay.", url: "/checkout" },
   // Transactional pages carry no search value and should never be indexed.
   robots: { index: false, follow: false },
 };

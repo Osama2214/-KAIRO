@@ -66,7 +66,7 @@ function createSmtpTransporter() {
         pass: smtpPass.replace(/\s+/g, ""),
       },
     }),
-    from: process.env.SMTP_FROM || `"Manga World Archive" <${smtpUser}>`,
+    from: process.env.SMTP_FROM || `"AnimeVerse Archive" <${smtpUser}>`,
     user: smtpUser,
   };
 }
@@ -100,7 +100,7 @@ async function dispatchGenericEmail({
       });
 
       if (process.env.NODE_ENV !== "production") {
-        console.log(`[Manga World EMAIL DISPATCH] Sent to: ${recipients} | Subject: ${subject}`);
+        console.log(`[AnimeVerse EMAIL DISPATCH] Sent to: ${recipients} | Subject: ${subject}`);
       }
       return {
         success: true,
@@ -109,7 +109,7 @@ async function dispatchGenericEmail({
       };
     } catch (smtpError: unknown) {
       const err = smtpError as Error;
-      console.error("[Manga World EMAIL DISPATCH] SMTP Error:", err?.message || smtpError);
+      console.error("[AnimeVerse EMAIL DISPATCH] SMTP Error:", err?.message || smtpError);
     }
   }
 
@@ -124,7 +124,7 @@ async function dispatchGenericEmail({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: process.env.RESEND_FROM || "Manga World Archive <onboarding@resend.dev>",
+          from: process.env.RESEND_FROM || "AnimeVerse Archive <onboarding@resend.dev>",
           to: Array.isArray(to) ? to : [to],
           subject,
           html,
@@ -133,7 +133,7 @@ async function dispatchGenericEmail({
 
       if (res.ok) {
         if (process.env.NODE_ENV !== "production") {
-          console.log(`[Manga World EMAIL DISPATCH] Sent via Resend to: ${recipients}`);
+          console.log(`[AnimeVerse EMAIL DISPATCH] Sent via Resend to: ${recipients}`);
         }
         return {
           success: true,
@@ -142,14 +142,14 @@ async function dispatchGenericEmail({
         };
       }
     } catch (resendError: unknown) {
-      console.error("[Manga World EMAIL DISPATCH] Resend Error:", resendError);
+      console.error("[AnimeVerse EMAIL DISPATCH] Resend Error:", resendError);
     }
   }
 
   // 3. Terminal Log Fallback for Dev
   if (process.env.NODE_ENV !== "production") {
     console.log("------------------------------------------------------------");
-    console.log(`[Manga World EMAIL DISPATCH - DEV LOG]`);
+    console.log(`[AnimeVerse EMAIL DISPATCH - DEV LOG]`);
     console.log(`Recipient: ${recipients}`);
     console.log(`Subject: ${subject}`);
     console.log(`Text Preview: ${text.slice(0, 160)}...`);
@@ -160,7 +160,7 @@ async function dispatchGenericEmail({
   // intended outcome; in production this is a real failure and callers such as
   // /api/send-otp must not tell the patron to check an inbox that will stay empty.
   if (process.env.NODE_ENV === "production") {
-    console.error("[Manga World EMAIL DISPATCH] No working transport configured; message not sent.");
+    console.error("[AnimeVerse EMAIL DISPATCH] No working transport configured; message not sent.");
     return {
       success: false,
       sentViaSmtp: false,
@@ -176,14 +176,14 @@ async function dispatchGenericEmail({
 }
 
 /**
- * Creates an authentic luxury HTML email template matching Manga World's Japanese design language
+ * Creates an authentic luxury HTML email template matching AnimeVerse's Japanese design language
  */
 function generateOtpHtmlEmail(code: string, recipientEmail: string, purpose: "REGISTER" | "RESET_PASSWORD" = "REGISTER"): string {
   const isReset = purpose === "RESET_PASSWORD";
   const title = isReset ? "Password Reset Protocol" : "Patron Registration Protocol";
   const introText = isReset
-    ? `Use the one-time security code below to reset the password for your Manga World Patron account (<strong style="color: #f5f3ef;">${recipientEmail}</strong>):`
-    : `Use the one-time security code below to verify your email (<strong style="color: #f5f3ef;">${recipientEmail}</strong>) and complete your Manga World Patron registration:`;
+    ? `Use the one-time security code below to reset the password for your AnimeVerse Patron account (<strong style="color: #f5f3ef;">${recipientEmail}</strong>):`
+    : `Use the one-time security code below to verify your email (<strong style="color: #f5f3ef;">${recipientEmail}</strong>) and complete your AnimeVerse Patron registration:`;
   const warningText = isReset
     ? "If you did not request a password reset, your account credentials remain unchanged and secure. You can safely ignore this email."
     : "If you did not request this verification code, you can safely ignore this email. No account will be created without this verification code.";
@@ -194,7 +194,7 @@ function generateOtpHtmlEmail(code: string, recipientEmail: string, purpose: "RE
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${isReset ? "Manga World Password Reset" : "Manga World Security Code"}</title>
+  <title>${isReset ? "AnimeVerse Password Reset" : "AnimeVerse Security Code"}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #0a0a0a; color: #f5f3ef; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #0a0a0a; padding: 40px 10px;">
@@ -207,10 +207,10 @@ function generateOtpHtmlEmail(code: string, recipientEmail: string, purpose: "RE
           <tr>
             <td style="padding: 32px 32px 24px; text-align: center; border-bottom: 1px solid #222222; background: linear-gradient(180deg, #181818 0%, #121212 100%);">
               <div style="display: inline-block; background-color: #D94A3A; color: #ffffff; width: 32px; height: 32px; line-height: 32px; font-size: 15px; font-weight: bold; border-radius: 3px; margin-bottom: 12px; font-family: serif;">
-                MANGA WORLD
+                ANIMEVERSE
               </div>
               <h1 style="margin: 0; font-size: 19px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; color: #f5f3ef;">
-                MANGA WORLD ARCHIVE
+                ANIMEVERSE ARCHIVE
               </h1>
               <p style="margin: 6px 0 0; font-size: 11px; font-family: monospace; letter-spacing: 1.5px; color: #888888; text-transform: uppercase;">
                 ${title}
@@ -278,10 +278,10 @@ export async function sendVerificationEmail({
 }: SendOtpEmailOptions): Promise<{ success: boolean; message: string; sentViaSmtp?: boolean }> {
   const isReset = purpose === "RESET_PASSWORD";
   const emailSubject = isReset
-    ? `[MANGA WORLD ARCHIVE] Password Reset Verification Code: ${code}`
-    : `Your Manga World Verification Code: ${code}`;
+    ? `[ANIMEVERSE ARCHIVE] Password Reset Verification Code: ${code}`
+    : `Your AnimeVerse Verification Code: ${code}`;
   const html = generateOtpHtmlEmail(code, to, purpose);
-  const text = `Your Manga World verification code is: ${code}. It expires in 10 minutes.`;
+  const text = `Your AnimeVerse verification code is: ${code}. It expires in 10 minutes.`;
 
   return dispatchGenericEmail({
     to,
@@ -340,7 +340,7 @@ export async function sendAdminNewOrderNotification(order: ServerOrder): Promise
               <div style="display: flex; align-items: center; justify-content: space-between;">
                 <div>
                   <span style="font-family: monospace; font-size: 11px; letter-spacing: 2px; color: #D4AF37; text-transform: uppercase;">
-                    MANGA WORLD ADMIN ARCHIVE ALERT
+                    ANIMEVERSE ADMIN ARCHIVE ALERT
                   </span>
                   <h1 style="margin: 4px 0 0; font-size: 20px; font-weight: 800; color: #ffffff;">
                     New Order Received: #${order.id}
@@ -354,7 +354,7 @@ export async function sendAdminNewOrderNotification(order: ServerOrder): Promise
           <tr>
             <td style="padding: 26px 30px;">
               <p style="margin: 0 0 18px; font-size: 14px; color: #cccccc;">
-                A new archival collection order has been placed on MANGA WORLD and registered in the central system.
+                A new archival collection order has been placed on ANIMEVERSE and registered in the central system.
               </p>
 
               <!-- Order Summary Card -->
@@ -455,7 +455,7 @@ export async function sendAdminNewOrderNotification(order: ServerOrder): Promise
           <!-- Footer -->
           <tr>
             <td style="padding: 16px 30px; background-color: #0b0b0b; border-top: 1px solid #1f1f1f; text-align: center; font-family: monospace; font-size: 10px; color: #666;">
-              MANGA WORLD CENTRAL ORDER SYSTEM • AUTOMATED DISPATCH ALERT
+              ANIMEVERSE CENTRAL ORDER SYSTEM • AUTOMATED DISPATCH ALERT
             </td>
           </tr>
 
@@ -467,16 +467,16 @@ export async function sendAdminNewOrderNotification(order: ServerOrder): Promise
 </html>
     `;
 
-    const text = `Manga World Admin Alert: New Order #${order.id} placed by ${headerSafe(order.customerName) || "Collector"} for ${order.total} EGP. Open admin dashboard to inspect: ${appUrl()}/admin`;
+    const text = `AnimeVerse Admin Alert: New Order #${order.id} placed by ${headerSafe(order.customerName) || "Collector"} for ${order.total} EGP. Open admin dashboard to inspect: ${appUrl()}/admin`;
 
     await dispatchGenericEmail({
       to: adminRecipients,
-      subject: `[Manga World] New Order Placed: #${order.id} (${order.total} EGP - ${headerSafe(order.customerName) || "Collector"})`,
+      subject: `[AnimeVerse] New Order Placed: #${order.id} (${order.total} EGP - ${headerSafe(order.customerName) || "Collector"})`,
       html,
       text,
     });
   } catch (err) {
-    console.error("[Manga World EMAIL DISPATCH] Error in sendAdminNewOrderNotification:", err);
+    console.error("[AnimeVerse EMAIL DISPATCH] Error in sendAdminNewOrderNotification:", err);
   }
 }
 
@@ -519,7 +519,7 @@ export async function sendCustomerOrderStatusUpdateEmail(
           <tr>
             <td style="padding: 28px 30px 20px; text-align: center; border-bottom: 1px solid #222; background: linear-gradient(180deg, #181818 0%, #121212 100%);">
               <div style="display: inline-block; background-color: #D94A3A; color: #ffffff; width: 30px; height: 30px; line-height: 30px; font-size: 14px; font-weight: bold; border-radius: 3px; margin-bottom: 10px; font-family: serif;">
-                MANGA WORLD
+                ANIMEVERSE
               </div>
               <h1 style="margin: 0; font-size: 18px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: #ffffff;">
                 Order Status Update
@@ -584,7 +584,7 @@ export async function sendCustomerOrderStatusUpdateEmail(
           <!-- Footer -->
           <tr>
             <td style="padding: 18px 30px; background-color: #0b0b0b; border-top: 1px solid #1f1f1f; text-align: center; font-family: monospace; font-size: 10px; color: #555;">
-              MANGA WORLD Central Archival Hub • 6th of October City, Giza, Egypt
+              ANIMEVERSE Central Archival Hub • 6th of October City, Giza, Egypt
             </td>
           </tr>
 
@@ -600,12 +600,12 @@ export async function sendCustomerOrderStatusUpdateEmail(
 
     await dispatchGenericEmail({
       to: order.customerEmail,
-      subject: `[Manga World] Order #${order.id} Status Update: ${headerSafe(order.status)}`,
+      subject: `[AnimeVerse] Order #${order.id} Status Update: ${headerSafe(order.status)}`,
       html,
       text,
     });
   } catch (err) {
-    console.error("[Manga World EMAIL DISPATCH] Error in sendCustomerOrderStatusUpdateEmail:", err);
+    console.error("[AnimeVerse EMAIL DISPATCH] Error in sendCustomerOrderStatusUpdateEmail:", err);
   }
 }
 
@@ -656,7 +656,7 @@ export async function sendCustomerOrderShippedEmail(order: ServerOrder): Promise
                 Dear <strong style="color: #ffffff;">${escapeHtml(order.customerName) || "Patron"}</strong>,
               </p>
               <p style="margin: 0 0 22px; font-size: 14px; line-height: 1.6; color: #cccccc;">
-                Great news! Your archival manga volumes have departed the MANGA WORLD fulfillment vault and are currently in transit with our logistics carrier.
+                Great news! Your archival manga volumes have departed the ANIMEVERSE fulfillment vault and are currently in transit with our logistics carrier.
               </p>
 
               <!-- Logistics Waybill Card -->
@@ -740,16 +740,16 @@ export async function sendCustomerOrderShippedEmail(order: ServerOrder): Promise
 </html>
     `;
 
-    const text = `Manga World Order #${order.id} Shipped! Courier: ${courier}, Tracking Number: ${trackingNumber}.${trackingUrl ? ` Track online: ${trackingUrl}` : ""}`;
+    const text = `AnimeVerse Order #${order.id} Shipped! Courier: ${courier}, Tracking Number: ${trackingNumber}.${trackingUrl ? ` Track online: ${trackingUrl}` : ""}`;
 
     await dispatchGenericEmail({
       to: order.customerEmail,
-      subject: `[Manga World] Your Order Has Shipped! Tracking #${trackingNumber} (Order #${order.id})`,
+      subject: `[AnimeVerse] Your Order Has Shipped! Tracking #${trackingNumber} (Order #${order.id})`,
       html,
       text,
     });
   } catch (err) {
-    console.error("[Manga World EMAIL DISPATCH] Error in sendCustomerOrderShippedEmail:", err);
+    console.error("[AnimeVerse EMAIL DISPATCH] Error in sendCustomerOrderShippedEmail:", err);
   }
 }
 
@@ -807,7 +807,7 @@ export async function sendCustomerOrderAutoCancelledEmail(order: ServerOrder): P
           <!-- Footer -->
           <tr>
             <td style="padding: 16px 30px; background-color: #0b0b0b; border-top: 1px solid #1f1f1f; text-align: center; font-family: monospace; font-size: 10px; color: #555;">
-              MANGA WORLD Central Archival Hub • Customer Care
+              ANIMEVERSE Central Archival Hub • Customer Care
             </td>
           </tr>
 
@@ -819,15 +819,15 @@ export async function sendCustomerOrderAutoCancelledEmail(order: ServerOrder): P
 </html>
     `;
 
-    const text = `Order #${order.id} was automatically cancelled due to payment hold expiration (36 hours). Please contact Manga World if you have already transferred.`;
+    const text = `Order #${order.id} was automatically cancelled due to payment hold expiration (36 hours). Please contact AnimeVerse if you have already transferred.`;
 
     await dispatchGenericEmail({
       to: order.customerEmail,
-      subject: `[Manga World] Order #${order.id} Cancelled (Payment Window Expired)`,
+      subject: `[AnimeVerse] Order #${order.id} Cancelled (Payment Window Expired)`,
       html,
       text,
     });
   } catch (err) {
-    console.error("[Manga World EMAIL DISPATCH] Error in sendCustomerOrderAutoCancelledEmail:", err);
+    console.error("[AnimeVerse EMAIL DISPATCH] Error in sendCustomerOrderAutoCancelledEmail:", err);
   }
 }

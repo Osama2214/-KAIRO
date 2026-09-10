@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect } from "react";
-import { MangaWorldImage } from "@/components/MangaWorldImage";
+import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ShoppingBag, Eye } from "lucide-react";
@@ -845,7 +845,7 @@ export function TheCollection() {
             {/* Top Bar of Slipcase - Calm & Refined */}
             <div className="flex items-center justify-between gap-2 border-b border-gold/15 pb-2 px-1 relative z-10">
               <span className="text-[8px] sm:text-[10px] font-mono tracking-[0.1em] sm:tracking-[0.22em] text-gold/80 uppercase font-medium whitespace-nowrap">
-                {isArabic ? "صندوق أرشيف MANGA WORLD" : "MANGA WORLD ARCHIVE BOXSET"}
+                {isArabic ? "صندوق أرشيف ANIMEVERSE" : "ANIMEVERSE ARCHIVE BOXSET"}
               </span>
               <span className="text-[8px] sm:text-[9px] font-mono text-paper-muted/50 tracking-[0.1em] sm:tracking-widest uppercase font-light whitespace-nowrap">
                 {isArabic ? "طبعة أولى" : "FIRST PRINT"}
@@ -854,7 +854,7 @@ export function TheCollection() {
 
             {/* Inner background decorative kanji */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.025] z-0">
-              <span className="text-9xl font-serif text-gold font-bold">MANGA WORLD</span>
+              <span className="text-9xl font-serif text-gold font-bold">ANIMEVERSE</span>
             </div>
 
             {/* Bottom Bar of Slipcase - Calm & Refined */}
@@ -908,7 +908,7 @@ export function TheCollection() {
 
               {/* Right Art (Deep bleed across with wide smoky feather fade) */}
               <div className="absolute inset-y-0 right-0 rtl:right-auto rtl:left-0 w-[55%] xs:w-[58%] h-full overflow-hidden pointer-events-none z-10">
-                <MangaWorldImage
+                <AnimeVerseImage
                   src={vol1.coverImage}
                   alt={vol1.title}
                   sizes="(max-width: 639px) 55vw, 0px"
@@ -918,7 +918,7 @@ export function TheCollection() {
                 <div className="absolute inset-0 bg-linear-to-t from-[#0a0a0d]/85 via-transparent to-[#0a0a0d]/35 pointer-events-none z-10" />
                 <div className="absolute top-2 right-2 rtl:right-auto rtl:left-2 pointer-events-none z-20 opacity-85 group-hover:opacity-100 transition-opacity">
                   <span className="text-[8px] font-serif text-vermilion font-bold tracking-wider px-1 py-0.5 rounded-xs bg-ink/80 border border-vermilion/40 backdrop-blur-xs">
-                    MANGA WORLD
+                    ANIMEVERSE
                   </span>
                 </div>
               </div>
@@ -926,7 +926,7 @@ export function TheCollection() {
 
             {/* DESKTOP / TABLET LAYOUT (sm+): Full Portrait Cover */}
             <div className="hidden sm:block w-full h-full relative">
-              <MangaWorldImage
+              <AnimeVerseImage
                 src={vol1.coverImage}
                 alt={vol1.title}
                 sizes="(max-width: 639px) 0px, 33vw"
@@ -1013,7 +1013,7 @@ export function TheCollection() {
 
               {/* Right Art (Deep bleed across with wide smoky feather fade) */}
               <div className="absolute inset-y-0 right-0 rtl:right-auto rtl:left-0 w-[55%] xs:w-[58%] h-full overflow-hidden pointer-events-none z-10">
-                <MangaWorldImage
+                <AnimeVerseImage
                   src={vol2.coverImage}
                   alt={vol2.title}
                   sizes="(max-width: 639px) 55vw, 0px"
@@ -1023,7 +1023,7 @@ export function TheCollection() {
                 <div className="absolute inset-0 bg-linear-to-t from-[#0a0a0d]/85 via-transparent to-[#0a0a0d]/35 pointer-events-none z-10" />
                 <div className="absolute top-2 right-2 rtl:right-auto rtl:left-2 pointer-events-none z-20 opacity-85 group-hover:opacity-100 transition-opacity">
                   <span className="text-[8px] font-serif text-vermilion font-bold tracking-wider px-1 py-0.5 rounded-xs bg-ink/80 border border-vermilion/40 backdrop-blur-xs">
-                    MANGA WORLD
+                    ANIMEVERSE
                   </span>
                 </div>
               </div>
@@ -1031,7 +1031,7 @@ export function TheCollection() {
 
             {/* DESKTOP / TABLET LAYOUT (sm+): Full Portrait Cover */}
             <div className="hidden sm:block w-full h-full relative">
-              <MangaWorldImage
+              <AnimeVerseImage
                 src={vol2.coverImage}
                 alt={vol2.title}
                 sizes="(max-width: 639px) 0px, 33vw"
@@ -1115,7 +1115,7 @@ export function TheCollection() {
 
               {/* Right Art (Deep bleed across with wide smoky feather fade) */}
               <div className="absolute inset-y-0 right-0 rtl:right-auto rtl:left-0 w-[55%] xs:w-[58%] h-full overflow-hidden pointer-events-none z-10">
-                <MangaWorldImage
+                <AnimeVerseImage
                   src={vol3.coverImage}
                   alt={vol3.title}
                   sizes="(max-width: 639px) 55vw, 0px"
@@ -1125,7 +1125,7 @@ export function TheCollection() {
                 <div className="absolute inset-0 bg-linear-to-t from-[#0a0a0d]/85 via-transparent to-[#0a0a0d]/35 pointer-events-none z-10" />
                 <div className="absolute top-2 right-2 rtl:right-auto rtl:left-2 pointer-events-none z-20 opacity-85 group-hover:opacity-100 transition-opacity">
                   <span className="text-[8px] font-serif text-vermilion font-bold tracking-wider px-1 py-0.5 rounded-xs bg-ink/80 border border-vermilion/40 backdrop-blur-xs">
-                    MANGA WORLD
+                    ANIMEVERSE
                   </span>
                 </div>
               </div>
@@ -1133,7 +1133,7 @@ export function TheCollection() {
 
             {/* DESKTOP / TABLET LAYOUT (sm+): Full Portrait Cover */}
             <div className="hidden sm:block w-full h-full relative">
-              <MangaWorldImage
+              <AnimeVerseImage
                 src={vol3.coverImage}
                 alt={vol3.title}
                 sizes="(max-width: 639px) 0px, 33vw"

@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const title = `${entry.title} (${entry.japaneseTitle})`;
   const description = metaDescription(
     entry.description,
-    `${entry.title} by ${entry.author} — ${entry.totalVolumes} volumes in the MANGA WORLD archive.`
+    `${entry.title} by ${entry.author} — ${entry.totalVolumes} volumes in the ANIMEVERSE archive.`
   );
   const image = absoluteImage(entry.bannerImage || entry.featuredImage);
 

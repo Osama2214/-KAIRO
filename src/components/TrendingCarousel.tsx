@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback } from "react";
-import { MangaWorldImage } from "@/components/MangaWorldImage";
+import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 import { useRouter } from "next/navigation";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
@@ -178,7 +178,7 @@ export function TrendingCarousel() {
                 >
                   {/* Cover Image Container */}
                   <div className="relative aspect-[3/4] overflow-hidden bg-ink">
-                    <MangaWorldImage
+                    <AnimeVerseImage
                       src={volume.coverImage}
                       alt={volume.title}
                       sizes="(max-width: 639px) 78vw, (max-width: 1023px) 42vw, 25vw"

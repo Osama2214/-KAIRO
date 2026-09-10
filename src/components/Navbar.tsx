@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import storeMark from "../../public/mangaworld-mark.png";
+import storeMark from "../../public/animeverse-mark.png";
 import { usePathname } from "next/navigation";
 import { Search, ShoppingBag, User, Menu, X, Heart, Sparkles, Globe, ArrowRight } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
@@ -11,7 +11,7 @@ import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
 import { useUIStore } from "@/store/useUIStore";
 import { GlobalWelcomeOfferBar } from "@/components/GlobalWelcomeOfferBar";
 import { useWelcomeOffer } from "@/hooks/useWelcomeOffer";
-import { clearMangaWorldSavedScroll } from "@/components/SmoothScrollProvider";
+import { clearAnimeVerseSavedScroll } from "@/components/SmoothScrollProvider";
 import { useTranslation } from "@/hooks/useTranslation";
 
 export function Navbar() {
@@ -82,7 +82,7 @@ export function Navbar() {
   const handleLogoClick = (e: React.MouseEvent) => {
     setMobileMenuOpen(false);
     try {
-      clearMangaWorldSavedScroll("/");
+      clearAnimeVerseSavedScroll("/");
       sessionStorage.removeItem("kairo_scroll_/");
     } catch {}
     if (pathname === "/") {
@@ -132,7 +132,7 @@ export function Navbar() {
     if (pathname === href) {
       e.preventDefault();
       try {
-        clearMangaWorldSavedScroll(href);
+        clearAnimeVerseSavedScroll(href);
         sessionStorage.removeItem(`kairo_scroll_${href}`);
       } catch {}
       if (window.__lenis) {
@@ -194,14 +194,14 @@ export function Navbar() {
           <Link
             href="/"
             onClick={handleLogoClick}
-            aria-label="Manga World — Manga, Light Novels & Collector Editions"
+            aria-label="AnimeVerse — Your Universe of Manga & Collector Editions"
             className="group flex items-center focus:outline-none cursor-pointer shrink-0"
           >
             <Image
               src={storeMark}
-              alt="Manga World — Manga, Light Novels & Collector Editions"
+              alt="AnimeVerse — Your Universe of Manga & Collector Editions"
               priority
-              className={`w-auto brightness-[0.88] transition-all duration-300 group-hover:brightness-100 ${
+              className={`w-auto brightness-[0.80] transition-all duration-300 group-hover:brightness-100 ${
                 isScrolled ? "h-9 sm:h-10" : "h-11 sm:h-12"
               }`}
             />

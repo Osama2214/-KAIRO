@@ -12,13 +12,13 @@ import { ALL_SERIES, ALL_VOLUMES, MangaVolume, Series } from "@/data/manga";
 export const SITE_URL = (
   process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "") ||
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
-  "https://manga-world-rosy-five.vercel.app"
+  "https://animeverse-rosy-five.vercel.app"
 );
 
-export const SITE_NAME = "Manga World";
+export const SITE_NAME = "AnimeVerse";
 // A purpose-built 1200x630 card. The raw logo is a ~2.85:1 banner, which
 // crawlers letterbox or crop badly in the preview slot.
-export const DEFAULT_OG_IMAGE = "/mangaworld-og.png";
+export const DEFAULT_OG_IMAGE = "/animeverse-og.png";
 
 /**
  * Reads the live catalogue for metadata, falling back to the bundled data if

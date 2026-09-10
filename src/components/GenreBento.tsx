@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { MangaWorldImage } from "@/components/MangaWorldImage";
+import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { GENRES } from "@/data/manga";
@@ -64,7 +64,7 @@ export function GenreBento() {
             >
               {/* Artwork Background with Zoom on Hover */}
               <div className="absolute inset-0 overflow-hidden">
-                <MangaWorldImage
+                <AnimeVerseImage
                   src={genre.coverImage}
                   alt={genre.name}
                   sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"

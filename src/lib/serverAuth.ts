@@ -69,7 +69,7 @@ export function isTrustedOrigin(request: Request): boolean {
 
   const cleanOrigin = origin.trim().replace(/\/+$/, "");
   const allowed = new Set<string>([
-    "https://manga-world-rosy-five.vercel.app",
+    "https://animeverse-rosy-five.vercel.app",
   ]);
 
   const configured = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "");

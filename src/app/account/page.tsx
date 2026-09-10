@@ -681,7 +681,7 @@ function AccountContent() {
       <html lang="en">
         <head>
           <meta charset="utf-8">
-          <title>INVOICE_${order.id}_MANGA WORLD</title>
+          <title>INVOICE_${order.id}_ANIMEVERSE</title>
           <style>
             @page {
               size: A4 portrait;
@@ -835,8 +835,8 @@ function AccountContent() {
           <div class="receipt-card">
             <div class="header">
               <div class="brand-row">
-                <div class="brand-seal">MANGA WORLD</div>
-                <span class="brand-name">MANGA WORLD PUBLISHING ARCHIVE</span>
+                <div class="brand-seal">ANIMEVERSE</div>
+                <span class="brand-name">ANIMEVERSE PUBLISHING ARCHIVE</span>
               </div>
               <div class="hub-line">6th of October Central Archival Hub • Giza, Egypt</div>
               <div class="receipt-h1">OFFICIAL ORDER RECEIPT</div>
@@ -887,7 +887,7 @@ function AccountContent() {
             <div class="stamp-section">
               <div>
                 <span class="stamp-title">AUTHENTICITY VERIFIED:</span><br>
-                MANGA WORLD EGYPT ARCHIVE SEAL #KRO-OCT-88219
+                AnimeVerse Egypt Archive Seal #AV-OCT-88219
               </div>
               <div style="text-align: right;">
                 <span>DISPATCH STATUS:</span><br>
@@ -1104,7 +1104,7 @@ function AccountContent() {
       if (!res.success) {
         setAuthError(res.message || "Failed to finalize registration.");
       } else {
-        setAuthSuccess("Patron account verified & created! Welcome to MANGA WORLD Archive.");
+        setAuthSuccess("Patron account verified & created! Welcome to ANIMEVERSE Archive.");
         setIsOtpStep(false);
       }
     } catch {
@@ -1527,7 +1527,7 @@ function AccountContent() {
           {/* Header */}
           <div className="text-center space-y-1.5 border-b border-ink-border/80 pb-4">
             <h1 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-tight font-sans text-paper">
-              MANGA WORLD
+              ANIMEVERSE
             </h1>
             <p className="text-xs text-text-muted font-mono">
               Sign in to access your archive.
@@ -3062,10 +3062,10 @@ function AccountContent() {
             <div className="border-b border-ink-border/80 print:border-black/20 pb-4 text-center space-y-1">
               <div className="flex items-center justify-center gap-2 mb-1.5">
                 <div className="w-6 h-6 bg-vermilion rounded-xs flex items-center justify-center text-paper font-serif font-bold text-xs print:bg-neutral-900 print:text-white">
-                  MANGA WORLD
+                  ANIMEVERSE
                 </div>
                 <span className="font-extrabold tracking-[0.2em] text-sm uppercase text-paper print:text-black font-sans">
-                  MANGA WORLD PUBLISHING ARCHIVE
+                  ANIMEVERSE PUBLISHING ARCHIVE
                 </span>
               </div>
               <span className="text-[9px] sm:text-[10px] font-mono tracking-[0.25em] sm:tracking-[0.3em] text-gold print:text-neutral-700 uppercase block">
@@ -3126,7 +3126,7 @@ function AccountContent() {
             <div className="p-2.5 sm:p-3 bg-ink-surface/50 print:bg-neutral-50 border border-ink-border print:border-black/20 rounded-xs flex flex-col xs:flex-row xs:items-center justify-between gap-1.5 text-[9px] sm:text-[10px] font-mono text-text-muted print:text-neutral-700">
               <div>
                 <span className="text-gold print:text-black block font-semibold">AUTHENTICITY STAMP:</span>
-                <span>MANGA WORLD EGYPT SEAL #KRO-OCT-88219</span>
+                <span>AnimeVerse Egypt Seal #AV-OCT-88219</span>
               </div>
               <div className="xs:text-right">
                 <span className="block">TRACKING CODE:</span>

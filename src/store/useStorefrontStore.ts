@@ -54,6 +54,8 @@ export interface EditorialConfig {
   siteTagline: string;
   footerQuote: string;
   contactEmail: string;
+  contactPhone: string;
+  ownerName: string;
   authenticityGuaranteeText: string;
   shippingPolicyText: string;
   returnPolicyText: string;
@@ -221,7 +223,7 @@ const DEFAULT_HERO_CONTENT: HeroContent = {
 const DEFAULT_ANNOUNCEMENT: AnnouncementConfig = {
   enabled: true,
   text: "INAUGURAL PATRON GRANT — RECEIVE 20% OFF YOUR FIRST CURATED ARCHIVE WITH VOUCHER",
-  voucherCode: "MANGA WORLD20",
+  voucherCode: "ANIMEVERSE20",
   discountPercent: 20,
 };
 
@@ -245,9 +247,11 @@ const DEFAULT_SHIPPING_CONFIG: ShippingConfig = {
 
 const DEFAULT_EDITORIAL: EditorialConfig = {
   siteTagline: "Japanese Manga & Editorial Storefront",
-  footerQuote: "In the quiet chambers between panels, human truths linger. MANGA WORLD stands as an altar to physical print, Japanese craft, and uncompromising sequential art.",
-  contactEmail: "concierge@kairo.archive",
-  authenticityGuaranteeText: "Every single volume in the MANGA WORLD archive is sourced directly from certified Tokyo and Kyoto publishing houses. We guarantee 100% genuine Kodansha, Shueisha, Shogakukan, and Dark Horse editorial pressings.",
+  footerQuote: "In the quiet chambers between panels, human truths linger. ANIMEVERSE stands as an altar to physical print, Japanese craft, and uncompromising sequential art.",
+  contactEmail: "animeversebooks@gmail.com",
+  contactPhone: "+20 10 36225385",
+  ownerName: "Mahmoud Waleed",
+  authenticityGuaranteeText: "Every single volume in the ANIMEVERSE archive is sourced directly from certified Tokyo and Kyoto publishing houses. We guarantee 100% genuine Kodansha, Shueisha, Shogakukan, and Dark Horse editorial pressings.",
   shippingPolicyText: "Orders are hand-packaged using archival protective sleeves, reinforced corner bumpers, and moisture-resistant sealing. Dispatched daily across Cairo, Giza, Alexandria, and all Egyptian governorates.",
   returnPolicyText: "We honor a 14-day archival integrity inspection. If your volume arrives with any structural binding defect, spine dent, or print anomaly, our concierge provides immediate replacement.",
   footerDescription: "An editorial archive celebrating sequential art, Japanese literary epics, and tactile physical printing craftsmanship.",

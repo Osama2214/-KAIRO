@@ -80,7 +80,7 @@ export async function POST(request: Request) {
 
       const response = NextResponse.json({
         success: true,
-        message: "Master Curator authentication verified. Welcome to MANGA WORLD Admin Console.",
+        message: "Master Curator authentication verified. Welcome to ANIMEVERSE Admin Console.",
       });
 
       // Set hardened HTTP-Only security cookie

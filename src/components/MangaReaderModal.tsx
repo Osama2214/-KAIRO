@@ -138,7 +138,7 @@ export function MangaReaderModal() {
         {/* Left: Volume Meta */}
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xs bg-vermilion text-paper flex items-center justify-center font-serif font-bold text-xs border border-vermilion/80 shadow-md shrink-0">
-            MANGA WORLD
+            ANIMEVERSE
           </div>
           <div>
             <span className="text-[10px] font-mono tracking-widest text-gold uppercase flex items-center gap-1.5">
@@ -291,12 +291,12 @@ export function MangaReaderModal() {
                   {/* Official Vermilion Hanko Stamp */}
                   <div className="h-5 px-2 rounded-xs bg-vermilion text-white flex items-center justify-center shrink-0 border border-vermilion/80 shadow-xs select-none">
                     <span className="font-serif font-bold text-[10px] tracking-tight leading-none whitespace-nowrap">
-                      MANGA WORLD
+                      ANIMEVERSE
                     </span>
                   </div>
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-[11px] font-mono font-extrabold text-paper tracking-[0.16em] uppercase whitespace-nowrap">
-                      {isArabic ? "أرشيف كايرو" : "MANGA WORLD ARCHIVE"}
+                      {isArabic ? "أرشيف كايرو" : "ANIMEVERSE ARCHIVE"}
                     </span>
                     <span className="text-ink-border hidden sm:inline">•</span>
                     <span className="text-[9px] font-mono text-gold tracking-widest uppercase truncate hidden sm:inline">

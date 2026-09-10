@@ -42,7 +42,7 @@ const nextConfig: NextConfig = {
     ],
     formats: ["image/webp"],
     minimumCacheTTL: 2_592_000,
-    qualities: [75],
+    qualities: [75, 90],
   },
   async headers() {
     return [

@@ -46,3 +46,7 @@ next-env.d.ts
 
 # CMS snapshots written by scripts/sync-storefront-copy.mjs — data, not source
 storefront-backup-*.json
+
+# lint artifacts
+lint.json
+lint_output.txt

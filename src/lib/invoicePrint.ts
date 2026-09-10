@@ -1,14 +1,22 @@
 ﻿/**
- * MANGA WORLD Archival Invoice & Packing Slip Printer
+ * ANIMEVERSE Archival Invoice & Packing Slip Printer
  * Generates an official, high-resolution physical packing slip / invoice for customer shipments.
  */
 
 import { SavedOrder, SavedOrderItem, UserProfile } from "@/store/useAuthStore";
 import { formatPrice } from "@/lib/utils";
 import { escapeHtml } from "@/lib/security";
+import { useStorefrontStore } from "@/store/useStorefrontStore";
 
 export function printCustomerInvoice(order: SavedOrder, customer?: UserProfile | null) {
   if (typeof window === "undefined" || typeof document === "undefined") return;
+
+  // Store contact details come from the CMS so a curator can change them
+  // without a deploy.
+  const editorial = useStorefrontStore.getState().editorialConfig;
+  const storeEmail = editorial?.contactEmail || "animeversebooks@gmail.com";
+  const storePhone = editorial?.contactPhone || "+20 10 36225385";
+  const storeOwner = editorial?.ownerName || "";
 
   // Create an isolated hidden iframe dedicated strictly to the print document
   const iframe = document.createElement("iframe");
@@ -78,7 +86,7 @@ export function printCustomerInvoice(order: SavedOrder, customer?: UserProfile |
     <html lang="en">
       <head>
         <meta charset="utf-8">
-        <title>MANGA WORLD_PACKING_INVOICE_${order.id}</title>
+        <title>ANIMEVERSE_PACKING_INVOICE_${order.id}</title>
         <style>
           @page {
             size: A4 portrait;
@@ -306,8 +314,8 @@ export function printCustomerInvoice(order: SavedOrder, customer?: UserProfile |
           <div class="header">
             <div class="brand-col">
               <div class="brand-title">
-                <span class="brand-kanji">MANGA WORLD</span>
-                <span class="brand-text">MANGA WORLD ARCHIVE</span>
+                <span class="brand-kanji">アニメ</span>
+                <span class="brand-text">ANIMEVERSE ARCHIVE</span>
               </div>
               <div class="hub-text">
                 Central Fulfillment Hub • 6th of October City, Giza, Egypt
@@ -374,7 +382,7 @@ export function printCustomerInvoice(order: SavedOrder, customer?: UserProfile |
             <div class="notes-box">
               <span class="notes-title">ARCHIVAL PACKAGING & CARE INSTRUCTIONS</span>
               Every physical volume in this shipment has been inspected for spine alignment, structural binding integrity, and sealed inside protective archival sleeves.<br><br>
-              Every physical volume unlocks lifetime instant Japanese RTL cloud reading access on <strong>kairo.eg/account</strong>.
+              Every physical volume unlocks lifetime instant Japanese RTL cloud reading access on <strong>your AnimeVerse account</strong>.
             </div>
 
             <div>
@@ -399,7 +407,7 @@ export function printCustomerInvoice(order: SavedOrder, customer?: UserProfile |
           <div class="seal-banner">
             <div>
               <strong style="color: #0f172a;">AUTHENTICITY VERIFICATION:</strong>
-              <span style="color: #475569;">MANGA WORLD EGYPT SEAL #KRO-OCT-88219</span>
+              <span style="color: #475569;">AnimeVerse Egypt Seal #AV-OCT-88219</span>
             </div>
             <div>
               <strong style="color: #0f172a; margin-right: 6px;">TRACKING #:</strong>
@@ -408,7 +416,7 @@ export function printCustomerInvoice(order: SavedOrder, customer?: UserProfile |
           </div>
 
           <div class="footer-note">
-            Thank you for being a MANGA WORLD patron. • Concierge & Inquiries: concierge@kairo.archive
+            Thank you for being an AnimeVerse patron. • ${escapeHtml(storeEmail)} • ${escapeHtml(storePhone)}${storeOwner ? ` • ${escapeHtml(storeOwner)}` : ""}
           </div>
         </div>
       </body>

@@ -65,24 +65,24 @@ export const metadata: Metadata = {
   // absolute URLs; without it shared links rendered no preview.
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Manga World — Manga, Light Novels & Collector Editions",
-    template: "%s | Manga World",
+    default: "AnimeVerse — Your Universe of Manga & Collector Editions",
+    template: "%s | AnimeVerse",
   },
   description: SITE_DESCRIPTION,
-  keywords: ["Manga", "Light Novels", "Manga World", "Japanese Books", "Jujutsu Kaisen", "One Piece", "Berserk"],
+  keywords: ["Manga", "Light Novels", "AnimeVerse", "Japanese Books", "Jujutsu Kaisen", "One Piece", "Berserk"],
   applicationName: SITE_NAME,
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     siteName: SITE_NAME,
-    title: "Manga World — Manga, Light Novels & Collector Editions",
+    title: "AnimeVerse — Your Universe of Manga & Collector Editions",
     description: SITE_DESCRIPTION,
     url: "/",
-    images: [{ url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: "Manga World — Manga, Light Novels & Collector Editions" }],
+    images: [{ url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: "AnimeVerse — Your Universe of Manga & Collector Editions" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Manga World — Manga, Light Novels & Collector Editions",
+    title: "AnimeVerse — Your Universe of Manga & Collector Editions",
     description: SITE_DESCRIPTION,
     images: [DEFAULT_OG_IMAGE],
   },
@@ -118,15 +118,15 @@ export default function RootLayout({
               'document.documentElement.dir=l==="ar"?"rtl":"ltr";}catch(e){}',
           }}
         />
-        <div id="manga-world-restore-loader" aria-hidden="true">
-          <div className="mw-loader-bg-glow" />
-          <div className="mw-loader-content">
-            <div className="mw-loader-kanji">manga-world</div>
-            <div className="mw-loader-brand">K A I R O</div>
-            <div className="mw-loader-bar">
-              <div className="mw-loader-bar-fill" />
+        <div id="animeverse-restore-loader" aria-hidden="true">
+          <div className="av-loader-bg-glow" />
+          <div className="av-loader-content">
+            <div className="av-loader-kanji">アニメ</div>
+            <div className="av-loader-brand">A N I M E V E R S E</div>
+            <div className="av-loader-bar">
+              <div className="av-loader-bar-fill" />
             </div>
-            <div className="mw-loader-caption">RESTORING ARCHIVE</div>
+            <div className="av-loader-caption">RESTORING ARCHIVE</div>
           </div>
         </div>
         <SmoothScrollProvider>

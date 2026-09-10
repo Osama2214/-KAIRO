@@ -3,7 +3,7 @@ import "server-only";
 import { neon } from "@neondatabase/serverless";
 
 /**
- * MANGA WORLD Archive Server-Side Rate Limiter
+ * ANIMEVERSE Archive Server-Side Rate Limiter
  *
  * Counters live in Neon rather than process memory. On Vercel each request may
  * land on a different lambda instance and every cold start begins with an empty
@@ -18,11 +18,11 @@ interface RateLimitRecord {
 }
 
 declare global {
-  var __mangaworld_rate_limit_store: Map<string, RateLimitRecord> | undefined;
+  var __animeverse_rate_limit_store: Map<string, RateLimitRecord> | undefined;
 }
 
-const memoryStore = globalThis.__mangaworld_rate_limit_store || new Map<string, RateLimitRecord>();
-globalThis.__mangaworld_rate_limit_store = memoryStore;
+const memoryStore = globalThis.__animeverse_rate_limit_store || new Map<string, RateLimitRecord>();
+globalThis.__animeverse_rate_limit_store = memoryStore;
 
 const databaseUrl = process.env.DATABASE_URL;
 const sql = databaseUrl ? neon(databaseUrl) : null;
@@ -122,7 +122,7 @@ function checkInMemory(key: string, maxAttempts: number, windowMs: number): Rate
  * Atomically increments the counter for a key and reports whether the caller is
  * still within the window.
  *
- * @param key Unique key (e.g. "login:ip:1.2.3.4" or "pin:email:user@kairo.eg")
+ * @param key Unique key (e.g. "login:ip:1.2.3.4" or "pin:email:user@animeverse.eg")
  * @param maxAttempts Maximum allowed requests within the window
  * @param windowMs Window length in milliseconds
  */

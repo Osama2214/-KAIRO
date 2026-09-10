@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import storeLogo from "../../public/mangaworld-logo.png";
+import storeLogo from "../../public/animeverse-logo.png";
 import { usePathname } from "next/navigation";
 import { Copyright } from "lucide-react";
 import { PolicyModal, PolicyTab } from "./PolicyModal";
@@ -66,8 +66,8 @@ export function Footer() {
               <div className="flex items-center">
                 <Image
                   src={storeLogo}
-                  alt="Manga World — Manga, Light Novels & Collector Editions"
-                  className="h-11 w-auto brightness-[0.88]"
+                  alt="AnimeVerse — Your Universe of Manga & Collector Editions"
+                  className="h-11 w-auto brightness-[0.80]"
                 />
               </div>
               <LiveEditButton target={{ type: "editorial" }} label="Edit Policies & Quotes" variant="floating" size="xs" />
@@ -174,7 +174,7 @@ export function Footer() {
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-[11px] font-mono tracking-wider text-text-muted font-sans text-center sm:text-left">
             <Copyright strokeWidth={1.6} className="w-3.5 h-3.5 text-gold shrink-0" />
             <span>{new Date().getFullYear()}</span>
-            <span className="text-paper font-semibold">MANGA WORLD PUBLISHING ARCHIVE.</span>
+            <span className="text-paper font-semibold">ANIMEVERSE PUBLISHING ARCHIVE.</span>
             <span className="text-text-muted/75">{locale === "ar" ? "جميع الحقوق محفوظة." : "ALL RIGHTS RESERVED."}</span>
           </div>
           <div className="flex flex-wrap items-center justify-center sm:justify-end gap-4 sm:gap-6 font-sans text-xs">

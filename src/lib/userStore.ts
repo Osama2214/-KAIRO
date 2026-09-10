@@ -2,6 +2,7 @@ import "server-only";
 
 import crypto from "crypto";
 import { neon } from "@neondatabase/serverless";
+import { isAuthorizedAdminEmail } from "@/config/adminConfig";
 
 export interface DBUser {
   id: string;
@@ -105,10 +106,12 @@ export async function createUser(data: {
   await ensureUserSchema();
 
   const normalized = data.email.trim().toLowerCase();
-  const id = `KRO-${Math.floor(10000 + Math.random() * 90000)}`;
+  const id = `AV-${Math.floor(10000 + Math.random() * 90000)}`;
   const passwordHash = hashUserPassword(data.password);
   const now = Date.now();
-  const role = data.role || "customer";
+  // An address on the curator allow-list is an admin from the moment it
+  // registers; promoting it by hand afterwards was easy to forget.
+  const role = data.role || (isAuthorizedAdminEmail(normalized) ? "admin" : "customer");
 
   await sql`
     INSERT INTO kairo_users (

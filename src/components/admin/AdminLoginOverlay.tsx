@@ -24,7 +24,7 @@ export function AdminLoginOverlay() {
     setPinError("");
 
     try {
-      const res = await verifyAdminPinWithServer("admin@kairo.archive", pin.trim());
+      const res = await verifyAdminPinWithServer("animeversebooks@gmail.com", pin.trim());
       setIsSubmittingPin(false);
 
       if (res.locked) {
@@ -37,7 +37,7 @@ export function AdminLoginOverlay() {
         return;
       }
 
-      loginAdmin(pin.trim(), "admin@kairo.archive");
+      loginAdmin(pin.trim(), "animeversebooks@gmail.com");
     } catch {
       setIsSubmittingPin(false);
       setPinError("Server error while verifying PIN. Please try again.");
@@ -56,7 +56,7 @@ export function AdminLoginOverlay() {
             <KeyRound className="w-7 h-7 text-gold" />
           </div>
           <span className="text-[10px] font-mono tracking-[0.3em] text-gold uppercase block mb-1">
-            MANGA WORLD ARCHIVE CONSOLE
+            ANIMEVERSE ARCHIVE CONSOLE
           </span>
           <h1 className="text-xl font-bold font-sans text-paper uppercase tracking-wider">
             Curator Access

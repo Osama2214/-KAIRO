@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Patron Account",
-  description: "Your MANGA WORLD patron archive — orders, wishlist, and delivery details.",
+  description: "Your ANIMEVERSE patron archive — orders, wishlist, and delivery details.",
   alternates: { canonical: "/account" },
-  openGraph: { title: "Patron Account", description: "Your MANGA WORLD patron archive — orders, wishlist, and delivery details.", url: "/account" },
+  openGraph: { title: "Patron Account", description: "Your ANIMEVERSE patron archive — orders, wishlist, and delivery details.", url: "/account" },
   robots: { index: false, follow: false },
 };
 

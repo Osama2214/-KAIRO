@@ -13,11 +13,11 @@ interface DnsCacheEntry {
 }
 
 declare global {
-  var __mangaworld_dns_cache: Map<string, DnsCacheEntry> | undefined;
+  var __animeverse_dns_cache: Map<string, DnsCacheEntry> | undefined;
 }
 
-const dnsCache = globalThis.__mangaworld_dns_cache || new Map<string, DnsCacheEntry>();
-globalThis.__mangaworld_dns_cache = dnsCache;
+const dnsCache = globalThis.__animeverse_dns_cache || new Map<string, DnsCacheEntry>();
+globalThis.__animeverse_dns_cache = dnsCache;
 
 // Common typos map
 const TYPO_DOMAINS: Record<string, string> = {
@@ -68,8 +68,6 @@ const KNOWN_VALID_DOMAINS = new Set([
   "protonmail.com",
   "aol.com",
   "zoho.com",
-  "kairo.archive",
-  "kairo.eg",
 ]);
 
 export async function POST(request: Request) {

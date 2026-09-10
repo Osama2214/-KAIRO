@@ -2,7 +2,7 @@ import "server-only";
 
 /**
  * =======================================================================
- * 🏛️ MANGA WORLD — Admin Access Configuration (SERVER ONLY)
+ * 🏛️ ANIMEVERSE — Admin Access Configuration (SERVER ONLY)
  * =======================================================================
  *
  * This module must never be imported from client code: it names the real
@@ -21,8 +21,7 @@ import "server-only";
  * Only accounts matching these — or ADMIN_EMAIL — are granted curator access.
  */
 export const AUTHORIZED_ADMIN_EMAILS: string[] = [
-  "admin@kairo.archive",
-  "karim@kairo.archive",
+  "animeversebooks@gmail.com",
   "osamahamad261981@gmail.com",
 ];
 
