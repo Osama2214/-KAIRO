@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import storeLogo from "../../public/animeverse-logo.png";
 import { usePathname } from "next/navigation";
-import { Copyright } from "lucide-react";
+import { Copyright, Phone, Mail, MessageCircle } from "lucide-react";
 import { PolicyModal, PolicyTab } from "./PolicyModal";
 
 import { useAuthStore } from "@/store/useAuthStore";
@@ -21,6 +21,10 @@ export function Footer() {
   const currentUser = useAuthStore((state) => state.currentUser);
   const { t, locale } = useTranslation();
   const editorialConfig = useStorefrontStore((state) => state.editorialConfig);
+  const contactEmail = editorialConfig?.contactEmail || "";
+  const contactPhone = editorialConfig?.contactPhone || "";
+  // WhatsApp wants the number without spaces or a leading +.
+  const whatsappNumber = contactPhone.replace(/[^0-9]/g, "");
   const editorialArabicConfig = useStorefrontStore((state) => state.editorialArabicConfig);
   const mounted = useMounted();
 
@@ -167,6 +171,54 @@ export function Footer() {
               </li>
             </ul>
           </div>
+
+          {/* Contact — a storefront taking cash on delivery has to be reachable. */}
+          {(contactEmail || contactPhone) && (
+            <div>
+              <h5 className="text-[11px] font-mono tracking-[0.2em] uppercase text-paper font-semibold mb-4 font-sans">
+                {locale === "ar" ? "تواصل معنا" : "GET IN TOUCH"}
+              </h5>
+              <ul className="space-y-2.5 text-xs font-sans">
+                {contactPhone && (
+                  <li>
+                    <a
+                      href={`tel:${contactPhone.replace(/\s/g, "")}`}
+                      className="hover:text-gold transition-colors flex items-center gap-2"
+                      dir="ltr"
+                    >
+                      <Phone strokeWidth={1.6} className="w-3.5 h-3.5 text-gold shrink-0" />
+                      <span>{contactPhone}</span>
+                    </a>
+                  </li>
+                )}
+                {whatsappNumber && (
+                  <li>
+                    <a
+                      href={`https://wa.me/${whatsappNumber}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-gold transition-colors flex items-center gap-2"
+                    >
+                      <MessageCircle strokeWidth={1.6} className="w-3.5 h-3.5 text-gold shrink-0" />
+                      <span>{locale === "ar" ? "واتساب" : "WhatsApp"}</span>
+                    </a>
+                  </li>
+                )}
+                {contactEmail && (
+                  <li>
+                    <a
+                      href={`mailto:${contactEmail}`}
+                      className="hover:text-gold transition-colors flex items-center gap-2 break-all"
+                      dir="ltr"
+                    >
+                      <Mail strokeWidth={1.6} className="w-3.5 h-3.5 text-gold shrink-0" />
+                      <span>{contactEmail}</span>
+                    </a>
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Bottom Sub-bar */}

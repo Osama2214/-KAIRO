@@ -249,7 +249,16 @@ export default function SeriesPage({ params }: SeriesPageProps) {
                 </div>
 
                 <div className="mt-3 pt-2.5 sm:mt-4 sm:pt-3 border-t border-ink-border/50 flex items-center justify-between font-mono text-xs gap-1">
-                  <span className="text-paper font-bold text-[11px] sm:text-xs truncate">{formatPrice(volume.price)}</span>
+                  {/* Show what the volume was struck through from — the catalogue
+                      card does this, and the series grid was dropping it. */}
+                  <span className="flex flex-col leading-tight min-w-0">
+                    <span className="text-paper font-bold text-[11px] sm:text-xs truncate">{formatPrice(volume.price)}</span>
+                    {volume.originalPrice && volume.originalPrice > volume.price && (
+                      <span className="text-[9px] sm:text-[10px] text-text-muted line-through truncate">
+                        {formatPrice(volume.originalPrice)}
+                      </span>
+                    )}
+                  </span>
                   {volume.stock <= 0 ? (
                     <span className="px-2 py-0.5 bg-ink-surface/90 border border-ink-border text-text-muted text-[8px] sm:text-[9px] font-mono font-bold uppercase rounded-xs cursor-not-allowed opacity-80">
                       {isArabic ? "نفد" : "OUT"}

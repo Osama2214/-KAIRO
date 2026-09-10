@@ -148,6 +148,9 @@ function AccountContent() {
   const updateProfile = useAuthStore((state) => state.updateProfile);
   const loginWithGoogle = useAuthStore((state) => state.loginWithGoogle);
   const shippingConfig = useStorefrontStore((state) => state.shippingConfig);
+  const storeEditorial = useStorefrontStore((state) => state.editorialConfig);
+  const storeContactEmail = storeEditorial?.contactEmail || "";
+  const storeContactPhone = storeEditorial?.contactPhone || "";
 
   // Global Wishlist Store
   const mounted = useMounted();
@@ -215,7 +218,9 @@ function AccountContent() {
                     body: JSON.stringify({ accessToken: tokenResponse.access_token }),
                   });
                   const data = await res.json().catch(() => null);
-                  if (!data?.success || !data.user?.id) throw new Error("Google profile verification failed");
+                  if (!data?.success || !data.user?.id) {
+                    throw new Error(data?.message || "Google profile verification failed");
+                  }
                   await loginWithGoogle({
                     ...data.user,
                     name: data.user.name || data.profile?.name || data.user.email.split("@")[0],
@@ -223,7 +228,7 @@ function AccountContent() {
                   });
                 } catch (fetchErr) {
                   console.error("Failed to verify Google account", fetchErr);
-                  setAuthError("Google account verification failed. Please try again.");
+                  setAuthError(fetchErr instanceof Error ? fetchErr.message : "Google account verification failed. Please try again.");
                 }
               }
               setIsGoogleLoading(false);
@@ -1567,6 +1572,23 @@ function AccountContent() {
               <div className="text-[10px] text-text-muted/80 bg-ink-surface/50 p-2 rounded-xs border border-ink-border/40">
                 💡 Want to save and track all your orders? Create a patron account below to link your order.
               </div>
+              {/* Reassurance at the point it matters most: a cash-on-delivery
+                  buyer has just committed with no payment trail. */}
+              {(storeContactPhone || storeContactEmail) && (
+                <div className="pt-2 border-t border-ink-border/60 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-text-muted">
+                  <span className="uppercase tracking-wider">Questions?</span>
+                  {storeContactPhone && (
+                    <a href={`tel:${storeContactPhone.replace(/\s/g, "")}`} className="text-gold hover:underline" dir="ltr">
+                      {storeContactPhone}
+                    </a>
+                  )}
+                  {storeContactEmail && (
+                    <a href={`mailto:${storeContactEmail}`} className="text-gold hover:underline break-all" dir="ltr">
+                      {storeContactEmail}
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

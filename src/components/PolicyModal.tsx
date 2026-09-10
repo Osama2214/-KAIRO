@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useStorefrontStore } from "@/store/useStorefrontStore";
 
 export type PolicyTab = "shipping" | "authenticity" | "privacy" | "terms";
 
@@ -35,6 +36,9 @@ export function PolicyModal({
   useModalScrollLock(isOpen);
   const { locale, isRTL } = useTranslation();
   const isArabic = locale === "ar";
+  const editorialConfig = useStorefrontStore((state) => state.editorialConfig);
+  const contactEmail = editorialConfig?.contactEmail || "";
+  const contactPhone = editorialConfig?.contactPhone || "";
 
   // Close on Escape key
   useEffect(() => {
@@ -413,7 +417,19 @@ export function PolicyModal({
 
         {/* Footer actions */}
         <div className="p-3 sm:p-4 border-t border-ink-border bg-ink-surface/80 flex items-center justify-end sm:justify-between gap-3 text-[11px] font-mono">
-          <span className="hidden sm:block text-gold font-serif truncate">物語と記憶のかたち • ANIMEVERSE OFFICIAL ARCHIVE</span>
+          <div className="hidden sm:flex items-center gap-3 min-w-0 text-text-muted">
+            {contactPhone && (
+              <a href={`tel:${contactPhone.replace(/\s/g, "")}`} className="hover:text-gold transition-colors whitespace-nowrap" dir="ltr">
+                {contactPhone}
+              </a>
+            )}
+            {contactPhone && contactEmail && <span className="text-ink-border">•</span>}
+            {contactEmail && (
+              <a href={`mailto:${contactEmail}`} className="hover:text-gold transition-colors truncate" dir="ltr">
+                {contactEmail}
+              </a>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-ink border border-ink-border hover:border-gold/60 text-paper rounded-xs transition-colors cursor-pointer uppercase tracking-wider whitespace-nowrap"
