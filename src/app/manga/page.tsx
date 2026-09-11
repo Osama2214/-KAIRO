@@ -29,7 +29,7 @@ import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
-import { useImagePrefetch } from "@/hooks/useImagePrefetch";
+import { usePaginatedImagePrefetch } from "@/hooks/useImagePrefetch";
 
 function MangaCatalogContent() {
   const router = useRouter();
@@ -223,18 +223,14 @@ function MangaCatalogContent() {
     currentPage * ITEMS_PER_PAGE
   );
 
-  // Shoppers page straight through this grid, so the covers waiting on the next
-  // page are fetched quietly while this one is being read.
+  // Shoppers page through this grid, so the covers on the page they are heading
+  // for are fetched quietly while the current one is being read.
   const gridRef = useRef<HTMLDivElement | null>(null);
-  const nextPageCovers = useMemo(
-    () =>
-      filteredVolumes
-        .slice(currentPage * ITEMS_PER_PAGE, (currentPage + 1) * ITEMS_PER_PAGE)
-        .map((volume) => volume.coverImage)
-        .filter(Boolean),
-    [filteredVolumes, currentPage]
+  const allCovers = useMemo(
+    () => filteredVolumes.map((volume) => volume.coverImage),
+    [filteredVolumes]
   );
-  useImagePrefetch(nextPageCovers, gridRef);
+  usePaginatedImagePrefetch(allCovers, currentPage, ITEMS_PER_PAGE, gridRef);
 
   const goToPage = (page: number) => {
     setCurrentPage(page);

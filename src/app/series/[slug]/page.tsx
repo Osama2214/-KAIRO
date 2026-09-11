@@ -14,7 +14,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { StarRating } from "@/components/StarRating";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 import { CatalogPending } from "@/components/CatalogPending";
-import { useImagePrefetch } from "@/hooks/useImagePrefetch";
+import { usePaginatedImagePrefetch } from "@/hooks/useImagePrefetch";
 
 interface SeriesPageProps {
   params: Promise<{ slug: string }>;
@@ -134,17 +134,13 @@ function SeriesView({ series }: { series: Series }) {
   const pagedVolumes = seriesVolumes.slice(firstOnPage, firstOnPage + VOLUMES_PER_PAGE);
 
   // Same idea as the catalogue grid: a reader working through a long series
-  // turns pages steadily, so the next page's covers are fetched in the quiet.
+  // turns pages steadily, in either direction.
   const volumeGridRef = useRef<HTMLDivElement | null>(null);
-  const nextPageCovers = useMemo(
-    () =>
-      seriesVolumes
-        .slice(firstOnPage + VOLUMES_PER_PAGE, firstOnPage + VOLUMES_PER_PAGE * 2)
-        .map((volume) => volume.coverImage)
-        .filter(Boolean),
-    [seriesVolumes, firstOnPage]
+  const allVolumeCovers = useMemo(
+    () => seriesVolumes.map((volume) => volume.coverImage),
+    [seriesVolumes]
   );
-  useImagePrefetch(nextPageCovers, volumeGridRef);
+  usePaginatedImagePrefetch(allVolumeCovers, currentVolumePage, VOLUMES_PER_PAGE, volumeGridRef);
 
   const goToVolumePage = (page: number) => {
     const next = Math.min(volumePageCount, Math.max(1, page));

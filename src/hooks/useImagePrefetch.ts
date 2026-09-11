@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 /**
  * Warms the covers of the page a shopper is about to turn to.
@@ -145,4 +145,52 @@ export function useImagePrefetch(
       else window.clearTimeout(handle as number);
     };
   }, [sources, gridRef]);
+}
+
+/**
+ * The page-turning wrapper around {@link useImagePrefetch}.
+ *
+ * Warming the page *after* the current one is only right while a shopper is
+ * moving forward. Someone who jumps to the end and reads backwards was being
+ * handed the page they had just left — already in the browser cache — while the
+ * page they were about to open started from nothing. So the direction of the
+ * last move decides which neighbour gets warmed, and the count of warmed images
+ * is unchanged either way.
+ *
+ * At the ends of the range the remaining neighbour is used instead, unless that
+ * is the page just came from, in which case nothing is warmed: there is no
+ * point spending the effort on something already in hand.
+ */
+export function usePaginatedImagePrefetch(
+  covers: readonly string[],
+  page: number,
+  perPage: number,
+  gridRef: React.RefObject<HTMLElement | null>
+): void {
+  // Adjusted during render rather than held in a ref, so the direction is
+  // settled before the memo below reads it on this same pass.
+  const [nav, setNav] = useState({ page, direction: 1, from: 0 });
+  if (nav.page !== page) {
+    setNav({ page, direction: page > nav.page ? 1 : -1, from: nav.page });
+  }
+
+  const target = useMemo(() => {
+    const lastPage = Math.max(1, Math.ceil(covers.length / perPage));
+    const inRange = (candidate: number) => candidate >= 1 && candidate <= lastPage;
+
+    const ahead = page + nav.direction;
+    if (inRange(ahead)) return ahead;
+
+    // The end of the line in the direction of travel; the other neighbour is
+    // the only thing left worth warming, and only if it is somewhere new.
+    const behind = page - nav.direction;
+    return inRange(behind) && behind !== nav.from ? behind : 0;
+  }, [covers.length, page, perPage, nav.direction, nav.from]);
+
+  const sources = useMemo(
+    () => (target === 0 ? [] : covers.slice((target - 1) * perPage, target * perPage).filter(Boolean)),
+    [covers, target, perPage]
+  );
+
+  useImagePrefetch(sources, gridRef);
 }
