@@ -67,7 +67,10 @@ export interface FeaturedSeriesConfig {
   seriesSlug: string;
   badgeText: string;
   customTitle?: string;
+  /** Arabic override; falls back to the English one, then to the series itself. */
+  customTitleAr?: string;
   customDescription?: string;
+  customDescriptionAr?: string;
   ctaText: string;
   ctaLink?: string;
   customImage?: string;
@@ -1293,7 +1296,14 @@ export function seedStorefrontFromServer(data: Record<string, unknown> | null | 
   // re-seeding would undo a curator's unsaved edits on every re-render.
   if (seededInBrowser) return;
   seededInBrowser = true;
-  useStorefrontStore.setState({ ...(data as Partial<StorefrontState>), catalogLoaded: true });
+
+  // Written into the live state object rather than pushed through `setState`.
+  // This runs inside the render of the outermost client component, so nothing
+  // below has read the store yet and every component still to render picks the
+  // new values up on its first pass — while `setState` here would notify
+  // whatever React had already mounted and schedule an update from inside a
+  // render, which React rightly complains about.
+  Object.assign(useStorefrontStore.getState(), data, { catalogLoaded: true });
 }
 
 /** True once the server handed us a catalogue, so the client can skip its own fetch. */

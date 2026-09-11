@@ -1201,7 +1201,8 @@ function FeaturedSeriesLiveEditModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} data-lenis-prevent
+          className="p-6 space-y-4 max-h-[70vh] overflow-y-auto overscroll-contain">
           <div className="space-y-1.5">
             <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
               Select Series to Feature
@@ -1249,6 +1250,21 @@ function FeaturedSeriesLiveEditModal({
 
           <div className="space-y-1.5">
             <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+              Custom Headline — Arabic
+            </label>
+            <input
+              type="text"
+              dir="rtl"
+              placeholder="عنوان مخصّص بالعربية"
+              value={form.customTitleAr || ""}
+              onChange={(e) => setForm({ ...form, customTitleAr: e.target.value })}
+              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+            />
+            <span className="text-[10px] text-text-muted">Optional; falls back to English.</span>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
               Custom Description
             </label>
             <textarea
@@ -1258,6 +1274,23 @@ function FeaturedSeriesLiveEditModal({
               onChange={(e) => setForm({ ...form, customDescription: e.target.value })}
               className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+              Custom Description — Arabic
+            </label>
+            <textarea
+              rows={3}
+              dir="rtl"
+              placeholder="وصف مخصّص بالعربية"
+              value={form.customDescriptionAr || ""}
+              onChange={(e) => setForm({ ...form, customDescriptionAr: e.target.value })}
+              className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
+            />
+            <span className="text-[10px] text-text-muted">
+              Optional; falls back to the series&apos; Arabic description, then English.
+            </span>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">

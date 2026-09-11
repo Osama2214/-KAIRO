@@ -29,8 +29,10 @@ export function GenreFormModal({
     return {
       id: "",
       name: "",
+      nameAr: "",
       japanese: "",
       description: "",
+      descriptionAr: "",
       coverImage: PLACEHOLDER_COVER,
       popularTitle: "",
     };
@@ -67,7 +69,9 @@ export function GenreFormModal({
       ...formData,
       id: finalId,
       name: formData.name.trim(),
+      nameAr: formData.nameAr?.trim() || undefined,
       japanese: formData.japanese.trim() || formData.name.trim(),
+      descriptionAr: formData.descriptionAr?.trim() || undefined,
       popularTitle: formData.popularTitle.trim() || "Archival Selection",
       coverImage: formData.coverImage.trim() || PLACEHOLDER_COVER,
       description: formData.description.trim() || "Curated manga titles within this canonical category.",
@@ -133,6 +137,23 @@ export function GenreFormModal({
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-paper uppercase tracking-wider">
+                Category Name (Arabic)
+              </label>
+              <input
+                type="text"
+                dir="rtl"
+                value={formData.nameAr ?? ""}
+                onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })}
+                placeholder="مثال: سايبربانك، نفسي، شونين"
+                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none font-sans"
+              />
+              <span className="text-[10px] text-text-muted">
+                Optional; falls back to English.
+              </span>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-paper uppercase tracking-wider">
                 Japanese Script / Kanji
               </label>
               <input
@@ -185,17 +206,34 @@ export function GenreFormModal({
               />
             </div>
 
-            <div className="sm:col-span-2 space-y-1.5">
+            <div className="space-y-1.5">
               <label className="text-xs font-semibold text-paper uppercase tracking-wider">
-                Curator Description / Narrative
+                Curator Description (English)
               </label>
               <textarea
-                rows={2}
+                rows={3}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Brief summary explaining this category's literary focus..."
                 className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none font-sans"
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-paper uppercase tracking-wider">
+                Curator Description (Arabic)
+              </label>
+              <textarea
+                rows={3}
+                dir="rtl"
+                value={formData.descriptionAr ?? ""}
+                onChange={(e) => setFormData({ ...formData, descriptionAr: e.target.value })}
+                placeholder="وصف مختصر يشرح طابع هذا التصنيف..."
+                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none font-sans"
+              />
+              <span className="text-[10px] text-text-muted">
+                Optional; falls back to English.
+              </span>
             </div>
           </div>
 

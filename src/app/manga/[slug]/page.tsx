@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
 import { Plus, Minus, ShoppingBag, BookOpen, Share2, ShieldCheck, Truck, ArrowRight, ChevronLeft, ChevronRight, Eye, Check, Heart } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
+import Autoplay from "embla-carousel-autoplay";
 import { ALL_VOLUMES, type MangaVolume } from "@/data/manga";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
@@ -86,16 +87,31 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
     router.push(`/manga/${volumeId}`);
   };
 
-  const [relatedRef, relatedApi] = useEmblaCarousel({
-    loop: false,
-    align: "start",
-    slidesToScroll: 1,
-    direction: isRTL ? "rtl" : "ltr",
-  });
+  // Eight recommendations against four visible slots is twice the viewport,
+  // which is what Embla needs before it will wrap instead of stopping at the
+  // last card. Autoplay matches the rails on the home page, and pauses the
+  // moment a cursor lands on it so nothing slides out from under a click.
+  const relatedPlugins = React.useMemo(
+    () => [Autoplay({ delay: 4200, stopOnInteraction: false, stopOnMouseEnter: true, playOnInit: true })],
+    []
+  );
+  const [relatedRef, relatedApi] = useEmblaCarousel(
+    {
+      loop: true,
+      align: "start",
+      slidesToScroll: 1,
+      skipSnaps: false,
+      direction: isRTL ? "rtl" : "ltr",
+    },
+    relatedPlugins
+  );
   const scrollRelated = React.useCallback((delta: number) => {
     if (!relatedApi) return;
     if (delta > 0) relatedApi.scrollNext();
     else relatedApi.scrollPrev();
+    // Restart the timer, or the next automatic slide can land a beat after a
+    // deliberate one.
+    relatedApi.plugins()?.autoplay?.reset();
   }, [relatedApi]);
 
   // A card is a link and the row is draggable, so a swipe must not also count

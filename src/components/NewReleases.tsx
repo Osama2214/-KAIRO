@@ -39,9 +39,23 @@ export function NewReleases() {
     ? (newReleasesArabicConfig?.viewAllText || "عرض الأرشيف الكامل")
     : (newReleasesConfig?.viewAllText || "VIEW COMPLETE ARCHIVE");
 
+  // The grid is four across, so anything that is not a multiple of four leaves
+  // a ragged last row. Six flagged volumes rendered as 4 + 2.
+  const NEW_RELEASES_COUNT = 8;
+
   const newItems = React.useMemo(() => {
     const tagged = activeVolumes.filter((v) => v.isNewRelease);
-    return tagged.length >= 4 ? tagged.slice(0, 8) : activeVolumes.slice(0, 8);
+    if (tagged.length >= NEW_RELEASES_COUNT) return tagged.slice(0, NEW_RELEASES_COUNT);
+
+    // Topped up with the most recently published titles that are not already
+    // in it. Box sets are skipped: a bundle carries the date it was assembled,
+    // which would park it at the top of a rail meant for new books.
+    const chosen = new Set(tagged.map((v) => v.id));
+    const fillers = activeVolumes
+      .filter((v) => !chosen.has(v.id) && v.format !== "Box Set")
+      .sort((a, b) => String(b.publishDate || "").localeCompare(String(a.publishDate || "")));
+
+    return [...tagged, ...fillers].slice(0, NEW_RELEASES_COUNT);
   }, [activeVolumes]);
 
   const handleCardClick = (volumeId: string) => {

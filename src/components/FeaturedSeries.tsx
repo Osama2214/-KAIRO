@@ -53,8 +53,13 @@ export function FeaturedSeries() {
 
   // Parse badge text to extract prefix and Japanese text to style Japanese text in vermilion red
   const badgeParts = parseBadgeText(badgeText);
-  const title = featuredConfig?.customTitle || series.title;
-  const description = featuredConfig?.customDescription || series.description;
+  const title =
+    (isArabic ? featuredConfig?.customTitleAr : "") || featuredConfig?.customTitle || series.title;
+  // In Arabic, an Arabic override wins, then the series' own Arabic copy, then English.
+  const description =
+    (isArabic ? featuredConfig?.customDescriptionAr || series.descriptionAr : "") ||
+    featuredConfig?.customDescription ||
+    series.description;
   const ctaText =
     featuredConfig?.ctaText && featuredConfig.ctaText !== "EXPLORE SERIES ARCHIVE"
       ? featuredConfig.ctaText

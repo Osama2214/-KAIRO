@@ -89,84 +89,106 @@ export interface Series {
 export interface GenreInfo {
   id: string;
   name: string;
+  /** Arabic name; falls back to the English one when the curator leaves it blank. */
+  nameAr?: string;
   japanese: string;
   description: string;
+  /** Arabic description; falls back to the English one. */
+  descriptionAr?: string;
   coverImage: string;
   popularTitle: string;
 }
 
 export const GENRES: GenreInfo[] = [
   {
+    id: "romance",
+    name: "Romance",
+    nameAr: "رومانسي",
+    japanese: "ロマンス",
+    description: "Tender bonds, heartrending confessions, and bittersweet youth.",
+    descriptionAr: "مشاعر رقيقة، واعترافات تفطر القلب، ومرارة الصِّبا وحلاوته.",
+    coverImage: "https://pub-9d11dc79523e4a88b1d3574a8381c50a.r2.dev/media/genres/romance-cbb9dc2d39.webp",
+    popularTitle: "The Fragrant Flower Blooms With Dignity",
+  },
+  {
+    id: "isekai",
+    name: "Isekai",
+    nameAr: "إيسيكاي",
+    japanese: "異世界",
+    description: "Rebirth in foreign dimensions governed by strange new rules.",
+    descriptionAr: "ولادة جديدة في أبعاد غريبة تحكمها قوانين لم تعرفها من قبل.",
+    coverImage: "https://pub-9d11dc79523e4a88b1d3574a8381c50a.r2.dev/media/genres/isekai-b59c725272.webp",
+    popularTitle: "Mushoku Tensei",
+  },
+  {
     id: "action",
     name: "Action",
+    nameAr: "أكشن",
     japanese: "アクション",
     description: "High-octane battles, superhuman martial prowess, and relentless momentum.",
-    coverImage: "https://pub-9d11dc79523e4a88b1d3574a8381c50a.r2.dev/media/6b5a0fdf1fbe4b44469f88999dc2c3862d8a36b6.webp",
+    descriptionAr: "معارك محتدمة، وبراعة قتالية تفوق طاقة البشر، وإيقاع لا يهدأ.",
+    coverImage: "https://pub-9d11dc79523e4a88b1d3574a8381c50a.r2.dev/media/genres/action-974970fee7.webp",
     popularTitle: "Jujutsu Kaisen",
   },
   {
     id: "fantasy",
     name: "Fantasy",
+    nameAr: "فانتازيا",
     japanese: "ファンタジー",
     description: "Ancient magics, mythical realms, and destinies forged across epochs.",
-    coverImage: "https://pub-9d11dc79523e4a88b1d3574a8381c50a.r2.dev/media/fcc786d3197f9c0581b8b9dc1c03f41f98cf1479.webp",
+    descriptionAr: "سحر قديم، وعوالم أسطورية، ومصائر تُحاك على مدى العصور.",
+    coverImage: "https://pub-9d11dc79523e4a88b1d3574a8381c50a.r2.dev/media/genres/fantasy-6d3f5cfc4f.webp",
     popularTitle: "Frieren: Beyond Journey's End",
   },
   {
     id: "dark",
     name: "Dark Fantasy",
+    nameAr: "فانتازيا مظلمة",
     japanese: "ダークファンタジー",
     description: "Unforgiving worlds, cosmic horror, and grim struggles against despair.",
-    coverImage: "https://pub-9d11dc79523e4a88b1d3574a8381c50a.r2.dev/media/d057548e7d804a7f9c0d1837030490802d93de4a.webp",
+    descriptionAr: "عوالم لا ترحم، ورعب كونيّ، وصراع كئيب في وجه اليأس.",
+    coverImage: "https://pub-9d11dc79523e4a88b1d3574a8381c50a.r2.dev/media/genres/dark-eb4b7fd19c.webp",
     popularTitle: "Berserk",
-  },
-  {
-    id: "horror",
-    name: "Horror",
-    japanese: "ホラー",
-    description: "Psychological dread, grotesque apparitions, and lingering paranoia.",
-    coverImage: "https://pub-9d11dc79523e4a88b1d3574a8381c50a.r2.dev/media/9715ad9792189d02713fe85366e56be0cb4586ad.webp",
-    popularTitle: "Uzumaki",
-  },
-  {
-    id: "isekai",
-    name: "Isekai",
-    japanese: "異世界",
-    description: "Rebirth in foreign dimensions governed by strange new rules.",
-    coverImage: "https://pub-9d11dc79523e4a88b1d3574a8381c50a.r2.dev/media/a868f775c31caec20a85bb7b6a5b6d1b9c419af0.webp",
-    popularTitle: "Mushoku Tensei",
   },
   {
     id: "sci-fi",
     name: "Sci-Fi",
-    japanese: "SF",
+    nameAr: "خيال علمي",
+    japanese: "空想科学",
     description: "Cybernetic transhumanism, dyschromic megastructures, and galactic epics.",
-    coverImage: "https://pub-9d11dc79523e4a88b1d3574a8381c50a.r2.dev/media/6a3bfea6a41a9b4eb70e2ec4b2e30f29a1ababfa.webp",
+    descriptionAr: "بشرٌ تتحوّل بالآلة، ومدن عملاقة باهتة الألوان، وملاحم بين المجرّات.",
+    coverImage: "https://pub-9d11dc79523e4a88b1d3574a8381c50a.r2.dev/media/genres/sci-fi-e3721414a7.webp",
     popularTitle: "Neon Genesis Evangelion",
-  },
-  {
-    id: "romance",
-    name: "Romance",
-    japanese: "ロマンス",
-    description: "Tender bonds, heartrending confessions, and bittersweet youth.",
-    coverImage: "https://pub-9d11dc79523e4a88b1d3574a8381c50a.r2.dev/media/ac707d33e460cd7e67a753a51b100f83201e4dad.webp",
-    popularTitle: "The Fragrant Flower Blooms With Dignity",
-  },
-  {
-    id: "comedy",
-    name: "Comedy",
-    japanese: "コメディ",
-    description: "Absurdist antics, sharp satire, and hilarious everyday misadventures.",
-    coverImage: "https://pub-9d11dc79523e4a88b1d3574a8381c50a.r2.dev/media/8bb2c82b12260cf13f84ca2b55f220cffd101d46.webp",
-    popularTitle: "Spy x Family",
   },
   {
     id: "adventure",
     name: "Adventure",
+    nameAr: "مغامرة",
     japanese: "冒険",
     description: "Expeditions into uncharted seas, forbidden tombs, and uncharted frontiers.",
-    coverImage: "https://pub-9d11dc79523e4a88b1d3574a8381c50a.r2.dev/media/b2b3c1a22da07f5ca7aa7079d69f02650e41b72a.webp",
+    descriptionAr: "رحلات إلى بحار مجهولة، ومقابر محرَّمة، وأصقاع لم تطأها قدم.",
+    coverImage: "https://pub-9d11dc79523e4a88b1d3574a8381c50a.r2.dev/media/genres/adventure-04fedd9863.webp",
     popularTitle: "One Piece",
+  },
+  {
+    id: "comedy",
+    name: "Comedy",
+    nameAr: "كوميدي",
+    japanese: "コメディ",
+    description: "Absurdist antics, sharp satire, and hilarious everyday misadventures.",
+    descriptionAr: "مواقف عبثية، وسخرية لاذعة، ومقالب يومية تُضحك حتى الدموع.",
+    coverImage: "https://pub-9d11dc79523e4a88b1d3574a8381c50a.r2.dev/media/genres/comedy-7fc19749c3.webp",
+    popularTitle: "Spy x Family",
+  },
+  {
+    id: "horror",
+    name: "Horror",
+    nameAr: "رعب",
+    japanese: "ホラー",
+    description: "Psychological dread, grotesque apparitions, and lingering paranoia.",
+    descriptionAr: "رهبة تنخر في النفس، وأشباح مشوَّهة، وهواجس لا تفارقك.",
+    coverImage: "https://pub-9d11dc79523e4a88b1d3574a8381c50a.r2.dev/media/genres/horror-4832d1ce2e.webp",
+    popularTitle: "Uzumaki",
   },
 ];
 

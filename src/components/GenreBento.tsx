@@ -6,28 +6,45 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { GENRES } from "@/data/manga";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
-import { useMounted } from "@/store/useWishlistStore";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
 
+/**
+ * Roughly how many ems a label occupies: kana and kanji are full-width squares,
+ * latin letters a good bit narrower. The watermark is sized from this so a
+ * nine-character label like ダークファンタジー and a two-letter one like SF end up
+ * covering about the same slice of the card instead of one shouting and the
+ * other all but vanishing.
+ */
+function watermarkEm(text: string): number {
+  let em = 0;
+  for (const char of text) {
+    em += /[　-鿿＀-￯]/.test(char) ? 1 : 0.62;
+  }
+  return Math.max(em, 1);
+}
+
 export function GenreBento() {
-  const mounted = useMounted();
   const { t, locale, isRTL } = useTranslation();
   const isArabic = locale === "ar";
   const storeGenres = useStorefrontStore((state) => state.genres);
   const genreBentoConfig = useStorefrontStore((state) => state.genreBentoConfig);
   const genreBentoArabicConfig = useStorefrontStore((state) => state.genreBentoArabicConfig);
 
-  const genres = mounted && storeGenres && storeGenres.length > 0 ? storeGenres : GENRES;
+  // The store is seeded from the server before this renders, so reading it
+  // straight away keeps the first paint and the hydrated paint identical —
+  // no flash of the bundled defaults, and no request for artwork that the
+  // catalogue has since replaced.
+  const genres = storeGenres && storeGenres.length > 0 ? storeGenres : GENRES;
   const badgeText = isArabic
-    ? (mounted && genreBentoArabicConfig?.badgeText ? genreBentoArabicConfig.badgeText : t.bento.badgeText)
-    : (mounted && genreBentoConfig?.badgeText ? genreBentoConfig.badgeText : "CATEGORY DIRECTORY");
+    ? genreBentoArabicConfig?.badgeText || t.bento.badgeText
+    : genreBentoConfig?.badgeText || "CATEGORY DIRECTORY";
   const title = isArabic
-    ? (mounted && genreBentoArabicConfig?.title ? genreBentoArabicConfig.title : t.bento.title)
-    : (mounted && genreBentoConfig?.title ? genreBentoConfig.title : "EXPLORE YOUR GENRE");
+    ? genreBentoArabicConfig?.title || t.bento.title
+    : genreBentoConfig?.title || "EXPLORE YOUR GENRE";
   const rawDesc = isArabic
-    ? (mounted && genreBentoArabicConfig?.description ? genreBentoArabicConfig.description : t.bento.description)
-    : (mounted && genreBentoConfig?.description ? genreBentoConfig.description : "Curated reading lists across 9 canonical categories.");
+    ? genreBentoArabicConfig?.description || t.bento.description
+    : genreBentoConfig?.description || "Curated reading lists across 9 canonical categories.";
   const description =
     rawDesc === "Navigate through 9 core canonical categories with specialized curated reading lists."
       ? "Curated reading lists across 9 canonical categories."
@@ -60,13 +77,13 @@ export function GenreBento() {
             <Link
               key={genre.id}
               href={`/manga?genre=${genre.id}`}
-              className="group relative h-56 sm:h-72 rounded-sm overflow-hidden border border-ink-border/70 hover:border-gold/60 transition-all duration-500 flex flex-col justify-end p-4 sm:p-6 bg-ink-surface active:scale-[0.99]"
+              className="@container group relative h-56 sm:h-72 rounded-sm overflow-hidden border border-ink-border/70 hover:border-gold/60 transition-all duration-500 flex flex-col justify-end p-4 sm:p-6 bg-ink-surface active:scale-[0.99]"
             >
               {/* Artwork Background with Zoom on Hover */}
               <div className="absolute inset-0 overflow-hidden">
                 <AnimeVerseImage
                   src={genre.coverImage}
-                  alt={genre.name}
+                  alt={isArabic && genre.nameAr ? genre.nameAr : genre.name}
                   sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
                   className="w-full h-full object-cover opacity-35 group-hover:opacity-55 group-hover:scale-110 transition-all duration-700 ease-out"
                 />
@@ -87,7 +104,22 @@ export function GenreBento() {
               </div>
 
               {/* Japanese Kanji Background Watermark */}
-              <div className={`absolute top-3 sm:top-4 ${isRTL ? "left-12 sm:left-15" : "right-12 sm:right-15"} font-serif text-4xl sm:text-5xl font-bold text-white/[0.07] group-hover:text-gold/20 transition-colors pointer-events-none select-none z-0`}>
+              <div
+                aria-hidden="true"
+                style={{
+                  // Sized against the card itself, so it holds its proportion
+                  // from a three-across desktop row down to a phone. The
+                  // catalogue ships two full-width characters per label, which
+                  // all land on the 20cqw ceiling and so read identically; the
+                  // width term only takes over if a curator types a longer one,
+                  // and the floor stops that from shrinking into body text.
+                  fontSize: `clamp(1.375rem, ${Math.min(60 / watermarkEm(genre.japanese), 20).toFixed(2)}cqw, 6rem)`,
+                  // Invisible over dark artwork; on a pale frame it keeps the
+                  // strokes from washing out entirely.
+                  textShadow: "0 1px 12px rgba(0,0,0,0.35)",
+                }}
+                className={`absolute top-3 sm:top-4 ${isRTL ? "left-12 sm:left-15" : "right-12 sm:right-15"} font-serif leading-none font-bold whitespace-nowrap text-white/[0.08] group-hover:text-gold/20 transition-colors pointer-events-none select-none z-0`}
+              >
                 {genre.japanese}
               </div>
 
@@ -98,11 +130,11 @@ export function GenreBento() {
                 </span>
 
                 <h3 className="text-lg sm:text-xl font-bold text-paper tracking-wider uppercase font-sans group-hover:text-gold transition-colors">
-                  {genre.name}
+                  {isArabic && genre.nameAr ? genre.nameAr : genre.name}
                 </h3>
 
                 <p className="text-xs text-text-muted line-clamp-2 leading-relaxed">
-                  {genre.description}
+                  {isArabic && genre.descriptionAr ? genre.descriptionAr : genre.description}
                 </p>
 
                 <div className="pt-1 sm:pt-2 flex items-center gap-2 text-[9px] sm:text-[10px] font-mono text-paper-muted">

@@ -2099,6 +2099,21 @@ export default function AdminPage() {
                     />
                   </div>
 
+                  {/* Arabic Title Override */}
+                  <div className="flex flex-col justify-end">
+                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                      Title Override — Arabic (blank = English)
+                    </label>
+                    <input
+                      type="text"
+                      dir="rtl"
+                      value={featuredSeriesForm.customTitleAr || ""}
+                      onChange={(e) => setFeaturedSeriesForm({ ...featuredSeriesForm, customTitleAr: e.target.value })}
+                      placeholder="عنوان مخصّص بالعربية"
+                      className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                    />
+                  </div>
+
                   {/* CTA Text */}
                   <div className="flex flex-col justify-end">
                     <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
@@ -2141,15 +2156,30 @@ export default function AdminPage() {
                   </div>
 
                   {/* Custom Narrative Description */}
-                  <div className="md:col-span-2">
+                  <div>
                     <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                      Curator Narrative / Description (Optional — overrides default synopsis)
+                      Curator Narrative — English (overrides default synopsis)
                     </label>
                     <textarea
-                      rows={3}
+                      rows={4}
                       value={featuredSeriesForm.customDescription || ""}
                       onChange={(e) => setFeaturedSeriesForm({ ...featuredSeriesForm, customDescription: e.target.value })}
                       placeholder="Leave blank to use the series default synopsis..."
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none text-xs font-mono"
+                    />
+                  </div>
+
+                  {/* Arabic Narrative Description */}
+                  <div>
+                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                      Curator Narrative — Arabic (blank = series Arabic synopsis)
+                    </label>
+                    <textarea
+                      rows={4}
+                      dir="rtl"
+                      value={featuredSeriesForm.customDescriptionAr || ""}
+                      onChange={(e) => setFeaturedSeriesForm({ ...featuredSeriesForm, customDescriptionAr: e.target.value })}
+                      placeholder="اتركه فارغًا لاستخدام الوصف العربي الخاص بالسلسلة..."
                       className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none text-xs font-mono"
                     />
                   </div>
