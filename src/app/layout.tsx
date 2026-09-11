@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Manrope, Shippori_Mincho, JetBrains_Mono, Cinzel } from "next/font/google";
+import { Manrope, JetBrains_Mono, Cinzel } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { StorefrontShell } from "@/components/StorefrontShell";
 import { getStorefrontSnapshot } from "@/lib/storefrontSnapshot";
@@ -21,13 +22,21 @@ const cinzel = Cinzel({
   display: "swap",
 });
 
-const shippori = Shippori_Mincho({
-  subsets: ["latin"],
+// Self-hosted and cut down to the characters this storefront actually renders.
+// Served from Google, the full Japanese face arrives as ~122 unicode ranges per
+// weight, and a page with kanji scattered through it pulled 131 files totalling
+// 3.9MB — more than every image combined. The subset is two files, ~185KB.
+// Rebuild it with `node scripts/build-japanese-font.mjs --apply` after adding
+// Japanese text that the catalogue has not carried before.
+const shippori = localFont({
+  src: [
+    { path: "./fonts/shippori-mincho-400.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/shippori-mincho-700.woff2", weight: "700", style: "normal" },
+  ],
   variable: "--font-shippori",
-  // A CJK family emits one @font-face per unicode subset, so every weight
-  // listed here costs ~90KB of render-blocking CSS. Only 400 and 700 are used.
-  weight: ["400", "700"],
   display: "swap",
+  // Any character outside the subset lands here rather than on a blank box.
+  fallback: ["Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", "serif"],
 });
 
 const jetbrains = JetBrains_Mono({

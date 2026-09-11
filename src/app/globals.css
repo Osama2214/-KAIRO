@@ -122,7 +122,8 @@ aside {
 
   --font-sans: var(--font-manrope), -apple-system, BlinkMacSystemFont, sans-serif;
   --font-manrope: var(--font-manrope), sans-serif;
-  --font-serif: var(--font-shippori), serif;
+  /* next/font already appends the system Japanese serifs and a bare `serif`. */
+  --font-serif: var(--font-shippori);
   --font-mono: var(--font-mono), monospace;
   --font-cinzel: var(--font-cinzel), Georgia, serif;
 }
@@ -479,7 +480,7 @@ html.animeverse-loading #animeverse-restore-loader {
 }
 
 .av-loader-kanji {
-  font-family: var(--font-shippori), "Shippori Mincho", serif;
+  font-family: var(--font-shippori);
   font-size: 2.25rem;
   font-weight: 700;
   color: #C7A76C;
