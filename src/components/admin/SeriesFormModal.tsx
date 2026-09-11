@@ -45,6 +45,7 @@ function SeriesFormDialog({
       artist: "",
       genres: ["Action"],
       description: "",
+      descriptionAr: "",
       quote: "",
       bannerImage: PLACEHOLDER_BANNER,
       featuredImage: PLACEHOLDER_COVER,
@@ -133,6 +134,7 @@ function SeriesFormDialog({
       artist: formData.artist || formData.author || "Unknown",
       genres: selectedGenres.length ? selectedGenres : ["Action"],
       description: formData.description || "",
+      descriptionAr: formData.descriptionAr || "",
       quote: formData.quote || "",
       bannerImage: formData.bannerImage || "",
       featuredImage: formData.featuredImage || "",
@@ -416,15 +418,31 @@ function SeriesFormDialog({
             />
           </div>
 
-          <div>
-            <label className="block text-text-muted mb-1">Synopsis & Editorial Overview</label>
-            <textarea
-              rows={3}
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Series narrative breakdown..."
-              className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
-            />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-text-muted mb-1">Synopsis & Editorial Overview (English)</label>
+              <textarea
+                rows={4}
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Series narrative breakdown..."
+                className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-text-muted mb-1">
+                وصف السلسلة بالعربية
+                <span className="text-text-muted/60 normal-case"> — optional; falls back to English</span>
+              </label>
+              <textarea
+                rows={4}
+                dir="rtl"
+                value={formData.descriptionAr || ""}
+                onChange={(e) => setFormData({ ...formData, descriptionAr: e.target.value })}
+                placeholder="وصف السلسلة بالعربية..."
+                className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none font-sans"
+              />
+            </div>
           </div>
 
           <div className="space-y-4">

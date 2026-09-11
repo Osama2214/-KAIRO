@@ -34,8 +34,8 @@ export default function SeriesDirectoryPage() {
           <div className="flex flex-col sm:flex-row md:items-center gap-3 sm:gap-4">
             <p className="text-xs sm:text-sm text-text-muted font-mono max-w-md">
               {isArabic
-                ? "أرشيفات متكاملة متعددة المجلدات. طبعات تانكوبون رسمية، إصدارات إنجليزية معتمدة، وبوكس سيت كامل للمقتنين."
-                : "Complete multi-volume canonical archives. Official English releases, Tankōbon editions, and collector boxsets."}
+                ? "أرشيفات كاملة بطبعات إنجليزية رسمية وبوكس سيت للمقتنين."
+                : "Complete archives — official English editions and collector boxsets."}
             </p>
             <LiveEditButton
               target={{ type: "new-series" }}
@@ -118,7 +118,7 @@ export default function SeriesDirectoryPage() {
                   </h2>
 
                   <p className="text-xs sm:text-sm text-text-muted line-clamp-2 sm:line-clamp-3 leading-relaxed">
-                    {series.description}
+                    {isArabic && series.descriptionAr ? series.descriptionAr : series.description}
                   </p>
                 </div>
 

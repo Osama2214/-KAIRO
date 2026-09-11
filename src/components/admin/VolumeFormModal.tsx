@@ -76,6 +76,7 @@ function VolumeFormDialog({
       reviewCount: 50,
       coverImage: PLACEHOLDER_COVER,
       synopsis: "",
+      synopsisAr: "",
       format: "Manga",
       pages: 192,
       publishDate: new Date().toISOString().split("T")[0],
@@ -418,6 +419,7 @@ function VolumeFormDialog({
       reviewCount: Number(formData.reviewCount) || 0,
       coverImage: formData.coverImage || "",
       synopsis: formData.synopsis || "",
+      synopsisAr: formData.synopsisAr || "",
       format: (formData.format as MangaVolume["format"]) || "Manga",
       pages: Number(formData.pages) || 192,
       publishDate: formData.publishDate || new Date().toISOString().split("T")[0],
@@ -1176,15 +1178,31 @@ function VolumeFormDialog({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-text-muted mb-1">Synopsis & Editorial Summary</label>
-                <textarea
-                  rows={3}
-                  value={formData.synopsis}
-                  onChange={(e) => setFormData({ ...formData, synopsis: e.target.value })}
-                  placeholder="Story synopsis..."
-                  className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
-                />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-text-muted mb-1">Synopsis & Editorial Summary (English)</label>
+                  <textarea
+                    rows={4}
+                    value={formData.synopsis}
+                    onChange={(e) => setFormData({ ...formData, synopsis: e.target.value })}
+                    placeholder="Story synopsis..."
+                    className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-text-muted mb-1">
+                    الوصف بالعربية
+                    <span className="text-text-muted/60 normal-case"> — optional; falls back to English</span>
+                  </label>
+                  <textarea
+                    rows={4}
+                    dir="rtl"
+                    value={formData.synopsisAr || ""}
+                    onChange={(e) => setFormData({ ...formData, synopsisAr: e.target.value })}
+                    placeholder="وصف الكتاب بالعربية..."
+                    className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none font-sans"
+                  />
+                </div>
               </div>
             </div>
           </div>

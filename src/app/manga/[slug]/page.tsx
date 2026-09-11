@@ -554,7 +554,7 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                 {isArabic ? "عن هذا المجلد" : "ABOUT THIS VOLUME"}
               </h3>
               <p className="text-xs sm:text-sm text-text-muted leading-relaxed">
-                {volume.synopsis}
+                {isArabic && volume.synopsisAr ? volume.synopsisAr : volume.synopsis}
               </p>
             </div>
           </div>

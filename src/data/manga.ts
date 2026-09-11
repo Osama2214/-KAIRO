@@ -33,6 +33,14 @@ export interface MangaVolume {
   reviewCount: number;
   coverImage: string;
   synopsis: string;
+  /**
+   * The Arabic synopsis. Everything else on a product page switches language
+   * with the locale; the description was the one thing left in English, so a
+   * shopper reading the site in Arabic hit a wall of English at the part that
+   * actually describes the book. Optional — an untranslated product falls back
+   * to the English text rather than showing nothing.
+   */
+  synopsisAr?: string;
   format: "Manga" | "Light Novel" | "Box Set" | "Deluxe Edition";
   pages: number;
   publishDate: string;
@@ -68,6 +76,8 @@ export interface Series {
   artist: string;
   genres: string[];
   description: string;
+  /** Arabic description; falls back to the English one when not filled in. */
+  descriptionAr?: string;
   quote: string;
   bannerImage: string;
   featuredImage: string;

@@ -206,15 +206,21 @@ export function Footer() {
                     </a>
                   </li>
                 )}
+                {/* `break-all` used to split the address wherever it ran out of
+                    room, leaving a lone "m" on the next line. It stays on one
+                    line now and steps down a size on the narrow column instead. */}
                 {contactEmail && (
-                  <li>
+                  <li className="min-w-0">
                     <a
                       href={`mailto:${contactEmail}`}
-                      className="hover:text-gold transition-colors flex items-center gap-2 break-all"
+                      className="hover:text-gold transition-colors flex items-center gap-2 min-w-0"
                       dir="ltr"
+                      title={contactEmail}
                     >
                       <Mail strokeWidth={1.6} className="w-3.5 h-3.5 text-gold shrink-0" />
-                      <span>{contactEmail}</span>
+                      <span className="whitespace-nowrap text-[10px] sm:text-[11px] tracking-tight">
+                        {contactEmail}
+                      </span>
                     </a>
                   </li>
                 )}

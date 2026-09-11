@@ -1,8 +1,8 @@
 "use client";
 
-import React, { use, useMemo } from "react";
+import React, { use, useMemo, useState } from "react";
 import { notFound, useRouter } from "next/navigation";
-import { BookOpen, Plus, Eye, User, Heart } from "lucide-react";
+import { BookOpen, Plus, Eye, User, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { ALL_SERIES, ALL_VOLUMES, type MangaVolume, type Series } from "@/data/manga";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
@@ -119,6 +119,32 @@ function SeriesView({ series }: { series: Series }) {
     };
   }, [seriesVolumes, seriesBoxes]);
 
+  /**
+   * A long series would otherwise put every volume on the page at once — a
+   * hundred-odd cards, each with its own cover for the optimiser to produce
+   * and the browser to lay out. The archive is paged instead.
+   */
+  const VOLUMES_PER_PAGE = 24;
+  const [volumePage, setVolumePage] = useState(1);
+  const volumePageCount = Math.max(1, Math.ceil(seriesVolumes.length / VOLUMES_PER_PAGE));
+  // A page number left over from a longer list would show nothing at all.
+  const currentVolumePage = Math.min(volumePage, volumePageCount);
+  const firstOnPage = (currentVolumePage - 1) * VOLUMES_PER_PAGE;
+  const pagedVolumes = seriesVolumes.slice(firstOnPage, firstOnPage + VOLUMES_PER_PAGE);
+
+  const goToVolumePage = (page: number) => {
+    const next = Math.min(volumePageCount, Math.max(1, page));
+    setVolumePage(next);
+    // Back to the top of the archive, not the top of the page — the banner is
+    // not what someone paging through volumes wants to look at again. Lenis
+    // drives the scroll, so a plain scrollIntoView would be ignored.
+    const anchor = document.getElementById("volumes");
+    if (!anchor) return;
+    const top = anchor.getBoundingClientRect().top + window.scrollY - 80;
+    window.__lenis?.scrollTo(top, { immediate: true });
+    window.scrollTo({ top, left: 0, behavior: "instant" as ScrollBehavior });
+  };
+
   const handleAddAllVolumes = () => {
     if (!seriesBasket) return;
     if (seriesBasket.box) addItem(seriesBasket.box, 1);
@@ -186,7 +212,7 @@ function SeriesView({ series }: { series: Series }) {
           </div>
 
           <p className="text-xs sm:text-sm text-text-muted max-w-2xl leading-relaxed">
-            {series.description}
+            {isArabic && series.descriptionAr ? series.descriptionAr : series.description}
           </p>
 
           <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-4">
@@ -226,13 +252,17 @@ function SeriesView({ series }: { series: Series }) {
             </h2>
           </div>
           <span className="text-xs font-mono text-text-muted">
-            {isArabic ? `${seriesVolumes.length} مجلد في الأرشيف` : `${seriesVolumes.length} Volumes in Archive`}
+            {volumePageCount > 1
+              ? (isArabic
+                  ? `عرض ${firstOnPage + 1}–${firstOnPage + pagedVolumes.length} من ${seriesVolumes.length} مجلداً`
+                  : `SHOWING ${firstOnPage + 1}–${firstOnPage + pagedVolumes.length} OF ${seriesVolumes.length}`)
+              : (isArabic ? `${seriesVolumes.length} مجلد في الأرشيف` : `${seriesVolumes.length} Volumes in Archive`)}
           </span>
         </div>
 
         {/* Volumes Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-          {seriesVolumes.map((volume) => (
+          {pagedVolumes.map((volume) => (
             <div
               key={volume.id}
               onClick={() => handleCardClick(volume.id)}
@@ -357,6 +387,62 @@ function SeriesView({ series }: { series: Series }) {
             </div>
           ))}
         </div>
+
+        {/* Archive pagination — same controls as the catalogue, so paging
+            through a series feels like paging through the shop. */}
+        {volumePageCount > 1 && (
+          <div className="mt-10 flex items-center justify-center gap-2 font-mono">
+            <button
+              type="button"
+              onClick={() => goToVolumePage(currentVolumePage - 1)}
+              disabled={currentVolumePage === 1}
+              className="flex items-center gap-1 px-3 py-2 text-xs font-bold uppercase tracking-wider border border-ink-border text-text-muted hover:text-paper hover:border-gold/50 rounded-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{isArabic ? "السابق" : "PREV"}</span>
+            </button>
+
+            <div className="flex items-center gap-1">
+              {Array.from({ length: volumePageCount }, (_, i) => i + 1).map((page) => {
+                // First, last, current and its neighbours; the rest collapse.
+                const show =
+                  page === 1 || page === volumePageCount || Math.abs(page - currentVolumePage) <= 1;
+                const gapBefore = page === currentVolumePage - 2 && currentVolumePage > 3;
+                const gapAfter = page === currentVolumePage + 2 && currentVolumePage < volumePageCount - 2;
+
+                if (gapBefore || gapAfter) {
+                  return <span key={page} className="w-8 text-center text-text-muted text-xs">…</span>;
+                }
+                if (!show) return null;
+
+                return (
+                  <button
+                    key={page}
+                    type="button"
+                    onClick={() => goToVolumePage(page)}
+                    className={`w-9 h-9 text-xs font-bold rounded-sm transition-colors cursor-pointer ${
+                      page === currentVolumePage
+                        ? "bg-gold text-ink border border-gold"
+                        : "border border-ink-border text-text-muted hover:text-paper hover:border-gold/50"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => goToVolumePage(currentVolumePage + 1)}
+              disabled={currentVolumePage === volumePageCount}
+              className="flex items-center gap-1 px-3 py-2 text-xs font-bold uppercase tracking-wider border border-ink-border text-text-muted hover:text-paper hover:border-gold/50 rounded-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <span className="hidden sm:inline">{isArabic ? "التالي" : "NEXT"}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </section>
     </div>
   );
