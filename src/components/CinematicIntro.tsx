@@ -50,10 +50,10 @@ gsap.registerPlugin(useGSAP);
  * preference the same as already seen.
  */
 
-/** Hold after the last beat settles, before the auto-exit fires. Every beat
- *  in the timeline below is scaled ~0.62× from the original pass — same
- *  deltas, same eases, same hierarchy and stagger relationships, just
- *  compressed in time for a snappier read. */
+/** When the auto-exit fires, measured from the moment the sequence starts.
+ *  The timeline below settles at ~2.9s, so this leaves a beat of stillness
+ *  before the overlay begins to leave. Move it and that pause moves with it;
+ *  set it under ~2.9s and the sequence is cut off mid-move. */
 const INTRO_MS = 3150;
 
 function prefersReducedMotion(): boolean {
@@ -142,6 +142,7 @@ export function CinematicIntro() {
   const glowGoldRef = useRef<HTMLDivElement>(null);
   const markWrapRef = useRef<HTMLDivElement>(null);
   const ruleRef = useRef<HTMLSpanElement>(null);
+  const slitRef = useRef<HTMLDivElement>(null);
   const tagRef = useRef<HTMLParagraphElement>(null);
   const subRef = useRef<HTMLParagraphElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -229,6 +230,7 @@ export function CinematicIntro() {
         gsap.set(glowGoldRef.current, { opacity: 0.13, scale: 1, xPercent: -50, yPercent: -50, x: 0, y: 0 });
         gsap.set(markWrapRef.current, { opacity: 1, scale: 1, y: 0, rotation: 0, filter: "blur(0px)" });
         gsap.set(ruleRef.current, { scaleX: 1, opacity: 1 });
+        gsap.set(slitRef.current, { opacity: 0 });
         gsap.set([tagRef.current, subRef.current], { opacity: 1, y: 0, filter: "blur(0px)" });
         gsap.set(frameRef.current, { opacity: 1, scale: 1, y: 0 });
         gsap.set(estRef.current, { opacity: 1, y: 0 });
@@ -243,7 +245,54 @@ export function CinematicIntro() {
       // correctly with the animated x/y below, unlike a CSS translate class.
       gsap.set(glowRef.current, { opacity: 0.03, scale: 0.86, xPercent: -50, yPercent: -50, x: -30, y: 24 });
       gsap.set(glowGoldRef.current, { opacity: 0.015, scale: 0.78, xPercent: -50, yPercent: -50, x: 22, y: -18 });
-      gsap.set(markWrapRef.current, { opacity: 0.28, scale: 0.88, y: -32, rotation: -3, filter: "blur(20px)" });
+      // The mark waits inside the slit: squeezed to nothing horizontally and
+      // parked on the line's own x, so the first frame of its move reads as
+      // the line releasing it rather than a logo sliding in from off-screen.
+      //
+      // The offset is measured rather than guessed. The mark is centred by
+      // flex and the slit is placed by percentage, so the gap between them
+      // depends on the logo's rendered width and the viewport — a fixed `vw`
+      // lined up at one size and sat off-screen at another.
+      // The slit is placed from the mark's own geometry rather than from a
+      // percentage of the viewport. A percentage that reads well on a desk
+      // lands *inside* the mark on a tablet — measured here, the travel was
+      // 6px at 768px wide — because the mark is centred and its width changes
+      // with the breakpoint while the percentage does not.
+      gsap.set(markWrapRef.current, { clearProps: "transform" });
+      const markBox = markWrapRef.current?.getBoundingClientRect();
+      const markLeft = markBox?.left ?? 0;
+      // Far enough left of the mark to be clearly beside it, without crowding
+      // the screen edge on a narrow phone.
+      const gap = Math.max(34, Math.min(110, (markBox?.width ?? 0) * 0.22));
+      const slitLeft = Math.max(18, markLeft - gap);
+      const offsetToSlit = slitLeft - markLeft;
+
+      // Centred on the mark, not on the viewport. The mark sits above true
+      // centre because the wordmark and taglines stack beneath it — measured,
+      // the line's middle was 46px below the mark's, so the mark appeared to
+      // come out of the line's upper third rather than its centre.
+      if (slitRef.current) {
+        const slitHeight = slitRef.current.getBoundingClientRect().height;
+        const markCentreY = (markBox?.top ?? 0) + (markBox?.height ?? 0) / 2;
+        slitRef.current.style.left = `${Math.round(slitLeft)}px`;
+        slitRef.current.style.top = `${Math.round(markCentreY - slitHeight / 2)}px`;
+      }
+      // How far past centre the mark carries before the line lets go of it.
+      // Proportional so the overshoot reads the same on a phone as on a desk.
+      const overshoot = Math.min(64, Math.max(26, window.innerWidth * 0.05));
+
+      gsap.set(markWrapRef.current, {
+        opacity: 0,
+        // Thin enough to be indistinguishable from the line it sits on, so the
+        // first frame of the move reads as the line itself widening.
+        scaleX: 0.015,
+        scaleY: 0.72,
+        x: offsetToSlit,
+        rotation: 0,
+        filter: "blur(6px)",
+        transformOrigin: "left center",
+      });
+      gsap.set(slitRef.current, { opacity: 0, scaleY: 0, transformOrigin: "center center" });
       gsap.set(ruleRef.current, { scaleX: 0, opacity: 0 });
       gsap.set([tagRef.current, subRef.current], { opacity: 0, y: 16, filter: "blur(8px)" });
       gsap.set(frameRef.current, { opacity: 0, scale: 0.82, y: -28 });
@@ -288,55 +337,87 @@ export function CinematicIntro() {
         // 1 — OPENING ATMOSPHERE: the room appears before anything in it
         // does. Texture leads; the two lights drift in from off-centre
         // (position, not just opacity/scale) a beat later.
-        .to(textureRef.current, { opacity: 0.22, duration: 0.43, ease: "power2.out" }, 0)
-        .to(glowRef.current, { opacity: 0.11, scale: 0.93, x: -10, y: 9, duration: 0.37, ease: "power2.out" }, 0.05)
-        .to(glowGoldRef.current, { opacity: 0.06, scale: 0.88, x: 9, y: -8, duration: 0.31, ease: "power2.out" }, 0.09)
+        .to(textureRef.current, { opacity: 0.22, duration: 0.33, ease: "power2.out" }, 0.0)
+        .to(glowRef.current, { opacity: 0.11, scale: 0.93, x: -10, y: 9, duration: 0.28, ease: "power2.out" }, 0.04)
+        .to(glowGoldRef.current, { opacity: 0.06, scale: 0.88, x: 9, y: -8, duration: 0.24, ease: "power2.out" }, 0.07)
 
         // 2 — ANTICIPATION: the light finishes drifting into its resting
         // post and brightens well before the mark appears — the room is
         // visibly expecting something.
-        .to(glowRef.current, { opacity: 0.3, scale: 1.04, x: 0, y: 0, duration: 0.28, ease: "power1.out" }, 0.43)
-        .to(glowGoldRef.current, { opacity: 0.15, scale: 1.0, x: 0, y: 0, duration: 0.31, ease: "power1.out" }, 0.43)
+        .to(glowRef.current, { opacity: 0.3, scale: 1.04, x: 0, y: 0, duration: 0.21, ease: "power1.out" }, 0.33)
+        .to(glowGoldRef.current, { opacity: 0.15, scale: 1.0, x: 0, y: 0, duration: 0.24, ease: "power1.out" }, 0.33)
 
-        // 3 — LOGO REVEAL: one unified move — opacity, blur, scale,
-        // position and rotation together, same duration, same easing — so
-        // the still-soft, still-small, still-offset mark is actually seen
-        // resolving rather than popping in and finishing off-screen of
-        // perception. A true rack focus: it starts visible-but-unresolved,
-        // not invisible.
+        // 3a — THE SLIT OPENS: a vertical line of light draws itself from the
+        // centre outwards. Nothing else moves while it does.
+        //
+        // The light comes up first and the length follows, on a longer and
+        // gentler curve. `power3.out` covered most of its travel in the first
+        // few frames, which read as a snap; `sine.out` leaves the line still
+        // visibly growing as it arrives.
+        .fromTo(
+          slitRef.current,
+          { scaleY: 0, opacity: 0 },
+          { opacity: 1, duration: 0.26, ease: "sine.out" },
+          0.42
+        )
+        .to(slitRef.current, { scaleY: 1, duration: 0.55, ease: "sine.out" }, 0.32)
+
+        // 3b — THE MARK IS PUSHED OUT: it unsqueezes off the line's edge
+        // (transformOrigin sits on the left, so width grows away from the
+        // slit) and is carried a little past centre — the push has momentum,
+        // so it does not stop dead on its mark.
         .to(
           markWrapRef.current,
-          { opacity: 1, scale: 1, y: 0, rotation: 0, filter: "blur(0px)", duration: 0.71, ease: "power2.out" },
-          0.71
+          {
+            opacity: 1,
+            scaleX: 1,
+            scaleY: 1,
+            x: overshoot,
+            filter: "blur(0px)",
+            duration: 0.7,
+            ease: "power2.out",
+          },
+          1.04
         )
+
+        // 3c — THE SLIT CLOSES: from the top down, so it collapses onto its
+        // own base and vanishes rather than fading out where it stands.
+        .to(slitRef.current, { transformOrigin: "center bottom" }, 0.88)
+        .to(slitRef.current, { scaleY: 0, duration: 0.5, ease: "sine.inOut" }, 0.91)
+        .to(slitRef.current, { opacity: 0, duration: 0.32, ease: "sine.in" }, 1.08)
+
+        // 3d — AND BACK: with the line gone there is nothing holding it out
+        // of place, so it drifts back onto centre. Slower and softer than the
+        // push, which is what makes the push read as a push.
+        .to(markWrapRef.current, { x: 0, duration: 0.59, ease: "sine.inOut" }, 1.32)
         // Light interacts with the reveal: both blooms keep climbing and
         // drifting a few px while the mark resolves, peaking as it lands.
-        .to(glowRef.current, { opacity: 0.42, scale: 1.12, x: 5, y: -4, duration: 0.71, ease: "power2.out" }, 0.71)
-        .to(glowGoldRef.current, { opacity: 0.23, scale: 1.06, x: -4, y: 3, duration: 0.68, ease: "power2.out" }, 0.74)
+        .to(glowRef.current, { opacity: 0.42, scale: 1.12, x: 5, y: -4, duration: 0.54, ease: "power2.out" }, 0.54)
+        .to(glowGoldRef.current, { opacity: 0.23, scale: 1.06, x: -4, y: 3, duration: 0.52, ease: "power2.out" }, 0.56)
 
         // Controlled overshoot — a real, visible settle, not a cosmetic
         // wobble — then everything falls back to rest.
-        .to(markWrapRef.current, { scale: 1.022, y: 4, rotation: 0.6, duration: 0.1, ease: "power1.out" }, 1.43)
-        .to(markWrapRef.current, { scale: 1, y: 0, rotation: 0, duration: 0.2, ease: "power2.out" }, 1.53)
-        .to(glowRef.current, { opacity: 0.19, scale: 1, x: 0, y: 0, duration: 0.37, ease: "power2.inOut" }, 1.43)
-        .to(glowGoldRef.current, { opacity: 0.13, scale: 1, x: 0, y: 0, duration: 0.4, ease: "power2.inOut" }, 1.43)
+        .to(markWrapRef.current, { scale: 1.012, duration: 0.12, ease: "sine.out" }, 1.84)
+        .to(markWrapRef.current, { scale: 1, duration: 0.2, ease: "sine.inOut" }, 1.96)
+        .to(glowRef.current, { opacity: 0.19, scale: 1, x: 0, y: 0, duration: 0.28, ease: "power2.inOut" }, 1.09)
+        .to(glowGoldRef.current, { opacity: 0.13, scale: 1, x: 0, y: 0, duration: 0.3, ease: "power2.inOut" }, 1.09)
 
         // 4 — GOLD RULE: draws left to right from a true edge — a line
         // being drawn, not a shape fading in.
-        .to(ruleRef.current, { scaleX: 1, opacity: 1, duration: 0.38, ease: "power2.out" }, 1.8)
+        .to(ruleRef.current, { scaleX: 1, opacity: 1, duration: 0.29, ease: "power2.out" }, 2.11)
 
         // 4 — TAGLINES: staggered, each with its own blur-to-sharp arrival
         // so they read as arriving in sequence, not switching on together.
-        .to(tagRef.current, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.34, ease: "power2.out" }, 1.93)
-        .to(subRef.current, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.3, ease: "power2.out" }, 2.11)
+        .to(tagRef.current, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.26, ease: "power2.out" }, 2.2)
+        .to(subRef.current, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.23, ease: "power2.out" }, 2.34)
 
         // 5 — ARCHIVAL FRAME: retracted and displaced well beyond the
         // logo's own move, arriving last and slowest so the hierarchy
         // reads front-to-back rather than everything landing together.
-        .to(frameRef.current, { opacity: 1, scale: 1, y: 0, duration: 0.43, ease: "power2.out" }, 2.36)
-        .to(estRef.current, { opacity: 1, y: 0, duration: 0.34, ease: "power2.out" }, 2.42)
-        .to(spineRef.current, { opacity: 1, y: 0, duration: 0.34, ease: "power2.out" }, 2.48)
-        .to(skipRef.current, { opacity: 1, y: 0, duration: 0.28, ease: "power2.out" }, 2.6);
+        .to(frameRef.current, { opacity: 1, scale: 1, y: 0, duration: 0.33, ease: "power2.out" }, 2.51)
+        .to(estRef.current, { opacity: 1, y: 0, duration: 0.26, ease: "power2.out" }, 2.55)
+        .to(spineRef.current, { opacity: 1, y: 0, duration: 0.26, ease: "power2.out" }, 2.6)
+        .to(skipRef.current, { opacity: 1, y: 0, duration: 0.21, ease: "power2.out" }, 2.69);
     },
     { scope: containerRef, dependencies: [visible] }
   );
@@ -459,6 +540,16 @@ export function CinematicIntro() {
             <span className="h-8 w-px bg-gradient-to-b from-gold/40 to-transparent" />
           </div>
 
+          {/* The slit the mark is pushed out of: a thin vertical line of
+              light standing left of centre. It opens, releases the mark,
+              then closes from the top down and is gone. */}
+          <div
+            ref={slitRef}
+            aria-hidden="true"
+            className="absolute top-0 z-10 w-px origin-top bg-gradient-to-b from-transparent via-gold to-transparent"
+            style={{ height: "clamp(96px, 19vh, 260px)" }}
+          />
+
           {/* ── The mark ───────────────────────────────────────────────── */}
           <div className="relative z-10 flex flex-col items-center px-6 text-center">
             <div ref={markWrapRef} className="relative">
@@ -468,7 +559,7 @@ export function CinematicIntro() {
                 sizes="(max-width: 639px) 300px, 480px"
                 quality={90}
                 priority
-                className="w-auto h-20 sm:h-28 md:h-32 drop-shadow-[0_0_30px_rgba(199,167,108,0.3)]"
+                className="w-auto h-14 sm:h-20 lg:h-28 xl:h-32 drop-shadow-[0_0_30px_rgba(199,167,108,0.3)]"
               />
             </div>
 
