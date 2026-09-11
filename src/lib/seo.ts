@@ -11,8 +11,14 @@ import { ALL_SERIES, ALL_VOLUMES, MangaVolume, Series } from "@/data/manga";
  */
 export const SITE_URL = (
   process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "") ||
+  // The stable alias for the production deployment. `VERCEL_URL` is the
+  // per-deployment hostname, which changes on every push, so it would hand
+  // crawlers a canonical that stops existing the next time we deploy.
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "") ||
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
-  "https://animeverse-rosy-five.vercel.app"
+  "https://animeverse-store.vercel.app"
 );
 
 export const SITE_NAME = "AnimeVerse";
