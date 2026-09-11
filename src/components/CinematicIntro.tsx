@@ -64,6 +64,19 @@ function prefersReducedMotion(): boolean {
   }
 }
 
+/**
+ * Whether the intro has already played *this visit*.
+ *
+ * Deliberately scoped to the browsing session rather than the device. It used
+ * to be remembered in `localStorage` and in a day-long cookie as well, which
+ * meant a visitor saw the sequence once and then never again. The intent is the
+ * opposite: it should open every visit, but a reload in the middle of one is
+ * not a new visit and replaying it there would be tiresome.
+ *
+ * `sessionStorage` draws exactly that line — it survives a refresh and dies
+ * with the tab — and the in-memory flag covers a client-side navigation back to
+ * the home page within the same page load.
+ */
 function hasSeenIntro(): boolean {
   if (typeof window === "undefined") return true;
   // A full-screen animated takeover is exactly what reduced-motion asks us not
@@ -71,8 +84,6 @@ function hasSeenIntro(): boolean {
   if (prefersReducedMotion()) return true;
   try {
     if ((window as unknown as { __kairo_intro_seen?: boolean }).__kairo_intro_seen) return true;
-    if (document.cookie.split(";").some((c) => c.trim().startsWith("kairo_intro_seen=true"))) return true;
-    if (localStorage.getItem("kairo_intro_seen") === "true") return true;
     if (sessionStorage.getItem("kairo_intro_seen") === "true") return true;
   } catch {
     // Private windows can block storage outright; never loop the intro there.
@@ -86,8 +97,11 @@ function markIntroSeen(): void {
   try {
     (window as unknown as { __kairo_intro_seen?: boolean }).__kairo_intro_seen = true;
     sessionStorage.setItem("kairo_intro_seen", "true");
-    localStorage.setItem("kairo_intro_seen", "true");
-    document.cookie = "kairo_intro_seen=true; path=/; max-age=86400; SameSite=Lax";
+    // Nothing device-wide is written: the next visit is meant to see it again.
+    // Anything left over from when it was remembered for good is cleared, or a
+    // returning visitor would go on being skipped forever.
+    localStorage.removeItem("kairo_intro_seen");
+    document.cookie = "kairo_intro_seen=; path=/; max-age=0; SameSite=Lax";
   } catch {}
 }
 

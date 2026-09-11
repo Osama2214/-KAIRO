@@ -937,8 +937,13 @@ function AccountContent() {
   const handleResetIntro = () => {
     try {
       sessionStorage.removeItem("kairo_intro_seen");
+      // The intro is session-scoped now, but a device that visited before the
+      // change may still carry the old device-wide marks; clearing them here
+      // keeps this control working for those visitors too.
       localStorage.removeItem("kairo_intro_seen");
       localStorage.removeItem("introSeen");
+      document.cookie = "kairo_intro_seen=; path=/; max-age=0; SameSite=Lax";
+      (window as unknown as { __kairo_intro_seen?: boolean }).__kairo_intro_seen = false;
     } catch (e) {
       console.error(e);
     }

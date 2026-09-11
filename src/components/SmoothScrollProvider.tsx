@@ -3,8 +3,6 @@
 import React, { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Lenis from "lenis";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 declare global {
   interface Window {
@@ -181,10 +179,6 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
       document.documentElement.scrollTop = clampTarget;
       document.body.scrollTop = clampTarget;
 
-      if (typeof ScrollTrigger !== "undefined") {
-        ScrollTrigger.update();
-      }
-
       if (clampTarget >= targetY - 40) {
         revealRestoration();
       }
@@ -243,10 +237,6 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
       document.documentElement.scrollTop = clampTarget;
       document.body.scrollTop = clampTarget;
 
-      if (typeof ScrollTrigger !== "undefined") {
-        ScrollTrigger.update();
-      }
-
       const currentScroll = currentLenis ? currentLenis.scroll : window.scrollY;
       const reachedTarget = Math.abs(currentScroll - targetY) < 30;
       const heightIsSufficient = maxScroll >= targetY - 20 || docH >= targetY + 50;
@@ -270,9 +260,6 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
           currentLenis.scrollTo(targetY, { immediate: true });
         }
         window.scrollTo({ top: targetY, left: 0, behavior: "instant" as ScrollBehavior });
-        if (typeof ScrollTrigger !== "undefined") {
-          ScrollTrigger.refresh();
-        }
         cleanup();
         setTimeout(() => {
           isRestoringRef.current = false;
@@ -306,11 +293,6 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
         }
       } catch {}
     };
-
-    // Register GSAP ScrollTrigger plugin safely
-    if (typeof gsap !== "undefined" && typeof ScrollTrigger !== "undefined") {
-      gsap.registerPlugin(ScrollTrigger);
-    }
 
     // Hijacking the wheel is disorienting for anyone who has asked the system
     // for reduced motion; leave native scrolling alone for them.
@@ -349,9 +331,8 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
       lenis.scrollTo(initialSavedY, { immediate: true });
     }
 
-    // Synchronize Lenis with ScrollTrigger and continuously persist scroll position (throttled)
+    // Persist the scroll position as it changes, throttled.
     const handleLenisScroll = (e: { scroll: number }) => {
-      ScrollTrigger.update();
       if (isRestoringRef.current) return; // NEVER overwrite during restoration!
 
       const currentY = Math.round(e.scroll);
@@ -382,17 +363,24 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
     window.addEventListener("pagehide", saveCurrentScroll);
     window.addEventListener("beforeunload", saveCurrentScroll);
 
-    // Synchronize Lenis loop with GSAP's ticker for locked 60-120fps smooth scrub
-    const tickerUpdate = (time: number) => {
-      lenis.raf(time * 1000);
+    // Lenis needs a frame loop to advance on. This used to borrow GSAP's
+    // ticker, which pulled the whole animation library — 79KB gzipped — into
+    // every page for that one job, since the ScrollTrigger calls around it
+    // were no-ops: nothing in the app ever creates a ScrollTrigger.
+    // `requestAnimationFrame` is what Lenis documents, and is what GSAP's
+    // ticker was wrapping anyway.
+    let rafId = 0;
+    const frame = (time: number) => {
+      // rAF measures in milliseconds. GSAP's ticker measured in seconds, which
+      // is what the old `time * 1000` was converting.
+      lenis.raf(time);
+      rafId = requestAnimationFrame(frame);
     };
-    gsap.ticker.add(tickerUpdate);
-    gsap.ticker.lagSmoothing(0);
+    rafId = requestAnimationFrame(frame);
 
     // Global resize trigger function
     const triggerResize = () => {
       lenis.resize();
-      ScrollTrigger.refresh();
     };
     window.__lenisResize = triggerResize;
 
@@ -477,7 +465,7 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
     const initTimer = setTimeout(triggerResize, 200);
 
     return () => {
-      gsap.ticker.remove(tickerUpdate);
+      cancelAnimationFrame(rafId);
       clearTimeout(initTimer);
       document.removeEventListener("click", handleInteractiveClick, { capture: true });
       document.removeEventListener("click", handleAnchorClick);
@@ -578,9 +566,6 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
       setTimeout(() => window.__lenis?.resize(), 600),
       setTimeout(() => {
         window.__lenis?.resize();
-        if (typeof ScrollTrigger !== "undefined") {
-          ScrollTrigger.refresh();
-        }
       }, 1200),
     ];
 
