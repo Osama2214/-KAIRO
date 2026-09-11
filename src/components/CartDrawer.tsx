@@ -256,7 +256,7 @@ export function CartDrawer() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => applyCoupon(welcomeCode, 20, true)}
+                    onClick={() => void applyCoupon(welcomeCode)}
                     className="px-2.5 py-1 bg-gold text-ink font-bold text-[10px] rounded-xs uppercase tracking-wider hover:bg-paper transition-colors shrink-0 cursor-pointer shadow-xs"
                   >
                     APPLY 20%
@@ -296,9 +296,10 @@ export function CartDrawer() {
                     />
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
                         if (!promoInput.trim()) return;
-                        const res = applyCoupon(promoInput, 20, true);
+                        setPromoError("");
+                        const res = await applyCoupon(promoInput);
                         if (res.success) {
                           setPromoSuccess(res.message);
                           setPromoInput("");

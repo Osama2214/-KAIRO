@@ -100,6 +100,7 @@ function VolumeFormDialog({
 
   // Series quick creator
   const [showAddSeries, setShowAddSeries] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
   const [newSeriesTitle, setNewSeriesTitle] = useState("");
   const [newSeriesAuthor, setNewSeriesAuthor] = useState("");
 
@@ -368,24 +369,27 @@ function VolumeFormDialog({
 
 
   const handleSubmit = (e: React.FormEvent) => {
+    // Before anything else: these checks used to return *ahead* of
+    // preventDefault, so a box set that failed validation submitted the form
+    // and navigated the console away instead of showing the problem.
+    e.preventDefault();
+    setErrorMsg("");
+
     if (formData.format === "Box Set") {
       const chosen = formData.bundleOf || [];
       if (chosen.length === 0) {
-        alert("A box set needs at least one volume in it. Pick its contents below.");
+        setErrorMsg("A box set needs at least one volume in it. Pick its contents below.");
         return;
       }
       if (bundleFacts?.cycle) {
-        alert("A box set cannot contain itself or another box set.");
+        setErrorMsg("A box set cannot contain itself or another box set.");
         return;
       }
       if (bundleFacts && bundleFacts.missing.length > 0) {
-        alert(`These volumes are no longer in the catalogue: ${bundleFacts.missing.join(", ")}`);
+        setErrorMsg(`These volumes are no longer in the catalogue: ${bundleFacts.missing.join(", ")}`);
         return;
       }
     }
-
-
-    e.preventDefault();
 
     const parsedPreviews = previewPagesInput
       .split("\n")
@@ -463,6 +467,16 @@ function VolumeFormDialog({
           onSubmit={handleSubmit}
           className="p-6 space-y-6 max-h-[75vh] overflow-y-auto overscroll-contain text-xs font-mono"
         >
+          {errorMsg && (
+            <div
+              role="alert"
+              className="p-3 bg-red-950/60 border border-red-800 text-red-300 rounded-xs flex items-center gap-2"
+            >
+              <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
           {/* Section: Basic Identity */}
           <div>
             <h3 className="text-gold uppercase tracking-wider mb-3 font-bold border-b border-ink-border/50 pb-1 flex items-center gap-1.5">

@@ -9,17 +9,11 @@ import { useWishlistStore } from "@/store/useWishlistStore";
 import { purgeLegacyGuestOrders } from "@/lib/guestOrders";
 import type { MangaVolume, Series } from "@/data/manga";
 import { withDerivedSeriesVolumes, withoutSeriesVolumes } from "@/lib/seriesVolumes";
-
-const DATA_KEYS = [
-  "volumes", "series", "genres", "formats", "heroContent", "announcement", "shippingConfig",
-  "editorialConfig", "featuredSeriesConfig", "genreBentoConfig", "trendingConfig", "boxSetsConfig", "tickerConfig",
-  "newReleasesConfig", "mangaDiscoveryConfig", "heroArabicContent", "announcementArabic",
-  "shippingArabicConfig", "editorialArabicConfig", "newReleasesArabicConfig", "mangaDiscoveryArabicConfig",
-  "trendingArabicConfig", "boxSetsArabicConfig", "tickerArabicConfig", "genreBentoArabicConfig",
-] as const;
+import { hasUnsavedCuratorWork, useCuratorSaveStore } from "@/store/useCuratorSaveStore";
+import { STOREFRONT_DATA_KEYS } from "@/lib/storefrontKeys";
 
 function snapshot(state: Record<string, unknown>) {
-  const data = Object.fromEntries(DATA_KEYS.map((key) => [key, state[key]]));
+  const data = Object.fromEntries(STOREFRONT_DATA_KEYS.map((key) => [key, state[key]]));
   // Series volumes are derived from the catalogue, so uploading them again
   // would send the whole catalogue twice and re-store a copy that can drift.
   return { ...data, series: withoutSeriesVolumes(data.series) };
@@ -47,6 +41,7 @@ export function StorefrontDataSync() {
     let active = true;
     let hydrated = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
     let previous = "";
 
     const load = async () => {
@@ -94,27 +89,98 @@ export function StorefrontDataSync() {
     };
 
     void load();
+
+    // The most recent edit, held so a failed save can be retried with the
+    // latest state rather than whatever was in flight when it broke.
+    let queued: string | null = null;
+    let attempt = 0;
+    const report = useCuratorSaveStore.getState().report;
+
+    const describe = (status: number, body: { message?: string } | null): string => {
+      if (status === 403) return "Your curator session expired. Sign in again to keep editing.";
+      if (status === 413) return "This change is too large to store. Try removing some preview pages or artwork.";
+      if (status === 400) return "The server rejected this change as malformed.";
+      return body?.message || `The server refused the change (${status}).`;
+    };
+
+    const push = async (): Promise<void> => {
+      if (!queued || !active) return;
+      const body = queued;
+      report("saving");
+      try {
+        const response = await fetch("/api/storefront", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body,
+        });
+        const payload = await response.json().catch(() => null);
+        if (!active) return;
+
+        if (response.ok && payload?.success) {
+          attempt = 0;
+          // Another edit may have landed while this request was in flight; only
+          // clear the queue if it is still the one we just sent.
+          if (queued === body) queued = null;
+          report(queued ? "pending" : "saved");
+          if (queued) void push();
+          return;
+        }
+
+        // A rejected payload is not worth repeating — it will be rejected
+        // again — so those surface at once. A transport failure might be a
+        // blip, and is retried below.
+        report("error", describe(response.status, payload));
+      } catch {
+        if (!active) return;
+        attempt += 1;
+        if (attempt <= 2) {
+          report("pending");
+          retryTimer = setTimeout(() => void push(), attempt * 1500);
+          return;
+        }
+        report("error", "Could not reach the server. Your change is still here — check your connection and retry.");
+      }
+    };
+
+    // Exposed so the console's own retry control pushes the same queued state.
+    useCuratorSaveStore.getState().setRetry(() => {
+      attempt = 0;
+      void push();
+    });
+
     const unsubscribe = useStorefrontStore.subscribe((state) => {
       if (!hydrated || !state.isAdminAuthenticated) return;
       const data = snapshot(state as unknown as Record<string, unknown>);
       const next = JSON.stringify(data);
       if (next === previous) return;
       previous = next;
+      queued = JSON.stringify({ data });
+      report("pending");
       if (timer) clearTimeout(timer);
-      timer = setTimeout(() => {
-        fetch("/api/storefront", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ data }),
-        }).catch(() => {});
-      }, 600);
+      timer = setTimeout(() => void push(), 600);
     });
 
     return () => {
       active = false;
       if (timer) clearTimeout(timer);
+      if (retryTimer) clearTimeout(retryTimer);
+      useCuratorSaveStore.getState().setRetry(null);
       unsubscribe();
     };
+  }, []);
+
+  // A change sits in a 600ms debounce before it is sent, and a failed one sits
+  // in the queue until it is retried. Closing the tab in either window used to
+  // discard the work without a word.
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      const { status } = useCuratorSaveStore.getState();
+      if (!useStorefrontStore.getState().isAdminAuthenticated) return;
+      if (!hasUnsavedCuratorWork(status)) return;
+      event.preventDefault();
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
   }, []);
 
   return null;

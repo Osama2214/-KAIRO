@@ -11,7 +11,7 @@ import { checkRateLimitKey, getClientIp } from "@/lib/rateLimit";
 import { DEFAULT_GOVERNORATE_RATES } from "@/data/governorates";
 import { curatorSession, isTrustedOrigin } from "@/lib/serverAuth";
 import { patronSession } from "@/lib/patronAuth";
-import { redeemWelcomeCoupon, releaseWelcomeCoupon } from "@/lib/couponStore";
+import { redeemCoupon, releaseCoupon } from "@/lib/couponEngine";
 import { CatalogReservationError, reserveCatalogItems, restoreCatalogItems } from "@/lib/storefrontDataStore";
 import { validateEgyptianPhone } from "@/lib/security";
 import { createOrderId } from "@/lib/orderId";
@@ -163,27 +163,39 @@ export async function POST(request: Request) {
 
     // 2. Authoritative Coupon Validation & One-Time Use Enforcement
     let discountPercent = 0;
+    let couponAmountOff = 0;
+    let couponFreeShipping = false;
     let appliedCoupon: string | undefined = undefined;
     let couponMessage: string | undefined = undefined;
 
     const rawCode = String(body.appliedCoupon || "").trim().toUpperCase();
     if (rawCode) {
       const session = patronSession(request);
-      // A coupon belongs to the signed-in patron, not to data sent by the browser.
+      // A coupon is claimed by the signed-in patron, not by data sent by the
+      // browser: redemption is recorded against their address so "once each"
+      // means something.
       if (!session.valid || !session.email || session.email !== customerEmail) {
-        couponMessage = "Sign in with the coupon owner to use this code.";
+        couponMessage = "Sign in to use this code.";
       } else {
-        const redeemedDiscount = await redeemWelcomeCoupon(rawCode, session.email, orderId);
-        if (redeemedDiscount === null) {
-          couponMessage = "This coupon is invalid, expired, or has already been used.";
+        const value = await redeemCoupon(rawCode, session.email, orderId);
+        if (value === null) {
+          couponMessage = "This voucher is invalid, expired, or has already been used.";
         } else {
-          discountPercent = redeemedDiscount;
+          discountPercent = value.percentOff;
+          couponAmountOff = value.amountOff;
+          couponFreeShipping = value.freeShipping;
           appliedCoupon = rawCode;
         }
       }
     }
 
-    const discountAmount = Math.round(((computedSubtotal * discountPercent) / 100) * 100) / 100;
+    // A coupon may take off a percentage, a fixed amount, or both; the pair is
+    // capped at the subtotal so no order can be worth less than nothing.
+    const percentDiscount = Math.round(((computedSubtotal * discountPercent) / 100) * 100) / 100;
+    const discountAmount = Math.min(
+      computedSubtotal,
+      Math.round((percentDiscount + couponAmountOff) * 100) / 100
+    );
     const netMerchandise = Math.max(0, computedSubtotal - discountAmount);
 
     // 3. Authoritative Governorate Shipping & Net-Value Free Shipping Calculation
@@ -195,8 +207,9 @@ export async function POST(request: Request) {
       )?.[1] ??
       65;
 
-    // Free shipping threshold: 500 EGP calculated on NET merchandise value (after discount)
-    const isFreeShipping = netMerchandise >= 500;
+    // Free shipping threshold: 500 EGP calculated on NET merchandise value
+    // (after discount) — or granted outright by the coupon.
+    const isFreeShipping = couponFreeShipping || netMerchandise >= 500;
     const shippingCost = isFreeShipping ? 0 : govShippingRate;
 
     // 4. Authoritative Final Total
@@ -261,7 +274,7 @@ export async function POST(request: Request) {
     } catch (saveError) {
       await Promise.allSettled([
         restoreCatalogItems(validatedItems),
-        ...(appliedCoupon ? [releaseWelcomeCoupon(orderId)] : []),
+        ...(appliedCoupon ? [releaseCoupon(orderId)] : []),
       ]);
       throw saveError;
     }

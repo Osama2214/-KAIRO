@@ -35,8 +35,13 @@ import {
   Globe,
   Cloud,
   Megaphone,
+  TrendingUp,
+  LayoutTemplate,
+  ShieldCheck,
+  Star,
+  LayoutGrid,
 } from "lucide-react";
-import { useStorefrontStore, TICKER_SLOTS } from "@/store/useStorefrontStore";
+import { useStorefrontStore, TICKER_SLOTS, type ShippingConfig } from "@/store/useStorefrontStore";
 import { useAuthStore, SavedOrder, UserProfile } from "@/store/useAuthStore";
 import { MangaVolume, Series, GenreInfo } from "@/data/manga";
 import { formatPrice } from "@/lib/utils";
@@ -52,8 +57,50 @@ import { useMounted } from "@/store/useWishlistStore";
 import { changeAdminPinWithServer } from "@/lib/security";
 import { EGYPT_GOVERNORATES, DEFAULT_GOVERNORATE_RATES, EgyptGovernorate } from "@/data/governorates";
 import { printCustomerInvoice } from "@/lib/invoicePrint";
+import { SaveStatusBadge } from "@/components/admin/SaveStatusBadge";
+import { useConfirm } from "@/components/admin/ConfirmDialog";
+import { CollapsibleSection } from "@/components/admin/CollapsibleSection";
+import { SectionSaveButton } from "@/components/admin/SectionSaveButton";
+import { CouponManager } from "@/components/admin/CouponManager";
+import { Toggle } from "@/components/admin/Toggle";
+import { Checkbox } from "@/components/admin/Checkbox";
 
 type AdminTab = "overview" | "volumes" | "series" | "cms" | "orders" | "settings";
+
+/**
+ * Whether a panel's draft still differs from what the storefront is showing.
+ *
+ * Compared by value rather than by serialised text. `JSON.stringify` preserves
+ * insertion order, and the shipping draft is built by spreading the baseline
+ * rates before the stored ones — so its governorate map came out alphabetically
+ * from the defaults while the stored map kept whatever order it was saved in.
+ * Identical rates, different strings, and the panel claimed unsaved changes
+ * from the moment it opened.
+ */
+function isDirty(draft: unknown, live: unknown): boolean {
+  return !deepEqual(draft, live);
+}
+
+function deepEqual(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    return a.every((item, index) => deepEqual(item, b[index]));
+  }
+
+  const left = a as Record<string, unknown>;
+  const right = b as Record<string, unknown>;
+  const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+  for (const key of keys) {
+    // An absent key and an explicit `undefined` mean the same thing here: a
+    // draft seeded from a config that never had the field is not a change.
+    if (left[key] === undefined && right[key] === undefined) continue;
+    if (!deepEqual(left[key], right[key])) return false;
+  }
+  return true;
+}
 
 export default function AdminPage() {
   const mounted = useMounted();
@@ -109,6 +156,10 @@ export default function AdminPage() {
 
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<SavedOrder | null>(null);
+  const { confirm, dialog: confirmDialog } = useConfirm();
+  const [flatRateInput, setFlatRateInput] = useState("");
+
+
   const [selectedCustomer, setSelectedCustomer] = useState<UserProfile | null>(null);
 
   const [isGenreModalOpen, setIsGenreModalOpen] = useState(false);
@@ -119,7 +170,6 @@ export default function AdminPage() {
     volumes,
     series,
     heroContent,
-    announcement,
     shippingConfig,
     editorialConfig,
     featuredSeriesConfig,
@@ -128,13 +178,10 @@ export default function AdminPage() {
     tickerConfig,
     tickerArabicConfig,
     trendingConfig,
-    newReleasesConfig,
     mangaDiscoveryConfig,
     heroArabicContent,
-    announcementArabic,
     shippingArabicConfig,
     editorialArabicConfig,
-    newReleasesArabicConfig,
     mangaDiscoveryArabicConfig,
     genres,
     formats,
@@ -147,7 +194,6 @@ export default function AdminPage() {
     updateSeries,
     deleteSeries,
     updateHeroContent,
-    updateAnnouncement,
     updateShippingConfig,
     updateEditorialConfig,
     updateFeaturedSeriesConfig,
@@ -156,13 +202,10 @@ export default function AdminPage() {
     updateTickerConfig,
     updateTickerArabicConfig,
     updateTrendingConfig,
-    updateNewReleasesConfig,
     updateMangaDiscoveryConfig,
     updateHeroArabicContent,
-    updateAnnouncementArabic,
     updateShippingArabicConfig,
     updateEditorialArabicConfig,
-    updateNewReleasesArabicConfig,
     updateMangaDiscoveryArabicConfig,
     trendingArabicConfig,
     updateTrendingArabicConfig,
@@ -186,15 +229,26 @@ export default function AdminPage() {
   // Local CMS Form States for smooth editing
   const [cmsLanguage, setCmsLanguage] = useState<"en" | "ar">("en");
   const [heroForm, setHeroForm] = useState(heroContent);
-  const [announcementForm, setAnnouncementForm] = useState(announcement);
-  const [shippingForm, setShippingForm] = useState(() => ({
-    ...shippingConfig,
-    governoratesList: shippingConfig.governoratesList || EGYPT_GOVERNORATES,
+  /**
+   * Fills in what the stored config leaves out, so the form always has a full
+   * list of zones and a rate for each to render.
+   *
+   * The comparison that decides whether there is anything to save runs both
+   * sides through this. Without that the draft was compared against the raw
+   * stored value, and since this adds the 27 baseline rates and the default
+   * zone list, a shop that had never set them looked permanently unsaved — the
+   * button offered to save changes nobody had made.
+   */
+  const withShippingDefaults = (config: ShippingConfig) => ({
+    ...config,
+    governoratesList: config.governoratesList || EGYPT_GOVERNORATES,
     governorateRates: {
       ...DEFAULT_GOVERNORATE_RATES,
-      ...(shippingConfig.governorateRates || {}),
+      ...(config.governorateRates || {}),
     },
-  }));
+  });
+
+  const [shippingForm, setShippingForm] = useState(() => withShippingDefaults(shippingConfig));
   const [editorialForm, setEditorialForm] = useState(editorialConfig);
   const [featuredSeriesForm, setFeaturedSeriesForm] = useState(featuredSeriesConfig);
   const [genreBentoForm, setGenreBentoForm] = useState(genreBentoConfig);
@@ -202,15 +256,12 @@ export default function AdminPage() {
   const [tickerForm, setTickerForm] = useState(tickerConfig);
   const [tickerArabicForm, setTickerArabicForm] = useState(tickerArabicConfig);
   const [trendingForm, setTrendingForm] = useState(trendingConfig);
-  const [newReleasesForm, setNewReleasesForm] = useState(newReleasesConfig);
   const [mangaDiscoveryForm, setMangaDiscoveryForm] = useState(mangaDiscoveryConfig);
 
   // Arabic CMS Form States
   const [heroArabicForm, setHeroArabicForm] = useState(heroArabicContent);
-  const [announcementArabicForm, setAnnouncementArabicForm] = useState(announcementArabic);
   const [shippingArabicForm, setShippingArabicForm] = useState(shippingArabicConfig);
   const [editorialArabicForm, setEditorialArabicForm] = useState(editorialArabicConfig);
-  const [newReleasesArabicForm, setNewReleasesArabicForm] = useState(newReleasesArabicConfig);
   const [mangaDiscoveryArabicForm, setMangaDiscoveryArabicForm] = useState(mangaDiscoveryArabicConfig);
   const [trendingArabicForm, setTrendingArabicForm] = useState(trendingArabicConfig);
   const [selectedGenreId, setSelectedGenreId] = useState<string>(genres?.[0]?.id || "action");
@@ -325,13 +376,6 @@ export default function AdminPage() {
     }
   }
 
-  const [prevNewReleases, setPrevNewReleases] = useState(newReleasesConfig);
-  if (newReleasesConfig !== prevNewReleases) {
-    setPrevNewReleases(newReleasesConfig);
-    if (newReleasesConfig) {
-      setNewReleasesForm(newReleasesConfig);
-    }
-  }
 
   const [prevGenreBento, setPrevGenreBento] = useState(genreBentoConfig);
   if (genreBentoConfig !== prevGenreBento) {
@@ -384,6 +428,25 @@ export default function AdminPage() {
         ...prev,
         governoratesList: activeList,
         governorateRates: rates,
+      };
+    });
+  };
+
+  /**
+   * Puts every governorate on the same rate.
+   *
+   * Twenty-seven fields is a long way to say "flat 60 EGP everywhere", and it
+   * is the change most often wanted in one go — a courier's prices move
+   * together far more often than one zone moves alone. Individual rates can
+   * still be edited afterwards; this only sets them all at once.
+   */
+  const handleApplyRateToAll = (rate: number) => {
+    const value = Math.max(0, Math.round(rate));
+    setShippingForm((prev) => {
+      const list = prev.governoratesList || EGYPT_GOVERNORATES;
+      return {
+        ...prev,
+        governorateRates: Object.fromEntries(list.map((gov) => [gov.value, value])),
       };
     });
   };
@@ -600,6 +663,25 @@ export default function AdminPage() {
     return volumes.filter((v) => (v.stock || 0) <= 5);
   }, [volumes]);
 
+  /**
+   * Removing a volume that a box set is built from silently zeroes that box:
+   * `describeBundle` returns stock 0 the moment a member id no longer resolves,
+   * so the box stops selling with nothing on screen to explain why. The
+   * confirmation names the boxes that would break.
+   */
+  const confirmDeleteVolume = (volume: MangaVolume): Promise<boolean> => {
+    const inBoxes = volumes.filter(
+      (v) => Array.isArray(v.bundleOf) && v.bundleOf.includes(volume.id)
+    );
+    const body = ["This cannot be undone."];
+    if (inBoxes.length) {
+      body.unshift(
+        `It is part of ${inBoxes.map((b) => `"${b.title}"`).join(", ")}, which will drop out of stock without it.`
+      );
+    }
+    return confirm({ title: `Delete "${volume.title}"?`, body, destructive: true });
+  };
+
   const totalRevenue = useMemo(() => {
     return allOrders.reduce((sum, item) => sum + (item.order.total || 0), 0);
   }, [allOrders]);
@@ -731,10 +813,9 @@ export default function AdminPage() {
       <header className="h-12 sm:h-16 bg-ink-surface border-b border-ink-border px-3 sm:px-6 flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center gap-2 sm:gap-4">
           <Link href="/" className="flex items-center gap-1.5 group shrink-0">
-            <span className="font-serif text-gold text-sm sm:text-lg font-bold group-hover:scale-105 transition-transform leading-none">
-              ANIMEVERSE
-            </span>
-            <span className="font-cinzel text-sm sm:text-base font-bold text-paper tracking-wider whitespace-nowrap">
+            {/* One mark, not two: the serif and cinzel spans both read
+                "ANIMEVERSE", so the console header said the name twice. */}
+            <span className="font-cinzel text-sm sm:text-base font-bold text-paper tracking-wider whitespace-nowrap group-hover:text-gold transition-colors">
               ANIMEVERSE
             </span>
           </Link>
@@ -752,6 +833,8 @@ export default function AdminPage() {
               <span className="text-paper text-[11px] font-medium truncate max-w-[100px]">{currentUser.name}</span>
             </div>
           )}
+
+          <SaveStatusBadge />
 
           <button
             onClick={async () => {
@@ -1145,8 +1228,8 @@ export default function AdminPage() {
                               <Copy className="w-3 h-3" />
                             </button>
                             <button
-                              onClick={() => {
-                                if (confirm(`Delete "${vol.title}"?`)) {
+                              onClick={async () => {
+                                if (await confirmDeleteVolume(vol)) {
                                   deleteVolume(vol.id);
                                   showToast(`Deleted "${vol.title}"`);
                                 }
@@ -1283,8 +1366,8 @@ export default function AdminPage() {
                               </button>
 
                               <button
-                                onClick={() => {
-                                  if (confirm(`Are you sure you want to delete "${vol.title}"?`)) {
+                                onClick={async () => {
+                                  if (await confirmDeleteVolume(vol)) {
                                     deleteVolume(vol.id);
                                     showToast(`Deleted volume "${vol.title}"`);
                                   }
@@ -1375,10 +1458,29 @@ export default function AdminPage() {
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => {
-                              if (confirm(`Delete series "${s.title}" and its catalog volumes?`)) {
+                            onClick={async () => {
+                              // The store removes every volume carrying this
+                              // slug, so the count belongs in the question.
+                              const owned = volumes.filter((v) => v.seriesSlug === s.slug);
+                              const boxes = owned.filter((v) => Array.isArray(v.bundleOf) && v.bundleOf.length);
+                              const detail = [
+                                `${owned.length} volume${owned.length === 1 ? "" : "s"}`,
+                                boxes.length ? `${boxes.length} box set${boxes.length === 1 ? "" : "s"}` : "",
+                              ]
+                                .filter(Boolean)
+                                .join(" and ");
+                              if (
+                                await confirm({
+                                  title: `Delete "${s.title}"?`,
+                                  body: [
+                                    `This also removes ${detail} from the catalogue.`,
+                                    "This cannot be undone.",
+                                  ],
+                                  destructive: true,
+                                })
+                              ) {
                                 deleteSeries(s.slug);
-                                showToast(`Deleted series "${s.title}"`);
+                                showToast(`Deleted "${s.title}" and ${owned.length} product(s)`);
                               }
                             }}
                             className="p-1.5 text-text-muted hover:text-vermilion rounded transition-colors cursor-pointer"
@@ -1439,12 +1541,743 @@ export default function AdminPage() {
               {cmsLanguage === "en" ? (
                 <>
 
-              {/* 1. HERO SECTION EDITOR */}
+              <CouponManager onToast={showToast} />
+
+              {/* 02. DELIVERY & SHIPPING RATES */}
+              <div className="p-4 sm:p-6 bg-ink-surface border border-ink-border rounded-sm space-y-6">
+                <div className="flex items-center justify-between border-b border-ink-border/50 pb-2">
+                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-gold" />
+                    <span>02. Delivery &amp; Shipping Rates</span>
+                  </h2>
+                </div>
+
+                {/* Fulfillment Hub Core Settings */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <label className="block text-text-muted mb-1">Hub Name</label>
+                    <input
+                      type="text"
+                      value={shippingForm.hubName}
+                      onChange={(e) => setShippingForm({ ...shippingForm, hubName: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-text-muted mb-1">Estimated Delivery Window</label>
+                    <input
+                      type="text"
+                      value={shippingForm.deliveryEstimate}
+                      onChange={(e) => setShippingForm({ ...shippingForm, deliveryEstimate: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-text-muted mb-1">
+                      Dispatch Badge Text
+                    </label>
+                    <input
+                      type="text"
+                      value={shippingForm.dispatchBadgeText}
+                      onChange={(e) => setShippingForm({ ...shippingForm, dispatchBadgeText: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-text-muted mb-1">Authenticity Badge Text</label>
+                    <input
+                      type="text"
+                      value={shippingForm.guaranteeBadgeText}
+                      onChange={(e) => setShippingForm({ ...shippingForm, guaranteeBadgeText: e.target.value })}
+                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Free Delivery Policy & Minimum Order Threshold */}
+                <div className="p-4 bg-ink/70 border border-gold/30 rounded-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-ink-border/60">
+                    <div className="flex items-center gap-2.5">
+                      <Truck className="w-5 h-5 text-gold" />
+                      <div>
+                        <h3 className="text-xs font-bold text-gold uppercase tracking-wider">
+                          Free Delivery Threshold
+                        </h3>
+                        <p className="text-[11px] text-text-muted">
+                          Apply free delivery when order meets the minimum amount.
+                        </p>
+                      </div>
+                    </div>
+
+                    <Toggle
+                      checked={shippingForm.freeShippingEnabled ?? true}
+                      onChange={(value) => setShippingForm({ ...shippingForm, freeShippingEnabled: value })}
+                      onLabel="ACTIVE"
+                      offLabel="DISABLED"
+                    />
+                  </div>
+
+                  {(shippingForm.freeShippingEnabled ?? true) && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
+                      <div>
+                        <label className="block text-text-muted mb-1.5 font-bold uppercase tracking-wider">
+                          Min. Subtotal (EGP)
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100000"
+                            step="25"
+                            value={shippingForm.freeShippingThreshold ?? 500}
+                            onChange={(e) =>
+                              setShippingForm({
+                                ...shippingForm,
+                                freeShippingThreshold: Math.max(0, parseFloat(e.target.value) || 0),
+                              })
+                            }
+                            className="w-full bg-ink border border-ink-border text-gold font-bold px-3 py-2 text-sm rounded-sm focus:border-gold outline-none"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-muted">
+                            EGP
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-text-muted mt-1">
+                          Orders ≥ {shippingForm.freeShippingThreshold ?? 500} EGP get free delivery.
+                        </p>
+                      </div>
+
+                      <div className="p-3 bg-ink-surface/60 border border-ink-border rounded-xs text-[11px] text-text-muted space-y-1.5 flex flex-col justify-center">
+                        <div className="text-paper font-semibold">Live Preview:</div>
+                        <div>
+                          • Cart: <span className="text-gold font-bold">Add {formatPrice(shippingForm.freeShippingThreshold ?? 500)} for Free Shipping</span>
+                        </div>
+                        <div>
+                          • Checkout: <span className="text-emerald-400 font-bold">0 EGP shipping</span> applied automatically.
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Governorate Shipping Rates Table */}
+                <div className="pt-4 border-t border-ink-border/60 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-xs font-bold text-paper uppercase tracking-wider">
+                          Governorate Rates (EGP)
+                        </h3>
+                        <span className="text-[10px] font-mono px-2 py-0.5 bg-gold/10 text-gold border border-gold/30 rounded-xs font-bold">
+                          {(shippingForm.governoratesList || EGYPT_GOVERNORATES).length} ZONES
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-text-muted mt-0.5">
+                        Set delivery prices per governorate, edit names (EN / AR), or add zones.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={handleAddCustomGov}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-paper text-ink hover:bg-gold font-mono font-bold text-[10px] uppercase tracking-wider rounded-xs transition-colors cursor-pointer shadow-xs"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add Custom Zone</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleResetGovernorates}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-mono text-text-muted hover:text-gold border border-ink-border hover:border-gold/40 rounded-xs transition-colors cursor-pointer"
+                        title="Reset to 27 official Egyptian governorates"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        <span>Reset 27 Baseline</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 p-3 bg-ink/60 border border-ink-border rounded-xs">
+                    <span className="text-[11px] text-text-muted">Same rate everywhere:</span>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min={0}
+                        value={flatRateInput}
+                        onChange={(e) => setFlatRateInput(e.target.value)}
+                        placeholder="60"
+                        className="w-24 h-9 bg-ink border border-ink-border text-paper px-2.5 rounded-xs focus:border-gold outline-none text-center"
+                      />
+                      <span className="text-[11px] text-text-muted">EGP</span>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={!flatRateInput.trim()}
+                      onClick={async () => {
+                        const rate = Number(flatRateInput);
+                        if (!Number.isFinite(rate) || rate < 0) return;
+                        const count = (shippingForm.governoratesList || EGYPT_GOVERNORATES).length;
+                        if (
+                          await confirm({
+                            title: `Set every zone to EGP ${Math.round(rate)}?`,
+                            body: [
+                              `This overwrites the rate on all ${count} governorates, including any you have set individually.`,
+                            ],
+                            confirmLabel: "Apply to all",
+                            destructive: false,
+                          })
+                        ) {
+                          handleApplyRateToAll(rate);
+                          setFlatRateInput("");
+                          showToast(`All ${count} zones set to EGP ${Math.round(rate)}.`);
+                        }
+                      }}
+                      className={`px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider rounded-xs transition-colors ${
+                        flatRateInput.trim()
+                          ? "bg-gold hover:bg-gold-muted text-ink cursor-pointer"
+                          : "bg-ink-elevated text-text-muted border border-ink-border cursor-not-allowed"
+                      }`}
+                    >
+                      Apply to all
+                    </button>
+                    <span className="text-[10px] text-text-muted/70">
+                      You can still change any single zone afterwards.
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 pt-1">
+                    {(shippingForm.governoratesList || EGYPT_GOVERNORATES).map((gov, idx) => {
+                      const currentRate =
+                        shippingForm.governorateRates?.[gov.value] ??
+                        DEFAULT_GOVERNORATE_RATES[gov.value] ??
+                        gov.defaultRate ??
+                        65;
+                      const isHqHub = gov.value.toLowerCase().includes("giza") || gov.badge === "HQ HUB";
+
+                      return (
+                        <div
+                          key={`${gov.value}-${idx}`}
+                          className="p-3 bg-ink border border-ink-border rounded-xs space-y-2.5 hover:border-ink-border/90 transition-colors shadow-xs"
+                        >
+                          {/* Name inputs (English & Arabic) */}
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between gap-1.5">
+                              <span className="text-[9px] font-mono text-text-muted uppercase">Name (EN / AR)</span>
+                              {gov.badge && (
+                                <span className="text-[8px] font-mono px-1.5 py-0.2 bg-gold/15 text-gold border border-gold/30 rounded-xs uppercase">
+                                  {gov.badge}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-1.5">
+                              <input
+                                type="text"
+                                value={gov.label}
+                                onChange={(e) => handleGovNameChange(idx, "label", e.target.value)}
+                                placeholder="English Name"
+                                className="w-full bg-ink-surface/80 border border-ink-border px-2 py-1 text-xs text-paper rounded-xs focus:border-gold outline-none font-bold"
+                              />
+                              <input
+                                type="text"
+                                value={gov.labelAr || ""}
+                                onChange={(e) => handleGovNameChange(idx, "labelAr", e.target.value)}
+                                placeholder="الاسم بالعربي"
+                                className="w-full bg-ink-surface/80 border border-ink-border px-2 py-1 text-xs text-gold/90 rounded-xs focus:border-gold outline-none font-sans text-right"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Rate and Delete Row */}
+                          <div className="flex items-center justify-between pt-1 border-t border-ink-border/40 gap-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] font-mono text-text-muted">Rate:</span>
+                              <input
+                                type="number"
+                                min="0"
+                                max="1000"
+                                step="5"
+                                value={currentRate}
+                                onChange={(e) => handleGovRateChange(gov.value, parseFloat(e.target.value))}
+                                className="w-20 bg-ink-surface border border-ink-border text-gold font-mono font-bold text-right px-2 py-1 rounded-xs focus:border-gold outline-none text-xs"
+                              />
+                              <span className="text-[10px] font-mono text-text-muted">EGP</span>
+                            </div>
+
+                            <div className="flex items-center gap-1">
+                              {!isHqHub && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteGov(idx)}
+                                  title="Remove delivery zone"
+                                  className="p-1 text-text-muted hover:text-vermilion hover:bg-vermilion/10 rounded-xs transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-3 border-t border-ink-border/50">
+                  <SectionSaveButton
+                    label="Logistics & Shipping Rates"
+                    dirty={isDirty(shippingForm, withShippingDefaults(shippingConfig))}
+                    onSave={() => {
+                      updateShippingConfig(shippingForm);
+                      showToast("Logistics and governorate shipping rates saved successfully.");
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* 03. SCROLLING ANNOUNCEMENT TICKER */}
+              <div className="p-6 bg-ink-surface border border-vermilion/40 rounded-sm space-y-5">
+                <div className="flex items-center justify-between border-b border-ink-border/50 pb-3 gap-3 flex-wrap">
+                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                    <Megaphone className="w-4 h-4 text-vermilion" />
+                    <span>03. Scrolling Announcement Ticker</span>
+                  </h2>
+                  <Toggle
+                    checked={tickerForm.enabled}
+                    onChange={(value) => setTickerForm({ ...tickerForm, enabled: value })}
+                    onLabel="LIVE ON EVERY PAGE"
+                    offLabel="HIDDEN"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 font-mono text-xs">
+                  <div className="flex flex-col">
+                    <label className="block text-text-muted mb-1.5">Messages (English) — one per line</label>
+                    <textarea
+                      rows={5}
+                      value={tickerForm.messages.join("\n")}
+                      onChange={(e) => setTickerForm({ ...tickerForm, messages: e.target.value.split("\n") })}
+                      placeholder={"FREE SHIPPING OVER EGP 500\nCASH ON DELIVERY"}
+                      className="w-full bg-ink border border-ink-border text-paper p-3 rounded-sm focus:border-gold outline-none text-[11px] leading-relaxed"
+                    />
+                  </div>
+
+                  <div className="flex flex-col">
+                    <label className="block text-text-muted mb-1.5">الرسائل (بالعربية) — كل رسالة في سطر</label>
+                    <textarea
+                      rows={5}
+                      dir="rtl"
+                      value={tickerArabicForm.messages.join("\n")}
+                      onChange={(e) => setTickerArabicForm({ ...tickerArabicForm, messages: e.target.value.split("\n") })}
+                      placeholder={"شحن مجاني فوق ٥٠٠ جنيه\nالدفع عند الاستلام"}
+                      className="w-full bg-ink border border-ink-border text-paper p-3 rounded-sm focus:border-gold outline-none text-[11px] leading-relaxed"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-mono text-xs">
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-text-muted">Scroll Speed</label>
+                      <span className="text-gold font-bold">{tickerForm.speedSeconds}s per pass</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={10}
+                      max={120}
+                      step={1}
+                      value={tickerForm.speedSeconds}
+                      onChange={(e) => setTickerForm({ ...tickerForm, speedSeconds: parseInt(e.target.value, 10) || 30 })}
+                      className="w-full accent-gold cursor-pointer"
+                    />
+                    <p className="text-[10px] text-text-muted">Lower is faster. The strip pauses while a visitor hovers it.</p>
+                  </div>
+
+                  <div className="flex flex-col justify-end">
+                    <label className="block text-text-muted mb-1.5">Link (optional)</label>
+                    <input
+                      type="text"
+                      value={tickerForm.linkHref ?? ""}
+                      onChange={(e) => setTickerForm({ ...tickerForm, linkHref: e.target.value })}
+                      placeholder="/manga?format=Box+Set"
+                      className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Where it appears */}
+                <div className="space-y-2 font-mono text-xs">
+                  <label className="block text-text-muted">Show it in</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    {TICKER_SLOTS.map((slotOption) => {
+                      const active = (tickerForm.placements ?? []).includes(slotOption.id);
+                      return (
+                        <Checkbox
+                          key={slotOption.id}
+                          checked={active}
+                          label={slotOption.label}
+                          className="py-1.5 px-2 -mx-1 rounded-xs hover:bg-ink-elevated/50"
+                          onChange={() => {
+                            const current = tickerForm.placements ?? [];
+                            setTickerForm({
+                              ...tickerForm,
+                              placements: active
+                                ? current.filter((s) => s !== slotOption.id)
+                                : [...current, slotOption.id],
+                            });
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                  {(tickerForm.placements ?? []).length === 0 && (
+                    <p className="text-[10px] text-vermilion">Pick at least one spot, or the strip will not show anywhere.</p>
+                  )}
+                </div>
+
+
+                {/* Live preview of the strip itself */}
+                <div className="rounded-xs overflow-hidden border border-ink-border">
+                  <div className="bg-vermilion text-white py-2 px-3 flex items-center gap-8 overflow-hidden">
+                    {(tickerForm.messages.filter((m) => m.trim()).length > 0
+                      ? tickerForm.messages.filter((m) => m.trim())
+                      : ["(no messages yet)"]
+                    ).map((m, i) => (
+                      <span key={i} className="text-[11px] font-mono tracking-wider whitespace-nowrap flex items-center gap-8">
+                        {m}
+                        <span className="text-white/40">◆</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <SectionSaveButton
+                    label="Ticker"
+                    // This one panel edits both languages at once, so it is
+                    // unsaved if either side has moved.
+                    dirty={
+                      isDirty(tickerForm, tickerConfig) ||
+                      isDirty(tickerArabicForm, tickerArabicConfig)
+                    }
+                    onSave={() => {
+                      updateTickerConfig({
+                        ...tickerForm,
+                        messages: tickerForm.messages.map((m) => m.trim()).filter(Boolean),
+                        placements: tickerForm.placements ?? [],
+                      });
+                      updateTickerArabicConfig({
+                        messages: tickerArabicForm.messages.map((m) => m.trim()).filter(Boolean),
+                      });
+                      showToast("Announcement ticker saved and live across the site.");
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* 04. TRENDING NOW CAROUSEL */}
+              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-5">
+                <div className="flex items-center justify-between border-b border-ink-border/50 pb-3">
+                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-gold" />
+                    <span>04. Trending Now Carousel</span>
+                  </h2>
+                  <span className="text-[10px] text-text-muted">
+                    Configure carousel autoplay, card transition delay, and section typography.
+                  </span>
+                </div>
+
+                <div className="space-y-4 font-mono text-xs">
+                  {/* Autoplay Toggle & Speed Control */}
+                  <div className="p-4 bg-ink/70 border border-gold/30 rounded-xs space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-ink-border/60">
+                      <div>
+                        <h3 className="text-xs font-bold text-gold uppercase tracking-wider">
+                          Automatic Card Flipping (Autoplay)
+                        </h3>
+                        <p className="text-[11px] text-text-muted">
+                          Automatically advance carousel cards smoothly across the screen.
+                        </p>
+                      </div>
+
+                      <Toggle
+                        checked={trendingForm.autoplayEnabled}
+                        onChange={(value) => setTrendingForm({ ...trendingForm, autoplayEnabled: value })}
+                        onLabel="ACTIVE"
+                        offLabel="PAUSED"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-text-muted font-bold uppercase tracking-wider">
+                          Card Flipping Speed / Transition Delay
+                        </label>
+                        <span className="text-xs font-mono font-bold text-gold px-2.5 py-0.5 bg-gold/10 border border-gold/30 rounded-xs">
+                          {(trendingForm.autoplaySpeed / 1000).toFixed(1)}s ({trendingForm.autoplaySpeed} ms)
+                        </span>
+                      </div>
+
+                      <input
+                        type="range"
+                        min={1500}
+                        max={8000}
+                        step={100}
+                        value={trendingForm.autoplaySpeed}
+                        disabled={!trendingForm.autoplayEnabled}
+                        onChange={(e) =>
+                          setTrendingForm({
+                            ...trendingForm,
+                            autoplaySpeed: parseInt(e.target.value) || 3800,
+                          })
+                        }
+                        className="w-full accent-gold cursor-pointer disabled:opacity-40"
+                      />
+
+                      <div className="flex items-center justify-between text-[10px] text-text-muted">
+                        <span>1.5s (Fast)</span>
+                        <span>3.8s (Standard / Balanced)</span>
+                        <span>8.0s (Relaxed)</span>
+                      </div>
+
+                      <div className="pt-2 flex flex-wrap items-center gap-1.5">
+                        <span className="text-[10px] text-text-muted uppercase">Quick Presets:</span>
+                        {[
+                          { label: "2.0s Fast", val: 2000 },
+                          { label: "3.8s Standard", val: 3800 },
+                          { label: "5.0s Gentle", val: 5000 },
+                          { label: "6.5s Leisure", val: 6500 },
+                        ].map((preset) => (
+                          <button
+                            key={preset.val}
+                            type="button"
+                            onClick={() =>
+                              setTrendingForm({ ...trendingForm, autoplaySpeed: preset.val })
+                            }
+                            className={`px-2.5 py-1 text-[10px] rounded-xs border transition-colors cursor-pointer ${
+                              trendingForm.autoplaySpeed === preset.val
+                                ? "bg-gold text-ink border-gold font-bold"
+                                : "bg-ink-surface text-paper-muted border-ink-border hover:text-paper hover:border-gold/50"
+                            }`}
+                          >
+                            {preset.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Typography Inputs */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex flex-col justify-end">
+                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                        Section Badge Text
+                      </label>
+                      <input
+                        type="text"
+                        value={trendingForm.badgeText}
+                        onChange={(e) =>
+                          setTrendingForm({ ...trendingForm, badgeText: e.target.value })
+                        }
+                        placeholder="e.g. CURATED SELECTION"
+                        className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                      />
+                    </div>
+
+                    <div className="flex flex-col justify-end">
+                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                        Section Headline Title
+                      </label>
+                      <input
+                        type="text"
+                        value={trendingForm.headline}
+                        onChange={(e) =>
+                          setTrendingForm({ ...trendingForm, headline: e.target.value })
+                        }
+                        placeholder="e.g. TRENDING NOW"
+                        className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                      />
+                    </div>
+
+                    <div className="flex flex-col justify-end">
+                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                        Cards in the rail
+                      </label>
+                      <CustomNumberInput
+                        min={1}
+                        max={24}
+                        step={1}
+                        className="h-10"
+                        value={trendingForm.minCards ?? 8}
+                        onChange={(e) =>
+                          setTrendingForm({ ...trendingForm, minCards: parseInt(e.target.value, 10) || 8 })
+                        }
+                      />
+                      <p className="text-[10px] text-text-muted mt-1.5 leading-relaxed">
+                        Books you mark as Trending always come first. This only tops the rail up
+                        with the best-rated of the rest when there are fewer than this.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <SectionSaveButton
+                    label="Trending Settings"
+                    dirty={isDirty(trendingForm, trendingConfig)}
+                    onSave={() => {
+                      updateTrendingConfig(trendingForm);
+                      showToast("Trending carousel settings and flip speed saved live.");
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* 05. BOX SETS CAROUSEL */}
+              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-5">
+                <div className="flex items-center justify-between border-b border-ink-border/50 pb-3">
+                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                    <Package className="w-4 h-4 text-gold" />
+                    <span>05. Box Sets Carousel</span>
+                  </h2>
+                  <span className="text-[10px] text-text-muted">
+                    Cards are filled automatically from every product whose format is &quot;Box Set&quot;.
+                  </span>
+                </div>
+
+                <div className="space-y-4 font-mono text-xs">
+                  {/* Autoplay Toggle & Speed Control */}
+                  <div className="p-4 bg-ink/70 border border-gold/30 rounded-xs space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-ink-border/60">
+                      <div>
+                        <h3 className="text-xs font-bold text-gold uppercase tracking-wider">
+                          Automatic Card Flipping (Autoplay)
+                        </h3>
+                        <p className="text-[10px] text-text-muted mt-1">
+                          Pauses on hover. A single box set never flips, however this is set.
+                        </p>
+                      </div>
+                      <Toggle
+                        checked={boxSetsForm.autoplayEnabled}
+                        onChange={(value) => setBoxSetsForm({ ...boxSetsForm, autoplayEnabled: value })}
+                        onLabel="ACTIVE"
+                        offLabel="PAUSED"
+                      />
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-text-muted">Flip Delay</label>
+                        <span className="text-gold font-bold">
+                          {(boxSetsForm.autoplaySpeed / 1000).toFixed(1)}s ({boxSetsForm.autoplaySpeed} ms)
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={1500}
+                        max={10000}
+                        step={100}
+                        value={boxSetsForm.autoplaySpeed}
+                        disabled={!boxSetsForm.autoplayEnabled}
+                        onChange={(e) =>
+                          setBoxSetsForm({
+                            ...boxSetsForm,
+                            autoplaySpeed: parseInt(e.target.value, 10) || 4200,
+                          })
+                        }
+                        className="w-full accent-gold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      />
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { label: "FAST", val: 2500 },
+                          { label: "NORMAL", val: 4200 },
+                          { label: "SLOW", val: 6500 },
+                        ].map((preset) => (
+                          <button
+                            key={preset.val}
+                            type="button"
+                            disabled={!boxSetsForm.autoplayEnabled}
+                            onClick={() =>
+                              setBoxSetsForm({ ...boxSetsForm, autoplaySpeed: preset.val })
+                            }
+                            className={`px-2.5 py-1 rounded-xs border text-[10px] font-bold tracking-wider transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
+                              boxSetsForm.autoplaySpeed === preset.val
+                                ? "bg-gold text-ink border-gold"
+                                : "bg-ink-elevated text-text-muted border-ink-border hover:border-gold/60"
+                            }`}
+                          >
+                            {preset.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Typography Inputs */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex flex-col justify-end">
+                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                        Section Badge Text
+                      </label>
+                      <input
+                        type="text"
+                        value={boxSetsForm.badgeText}
+                        onChange={(e) =>
+                          setBoxSetsForm({ ...boxSetsForm, badgeText: e.target.value })
+                        }
+                        placeholder="e.g. COMPLETE COLLECTIONS"
+                        className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                      />
+                    </div>
+
+                    <div className="flex flex-col justify-end">
+                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                        Section Headline Title
+                      </label>
+                      <input
+                        type="text"
+                        value={boxSetsForm.headline}
+                        onChange={(e) =>
+                          setBoxSetsForm({ ...boxSetsForm, headline: e.target.value })
+                        }
+                        placeholder="e.g. BOX SETS"
+                        className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <SectionSaveButton
+                    label="Box Sets Settings"
+                    dirty={isDirty(boxSetsForm, boxSetsConfig)}
+                    onSave={() => {
+                      updateBoxSetsConfig(boxSetsForm);
+                      showToast("Box sets carousel settings and flip speed saved live.");
+                    }}
+                  />
+                </div>
+              </div>
+
+
+              {/* Set-and-forget panels. Still fully editable, just not in the
+                  way of the handful that change with each promotion. */}
+              <CollapsibleSection
+                title="Advanced — page copy & layout"
+                subtitle="Hero, policies, featured series, categories, new releases, search"
+                count={6}
+              >
+              {/* 06. HERO SECTION */}
               <div className="p-4 sm:p-6 bg-ink-surface border border-ink-border rounded-sm space-y-4">
                 <div className="flex items-center justify-between border-b border-ink-border/50 pb-2">
                   <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    <span>01. Hero Section Content</span>
+                    <LayoutTemplate className="w-4 h-4 text-gold" />
+                    <span>06. Hero Section</span>
                   </h2>
                 </div>
 
@@ -1616,359 +2449,23 @@ export default function AdminPage() {
                 </div>
 
                 <div className="flex justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
+                  <SectionSaveButton
+                    label="Hero Changes"
+                    dirty={isDirty(heroForm, heroContent)}
+                    onSave={() => {
                       updateHeroContent(heroForm);
                       showToast("Hero section content updated in live storefront.");
                     }}
-                    className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>Save Hero Changes</span>
-                  </button>
+                  />
                 </div>
               </div>
 
-              {/* 2. GLOBAL PROMO & ANNOUNCEMENT BAR */}
+              {/* 07. POLICIES & GUARANTEES */}
               <div className="p-4 sm:p-6 bg-ink-surface border border-ink-border rounded-sm space-y-4">
                 <div className="flex items-center justify-between border-b border-ink-border/50 pb-2">
                   <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-                    <Sparkles className="w-4 h-4" />
-                    <span>02. Announcement Bar & Voucher</span>
-                  </h2>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                  <div className="md:col-span-3">
-                    <label className="flex items-center gap-2 cursor-pointer text-paper">
-                      <input
-                        type="checkbox"
-                        checked={announcementForm.enabled}
-                        onChange={(e) => setAnnouncementForm({ ...announcementForm, enabled: e.target.checked })}
-                        className="w-4 h-4 accent-gold cursor-pointer"
-                      />
-                      <span>Enable Announcement Bar</span>
-                    </label>
-                  </div>
-
-                  <div className="md:col-span-3 flex flex-col justify-end">
-                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">Banner Text</label>
-                    <input
-                      type="text"
-                      value={announcementForm.text}
-                      onChange={(e) => setAnnouncementForm({ ...announcementForm, text: e.target.value })}
-                      className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-sm font-sans"
-                    />
-                  </div>
-
-                  <div className="flex flex-col justify-end">
-                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">Voucher Code</label>
-                    <input
-                      type="text"
-                      value={announcementForm.voucherCode}
-                      onChange={(e) => setAnnouncementForm({ ...announcementForm, voucherCode: e.target.value.toUpperCase() })}
-                      className="w-full h-10 bg-ink border border-ink-border text-gold font-bold px-3 rounded-sm focus:border-gold outline-none text-sm font-sans"
-                    />
-                  </div>
-
-                  <div className="flex flex-col justify-end">
-                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">Discount Percentage (%)</label>
-                    <CustomNumberInput
-                      min={1}
-                      max={90}
-                      step={1}
-                      suffix="%"
-                      className="h-10"
-                      value={announcementForm.discountPercent}
-                      onChange={(e) => setAnnouncementForm({ ...announcementForm, discountPercent: parseInt(e.target.value, 10) || 20 })}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      updateAnnouncement(announcementForm);
-                      showToast("Announcement and voucher settings updated.");
-                    }}
-                    className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>Save Announcement Changes</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 3. LOGISTICS & SHIPPING RATES */}
-              <div className="p-4 sm:p-6 bg-ink-surface border border-ink-border rounded-sm space-y-6">
-                <div className="flex items-center justify-between border-b border-ink-border/50 pb-2">
-                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-                    <Package className="w-4 h-4" />
-                    <span>03. Logistics &amp; Shipping Rates</span>
-                  </h2>
-                </div>
-
-                {/* Fulfillment Hub Core Settings */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <label className="block text-text-muted mb-1">Hub Name</label>
-                    <input
-                      type="text"
-                      value={shippingForm.hubName}
-                      onChange={(e) => setShippingForm({ ...shippingForm, hubName: e.target.value })}
-                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-text-muted mb-1">Estimated Delivery Window</label>
-                    <input
-                      type="text"
-                      value={shippingForm.deliveryEstimate}
-                      onChange={(e) => setShippingForm({ ...shippingForm, deliveryEstimate: e.target.value })}
-                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-text-muted mb-1">
-                      Dispatch Badge Text
-                    </label>
-                    <input
-                      type="text"
-                      value={shippingForm.dispatchBadgeText}
-                      onChange={(e) => setShippingForm({ ...shippingForm, dispatchBadgeText: e.target.value })}
-                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-text-muted mb-1">Authenticity Badge Text</label>
-                    <input
-                      type="text"
-                      value={shippingForm.guaranteeBadgeText}
-                      onChange={(e) => setShippingForm({ ...shippingForm, guaranteeBadgeText: e.target.value })}
-                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Free Delivery Policy & Minimum Order Threshold */}
-                <div className="p-4 bg-ink/70 border border-gold/30 rounded-xs space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-ink-border/60">
-                    <div className="flex items-center gap-2.5">
-                      <Truck className="w-5 h-5 text-gold" />
-                      <div>
-                        <h3 className="text-xs font-bold text-gold uppercase tracking-wider">
-                          Free Delivery Threshold
-                        </h3>
-                        <p className="text-[11px] text-text-muted">
-                          Apply free delivery when order meets the minimum amount.
-                        </p>
-                      </div>
-                    </div>
-
-                    <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-                      <input
-                        type="checkbox"
-                        checked={shippingForm.freeShippingEnabled ?? true}
-                        onChange={(e) =>
-                          setShippingForm({ ...shippingForm, freeShippingEnabled: e.target.checked })
-                        }
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-ink border border-ink-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-paper after:border after:border-ink-border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold peer-checked:border-gold"></div>
-                      <span className={`ml-2.5 text-xs font-mono font-bold tracking-wider uppercase transition-colors ${
-                        (shippingForm.freeShippingEnabled ?? true) ? "text-gold" : "text-text-muted"
-                      }`}>
-                        {(shippingForm.freeShippingEnabled ?? true) ? "ACTIVE" : "DISABLED"}
-                      </span>
-                    </label>
-                  </div>
-
-                  {(shippingForm.freeShippingEnabled ?? true) && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
-                      <div>
-                        <label className="block text-text-muted mb-1.5 font-bold uppercase tracking-wider">
-                          Min. Subtotal (EGP)
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="number"
-                            min="0"
-                            max="100000"
-                            step="25"
-                            value={shippingForm.freeShippingThreshold ?? 500}
-                            onChange={(e) =>
-                              setShippingForm({
-                                ...shippingForm,
-                                freeShippingThreshold: Math.max(0, parseFloat(e.target.value) || 0),
-                              })
-                            }
-                            className="w-full bg-ink border border-ink-border text-gold font-bold px-3 py-2 text-sm rounded-sm focus:border-gold outline-none"
-                          />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-muted">
-                            EGP
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-text-muted mt-1">
-                          Orders ≥ {shippingForm.freeShippingThreshold ?? 500} EGP get free delivery.
-                        </p>
-                      </div>
-
-                      <div className="p-3 bg-ink-surface/60 border border-ink-border rounded-xs text-[11px] text-text-muted space-y-1.5 flex flex-col justify-center">
-                        <div className="text-paper font-semibold">Live Preview:</div>
-                        <div>
-                          • Cart: <span className="text-gold font-bold">Add {formatPrice(shippingForm.freeShippingThreshold ?? 500)} for Free Shipping</span>
-                        </div>
-                        <div>
-                          • Checkout: <span className="text-emerald-400 font-bold">0 EGP shipping</span> applied automatically.
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Governorate Shipping Rates Table */}
-                <div className="pt-4 border-t border-ink-border/60 space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-xs font-bold text-paper uppercase tracking-wider">
-                          Governorate Rates (EGP)
-                        </h3>
-                        <span className="text-[10px] font-mono px-2 py-0.5 bg-gold/10 text-gold border border-gold/30 rounded-xs font-bold">
-                          {(shippingForm.governoratesList || EGYPT_GOVERNORATES).length} ZONES
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-text-muted mt-0.5">
-                        Set delivery prices per governorate, edit names (EN / AR), or add zones.
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={handleAddCustomGov}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-paper text-ink hover:bg-gold font-mono font-bold text-[10px] uppercase tracking-wider rounded-xs transition-colors cursor-pointer shadow-xs"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Add Custom Zone</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleResetGovernorates}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-mono text-text-muted hover:text-gold border border-ink-border hover:border-gold/40 rounded-xs transition-colors cursor-pointer"
-                        title="Reset to 27 official Egyptian governorates"
-                      >
-                        <RotateCcw className="w-3 h-3" />
-                        <span>Reset 27 Baseline</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 pt-1">
-                    {(shippingForm.governoratesList || EGYPT_GOVERNORATES).map((gov, idx) => {
-                      const currentRate =
-                        shippingForm.governorateRates?.[gov.value] ??
-                        DEFAULT_GOVERNORATE_RATES[gov.value] ??
-                        gov.defaultRate ??
-                        65;
-                      const isHqHub = gov.value.toLowerCase().includes("giza") || gov.badge === "HQ HUB";
-
-                      return (
-                        <div
-                          key={`${gov.value}-${idx}`}
-                          className="p-3 bg-ink border border-ink-border rounded-xs space-y-2.5 hover:border-ink-border/90 transition-colors shadow-xs"
-                        >
-                          {/* Name inputs (English & Arabic) */}
-                          <div className="space-y-1.5">
-                            <div className="flex items-center justify-between gap-1.5">
-                              <span className="text-[9px] font-mono text-text-muted uppercase">Name (EN / AR)</span>
-                              {gov.badge && (
-                                <span className="text-[8px] font-mono px-1.5 py-0.2 bg-gold/15 text-gold border border-gold/30 rounded-xs uppercase">
-                                  {gov.badge}
-                                </span>
-                              )}
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-1.5">
-                              <input
-                                type="text"
-                                value={gov.label}
-                                onChange={(e) => handleGovNameChange(idx, "label", e.target.value)}
-                                placeholder="English Name"
-                                className="w-full bg-ink-surface/80 border border-ink-border px-2 py-1 text-xs text-paper rounded-xs focus:border-gold outline-none font-bold"
-                              />
-                              <input
-                                type="text"
-                                value={gov.labelAr || ""}
-                                onChange={(e) => handleGovNameChange(idx, "labelAr", e.target.value)}
-                                placeholder="الاسم بالعربي"
-                                className="w-full bg-ink-surface/80 border border-ink-border px-2 py-1 text-xs text-gold/90 rounded-xs focus:border-gold outline-none font-sans text-right"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Rate and Delete Row */}
-                          <div className="flex items-center justify-between pt-1 border-t border-ink-border/40 gap-2">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[10px] font-mono text-text-muted">Rate:</span>
-                              <input
-                                type="number"
-                                min="0"
-                                max="1000"
-                                step="5"
-                                value={currentRate}
-                                onChange={(e) => handleGovRateChange(gov.value, parseFloat(e.target.value))}
-                                className="w-20 bg-ink-surface border border-ink-border text-gold font-mono font-bold text-right px-2 py-1 rounded-xs focus:border-gold outline-none text-xs"
-                              />
-                              <span className="text-[10px] font-mono text-text-muted">EGP</span>
-                            </div>
-
-                            <div className="flex items-center gap-1">
-                              {!isHqHub && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteGov(idx)}
-                                  title="Remove delivery zone"
-                                  className="p-1 text-text-muted hover:text-vermilion hover:bg-vermilion/10 rounded-xs transition-colors cursor-pointer"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-3 border-t border-ink-border/50">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      updateShippingConfig(shippingForm);
-                      showToast("Logistics and governorate shipping rates saved successfully.");
-                    }}
-                    className="flex items-center gap-1.5 px-5 py-2.5 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer shadow-sm"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>Save Logistics & Shipping Rates</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 4. POLICIES & EDITORIAL TEXT */}
-              <div className="p-4 sm:p-6 bg-ink-surface border border-ink-border rounded-sm space-y-4">
-                <div className="flex items-center justify-between border-b border-ink-border/50 pb-2">
-                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    <span>04. Policies & Guarantees</span>
+                    <ShieldCheck className="w-4 h-4 text-gold" />
+                    <span>07. Policies &amp; Guarantees</span>
                   </h2>
                 </div>
 
@@ -2027,26 +2524,23 @@ export default function AdminPage() {
                 </div>
 
                 <div className="flex justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
+                  <SectionSaveButton
+                    label="Policy Statements"
+                    dirty={isDirty(editorialForm, editorialConfig)}
+                    onSave={() => {
                       updateEditorialConfig(editorialForm);
                       showToast("Editorial policies updated.");
                     }}
-                    className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>Save Policy Statements</span>
-                  </button>
+                  />
                 </div>
               </div>
 
-              {/* 5. FEATURED SERIES SHOWCASE */}
+              {/* 08. FEATURED SERIES SHOWCASE */}
               <div className="p-4 sm:p-6 bg-ink-surface border border-ink-border rounded-sm space-y-5">
                 <div className="flex items-center justify-between border-b border-ink-border/50 pb-3">
                   <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-                    <Flame className="w-4 h-4 text-vermilion" />
-                    <span>05. Featured Series Showcase</span>
+                    <Star className="w-4 h-4 text-gold" />
+                    <span>08. Featured Series Showcase</span>
                   </h2>
                   <span className="text-[10px] text-text-muted hidden sm:inline">
                     Controls the home spotlight banner.
@@ -2186,27 +2680,24 @@ export default function AdminPage() {
                 </div>
 
                 <div className="flex justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
+                  <SectionSaveButton
+                    label="Featured Series"
+                    dirty={isDirty(featuredSeriesForm, featuredSeriesConfig)}
+                    onSave={() => {
                       updateFeaturedSeriesConfig(featuredSeriesForm);
                       showToast("Featured Series showcase settings saved live.");
                     }}
-                    className="flex items-center gap-1.5 px-5 py-2.5 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>Save Featured Series</span>
-                  </button>
+                  />
                 </div>
               </div>
 
 
-              {/* 7. EXPLORE YOUR GENRE BENTO GRID */}
+              {/* 09. GENRE GRID */}
               <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-6">
                 <div className="flex items-center justify-between border-b border-ink-border/50 pb-3">
                   <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-gold" />
-                    <span>07. Explore Your Genre (Category Bento Grid)</span>
+                    <LayoutGrid className="w-4 h-4 text-gold" />
+                    <span>09. Genre Grid</span>
                   </h2>
                   <span className="text-[10px] text-text-muted">
                     Edit category directory titles, badges, and customize individual genre cards (Kanji, artwork, descriptions).
@@ -2259,17 +2750,14 @@ export default function AdminPage() {
                   </div>
 
                   <div className="flex justify-end pt-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        updateGenreBentoConfig(genreBentoForm);
-                        showToast("Genre section header updated live.");
-                      }}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-ink-elevated hover:bg-gold hover:text-ink text-paper font-bold text-xs uppercase tracking-wider rounded-sm transition-colors border border-ink-border cursor-pointer"
-                    >
-                      <Save className="w-3.5 h-3.5" />
-                      <span>Save Header Copy</span>
-                    </button>
+                    <SectionSaveButton
+                    label="Header Copy"
+                    dirty={isDirty(genreBentoForm, genreBentoConfig)}
+                    onSave={() => {
+                      updateGenreBentoConfig(genreBentoForm);
+                      showToast("Genre section header updated live.");
+                    }}
+                  />
                   </div>
                 </div>
 
@@ -2405,8 +2893,16 @@ export default function AdminPage() {
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => {
-                              if (confirm(`Are you sure you want to delete category "${currentGenre.name}"?`)) {
+                            onClick={async () => {
+                              if (
+                                await confirm({
+                                  title: `Delete "${currentGenre.name}"?`,
+                                  body: [
+                                    "The category disappears from the homepage grid and from the catalogue filters. Volumes tagged with it are not deleted.",
+                                  ],
+                                  destructive: true,
+                                })
+                              ) {
                                 const nextGenre = genres.find((g) => g.id !== currentGenre.id);
                                 deleteGenre(currentGenre.id);
                                 if (nextGenre) setSelectedGenreId(nextGenre.id);
@@ -2420,17 +2916,20 @@ export default function AdminPage() {
                             <span>Delete</span>
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={() => {
+                          <SectionSaveButton
+                            label={currentGenre.name}
+                            // `currentGenre` is the draft when one exists and
+                            // the stored category otherwise, so comparing it
+                            // against the stored one is the difference.
+                            dirty={isDirty(
+                              currentGenre,
+                              genres.find((g) => g.id === currentGenre.id)
+                            )}
+                            onSave={() => {
                               updateGenre(currentGenre.id, currentGenre);
                               showToast(`Genre "${currentGenre.name}" updated successfully.`);
                             }}
-                            className="flex items-center gap-1.5 px-5 py-2.5 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
-                          >
-                            <Save className="w-3.5 h-3.5" />
-                            <span>Save {currentGenre.name}</span>
-                          </button>
+                          />
                         </div>
                       </div>
                     </div>
@@ -2439,547 +2938,12 @@ export default function AdminPage() {
               </div>
 
 
-              {/* 0. SCROLLING ANNOUNCEMENT TICKER */}
-              <div className="p-6 bg-ink-surface border border-vermilion/40 rounded-sm space-y-5">
-                <div className="flex items-center justify-between border-b border-ink-border/50 pb-3 gap-3 flex-wrap">
-                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-                    <Megaphone className="w-4 h-4 text-vermilion" />
-                    <span>00. Scrolling Announcement Ticker</span>
-                  </h2>
-                  <label className="flex items-center gap-2 cursor-pointer shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={tickerForm.enabled}
-                      onChange={(e) => setTickerForm({ ...tickerForm, enabled: e.target.checked })}
-                      className="w-4 h-4 accent-gold cursor-pointer"
-                    />
-                    <span className={`text-[11px] font-mono font-bold uppercase tracking-wider ${
-                      tickerForm.enabled ? "text-gold" : "text-text-muted"
-                    }`}>
-                      {tickerForm.enabled ? "LIVE ON EVERY PAGE" : "HIDDEN"}
-                    </span>
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 font-mono text-xs">
-                  <div className="flex flex-col">
-                    <label className="block text-text-muted mb-1.5">Messages (English) — one per line</label>
-                    <textarea
-                      rows={5}
-                      value={tickerForm.messages.join("\n")}
-                      onChange={(e) => setTickerForm({ ...tickerForm, messages: e.target.value.split("\n") })}
-                      placeholder={"FREE SHIPPING OVER EGP 500\nCASH ON DELIVERY"}
-                      className="w-full bg-ink border border-ink-border text-paper p-3 rounded-sm focus:border-gold outline-none text-[11px] leading-relaxed"
-                    />
-                  </div>
-
-                  <div className="flex flex-col">
-                    <label className="block text-text-muted mb-1.5">الرسائل (بالعربية) — كل رسالة في سطر</label>
-                    <textarea
-                      rows={5}
-                      dir="rtl"
-                      value={tickerArabicForm.messages.join("\n")}
-                      onChange={(e) => setTickerArabicForm({ ...tickerArabicForm, messages: e.target.value.split("\n") })}
-                      placeholder={"شحن مجاني فوق ٥٠٠ جنيه\nالدفع عند الاستلام"}
-                      className="w-full bg-ink border border-ink-border text-paper p-3 rounded-sm focus:border-gold outline-none text-[11px] leading-relaxed"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-mono text-xs">
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-text-muted">Scroll Speed</label>
-                      <span className="text-gold font-bold">{tickerForm.speedSeconds}s per pass</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={10}
-                      max={120}
-                      step={1}
-                      value={tickerForm.speedSeconds}
-                      onChange={(e) => setTickerForm({ ...tickerForm, speedSeconds: parseInt(e.target.value, 10) || 30 })}
-                      className="w-full accent-gold cursor-pointer"
-                    />
-                    <p className="text-[10px] text-text-muted">Lower is faster. The strip pauses while a visitor hovers it.</p>
-                  </div>
-
-                  <div className="flex flex-col justify-end">
-                    <label className="block text-text-muted mb-1.5">Link (optional)</label>
-                    <input
-                      type="text"
-                      value={tickerForm.linkHref ?? ""}
-                      onChange={(e) => setTickerForm({ ...tickerForm, linkHref: e.target.value })}
-                      placeholder="/manga?format=Box+Set"
-                      className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
-                    />
-                  </div>
-                </div>
-
-                {/* Where it appears */}
-                <div className="space-y-2 font-mono text-xs">
-                  <label className="block text-text-muted">Show it in</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                    {TICKER_SLOTS.map((slotOption) => {
-                      const active = (tickerForm.placements ?? []).includes(slotOption.id);
-                      return (
-                        <label
-                          key={slotOption.id}
-                          onClick={() => {
-                            const current = tickerForm.placements ?? [];
-                            setTickerForm({
-                              ...tickerForm,
-                              placements: active
-                                ? current.filter((s) => s !== slotOption.id)
-                                : [...current, slotOption.id],
-                            });
-                          }}
-                          className="flex items-center gap-2.5 text-[11px] text-text-muted hover:text-paper cursor-pointer group select-none py-1.5 px-2 -mx-1 rounded-xs hover:bg-ink-elevated/50 transition-colors"
-                        >
-                          <span
-                            className={`w-4 h-4 rounded-xs border flex items-center justify-center shrink-0 transition-colors ${
-                              active ? "bg-gold border-gold text-ink" : "border-ink-border group-hover:border-paper/60"
-                            }`}
-                          >
-                            {active && <CheckCircle2 strokeWidth={2.5} className="w-3 h-3" />}
-                          </span>
-                          <span>{slotOption.label}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                  {(tickerForm.placements ?? []).length === 0 && (
-                    <p className="text-[10px] text-vermilion">Pick at least one spot, or the strip will not show anywhere.</p>
-                  )}
-                </div>
-
-
-                {/* Live preview of the strip itself */}
-                <div className="rounded-xs overflow-hidden border border-ink-border">
-                  <div className="bg-vermilion text-white py-2 px-3 flex items-center gap-8 overflow-hidden">
-                    {(tickerForm.messages.filter((m) => m.trim()).length > 0
-                      ? tickerForm.messages.filter((m) => m.trim())
-                      : ["(no messages yet)"]
-                    ).map((m, i) => (
-                      <span key={i} className="text-[11px] font-mono tracking-wider whitespace-nowrap flex items-center gap-8">
-                        {m}
-                        <span className="text-white/40">◆</span>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      updateTickerConfig({
-                        ...tickerForm,
-                        messages: tickerForm.messages.map((m) => m.trim()).filter(Boolean),
-                        placements: tickerForm.placements ?? [],
-                      });
-                      updateTickerArabicConfig({
-                        messages: tickerArabicForm.messages.map((m) => m.trim()).filter(Boolean),
-                      });
-                      showToast("Announcement ticker saved and live across the site.");
-                    }}
-                    className="flex items-center gap-1.5 px-5 py-2.5 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>Save Ticker</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 8. TRENDING NOW CAROUSEL & AUTOPLAY */}
-              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-5">
-                <div className="flex items-center justify-between border-b border-ink-border/50 pb-3">
-                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-vermilion" />
-                    <span>08. Trending Now Carousel &amp; Card Flipping Controls</span>
-                  </h2>
-                  <span className="text-[10px] text-text-muted">
-                    Configure carousel autoplay, card transition delay, and section typography.
-                  </span>
-                </div>
-
-                <div className="space-y-4 font-mono text-xs">
-                  {/* Autoplay Toggle & Speed Control */}
-                  <div className="p-4 bg-ink/70 border border-gold/30 rounded-xs space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-ink-border/60">
-                      <div>
-                        <h3 className="text-xs font-bold text-gold uppercase tracking-wider">
-                          Automatic Card Flipping (Autoplay)
-                        </h3>
-                        <p className="text-[11px] text-text-muted">
-                          Automatically advance carousel cards smoothly across the screen.
-                        </p>
-                      </div>
-
-                      <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-                        <input
-                          type="checkbox"
-                          checked={trendingForm.autoplayEnabled}
-                          onChange={(e) =>
-                            setTrendingForm({ ...trendingForm, autoplayEnabled: e.target.checked })
-                          }
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-ink border border-ink-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-paper after:border after:border-ink-border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold peer-checked:border-gold"></div>
-                        <span className={`ml-2.5 text-xs font-mono font-bold tracking-wider uppercase transition-colors ${
-                          trendingForm.autoplayEnabled ? "text-gold" : "text-text-muted"
-                        }`}>
-                          {trendingForm.autoplayEnabled ? "ACTIVE" : "PAUSED"}
-                        </span>
-                      </label>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="block text-text-muted font-bold uppercase tracking-wider">
-                          Card Flipping Speed / Transition Delay
-                        </label>
-                        <span className="text-xs font-mono font-bold text-gold px-2.5 py-0.5 bg-gold/10 border border-gold/30 rounded-xs">
-                          {(trendingForm.autoplaySpeed / 1000).toFixed(1)}s ({trendingForm.autoplaySpeed} ms)
-                        </span>
-                      </div>
-
-                      <input
-                        type="range"
-                        min={1500}
-                        max={8000}
-                        step={100}
-                        value={trendingForm.autoplaySpeed}
-                        disabled={!trendingForm.autoplayEnabled}
-                        onChange={(e) =>
-                          setTrendingForm({
-                            ...trendingForm,
-                            autoplaySpeed: parseInt(e.target.value) || 3800,
-                          })
-                        }
-                        className="w-full accent-gold cursor-pointer disabled:opacity-40"
-                      />
-
-                      <div className="flex items-center justify-between text-[10px] text-text-muted">
-                        <span>1.5s (Fast)</span>
-                        <span>3.8s (Standard / Balanced)</span>
-                        <span>8.0s (Relaxed)</span>
-                      </div>
-
-                      <div className="pt-2 flex flex-wrap items-center gap-1.5">
-                        <span className="text-[10px] text-text-muted uppercase">Quick Presets:</span>
-                        {[
-                          { label: "2.0s Fast", val: 2000 },
-                          { label: "3.8s Standard", val: 3800 },
-                          { label: "5.0s Gentle", val: 5000 },
-                          { label: "6.5s Leisure", val: 6500 },
-                        ].map((preset) => (
-                          <button
-                            key={preset.val}
-                            type="button"
-                            onClick={() =>
-                              setTrendingForm({ ...trendingForm, autoplaySpeed: preset.val })
-                            }
-                            className={`px-2.5 py-1 text-[10px] rounded-xs border transition-colors cursor-pointer ${
-                              trendingForm.autoplaySpeed === preset.val
-                                ? "bg-gold text-ink border-gold font-bold"
-                                : "bg-ink-surface text-paper-muted border-ink-border hover:text-paper hover:border-gold/50"
-                            }`}
-                          >
-                            {preset.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Typography Inputs */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex flex-col justify-end">
-                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                        Section Badge Text
-                      </label>
-                      <input
-                        type="text"
-                        value={trendingForm.badgeText}
-                        onChange={(e) =>
-                          setTrendingForm({ ...trendingForm, badgeText: e.target.value })
-                        }
-                        placeholder="e.g. CURATED SELECTION"
-                        className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
-                      />
-                    </div>
-
-                    <div className="flex flex-col justify-end">
-                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                        Section Headline Title
-                      </label>
-                      <input
-                        type="text"
-                        value={trendingForm.headline}
-                        onChange={(e) =>
-                          setTrendingForm({ ...trendingForm, headline: e.target.value })
-                        }
-                        placeholder="e.g. TRENDING NOW"
-                        className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
-                      />
-                    </div>
-
-                    <div className="flex flex-col justify-end">
-                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                        Cards in the rail
-                      </label>
-                      <CustomNumberInput
-                        min={1}
-                        max={24}
-                        step={1}
-                        className="h-10"
-                        value={trendingForm.minCards ?? 8}
-                        onChange={(e) =>
-                          setTrendingForm({ ...trendingForm, minCards: parseInt(e.target.value, 10) || 8 })
-                        }
-                      />
-                      <p className="text-[10px] text-text-muted mt-1.5 leading-relaxed">
-                        Books you mark as Trending always come first. This only tops the rail up
-                        with the best-rated of the rest when there are fewer than this.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      updateTrendingConfig(trendingForm);
-                      showToast("Trending carousel settings and flip speed saved live.");
-                    }}
-                    className="flex items-center gap-1.5 px-5 py-2.5 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>Save Trending Settings</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 8b. BOX SETS CAROUSEL & AUTOPLAY */}
-              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-5">
-                <div className="flex items-center justify-between border-b border-ink-border/50 pb-3">
-                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-vermilion" />
-                    <span>08b. Box Sets Carousel &amp; Card Flipping Controls</span>
-                  </h2>
-                  <span className="text-[10px] text-text-muted">
-                    Cards are filled automatically from every product whose format is &quot;Box Set&quot;.
-                  </span>
-                </div>
-
-                <div className="space-y-4 font-mono text-xs">
-                  {/* Autoplay Toggle & Speed Control */}
-                  <div className="p-4 bg-ink/70 border border-gold/30 rounded-xs space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-ink-border/60">
-                      <div>
-                        <h3 className="text-xs font-bold text-gold uppercase tracking-wider">
-                          Automatic Card Flipping (Autoplay)
-                        </h3>
-                        <p className="text-[10px] text-text-muted mt-1">
-                          Pauses on hover. A single box set never flips, however this is set.
-                        </p>
-                      </div>
-                      <label className="flex items-center gap-2 cursor-pointer shrink-0">
-                        <input
-                          type="checkbox"
-                          checked={boxSetsForm.autoplayEnabled}
-                          onChange={(e) =>
-                            setBoxSetsForm({ ...boxSetsForm, autoplayEnabled: e.target.checked })
-                          }
-                          className="w-4 h-4 accent-gold cursor-pointer"
-                        />
-                        <span className={`text-[11px] font-bold uppercase tracking-wider ${
-                          boxSetsForm.autoplayEnabled ? "text-gold" : "text-text-muted"
-                        }`}>
-                          {boxSetsForm.autoplayEnabled ? "ACTIVE" : "PAUSED"}
-                        </span>
-                      </label>
-                    </div>
-
-                    <div className="space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <label className="text-text-muted">Flip Delay</label>
-                        <span className="text-gold font-bold">
-                          {(boxSetsForm.autoplaySpeed / 1000).toFixed(1)}s ({boxSetsForm.autoplaySpeed} ms)
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min={1500}
-                        max={10000}
-                        step={100}
-                        value={boxSetsForm.autoplaySpeed}
-                        disabled={!boxSetsForm.autoplayEnabled}
-                        onChange={(e) =>
-                          setBoxSetsForm({
-                            ...boxSetsForm,
-                            autoplaySpeed: parseInt(e.target.value, 10) || 4200,
-                          })
-                        }
-                        className="w-full accent-gold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                      />
-                      <div className="flex flex-wrap gap-1.5">
-                        {[
-                          { label: "FAST", val: 2500 },
-                          { label: "NORMAL", val: 4200 },
-                          { label: "SLOW", val: 6500 },
-                        ].map((preset) => (
-                          <button
-                            key={preset.val}
-                            type="button"
-                            disabled={!boxSetsForm.autoplayEnabled}
-                            onClick={() =>
-                              setBoxSetsForm({ ...boxSetsForm, autoplaySpeed: preset.val })
-                            }
-                            className={`px-2.5 py-1 rounded-xs border text-[10px] font-bold tracking-wider transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
-                              boxSetsForm.autoplaySpeed === preset.val
-                                ? "bg-gold text-ink border-gold"
-                                : "bg-ink-elevated text-text-muted border-ink-border hover:border-gold/60"
-                            }`}
-                          >
-                            {preset.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Typography Inputs */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex flex-col justify-end">
-                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                        Section Badge Text
-                      </label>
-                      <input
-                        type="text"
-                        value={boxSetsForm.badgeText}
-                        onChange={(e) =>
-                          setBoxSetsForm({ ...boxSetsForm, badgeText: e.target.value })
-                        }
-                        placeholder="e.g. COMPLETE COLLECTIONS"
-                        className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
-                      />
-                    </div>
-
-                    <div className="flex flex-col justify-end">
-                      <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                        Section Headline Title
-                      </label>
-                      <input
-                        type="text"
-                        value={boxSetsForm.headline}
-                        onChange={(e) =>
-                          setBoxSetsForm({ ...boxSetsForm, headline: e.target.value })
-                        }
-                        placeholder="e.g. BOX SETS"
-                        className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      updateBoxSetsConfig(boxSetsForm);
-                      showToast("Box sets carousel settings and flip speed saved live.");
-                    }}
-                    className="flex items-center gap-1.5 px-5 py-2.5 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>Save Box Sets Settings</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 9. NEW RELEASES SHOWCASE HEADER */}
-              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-5">
-                <div className="flex items-center justify-between border-b border-ink-border/50 pb-3">
-                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-gold" />
-                    <span>09. New Releases Showcase Header</span>
-                  </h2>
-                  <span className="text-[10px] text-text-muted">
-                    Controls the section badge, headline, and link to the complete archive.
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
-                  <div className="flex flex-col justify-end">
-                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                      Section Badge Text
-                    </label>
-                    <input
-                      type="text"
-                      value={newReleasesForm.badgeText}
-                      onChange={(e) =>
-                        setNewReleasesForm({ ...newReleasesForm, badgeText: e.target.value })
-                      }
-                      placeholder="e.g. JUST ARCHIVED"
-                      className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
-                    />
-                  </div>
-
-                  <div className="flex flex-col justify-end">
-                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                      Section Headline Title
-                    </label>
-                    <input
-                      type="text"
-                      value={newReleasesForm.headline}
-                      onChange={(e) =>
-                        setNewReleasesForm({ ...newReleasesForm, headline: e.target.value })
-                      }
-                      placeholder="e.g. NEW RELEASES"
-                      className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
-                    />
-                  </div>
-
-                  <div className="flex flex-col justify-end">
-                    <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">
-                      View All Link Text
-                    </label>
-                    <input
-                      type="text"
-                      value={newReleasesForm.viewAllText}
-                      onChange={(e) =>
-                        setNewReleasesForm({ ...newReleasesForm, viewAllText: e.target.value })
-                      }
-                      placeholder="e.g. VIEW COMPLETE ARCHIVE"
-                      className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-xs"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      updateNewReleasesConfig(newReleasesForm);
-                      showToast("New releases showcase header settings saved live.");
-                    }}
-                    className="flex items-center gap-1.5 px-5 py-2.5 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>Save New Releases Header</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 10. MANGA DISCOVERY & ARCHIVAL SEARCH */}
+              {/* 10. SEARCH SECTION */}
               <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-5">
                 <div className="flex items-center justify-between border-b border-ink-border/50 pb-3">
                   <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                     <Search className="w-4 h-4 text-gold" />
-                    <span>10. Manga Discovery &amp; Archival Search</span>
+                    <span>10. Search Section</span>
                   </h2>
                   <span className="text-[10px] text-text-muted">
                     Configure search section title, description, placeholder, default tab, and result count.
@@ -3106,20 +3070,18 @@ export default function AdminPage() {
                   </div>
 
                   <div className="flex justify-end pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        updateMangaDiscoveryConfig(mangaDiscoveryForm);
-                        showToast("Manga discovery settings saved live.");
-                      }}
-                      className="flex items-center gap-1.5 px-5 py-2.5 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
-                    >
-                      <Save className="w-3.5 h-3.5" />
-                      <span>Save Discovery Settings</span>
-                    </button>
+                    <SectionSaveButton
+                    label="Discovery Settings"
+                    dirty={isDirty(mangaDiscoveryForm, mangaDiscoveryConfig)}
+                    onSave={() => {
+                      updateMangaDiscoveryConfig(mangaDiscoveryForm);
+                      showToast("Manga discovery settings saved live.");
+                    }}
+                  />
                   </div>
                 </div>
               </div>
+              </CollapsibleSection>
             </>
           ) : (
             <div className="space-y-8" dir="rtl">
@@ -3272,51 +3234,14 @@ export default function AdminPage() {
                 </div>
 
                 <div className="flex justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
+                  <SectionSaveButton
+                    label="نصوص الهيرو بالعربي"
+                    dirty={isDirty(heroArabicForm, heroArabicContent)}
+                    onSave={() => {
                       updateHeroArabicContent(heroArabicForm);
                       showToast("تم حفظ المحتوى العربي للواجهة الرئيسية بنجاح.");
                     }}
-                    className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer font-sans"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>حفظ نصوص الهيرو بالعربي</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 2. GLOBAL ANNOUNCEMENT BAR ARABIC */}
-              <div className="p-6 bg-ink-surface border border-ink-border rounded-sm space-y-4">
-                <div className="flex items-center justify-between border-b border-ink-border/50 pb-2">
-                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2 font-sans">
-                    <Sparkles className="w-4 h-4" />
-                    <span>02. شريط الإعلان الترويجي العربي (Top Announcement Bar)</span>
-                  </h2>
-                </div>
-
-                <div className="text-xs font-sans">
-                  <label className="block text-text-muted mb-1.5">نص الإعلان الترويجي أعلى الموقع</label>
-                  <input
-                    type="text"
-                    value={announcementArabicForm.text}
-                    onChange={(e) => setAnnouncementArabicForm({ ...announcementArabicForm, text: e.target.value })}
-                    className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-sm font-sans"
                   />
-                </div>
-
-                <div className="flex justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      updateAnnouncementArabic(announcementArabicForm);
-                      showToast("تم حفظ نص الإعلان الترويجي العربي بنجاح.");
-                    }}
-                    className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer font-sans"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>حفظ الإعلان بالعربي</span>
-                  </button>
                 </div>
               </div>
 
@@ -3360,17 +3285,14 @@ export default function AdminPage() {
                 </div>
 
                 <div className="flex justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
+                  <SectionSaveButton
+                    label="مميزات الشحن بالعربي"
+                    dirty={isDirty(shippingArabicForm, shippingArabicConfig)}
+                    onSave={() => {
                       updateShippingArabicConfig(shippingArabicForm);
                       showToast("تم حفظ مميزات الشحن العربية بنجاح.");
                     }}
-                    className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer font-sans"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>حفظ مميزات الشحن بالعربي</span>
-                  </button>
+                  />
                 </div>
               </div>
 
@@ -3456,17 +3378,14 @@ export default function AdminPage() {
                 </div>
 
                 <div className="flex justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
+                  <SectionSaveButton
+                    label="السياسات بالعربي"
+                    dirty={isDirty(editorialArabicForm, editorialArabicConfig)}
+                    onSave={() => {
                       updateEditorialArabicConfig(editorialArabicForm);
                       showToast("تم حفظ السياسات والبيانات التحريرية بالعربي بنجاح.");
                     }}
-                    className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer font-sans"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>حفظ السياسات بالعربي</span>
-                  </button>
+                  />
                 </div>
               </div>
 
@@ -3504,17 +3423,14 @@ export default function AdminPage() {
                 </div>
 
                 <div className="flex justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
+                  <SectionSaveButton
+                    label="قسم الأكثر رواجاً"
+                    dirty={isDirty(trendingArabicForm, trendingArabicConfig)}
+                    onSave={() => {
                       updateTrendingArabicConfig(trendingArabicForm);
                       showToast("تم حفظ نصوص قسم الأكثر تداولاً بالعربي بنجاح.");
                     }}
-                    className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer font-sans"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>حفظ قسم الأكثر رواجاً</span>
-                  </button>
+                  />
                 </div>
               </div>
 
@@ -3523,39 +3439,11 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between border-b border-ink-border/50 pb-2">
                   <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2 font-sans">
                     <Sparkles className="w-4 h-4 text-gold" />
-                    <span>05. عناوين أحدث الإصدارات والبحث بالأرشيف (New Releases & Discovery)</span>
+                    <span>05. عناوين البحث بالأرشيف (Discovery)</span>
                   </h2>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
-                  <div>
-                    <label className="block text-text-muted mb-1">شارة قسم أحدث الإصدارات</label>
-                    <input
-                      type="text"
-                      value={newReleasesArabicForm.badgeText}
-                      onChange={(e) => setNewReleasesArabicForm({ ...newReleasesArabicForm, badgeText: e.target.value })}
-                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-text-muted mb-1">عنوان قسم أحدث الإصدارات</label>
-                    <input
-                      type="text"
-                      value={newReleasesArabicForm.headline}
-                      onChange={(e) => setNewReleasesArabicForm({ ...newReleasesArabicForm, headline: e.target.value })}
-                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-text-muted mb-1">نص زر تصفح الأرشيف الكامل</label>
-                    <input
-                      type="text"
-                      value={newReleasesArabicForm.viewAllText}
-                      onChange={(e) => setNewReleasesArabicForm({ ...newReleasesArabicForm, viewAllText: e.target.value })}
-                      className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
-                    />
-                  </div>
-
                   <div className="md:col-span-2 pt-2 border-t border-ink-border/40">
                     <label className="block text-gold font-bold mb-2">إعدادات قسم البحث الفوري بالأرشيف (Instant Lookup)</label>
                   </div>
@@ -3611,14 +3499,13 @@ export default function AdminPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      updateNewReleasesArabicConfig(newReleasesArabicForm);
                       updateMangaDiscoveryArabicConfig(mangaDiscoveryArabicForm);
-                      showToast("تم حفظ نصوص أحدث الإصدارات والبحث الفوري بالعربي بنجاح.");
+                      showToast("تم حفظ نصوص البحث الفوري بالعربي بنجاح.");
                     }}
                     className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-muted text-ink font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer font-sans"
                   >
                     <Save className="w-3.5 h-3.5" />
-                    <span>حفظ نصوص الإصدارات والبحث بالعربي</span>
+                    <span>حفظ نصوص البحث بالعربي</span>
                   </button>
                 </div>
               </div>
@@ -4381,11 +4268,20 @@ export default function AdminPage() {
                   Restore all books, series, and site copy back to initial codebase defaults.
                 </p>
                 <button
-                  onClick={() => {
-                    if (confirm("Are you sure you want to restore factory default data? Any custom books or edits will be reset.")) {
+                  onClick={async () => {
+                    if (
+                      await confirm({
+                        title: "Restore factory defaults?",
+                        body: [
+                          "Every book, series, category and piece of site copy goes back to what shipped with the code.",
+                          "Anything added or edited since then is discarded. This cannot be undone.",
+                        ],
+                        confirmLabel: "Restore defaults",
+                        destructive: true,
+                      })
+                    ) {
                       resetToDefaults();
                       setHeroForm(heroContent);
-                      setAnnouncementForm(announcement);
                       setShippingForm({
                         ...shippingConfig,
                         governoratesList: shippingConfig.governoratesList || EGYPT_GOVERNORATES,
@@ -4547,6 +4443,10 @@ export default function AdminPage() {
           showToast("Category deleted successfully.");
         }}
       />
+
+      {/* The console's own confirmation dialog; rendered last so it sits over
+          every other surface, including the form modals that can open one. */}
+      {confirmDialog}
     </div>
   );
 }

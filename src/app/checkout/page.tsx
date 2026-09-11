@@ -650,7 +650,7 @@ export default function CheckoutPage() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => applyCoupon(welcomeCode, 20, true)}
+                    onClick={() => void applyCoupon(welcomeCode)}
                     className="px-2.5 py-1 bg-gold text-ink font-bold text-[10px] rounded-xs uppercase tracking-wider hover:bg-paper transition-colors shrink-0 cursor-pointer shadow-xs"
                   >
                     {isArabic ? "تطبيق 20%" : "APPLY 20%"}
@@ -691,9 +691,10 @@ export default function CheckoutPage() {
                     />
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
                         if (!checkoutPromoInput.trim()) return;
-                        const res = applyCoupon(checkoutPromoInput, 20, true);
+                        setCheckoutPromoError("");
+                        const res = await applyCoupon(checkoutPromoInput);
                         if (res.success) {
                           setCheckoutPromoSuccess(res.message);
                           setCheckoutPromoInput("");

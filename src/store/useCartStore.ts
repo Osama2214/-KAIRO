@@ -20,12 +20,15 @@ interface CartState {
   appliedCoupon: string | null;
   hydrateFromCatalog: (volumes: MangaVolume[]) => void;
   discountPercent: number;
+  /** Fixed amount off in EGP, alongside or instead of a percentage. */
+  discountAmountOff: number;
   freeShippingGranted: boolean;
   addItem: (volume: MangaVolume, quantity?: number) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
-  applyCoupon: (code: string, percent?: number, freeShipping?: boolean) => { success: boolean; message: string };
+  /** Asks the server whether the code is usable, then stages it. */
+  applyCoupon: (code: string) => Promise<{ success: boolean; message: string }>;
   removeCoupon: () => void;
   getTotalItems: () => number;
   getSubtotal: () => number;
@@ -39,6 +42,7 @@ export const useCartStore = create<CartState>()(
       items: [],
       appliedCoupon: null,
       discountPercent: 0,
+      discountAmountOff: 0,
       freeShippingGranted: false,
       addItem: (volume: MangaVolume, quantity = 1) => {
         const availableStock = typeof volume.stock === "number" ? volume.stock : 9999;
@@ -95,7 +99,7 @@ export const useCartStore = create<CartState>()(
         });
       },
       clearCart: () => {
-        set({ items: [], appliedCoupon: null, discountPercent: 0, freeShippingGranted: false });
+        set({ items: [], appliedCoupon: null, discountPercent: 0, discountAmountOff: 0, freeShippingGranted: false });
       },
       /**
        * Rebuilds the display fields of every cart line from the live catalogue.
@@ -126,34 +130,53 @@ export const useCartStore = create<CartState>()(
           }),
         });
       },
-      applyCoupon: (code: string, _percent = 20, freeShipping = true) => {
-        void _percent;
+      /**
+       * Stages a code after the server agrees it is usable.
+       *
+       * The shape of the code no longer decides anything. It used to have to
+       * match the one private format the welcome coupon issued, which is why a
+       * curator could not create a code of their own — and the percentage was
+       * pinned at 20 regardless of what was passed in. What a coupon is worth
+       * now comes back from the server, and is confirmed again at checkout.
+       */
+      applyCoupon: async (code: string) => {
         const cleanCode = code.trim().toUpperCase();
         if (!cleanCode) {
-          return { success: false, message: "Please enter a valid voucher code." };
+          return { success: false, message: "Please enter a voucher code." };
         }
 
-        // The browser can only stage a server-issued code. The API redeems it
-        // atomically against Neon when the order is created.
-        if (!/^AV-[A-F0-9]{10}$/.test(cleanCode)) {
+        try {
+          const response = await fetch("/api/coupons/check", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code: cleanCode }),
+          });
+          const payload = await response.json().catch(() => null);
+
+          if (!payload?.success || !payload.coupon) {
+            return {
+              success: false,
+              message: payload?.message || "That voucher code could not be used.",
+            };
+          }
+
+          const { code: accepted, percentOff, amountOff, freeShipping } = payload.coupon;
+          set({
+            appliedCoupon: accepted,
+            discountPercent: Number(percentOff) || 0,
+            discountAmountOff: Number(amountOff) || 0,
+            freeShippingGranted: Boolean(freeShipping),
+          });
+          return { success: true, message: `Voucher ${accepted} applied.` };
+        } catch {
           return {
             success: false,
-            message: "Use the private coupon shown on your account.",
+            message: "Could not reach the server to check that code.",
           };
         }
-
-        set({
-          appliedCoupon: cleanCode,
-          discountPercent: 20,
-          freeShippingGranted: freeShipping,
-        });
-        return {
-          success: true,
-          message: `Voucher ${cleanCode} is ready for server verification.`,
-        };
       },
       removeCoupon: () => {
-        set({ appliedCoupon: null, discountPercent: 0, freeShippingGranted: false });
+        set({ appliedCoupon: null, discountPercent: 0, discountAmountOff: 0, freeShippingGranted: false });
       },
       getTotalItems: () => {
         return get().items.reduce((total, item) => total + item.quantity, 0);
@@ -167,8 +190,10 @@ export const useCartStore = create<CartState>()(
       getDiscountAmount: () => {
         const subtotal = get().getSubtotal();
         const percent = get().discountPercent;
-        if (percent <= 0) return 0;
-        return (subtotal * percent) / 100;
+        const flat = get().discountAmountOff;
+        const off = (percent > 0 ? (subtotal * percent) / 100 : 0) + (flat > 0 ? flat : 0);
+        // Never more than the goods are worth; the server caps it the same way.
+        return Math.min(subtotal, Math.round(off * 100) / 100);
       },
       getGrandTotal: (baseShipping = 0) => {
         const subtotal = get().getSubtotal();

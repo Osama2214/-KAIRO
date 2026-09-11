@@ -9,6 +9,30 @@ let schemaReady: Promise<void> | null = null;
 
 export type WelcomeCoupon = { code: string; expiresAt: number; used: boolean; discountPercent: number };
 
+/**
+ * Whether the welcome offer is switched on in the console.
+ *
+ * The toggle used to reach only `GlobalWelcomeOfferBar`, which hid the banner
+ * and nothing else: the coupon was still issued on request and still redeemed
+ * at checkout, so anyone who had already seen the code kept their discount from
+ * a promotion the shop believed it had ended. Deciding it here puts the switch
+ * where the money is, rather than in the component that happens to display it.
+ */
+async function welcomeOfferEnabled(): Promise<boolean> {
+  try {
+    const { getStorefrontData } = await import("@/lib/storefrontDataStore");
+    const data = await getStorefrontData();
+    const announcement = data?.announcement as { enabled?: unknown } | undefined;
+    // Absent means a shop that has never touched the setting, which is the
+    // state the offer shipped in — on.
+    return announcement?.enabled !== false;
+  } catch {
+    // The catalogue being unreadable is not a reason to hand out discounts.
+    return false;
+  }
+}
+
+
 async function ensureSchema(): Promise<void> {
   if (!sql) throw new Error("DATABASE_URL is required for server-issued coupons.");
   if (!schemaReady) {
@@ -42,6 +66,9 @@ function normalize(row: Record<string, unknown>): WelcomeCoupon {
  * first time they signed in. A patron who already has orders is not new.
  */
 export async function getOrCreateWelcomeCoupon(email: string): Promise<WelcomeCoupon | null> {
+  // Switched off means nobody is shown one and nobody is issued a new one —
+  // including patrons who were already holding an unused code.
+  if (!(await welcomeOfferEnabled())) return null;
   await ensureSchema();
   const normalizedEmail = email.trim().toLowerCase();
   const existing = await sql!`SELECT code, expires_at, used_at, discount_percent FROM kairo_welcome_coupons WHERE email = ${normalizedEmail}`;
@@ -70,6 +97,7 @@ export async function getOrCreateWelcomeCoupon(email: string): Promise<WelcomeCo
 }
 
 export async function redeemWelcomeCoupon(code: string, email: string, orderId: string): Promise<number | null> {
+  if (!(await welcomeOfferEnabled())) return null;
   await ensureSchema();
   const now = Date.now();
   const rows = await sql!`

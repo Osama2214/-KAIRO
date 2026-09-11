@@ -9,7 +9,7 @@ import { Search, ShoppingBag, User, Menu, X, Heart, Sparkles, Globe, ArrowRight 
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
 import { useUIStore } from "@/store/useUIStore";
-import { GlobalWelcomeOfferBar } from "@/components/GlobalWelcomeOfferBar";
+import { AnnouncedCouponBar } from "@/components/AnnouncedCouponBar";
 import { useWelcomeOffer } from "@/hooks/useWelcomeOffer";
 import { clearAnimeVerseSavedScroll } from "@/components/SmoothScrollProvider";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -183,7 +183,7 @@ export function Navbar() {
         }`}
       >
         {/* Global Personalized Welcome Grant Bar (Visible Across All Pages) */}
-        <GlobalWelcomeOfferBar />
+        <AnnouncedCouponBar />
 
         <div
           className={`max-w-[1700px] mx-auto px-4 sm:px-6 md:px-10 xl:px-14 2xl:px-20 flex items-center justify-between lg:grid lg:grid-cols-[1fr_auto_1fr] transition-all duration-300 ${

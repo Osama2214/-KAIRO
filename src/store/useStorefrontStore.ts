@@ -2,7 +2,9 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { MangaVolume, Series, GenreInfo, ALL_VOLUMES, ALL_SERIES, GENRES } from "@/data/manga";
 import { DEFAULT_GOVERNORATE_RATES, EgyptGovernorate, EGYPT_GOVERNORATES } from "@/data/governorates";
-import { withDerivedSeriesVolumes } from "@/lib/seriesVolumes";
+import { withDerivedSeriesVolumes, withoutSeriesVolumes } from "@/lib/seriesVolumes";
+import { useCuratorSaveStore } from "@/store/useCuratorSaveStore";
+import { STOREFRONT_DATA_KEYS } from "@/lib/storefrontKeys";
 
 export interface HeroContent {
   badgeText: string;
@@ -852,16 +854,20 @@ export const useStorefrontStore = create<StorefrontState>()(
         }));
       },
 
+      /**
+       * The console's "Sync" button: pushes the whole payload immediately
+       * instead of waiting on the debounce in StorefrontDataSync.
+       *
+       * The key list lives in one place now. A second copy lived here and had
+       * already drifted once — a key added to the sync component would go on
+       * being saved automatically while this button quietly dropped it.
+       */
       syncToNeon: async () => {
         const state = get() as unknown as Record<string, unknown>;
-        const DATA_KEYS = [
-          "volumes", "series", "genres", "formats", "heroContent", "announcement", "shippingConfig",
-          "editorialConfig", "featuredSeriesConfig", "genreBentoConfig", "trendingConfig", "boxSetsConfig", "tickerConfig",
-          "newReleasesConfig", "mangaDiscoveryConfig", "heroArabicContent", "announcementArabic",
-          "shippingArabicConfig", "editorialArabicConfig", "newReleasesArabicConfig", "mangaDiscoveryArabicConfig",
-          "trendingArabicConfig", "boxSetsArabicConfig", "tickerArabicConfig", "genreBentoArabicConfig",
-        ];
-        const data = Object.fromEntries(DATA_KEYS.map((k) => [k, state[k]]));
+        const data = Object.fromEntries(STOREFRONT_DATA_KEYS.map((k) => [k, state[k]]));
+        // Series carry no volume list of their own; sending one would store a
+        // second copy of the catalogue that can then drift from the first.
+        data.series = withoutSeriesVolumes(data.series);
         try {
           const res = await fetch("/api/storefront", {
             method: "PUT",
@@ -869,8 +875,16 @@ export const useStorefrontStore = create<StorefrontState>()(
             body: JSON.stringify({ data }),
           });
           const json = await res.json().catch(() => ({}));
-          return { success: Boolean(res.ok && json.success) };
+          const ok = Boolean(res.ok && json.success);
+          useCuratorSaveStore.getState().report(
+            ok ? "saved" : "error",
+            ok ? "" : json?.message || `The server refused the change (${res.status}).`
+          );
+          return { success: ok };
         } catch {
+          useCuratorSaveStore
+            .getState()
+            .report("error", "Could not reach the server. Your change is still here — check your connection and retry.");
           return { success: false };
         }
       },

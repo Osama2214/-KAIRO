@@ -24,8 +24,6 @@ import {
   useStorefrontStore,
   HeroContent,
   HeroArabicContent,
-  AnnouncementConfig,
-  AnnouncementArabicConfig,
   ShippingConfig,
   ShippingArabicConfig,
   EditorialConfig,
@@ -63,8 +61,6 @@ export function LiveVisualEditor() {
     genres,
     heroContent,
     heroArabicContent,
-    announcement,
-    announcementArabic,
     shippingConfig,
     shippingArabicConfig,
     editorialConfig,
@@ -89,8 +85,6 @@ export function LiveVisualEditor() {
     deleteGenre,
     updateHeroContent,
     updateHeroArabicContent,
-    updateAnnouncement,
-    updateAnnouncementArabic,
     updateShippingConfig,
     updateShippingArabicConfig,
     updateEditorialConfig,
@@ -389,25 +383,6 @@ export function LiveVisualEditor() {
         />
       )}
 
-      {/* Announcement Bar Modal */}
-      {activeLiveEditTarget?.type === "announcement" && (
-        <AnnouncementLiveEditModal
-          initialConfig={announcement}
-          initialArabicConfig={announcementArabic}
-          currentLocale={locale}
-          onClose={closeLiveEdit}
-          onSave={(updated) => {
-            updateAnnouncement(updated);
-            closeLiveEdit();
-            showToast("Announcement banner updated and synced live!");
-          }}
-          onSaveArabic={(updated) => {
-            updateAnnouncementArabic(updated);
-            closeLiveEdit();
-            showToast("تم تحديث شريط الإعلانات بالعربية ومزامنته!");
-          }}
-        />
-      )}
 
       {/* Featured Series Modal */}
       {activeLiveEditTarget?.type === "featured-series" && (
@@ -1025,150 +1000,6 @@ function HeroLiveEditModal({
   );
 }
 
-function AnnouncementLiveEditModal({
-  initialConfig,
-  initialArabicConfig,
-  currentLocale = "en",
-  onClose,
-  onSave,
-  onSaveArabic,
-}: {
-  initialConfig: AnnouncementConfig;
-  initialArabicConfig?: AnnouncementArabicConfig;
-  currentLocale?: "en" | "ar";
-  onClose: () => void;
-  onSave: (config: AnnouncementConfig) => void;
-  onSaveArabic: (config: AnnouncementArabicConfig) => void;
-}) {
-  useModalScrollLock(true);
-  const [editLang, setEditLang] = useState<"en" | "ar">(currentLocale);
-  const [form, setForm] = useState<AnnouncementConfig>(initialConfig);
-  const [arabicForm, setArabicForm] = useState<AnnouncementArabicConfig>(
-    initialArabicConfig || { text: "استخدم كود ANIMEVERSE10 للحصول على خصم 10% عند أول طلب لك" }
-  );
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editLang === "ar") {
-      onSaveArabic(arabicForm);
-    } else {
-      onSave(form);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-lg flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50 gap-3">
-          <div className="min-w-0">
-            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider truncate">
-              Live Edit: Welcome Voucher Bar
-            </h3>
-            <p className="text-[11px] font-mono text-text-muted truncate">
-              {editLang === "ar" ? "تعديل نص شريط الإعلانات بالعربية" : "Edit announcement banner text & coupon"}
-            </p>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <ModalLanguageSwitch activeLang={editLang} onChange={setEditLang} />
-            <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="flex items-center justify-between p-3 bg-ink-surface/60 border border-ink-border rounded-xs">
-            <span className="text-xs font-mono font-semibold uppercase text-paper">
-              {editLang === "ar" ? "تفعيل شريط الإعلانات" : "Announcement Banner Active"}
-            </span>
-            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-              <input
-                type="checkbox"
-                checked={form.enabled}
-                onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-ink border border-ink-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-paper after:border after:border-ink-border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold peer-checked:border-gold"></div>
-              <span className={`ml-2.5 text-xs font-mono font-bold tracking-wider uppercase transition-colors ${
-                form.enabled ? "text-gold" : "text-text-muted"
-              }`}>
-                {form.enabled ? "ACTIVE" : "HIDDEN"}
-              </span>
-            </label>
-          </div>
-
-          {editLang === "ar" ? (
-            <div className="space-y-1.5" dir="rtl">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                نص الإعلان الترويجي بالعربية
-              </label>
-              <textarea
-                rows={3}
-                value={arabicForm.text || ""}
-                onChange={(e) => setArabicForm({ ...arabicForm, text: e.target.value })}
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none font-sans"
-              />
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Announcement Promo Copy
-              </label>
-              <textarea
-                rows={2}
-                value={form.text || ""}
-                onChange={(e) => setForm({ ...form, text: e.target.value })}
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
-              />
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Voucher Code
-              </label>
-              <input
-                type="text"
-                value={form.voucherCode || ""}
-                onChange={(e) => setForm({ ...form, voucherCode: e.target.value.toUpperCase() })}
-                className="w-full bg-ink-surface border border-ink-border text-gold font-mono font-bold px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                Discount Percent (%)
-              </label>
-              <input
-                type="number"
-                value={form.discountPercent || 20}
-                onChange={(e) => setForm({ ...form, discountPercent: Math.max(0, parseInt(e.target.value) || 0) })}
-                className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
-            >
-              {editLang === "ar" ? "إلغاء" : "Cancel"}
-            </button>
-            <button
-              type="submit"
-              className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-transform hover:scale-105"
-            >
-              <Save className="w-4 h-4" />
-              {editLang === "ar" ? "حفظ ومزامنة فورية" : "Save & Sync Live"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
 
 function FeaturedSeriesLiveEditModal({
   initialConfig,

@@ -58,7 +58,7 @@ export function WelcomeOfferBanner() {
 
   const handleApplyOffer = () => {
     navigator.clipboard.writeText(voucherCode);
-    applyCoupon(voucherCode, 20, true);
+    void applyCoupon(voucherCode);
     setCopied(true);
     setTimeout(() => {
       setCopied(false);

@@ -3,16 +3,12 @@ import { revalidateTag } from "next/cache";
 import { curatorSession, isTrustedOrigin } from "@/lib/serverAuth";
 import { getStorefrontData, saveStorefrontData } from "@/lib/storefrontDataStore";
 import { STOREFRONT_CACHE_TAG } from "@/lib/storefrontSnapshot";
+import { STOREFRONT_DATA_KEYS } from "@/lib/storefrontKeys";
 
 export const dynamic = "force-dynamic";
 
-const ALLOWED_KEYS = new Set([
-  "volumes", "series", "genres", "formats", "heroContent", "announcement", "shippingConfig",
-  "editorialConfig", "featuredSeriesConfig", "genreBentoConfig", "trendingConfig", "boxSetsConfig", "tickerConfig",
-  "newReleasesConfig", "mangaDiscoveryConfig", "heroArabicContent", "announcementArabic",
-  "shippingArabicConfig", "editorialArabicConfig", "newReleasesArabicConfig", "mangaDiscoveryArabicConfig",
-  "trendingArabicConfig", "boxSetsArabicConfig", "tickerArabicConfig", "genreBentoArabicConfig",
-]);
+/** The same list the client sends, so neither side can drift from the other. */
+const ALLOWED_KEYS = new Set<string>(STOREFRONT_DATA_KEYS);
 
 export async function GET() {
   try {

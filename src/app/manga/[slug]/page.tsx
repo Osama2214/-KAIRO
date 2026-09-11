@@ -399,7 +399,7 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                 <button
                   type="button"
                   onClick={() => {
-                    applyCoupon(welcomeCode, 20, true);
+                    void applyCoupon(welcomeCode);
                     addItem(volume, quantity);
                     openCart();
                   }}
