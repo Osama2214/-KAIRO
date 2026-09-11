@@ -9,7 +9,7 @@ import { Footer } from "@/components/Footer";
 import { CartDrawer } from "@/components/CartDrawer";
 import { SearchModal } from "@/components/SearchModal";
 import { CinematicIntro } from "@/components/CinematicIntro";
-import { useStorefrontStore } from "@/store/useStorefrontStore";
+import { useStorefrontStore, seedStorefrontFromServer } from "@/store/useStorefrontStore";
 import { StorefrontDataSync } from "@/components/StorefrontDataSync";
 
 // Curator-only UI: kept out of the storefront bundle so shoppers never
@@ -19,7 +19,18 @@ const LiveVisualEditor = dynamic(
   { ssr: false }
 );
 
-export function StorefrontShell({ children }: { children: React.ReactNode }) {
+export function StorefrontShell({
+  children,
+  initialCatalog,
+}: {
+  children: React.ReactNode;
+  initialCatalog?: Record<string, unknown> | null;
+}) {
+  // Seeded here, in the outermost client component, so it lands before anything
+  // below has read the store — on the server render and on hydration alike,
+  // which is what keeps the two in agreement.
+  seedStorefrontFromServer(initialCatalog);
+
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/admin");
 

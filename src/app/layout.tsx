@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Manrope, Shippori_Mincho, JetBrains_Mono, Cinzel } from "next/font/google";
 import "./globals.css";
 import { StorefrontShell } from "@/components/StorefrontShell";
+import { getStorefrontSnapshot } from "@/lib/storefrontSnapshot";
 import { MangaReaderModal } from "@/components/MangaReaderModal";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
 import { SITE_URL, SITE_NAME, DEFAULT_OG_IMAGE } from "@/lib/seo";
@@ -78,11 +79,16 @@ export const metadata: Metadata = {
 
 import { AtmosphericBackground } from "@/components/AtmosphericBackground";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Read the catalogue here so the markup that leaves the server already shows
+  // what the shop sells, instead of the copy compiled into the bundle at build
+  // time and corrected a fetch later.
+  const catalog = await getStorefrontSnapshot();
+
   return (
     <html
       lang="en"
@@ -118,7 +124,7 @@ export default function RootLayout({
         </div>
         <SmoothScrollProvider>
           <AtmosphericBackground />
-          <StorefrontShell>{children}</StorefrontShell>
+          <StorefrontShell initialCatalog={catalog}>{children}</StorefrontShell>
           <MangaReaderModal />
         </SmoothScrollProvider>
       </body>

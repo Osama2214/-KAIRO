@@ -3,7 +3,8 @@
 import React, { useState, use } from "react";
 import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
-import { Plus, Minus, ShoppingBag, BookOpen, Share2, ShieldCheck, Truck, ArrowRight, Eye, Check, Heart } from "lucide-react";
+import { Plus, Minus, ShoppingBag, BookOpen, Share2, ShieldCheck, Truck, ArrowRight, ChevronLeft, ChevronRight, Eye, Check, Heart } from "lucide-react";
+import useEmblaCarousel from "embla-carousel-react";
 import { ALL_VOLUMES, type MangaVolume } from "@/data/manga";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
@@ -85,9 +86,125 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
     router.push(`/manga/${volumeId}`);
   };
 
-  const relatedVolumes = activeVolumes.filter(
-    (v) => v.id !== volume.id && (v.seriesSlug === volume.seriesSlug || v.genre.some((g) => volume.genre.includes(g)))
-  ).slice(0, 4);
+  const [relatedRef, relatedApi] = useEmblaCarousel({
+    loop: false,
+    align: "start",
+    slidesToScroll: 1,
+    direction: isRTL ? "rtl" : "ltr",
+  });
+  const scrollRelated = React.useCallback((delta: number) => {
+    if (!relatedApi) return;
+    if (delta > 0) relatedApi.scrollNext();
+    else relatedApi.scrollPrev();
+  }, [relatedApi]);
+
+  // A card is a link and the row is draggable, so a swipe must not also count
+  // as a click on whatever card the finger happened to start on.
+  const dragStart = React.useRef<{ x: number; y: number } | null>(null);
+  const handleRelatedPointerDown = (e: React.PointerEvent) => {
+    dragStart.current = { x: e.clientX, y: e.clientY };
+  };
+  const handleRelatedClick = (e: React.MouseEvent, volumeId: string) => {
+    if (dragStart.current) {
+      const dx = Math.abs(e.clientX - dragStart.current.x);
+      const dy = Math.abs(e.clientY - dragStart.current.y);
+      if (dx > 8 || dy > 8) return;
+    }
+    handleCardClick(volumeId);
+  };
+
+  /**
+   * What to put in front of someone looking at this volume.
+   *
+   * This used to be `filter(same series or shared genre).slice(0, 4)`, which
+   * always returned the first four matches in catalogue order — the same four
+   * books on every product page in the shop, regardless of what was being
+   * looked at.
+   *
+   * The order that actually helps a reader is: the volumes that come next in
+   * this series, then the box set that contains the whole run, then where the
+   * story starts, and only then other series that share its genres.
+   */
+  const relatedVolumes = React.useMemo(() => {
+    const genres = new Set(volume.genre || []);
+    const currentNumber = Number(volume.volumeNumber);
+    const hasNumber = Number.isFinite(currentNumber);
+    // Someone looking at a box set already has everything inside it, so its own
+    // members are the one thing not worth offering them.
+    const inThisBox = new Set(volume.bundleOf || []);
+
+    const score = (v: MangaVolume) => {
+      const sameSeries = v.seriesSlug === volume.seriesSlug;
+      const isBox = v.format === "Box Set";
+      const number = Number(v.volumeNumber);
+      let points = 0;
+
+      if (sameSeries && isBox) {
+        // The rest of the run in one purchase.
+        points += 820;
+      } else if (sameSeries && hasNumber && Number.isFinite(number)) {
+        const gap = number - currentNumber;
+        // Reading forward is the common case, so the next volume outranks
+        // everything; the further ahead or behind, the weaker the pull.
+        points += gap > 0 ? 1000 - gap * 8 : 420 + gap * 5;
+        // Someone deep in a series may still be missing the beginning.
+        if (number === 1 && currentNumber > 2) points += 130;
+      } else if (sameSeries) {
+        points += 500;
+      } else {
+        const overlap = (v.genre || []).filter((g) => genres.has(g)).length;
+        points += overlap * 90;
+        points += (Number(v.rating) || 0) * 14;
+        points += Math.min(45, Math.log10(Math.max(1, Number(v.reviewCount) || 0)) * 14);
+        if (isBox) points += 35;
+      }
+
+      // Nothing that cannot be bought today belongs near the top.
+      if ((Number(v.stock) || 0) <= 0) points -= 900;
+      return points;
+    };
+
+    const ranked = activeVolumes
+      .filter((v) => v.id !== volume.id && !inThisBox.has(v.id))
+      .map((v) => ({ v, points: score(v) }))
+      .filter((entry) => entry.points > 0)
+      .sort((a, b) => b.points - a.points);
+
+    // A row entirely from one series reads as a shelf, not a recommendation,
+    // so a few slots are held back for other series when the catalogue has any.
+    // Eight fills a row that can be flipped through, rather than the four a
+    // static grid could hold.
+    const LIMIT = 8;
+    const SAME_SERIES_CAP = 5;
+    const picked: MangaVolume[] = [];
+    let sameSeriesUsed = 0;
+    for (const { v } of ranked) {
+      if (picked.length >= LIMIT) break;
+      const sameSeries = v.seriesSlug === volume.seriesSlug;
+      if (sameSeries && sameSeriesUsed >= SAME_SERIES_CAP) continue;
+      picked.push(v);
+      if (sameSeries) sameSeriesUsed += 1;
+    }
+    // If the held-back slot found no taker, fill it from the same series.
+    if (picked.length < LIMIT) {
+      for (const { v } of ranked) {
+        if (picked.length >= LIMIT) break;
+        if (!picked.some((p) => p.id === v.id)) picked.push(v);
+      }
+    }
+    return picked;
+  }, [activeVolumes, volume]);
+
+  // The row sits far below the fold, so Embla takes its measurements before the
+  // cards have their final size and decides there is nothing to scroll. Telling
+  // it to measure again once the recommendations are on the page fixes that.
+  React.useEffect(() => {
+    if (!relatedApi) return;
+    relatedApi.reInit();
+    const onResize = () => relatedApi.reInit();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [relatedApi, relatedVolumes, isRTL]);
 
   return (
     <div className="min-h-screen bg-ink text-paper pt-20 sm:pt-28 pb-16 sm:pb-20 px-3.5 sm:px-6 md:px-12">
@@ -454,20 +571,48 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                 {isArabic ? "قد يعجبك أيضاً" : "YOU MAY ALSO LIKE"}
               </h2>
             </div>
-            <Link
-              href="/manga"
-              className="text-xs font-mono tracking-widest text-text-muted hover:text-paper flex items-center gap-1.5"
-            >
-              <span>{isArabic ? "تصفح الكل" : "BROWSE ALL"}</span>
-              <ArrowRight strokeWidth={1.4} className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
-            </Link>
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {/* Was a muted text link that read as a caption; it is the way to
+                  the rest of the shop, so it is now a button you can see. */}
+              <Link
+                href="/manga"
+                className="h-9 px-3.5 sm:px-4 rounded-sm bg-ink-surface border border-ink-border hover:border-gold text-paper hover:text-gold font-mono text-[10px] sm:text-xs tracking-widest uppercase font-bold flex items-center gap-1.5 transition-colors active:scale-95 whitespace-nowrap"
+              >
+                <span>{isArabic ? "تصفح الكل" : "BROWSE ALL"}</span>
+                <ArrowRight strokeWidth={1.6} className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
+              </Link>
+              <div className="hidden sm:flex items-center gap-2" dir="ltr">
+                <button
+                  type="button"
+                  onClick={() => scrollRelated(isRTL ? 1 : -1)}
+                  className="p-2.5 rounded-sm bg-ink-surface border border-ink-border text-paper hover:border-gold hover:text-gold transition-colors active:scale-95 cursor-pointer"
+                  aria-label={isArabic ? "السابق" : "Previous"}
+                >
+                  <ChevronLeft strokeWidth={1.5} className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollRelated(isRTL ? -1 : 1)}
+                  className="p-2.5 rounded-sm bg-ink-surface border border-ink-border text-paper hover:border-gold hover:text-gold transition-colors active:scale-95 cursor-pointer"
+                  aria-label={isArabic ? "التالي" : "Next"}
+                >
+                  <ChevronRight strokeWidth={1.5} className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+          <div
+            ref={relatedRef}
+            dir={isRTL ? "rtl" : "ltr"}
+            className="overflow-hidden select-none cursor-grab active:cursor-grabbing"
+          >
+            <div className={`flex ${isRTL ? "-mr-3 sm:-mr-6" : "-ml-3 sm:-ml-6"}`}>
             {relatedVolumes.map((item) => (
               <div
                 key={item.id}
-                onClick={() => handleCardClick(item.id)}
+                onPointerDown={handleRelatedPointerDown}
+                onClick={(e) => handleRelatedClick(e, item.id)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
@@ -476,8 +621,9 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                     handleCardClick(item.id);
                   }
                 }}
-                className="group bg-ink-surface/40 border border-ink-border/70 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:shadow-xl hover:shadow-black/50 select-none"
+                className={`flex-[0_0_50%] sm:flex-[0_0_33.333%] lg:flex-[0_0_25%] min-w-0 ${isRTL ? "pr-3 sm:pr-6" : "pl-3 sm:pl-6"} group bg-transparent cursor-pointer select-none`}
               >
+              <div className="bg-ink-surface/40 border border-ink-border/70 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between h-full hover:shadow-xl hover:shadow-black/50">
                 <div className="relative aspect-[3/4] overflow-hidden bg-ink">
                   <AnimeVerseImage
                     src={item.coverImage}
@@ -548,7 +694,9 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                   </div>
                 </div>
               </div>
+              </div>
             ))}
+            </div>
           </div>
         </section>
       </div>

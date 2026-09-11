@@ -1254,3 +1254,49 @@ export function getActiveGovernorates(shippingConfig?: ShippingConfig | null): E
   }
   return EGYPT_GOVERNORATES;
 }
+
+/**
+ * Seeds the store with the catalogue the server read out of the database, so
+ * the first paint is already correct.
+ *
+ * The store lives at module scope, which on the server means it is shared by
+ * every request being rendered in that process. That is safe here only because
+ * everything it seeds is global shop data — the catalogue, the section copy,
+ * the shipping rules — with nothing belonging to a particular visitor, and
+ * every request within a revalidation window is handed the same snapshot. It
+ * is re-seeded on every server render rather than once, or the first request a
+ * process ever served would pin its catalogue for every request after it.
+ */
+let seededInBrowser = false;
+
+export function seedStorefrontFromServer(data: Record<string, unknown> | null | undefined): void {
+  if (!data || typeof data !== "object") return;
+
+  // zustand renders the server pass — and the browser's hydration pass — from
+  // `getInitialState()`, a snapshot taken when this module was first evaluated.
+  // `setState` moves `getState` and leaves that snapshot untouched, so on its
+  // own it changes nothing about the markup: the page would still be built from
+  // the catalogue compiled into the bundle. Writing into the object
+  // `getInitialState` hands back moves both, and moving both is what keeps the
+  // server's HTML and the client's first render identical.
+  // `catalogLoaded` rides along: the server handed us the whole catalogue, so
+  // there is nothing left to wait for and a genuinely missing product should
+  // say so straight away instead of sitting on a spinner.
+  Object.assign(useStorefrontStore.getInitialState(), data, { catalogLoaded: true });
+
+  if (typeof window === "undefined") {
+    useStorefrontStore.setState(data as Partial<StorefrontState>);
+    return;
+  }
+
+  // In the browser the fetch in StorefrontDataSync owns the store from here on;
+  // re-seeding would undo a curator's unsaved edits on every re-render.
+  if (seededInBrowser) return;
+  seededInBrowser = true;
+  useStorefrontStore.setState({ ...(data as Partial<StorefrontState>), catalogLoaded: true });
+}
+
+/** True once the server handed us a catalogue, so the client can skip its own fetch. */
+export function wasSeededFromServer(): boolean {
+  return seededInBrowser;
+}

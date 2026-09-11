@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useStorefrontStore } from "@/store/useStorefrontStore";
+import { useStorefrontStore, wasSeededFromServer } from "@/store/useStorefrontStore";
 
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCartStore } from "@/store/useCartStore";
@@ -46,10 +46,15 @@ export function StorefrontDataSync() {
 
     const load = async () => {
       try {
-        const response = await fetch("/api/storefront");
-        const payload = await response.json().catch(() => null);
-        if (active && payload?.success && payload.data && typeof payload.data === "object") {
-          useStorefrontStore.setState(payload.data);
+        // The server already sent the catalogue with the page, so re-fetching it
+        // would download the same ~70KB twice and could only ever tell us what
+        // we were told a moment ago.
+        if (!wasSeededFromServer()) {
+          const response = await fetch("/api/storefront");
+          const payload = await response.json().catch(() => null);
+          if (active && payload?.success && payload.data && typeof payload.data === "object") {
+            useStorefrontStore.setState(payload.data);
+          }
         }
       } finally {
         // Only the live run may finish. A cancelled one — React's double-mount

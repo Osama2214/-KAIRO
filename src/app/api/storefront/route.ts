@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { curatorSession, isTrustedOrigin } from "@/lib/serverAuth";
 import { getStorefrontData, saveStorefrontData } from "@/lib/storefrontDataStore";
+import { STOREFRONT_CACHE_TAG } from "@/lib/storefrontSnapshot";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +45,11 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, message: "Storefront update is too large." }, { status: 413 });
     }
     await saveStorefrontData(data);
+    // Pages are rendered from a cached read of this table, so a save has to
+    // drop that cache or the curator's change would sit behind a timer.
+    // `expire: 0` because a curator who just pressed save should see the shop
+    // change on the next load, not be served the old copy while it refreshes.
+    revalidateTag(STOREFRONT_CACHE_TAG, { expire: 0 });
     // The GET above is held at the CDN for up to 30s, so a curator's save
     // reaches other visitors within that window. The console itself updates
     // its own store optimistically, so the curator sees it immediately.

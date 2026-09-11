@@ -6,7 +6,6 @@ import {
   Filter,
   SlidersHorizontal,
   Star,
-  Plus,
   Eye,
   X,
   Check,

@@ -5,6 +5,7 @@ import { Timer } from "lucide-react";
 import type { MangaVolume } from "@/data/manga";
 import { priceVolume } from "@/lib/pricing";
 import { formatPrice } from "@/lib/utils";
+import { useNow } from "@/hooks/useNow";
 
 /** "2d 04h" / "04h 12m" / "12m" — enough precision to feel the clock. */
 function formatRemaining(ms: number, isArabic: boolean): string {
@@ -37,14 +38,8 @@ export function PriceTag({
   className?: string;
 }) {
   // Rendering from a clock would differ between server and client, so the first
-  // paint uses no promo and the real evaluation lands right after mount.
-  const [now, setNow] = React.useState<number | null>(null);
-
-  React.useEffect(() => {
-    setNow(Date.now());
-    const id = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(id);
-  }, []);
+  // paint uses no promo and the real evaluation lands once the browser takes over.
+  const now = useNow();
 
   const priced = priceVolume(volume, now ?? 0);
   const live = now !== null ? priced.activePromo : null;
@@ -88,12 +83,7 @@ export function PromoBadge({
   volume: Pick<MangaVolume, "price" | "originalPrice" | "promo">;
   isArabic: boolean;
 }) {
-  const [now, setNow] = React.useState<number | null>(null);
-  React.useEffect(() => {
-    setNow(Date.now());
-    const id = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(id);
-  }, []);
+  const now = useNow();
 
   if (now === null) return null;
   const priced = priceVolume(volume, now);

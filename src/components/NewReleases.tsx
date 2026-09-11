@@ -11,7 +11,7 @@ import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
-import { formatPrice, volumeBadgeLabel } from "@/lib/utils";
+import { volumeBadgeLabel } from "@/lib/utils";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
 import { StarRating } from "@/components/StarRating";

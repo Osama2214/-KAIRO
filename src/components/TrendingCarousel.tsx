@@ -10,7 +10,7 @@ import { ALL_VOLUMES, MangaVolume } from "@/data/manga";
 import { useCartStore } from "@/store/useCartStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
-import { formatPrice, volumeBadgeLabel } from "@/lib/utils";
+import { volumeBadgeLabel } from "@/lib/utils";
 import { PriceTag, PromoBadge } from "@/components/PriceTag";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -44,7 +44,9 @@ export function TrendingCarousel() {
       .sort((a, b) => (b.rating || 0) - (a.rating || 0) || (b.reviewCount || 0) - (a.reviewCount || 0));
 
     return [...picked, ...fillers].slice(0, MIN_TRENDING);
-  }, [activeVolumes]);
+    // MIN_TRENDING comes from the curator's setting, so the rail has to be
+    // rebuilt when they change how many cards it should hold.
+  }, [activeVolumes, MIN_TRENDING]);
 
   const plugins = React.useMemo(() => {
     if (!autoplayEnabled) return [];

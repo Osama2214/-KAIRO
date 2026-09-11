@@ -11,6 +11,7 @@ import { ImageUploadInput } from "@/components/ImageUploadInput";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { useStorefrontStore, DEFAULT_FORMATS } from "@/store/useStorefrontStore";
 import { PLACEHOLDER_BANNER, PLACEHOLDER_COVER } from "@/config/mediaDefaults";
+import { useNow } from "@/hooks/useNow";
 
 interface VolumeFormModalProps {
   isOpen: boolean;
@@ -314,13 +315,16 @@ function VolumeFormDialog({
   };
 
   // Shows the curator exactly what a shopper pays, through the same module
-  // the server prices with.
+  // the server prices with. The clock comes from a subscription rather than a
+  // `Date.now()` read while rendering, so the preview refreshes on a tick
+  // instead of on whatever happens to trigger the next render.
+  const now = useNow();
   const promoPreview = (() => {
     const promo = formData.promo;
     if (!promo?.percent || !promo?.endsAt) return "";
     const ends = Date.parse(promo.endsAt);
     if (!Number.isFinite(ends)) return "";
-    if (ends <= Date.now()) return "That end time has already passed — the offer will not apply.";
+    if (now !== null && ends <= now) return "That end time has already passed — the offer will not apply.";
     const priced = priceVolume({ price: Number(formData.price) || 0, originalPrice: formData.originalPrice, promo });
     if (!priced.activePromo) return "Scheduled — not live yet.";
     const hours = Math.round((priced.endsInMs || 0) / 3600000);

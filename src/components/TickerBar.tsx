@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { useStorefrontStore, type TickerSlot } from "@/store/useStorefrontStore";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useMounted } from "@/store/useWishlistStore";
 
 /**
  * Divider between two messages: a pair of uneven gold hairlines, like tally
@@ -44,8 +45,7 @@ export function TickerBar({ slot }: { slot: TickerSlot }) {
 
   // Server and client must agree on the first paint, so nothing renders until
   // the persisted locale and CMS payload have settled.
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => setMounted(true), []);
+  const mounted = useMounted();
 
   const viewportRef = React.useRef<HTMLDivElement>(null);
   const passRef = React.useRef<HTMLSpanElement>(null);

@@ -11,7 +11,7 @@ import { ALL_VOLUMES, MangaVolume } from "@/data/manga";
 import { useCartStore } from "@/store/useCartStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
-import { formatPrice } from "@/lib/utils";
+
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
 import { StarRating } from "@/components/StarRating";

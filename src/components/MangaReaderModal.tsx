@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
+import storeMark from "../../public/animeverse-mark.png";
 import {
   X,
   ChevronLeft,
@@ -31,7 +33,59 @@ export function MangaReaderModal() {
   const getProgress = useReaderStore((state) => state.getProgress);
 
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
-  const [zoomLevel, setZoomLevel] = useState(1);
+
+  /**
+   * Where the reader is looking: how far in, and how far the artwork has been
+   * dragged from centre. Zooming used to scale the whole page frame from its
+   * middle, so it always magnified the same spot and there was no way to move
+   * to the panel you actually wanted to read.
+   */
+  const [view, setView] = useState({ scale: 1, x: 0, y: 0 });
+  const frameRef = React.useRef<HTMLDivElement>(null);
+  const dragRef = React.useRef<{ id: number; startX: number; startY: number; originX: number; originY: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const MIN_SCALE = 1;
+  const MAX_SCALE = 4;
+
+  /** Keeps the artwork's edges from ever pulling inside the page frame. */
+  const clamp = React.useCallback((next: { scale: number; x: number; y: number }) => {
+    const frame = frameRef.current;
+    const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, next.scale));
+    if (!frame) return { scale, x: 0, y: 0 };
+    const limitX = (frame.clientWidth * (scale - 1)) / 2;
+    const limitY = (frame.clientHeight * (scale - 1)) / 2;
+    return {
+      scale,
+      x: Math.min(limitX, Math.max(-limitX, next.x)),
+      y: Math.min(limitY, Math.max(-limitY, next.y)),
+    };
+  }, []);
+
+  /**
+   * Zooms around a point rather than the centre, so whatever is under the
+   * cursor stays under the cursor — the difference between magnifying a page
+   * and actually reading a panel.
+   */
+  const zoomAt = React.useCallback((factor: number, clientX?: number, clientY?: number) => {
+    setView((current) => {
+      const frame = frameRef.current;
+      const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, current.scale * factor));
+      if (!frame || scale === current.scale) return clamp({ ...current, scale });
+      const box = frame.getBoundingClientRect();
+      // Anchor on the frame's centre when no pointer is involved (the buttons).
+      const anchorX = clientX === undefined ? 0 : clientX - (box.left + box.width / 2);
+      const anchorY = clientY === undefined ? 0 : clientY - (box.top + box.height / 2);
+      const ratio = scale / current.scale;
+      return clamp({
+        scale,
+        x: anchorX - (anchorX - current.x) * ratio,
+        y: anchorY - (anchorY - current.y) * ratio,
+      });
+    });
+  }, [clamp]);
+
+  const resetView = React.useCallback(() => setView({ scale: 1, x: 0, y: 0 }), []);
 
   // Check if active reader volume is owned and paid for by the authenticated user
   const isOwned = React.useMemo(() => {
@@ -62,6 +116,12 @@ export function MangaReaderModal() {
       : [activeReaderVolume.coverImage]
     : [];
 
+  // The reader ends on one extra slide that repeats the final page, dimmed,
+  // so the completion card has artwork behind it without swallowing the page
+  // itself. Before this the last page was blurred out and never readable — and
+  // a one-page preview opened straight onto the blur, showing nothing at all.
+  const slideCount = pages.length + 1;
+
   const changePage = React.useCallback((newIndex: number) => {
     setCurrentPageIndex(newIndex);
     if (activeReaderVolume) {
@@ -70,10 +130,10 @@ export function MangaReaderModal() {
   }, [activeReaderVolume, pages.length, saveProgress]);
 
   const handleNextPage = React.useCallback(() => {
-    if (currentPageIndex < pages.length - 1) {
+    if (currentPageIndex < slideCount - 1) {
       changePage(currentPageIndex + 1);
     }
-  }, [changePage, currentPageIndex, pages.length]);
+  }, [changePage, currentPageIndex, slideCount]);
 
   const handlePrevPage = React.useCallback(() => {
     if (currentPageIndex > 0) {
@@ -95,7 +155,7 @@ export function MangaReaderModal() {
 
       const raf = requestAnimationFrame(() => {
         setCurrentPageIndex(target);
-        setZoomLevel(1);
+        setView({ scale: 1, x: 0, y: 0 });
         if (target === 0) {
           saveProgress(activeReaderVolume.id, 0, pagesCount);
         }
@@ -118,7 +178,10 @@ export function MangaReaderModal() {
 
   if (!isReaderOpen || !activeReaderVolume) return null;
 
-  const isLastPage = currentPageIndex === pages.length - 1;
+  const isLastPage = currentPageIndex >= pages.length;
+  // A copy of the final page — the end card's backdrop, not the page itself.
+  const currentPage = pages[Math.min(currentPageIndex, pages.length - 1)];
+  const pageNumber = Math.min(currentPageIndex + 1, pages.length);
 
   const handleAddToCartAndClose = () => {
     addItem(activeReaderVolume, 1);
@@ -134,26 +197,47 @@ export function MangaReaderModal() {
       className="fixed inset-0 z-50 overflow-hidden overscroll-contain bg-ink/95 backdrop-blur-xl flex flex-col animate-in fade-in duration-300"
     >
       {/* Top Controls Bar */}
-      <header className="h-16 px-6 md:px-10 border-b border-ink-border/80 flex items-center justify-between bg-ink/90 shrink-0 z-20">
+      <header className="h-14 sm:h-16 px-3 sm:px-6 md:px-10 border-b border-ink-border/80 flex items-center justify-between gap-2 bg-ink/90 shrink-0 z-20">
         {/* Left: Volume Meta */}
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xs bg-vermilion text-paper flex items-center justify-center font-serif font-bold text-xs border border-vermilion/80 shadow-md shrink-0">
-            ANIMEVERSE
-          </div>
-          <div>
-            <span className="text-[10px] font-mono tracking-widest text-gold uppercase flex items-center gap-1.5">
+        {/* min-w-0 all the way down, or the label and title cannot shrink: on a
+            phone the strap line wrapped onto three rows and pushed itself out
+            of a header fixed at one row's height. */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+          {/* The wordmark, not the word: this was a 32px square with the full
+              name typeset inside it, so the text overflowed the box and ran
+              across the volume title beside it. */}
+          <Image
+            src={storeMark}
+            alt="AnimeVerse"
+            sizes="132px"
+            quality={90}
+            priority
+            className="h-6 sm:h-7 w-auto shrink-0 brightness-95"
+          />
+          <div className="min-w-0">
+            <span className="text-[9px] sm:text-[10px] font-mono tracking-widest text-gold uppercase flex items-center gap-1.5 min-w-0">
               {isOwned ? (
                 <>
-                  <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
-                  <span className="text-gold font-bold">
-                    {isArabic ? "نسخة الأرشيف الرقمي • مفتوحة بالكامل" : "DIGITAL ARCHIVE EDITION • UNLOCKED"}
+                  <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse shrink-0" />
+                  <span className="text-gold font-bold truncate">
+                    {/* The full strap line does not fit a phone, so the screen
+                        gets the part that carries the meaning. */}
+                    <span className="sm:hidden">{isArabic ? "أرشيف مفتوح" : "UNLOCKED ARCHIVE"}</span>
+                    <span className="hidden sm:inline">
+                      {isArabic ? "نسخة الأرشيف الرقمي • مفتوحة بالكامل" : "DIGITAL ARCHIVE EDITION • UNLOCKED"}
+                    </span>
                   </span>
                 </>
               ) : (
-                isArabic ? "عينة رسمية (قارئ مانجا ياباني)" : "OFFICIAL SAMPLER (JAPANESE RTL READER)"
+                <span className="truncate">
+                  <span className="sm:hidden">{isArabic ? "عينة رسمية" : "OFFICIAL SAMPLER"}</span>
+                  <span className="hidden sm:inline">
+                    {isArabic ? "عينة رسمية (قارئ مانجا ياباني)" : "OFFICIAL SAMPLER (JAPANESE RTL READER)"}
+                  </span>
+                </span>
               )}
             </span>
-            <h3 className="text-xs sm:text-sm font-bold text-paper line-clamp-1">
+            <h3 className="text-[11px] sm:text-sm font-bold text-paper truncate leading-tight">
               {activeReaderVolume.seriesTitle} — {isArabic ? "المجلد" : "Vol."} {activeReaderVolume.volumeNumber} ({activeReaderVolume.title})
             </h3>
           </div>
@@ -164,7 +248,7 @@ export function MangaReaderModal() {
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-sm bg-ink-surface border border-ink-border">
             <span className="text-text-muted">{isArabic ? "صفحة" : "PAGE"}</span>
             <span className="text-paper font-bold">
-              0{currentPageIndex + 1} / 0{pages.length}
+              0{pageNumber} / 0{pages.length}
             </span>
           </div>
 
@@ -178,16 +262,16 @@ export function MangaReaderModal() {
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-0.5 sm:gap-3 shrink-0">
           <button
-            onClick={() => setZoomLevel((z) => Math.min(1.5, z + 0.15))}
+            onClick={() => zoomAt(1.35)}
             className="p-2 text-text-muted hover:text-paper transition-colors rounded-sm hover:bg-ink-surface cursor-pointer"
             title={isArabic ? "تكبير" : "Zoom In"}
           >
             <ZoomIn strokeWidth={1.4} className="w-4 h-4" />
           </button>
           <button
-            onClick={() => setZoomLevel((z) => Math.max(0.85, z - 0.15))}
+            onClick={() => zoomAt(1 / 1.35)}
             className="p-2 text-text-muted hover:text-paper transition-colors rounded-sm hover:bg-ink-surface cursor-pointer"
             title={isArabic ? "تصغير" : "Zoom Out"}
           >
@@ -254,14 +338,53 @@ export function MangaReaderModal() {
 
           {/* The Physical Manga Tankōbon Page Frame (Enlarged & Immersive) */}
           <div
-            className="relative w-[85vw] sm:w-[540px] md:w-[620px] lg:w-[700px] xl:w-[760px] aspect-[2/3] max-h-[85vh] rounded-sm overflow-hidden border border-ink-border/90 shadow-[0_30px_120px_rgba(0,0,0,0.98)] bg-[#111114] transition-transform duration-200 ease-out flex flex-col justify-between"
-            style={{ transform: `scale(${zoomLevel})` }}
+            ref={frameRef}
+            onWheel={(e) => {
+              if (isLastPage) return;
+              e.preventDefault();
+              zoomAt(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX, e.clientY);
+            }}
+            onDoubleClick={(e) => {
+              if (isLastPage) return;
+              if (view.scale > 1.05) resetView();
+              else zoomAt(2.5, e.clientX, e.clientY);
+            }}
+            onPointerDown={(e) => {
+              if (isLastPage || view.scale <= 1) return;
+              dragRef.current = { id: e.pointerId, startX: e.clientX, startY: e.clientY, originX: view.x, originY: view.y };
+              setIsDragging(true);
+              e.currentTarget.setPointerCapture(e.pointerId);
+            }}
+            onPointerMove={(e) => {
+              const drag = dragRef.current;
+              if (!drag || drag.id !== e.pointerId) return;
+              setView((current) =>
+                clamp({ ...current, x: drag.originX + (e.clientX - drag.startX), y: drag.originY + (e.clientY - drag.startY) })
+              );
+            }}
+            onPointerUp={(e) => {
+              if (dragRef.current?.id !== e.pointerId) return;
+              dragRef.current = null;
+              setIsDragging(false);
+              e.currentTarget.releasePointerCapture(e.pointerId);
+            }}
+            onPointerCancel={() => { dragRef.current = null; setIsDragging(false); }}
+            className={`relative w-[85vw] sm:w-[540px] md:w-[620px] lg:w-[700px] xl:w-[760px] aspect-[2/3] max-h-[85vh] rounded-sm overflow-hidden border border-ink-border/90 shadow-[0_30px_120px_rgba(0,0,0,0.98)] bg-[#111114] flex flex-col justify-between touch-none select-none ${
+              isLastPage ? "" : view.scale > 1 ? (isDragging ? "cursor-grabbing" : "cursor-grab") : "cursor-zoom-in"
+            }`}
           >
-            {/* Manga Artwork Page */}
+            {/* Manga Artwork Page — the frame stays put and the artwork moves
+                inside it, so zooming reveals detail instead of pushing the
+                whole page off the screen. */}
             <img
-              src={pages[currentPageIndex]}
-              alt={`Manga Page ${currentPageIndex + 1}`}
-              className={`w-full h-full object-cover object-top pointer-events-none transition-all duration-500 ${
+              src={currentPage}
+              alt={`Manga Page ${pageNumber}`}
+              draggable={false}
+              style={isLastPage ? undefined : {
+                transform: `translate3d(${view.x}px, ${view.y}px, 0) scale(${view.scale})`,
+                transition: isDragging ? "none" : "transform 180ms ease-out",
+              }}
+              className={`absolute inset-0 w-full h-full object-cover object-top pointer-events-none will-change-transform ${
                 isLastPage ? "blur-xl scale-110 opacity-35" : ""
               }`}
             />
@@ -286,38 +409,27 @@ export function MangaReaderModal() {
 
             {/* Official Editorial Bottom Watermark Bar - only visible during active reading */}
             {!isLastPage && (
-              <div className="absolute bottom-3 inset-x-3 sm:inset-x-4 flex items-center justify-between px-3.5 py-2 rounded-xs bg-ink/95 backdrop-blur-md border border-ink-border/90 shadow-[0_8px_30px_rgba(0,0,0,0.95)] z-20">
+              <div className="absolute bottom-3 inset-x-3 sm:inset-x-4 flex items-center px-3.5 py-2 rounded-xs bg-ink/95 backdrop-blur-md border border-ink-border/90 shadow-[0_8px_30px_rgba(0,0,0,0.95)] z-20">
+                {/* The store's mark and its name — nothing else. The bar used to
+                    carry the edition, the warehouse and a second page counter
+                    on top of that, which left no room for the artwork under it. */}
                 <div className="flex items-center gap-2.5 min-w-0">
-                  {/* Official Vermilion Hanko Stamp */}
-                  <div className="h-5 px-2 rounded-xs bg-vermilion text-white flex items-center justify-center shrink-0 border border-vermilion/80 shadow-xs select-none">
-                    <span className="font-serif font-bold text-[10px] tracking-tight leading-none whitespace-nowrap">
-                      ANIMEVERSE
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-[11px] font-mono font-extrabold text-paper tracking-[0.16em] uppercase whitespace-nowrap">
-                      {isArabic ? "أرشيف كايرو" : "ANIMEVERSE ARCHIVE"}
-                    </span>
-                    <span className="text-ink-border hidden sm:inline">•</span>
-                    <span className="text-[9px] font-mono text-gold tracking-widest uppercase truncate hidden sm:inline">
-                      {isOwned
-                        ? (isArabic ? "نسخة رقمية مرخصة" : "LICENSED DIGITAL EDITION")
-                        : (isArabic ? "عينة رسمية" : "OFFICIAL SAMPLER")}
-                    </span>
-                    <span className="text-text-muted/60 text-[9px] font-mono hidden md:inline">
-                      {isArabic ? "// مستودع 6 أكتوبر" : "// 6TH OF OCTOBER HUB"}
-                    </span>
-                  </div>
+                  <Image
+                    src={storeMark}
+                    alt="AnimeVerse"
+                    sizes="110px"
+                    quality={90}
+                    className="h-5 w-auto shrink-0"
+                  />
+                  <span className="text-[11px] font-mono font-extrabold text-paper tracking-[0.16em] uppercase whitespace-nowrap">
+                    {isArabic ? "أنيمي فيرس" : "ANIMEVERSE"}
+                  </span>
                 </div>
-                <div className="flex items-center gap-1.5 font-mono text-[10px] shrink-0 pl-3">
+                <div className="flex items-center gap-1.5 font-mono text-[10px] shrink-0 pl-3 ms-auto">
                   <span className="text-gold font-bold">{isArabic ? "صفحة" : "PAGE"}</span>
-                  <span className="text-paper font-semibold">
-                    0{currentPageIndex + 1}
-                  </span>
+                  <span className="text-paper font-semibold">0{pageNumber}</span>
                   <span className="text-text-muted">/</span>
-                  <span className="text-text-muted font-normal">
-                    0{pages.length}
-                  </span>
+                  <span className="text-text-muted font-normal">0{pages.length}</span>
                 </div>
               </div>
             )}

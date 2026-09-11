@@ -503,7 +503,7 @@ export default function AdminPage() {
       const timeB = b.order.createdAt || (b.order.date ? new Date(b.order.date).getTime() : 0);
       return timeB - timeA;
     });
-  }, [currentUser, serverOrders]);
+  }, [serverOrders]);
 
   // Top recent orders preview (latest 4 orders)
   const recentOrders = useMemo(() => {

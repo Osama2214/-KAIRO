@@ -11,7 +11,6 @@ import {
   CheckCircle2,
   Truck,
   RotateCcw,
-  Sparkles,
   ArrowRight,
   Eye,
   EyeOff,
@@ -588,6 +587,15 @@ function AccountContent() {
   // Neon so an admin status change appears without relying on stale browser
   // Refresh patron orders directly from server Neon DB so admin status changes
   // (e.g. Confirmed, In Transit, Shipped, Delivered) reflect immediately on the site.
+  // The poll below reads the orders it already knows about, but it must not be
+  // torn down and restarted every time that list changes — it runs on an eight
+  // second timer and a focus listener. A ref carries the latest list in without
+  // becoming a dependency.
+  const ordersRef = React.useRef<SavedOrder[]>(orders);
+  useEffect(() => {
+    ordersRef.current = orders;
+  }, [orders]);
+
   useEffect(() => {
     let disposed = false;
 
@@ -604,7 +612,7 @@ function AccountContent() {
         }
 
         // 2. Guest user or fallback: sync status of locally known order IDs from Neon DB
-        const currentOrderIds = (orders || []).map((o) => o.id).filter(Boolean);
+        const currentOrderIds = (ordersRef.current || []).map((o) => o.id).filter(Boolean);
         if (typeof window !== "undefined") {
           for (const ref of readGuestOrderRefs()) {
             if (!currentOrderIds.includes(ref.id)) currentOrderIds.push(ref.id);
