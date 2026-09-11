@@ -7,6 +7,8 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore } from "@/store/useWishlistStore";
 import { purgeLegacyGuestOrders } from "@/lib/guestOrders";
+import type { MangaVolume, Series } from "@/data/manga";
+import { withDerivedSeriesVolumes, withoutSeriesVolumes } from "@/lib/seriesVolumes";
 
 const DATA_KEYS = [
   "volumes", "series", "genres", "formats", "heroContent", "announcement", "shippingConfig",
@@ -17,7 +19,10 @@ const DATA_KEYS = [
 ] as const;
 
 function snapshot(state: Record<string, unknown>) {
-  return Object.fromEntries(DATA_KEYS.map((key) => [key, state[key]]));
+  const data = Object.fromEntries(DATA_KEYS.map((key) => [key, state[key]]));
+  // Series volumes are derived from the catalogue, so uploading them again
+  // would send the whole catalogue twice and re-store a copy that can drift.
+  return { ...data, series: withoutSeriesVolumes(data.series) };
 }
 
 export function StorefrontDataSync() {
@@ -53,7 +58,14 @@ export function StorefrontDataSync() {
           const response = await fetch("/api/storefront");
           const payload = await response.json().catch(() => null);
           if (active && payload?.success && payload.data && typeof payload.data === "object") {
-            useStorefrontStore.setState(payload.data);
+            const data = payload.data as Record<string, unknown>;
+            useStorefrontStore.setState({
+              ...data,
+              series: withDerivedSeriesVolumes(
+                data.series as Series[],
+                data.volumes as MangaVolume[]
+              ),
+            });
           }
         }
       } finally {

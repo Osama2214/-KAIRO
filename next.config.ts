@@ -32,6 +32,11 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // A production build normally overwrites the same `.next` the dev server is
+  // reading from, which knocks it over mid-session. Pointing a build somewhere
+  // else lets us measure bundle sizes while `next dev` keeps running:
+  //   KAIRO_DIST_DIR=.next-analyze npx next build
+  distDir: process.env.KAIRO_DIST_DIR || ".next",
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "dw9to29mmj727.cloudfront.net", pathname: "/products/**" },

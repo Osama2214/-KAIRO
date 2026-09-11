@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { MangaVolume, Series, GenreInfo, ALL_VOLUMES, ALL_SERIES, GENRES } from "@/data/manga";
 import { DEFAULT_GOVERNORATE_RATES, EgyptGovernorate, EGYPT_GOVERNORATES } from "@/data/governorates";
+import { withDerivedSeriesVolumes } from "@/lib/seriesVolumes";
 
 export interface HeroContent {
   badgeText: string;
@@ -1058,9 +1059,12 @@ export const useStorefrontStore = create<StorefrontState>()(
             return false;
           }
 
+          const importedVolumes = parsed.volumes || ALL_VOLUMES;
           set({
-            volumes: parsed.volumes || ALL_VOLUMES,
-            series: parsed.series || ALL_SERIES,
+            volumes: importedVolumes,
+            // An exported file may predate this and carry nested copies; the
+            // catalogue it came with decides, not whatever was nested.
+            series: withDerivedSeriesVolumes(parsed.series || ALL_SERIES, importedVolumes),
             genres: parsed.genres || GENRES,
             formats: parsed.formats || DEFAULT_FORMATS,
             heroContent: { ...DEFAULT_HERO_CONTENT, ...(parsed.heroContent || {}) },
@@ -1274,6 +1278,19 @@ let seededInBrowser = false;
 
 export function seedStorefrontFromServer(data: Record<string, unknown> | null | undefined): void {
   if (!data || typeof data !== "object") return;
+
+  // The server sends series without their volume lists; rebuild them from the
+  // catalogue so `series.volumes` is there for the console, always agreeing
+  // with the flat list it was derived from.
+  if (Array.isArray((data as { series?: unknown }).series)) {
+    data = {
+      ...data,
+      series: withDerivedSeriesVolumes(
+        (data as { series?: unknown }).series,
+        (data as { volumes?: unknown }).volumes ?? useStorefrontStore.getState().volumes
+      ),
+    };
+  }
 
   // zustand renders the server pass — and the browser's hydration pass — from
   // `getInitialState()`, a snapshot taken when this module was first evaluated.

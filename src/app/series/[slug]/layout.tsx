@@ -6,6 +6,24 @@ interface Props {
   children: React.ReactNode;
 }
 
+/**
+ * Without these a `[slug]` route is rebuilt from scratch on every request: no
+ * `x-nextjs-cache` header, and measured at 0.29-0.84s to first byte against a
+ * static page's 0.006s. The catalogue changes only when a curator saves, so
+ * these pages are prerendered at build time and refreshed on the same 30s
+ * window the rest of the site uses.
+ *
+ * `dynamicParams` keeps a product added after the build reachable — it renders
+ * on demand the first time, then caches like the others.
+ */
+export const revalidate = 30;
+export const dynamicParams = true;
+
+export async function generateStaticParams(): Promise<{ slug: string }[]> {
+  const { series } = await getCatalog();
+  return series.map((entry) => ({ slug: entry.slug }));
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const { series } = await getCatalog();

@@ -50,3 +50,6 @@ storefront-backup-*.json
 # lint artifacts
 lint.json
 lint_output.txt
+
+# Throwaway output from an out-of-band production build (see next.config.ts)
+.next-analyze

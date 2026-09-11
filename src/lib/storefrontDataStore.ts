@@ -4,6 +4,7 @@ import { neon } from "@neondatabase/serverless";
 import { ALL_VOLUMES, MangaVolume } from "@/data/manga";
 import { effectivePrice } from "@/lib/pricing";
 import { applyBundleFacts, expandToPhysicalUnits, indexById, withBundleFacts, type VolumeLike } from "@/lib/bundle";
+import { withoutSeriesVolumes } from "@/lib/seriesVolumes";
 
 const databaseUrl = process.env.DATABASE_URL;
 const sql = databaseUrl ? neon(databaseUrl) : null;
@@ -98,35 +99,16 @@ export async function getStorefrontData(): Promise<Record<string, unknown> | nul
   const volumes = Array.isArray(data.volumes)
     ? data.volumes.map((volume) => ({ ...(volume as Record<string, unknown>), stock: stockById.get(String((volume as Record<string, unknown>).id)) ?? (volume as Record<string, unknown>).stock }))
     : data.volumes;
-  const series = Array.isArray(data.series)
-    ? data.series.map((entry) => {
-        const record = entry as Record<string, unknown>;
-        return {
-          ...record,
-          volumes: Array.isArray(record.volumes)
-            ? record.volumes.map((volume) => ({ ...(volume as Record<string, unknown>), stock: stockById.get(String((volume as Record<string, unknown>).id)) ?? (volume as Record<string, unknown>).stock }))
-            : record.volumes,
-        };
-      })
-    : data.series;
   // A box set carries no stock of its own; what it can sell comes from the
   // volumes it is assembled from, worked out here so every surface that
   // reads this payload sees the same number.
   const resolvedVolumes = Array.isArray(volumes)
     ? withBundleFacts(volumes as unknown as VolumeLike[])
     : volumes;
-  const byId = Array.isArray(resolvedVolumes)
-    ? indexById(resolvedVolumes as unknown as VolumeLike[])
-    : new Map<string, VolumeLike>();
-  const resolvedSeries = Array.isArray(series)
-    ? series.map((entry) => {
-        const record = entry as Record<string, unknown>;
-        return Array.isArray(record.volumes)
-          ? { ...record, volumes: (record.volumes as unknown as VolumeLike[]).map((v) => applyBundleFacts(v, byId)) }
-          : record;
-      })
-    : series;
-  return { ...data, volumes: resolvedVolumes, series: resolvedSeries };
+  // Series ship without their own volume list; the client rebuilds it from the
+  // catalogue above. Resolving stock and bundle facts twice, once per copy, is
+  // what let the two drift apart in the first place.
+  return { ...data, volumes: resolvedVolumes, series: withoutSeriesVolumes(data.series) };
 }
 
 /** Every image URL a storefront payload references. */
@@ -154,12 +136,18 @@ export async function saveStorefrontData(payload: Record<string, unknown>): Prom
   const previousRows = await sql!`SELECT payload FROM kairo_storefront_data WHERE id = 1`;
   const previous = previousRows[0]?.payload as Record<string, unknown> | undefined;
 
+  // The console round-trips whatever is in its store, nested volume lists and
+  // all. Strip them here so the stored row keeps one copy of the catalogue.
+  const stored = Array.isArray(payload.series)
+    ? { ...payload, series: withoutSeriesVolumes(payload.series) }
+    : payload;
+
   await sql!`
     INSERT INTO kairo_storefront_data (id, payload, updated_at)
-    VALUES (1, ${JSON.stringify(payload)}::jsonb, NOW())
+    VALUES (1, ${JSON.stringify(stored)}::jsonb, NOW())
     ON CONFLICT (id) DO UPDATE SET payload = EXCLUDED.payload, updated_at = NOW()
   `;
-  await syncCatalogItems(payload);
+  await syncCatalogItems(stored);
 
   try {
     const stillUsed = new Set(imageUrlsIn(payload));
