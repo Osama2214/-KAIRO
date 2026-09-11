@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, Suspense } from "react";
+import React, { useState, useMemo, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   Filter,
@@ -29,6 +29,7 @@ import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
+import { useImagePrefetch } from "@/hooks/useImagePrefetch";
 
 function MangaCatalogContent() {
   const router = useRouter();
@@ -221,6 +222,19 @@ function MangaCatalogContent() {
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
+
+  // Shoppers page straight through this grid, so the covers waiting on the next
+  // page are fetched quietly while this one is being read.
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  const nextPageCovers = useMemo(
+    () =>
+      filteredVolumes
+        .slice(currentPage * ITEMS_PER_PAGE, (currentPage + 1) * ITEMS_PER_PAGE)
+        .map((volume) => volume.coverImage)
+        .filter(Boolean),
+    [filteredVolumes, currentPage]
+  );
+  useImagePrefetch(nextPageCovers, gridRef);
 
   const goToPage = (page: number) => {
     setCurrentPage(page);
@@ -764,7 +778,7 @@ function MangaCatalogContent() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+              <div ref={gridRef} className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
                 {paginatedVolumes.map((volume) => (
                   <div
                     key={volume.id}

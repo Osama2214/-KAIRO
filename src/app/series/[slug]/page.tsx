@@ -1,6 +1,6 @@
 "use client";
 
-import React, { use, useMemo, useState } from "react";
+import React, { use, useMemo, useRef, useState } from "react";
 import { notFound, useRouter } from "next/navigation";
 import { BookOpen, Plus, Eye, User, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { ALL_SERIES, ALL_VOLUMES, type MangaVolume, type Series } from "@/data/manga";
@@ -14,6 +14,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { StarRating } from "@/components/StarRating";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 import { CatalogPending } from "@/components/CatalogPending";
+import { useImagePrefetch } from "@/hooks/useImagePrefetch";
 
 interface SeriesPageProps {
   params: Promise<{ slug: string }>;
@@ -131,6 +132,19 @@ function SeriesView({ series }: { series: Series }) {
   const currentVolumePage = Math.min(volumePage, volumePageCount);
   const firstOnPage = (currentVolumePage - 1) * VOLUMES_PER_PAGE;
   const pagedVolumes = seriesVolumes.slice(firstOnPage, firstOnPage + VOLUMES_PER_PAGE);
+
+  // Same idea as the catalogue grid: a reader working through a long series
+  // turns pages steadily, so the next page's covers are fetched in the quiet.
+  const volumeGridRef = useRef<HTMLDivElement | null>(null);
+  const nextPageCovers = useMemo(
+    () =>
+      seriesVolumes
+        .slice(firstOnPage + VOLUMES_PER_PAGE, firstOnPage + VOLUMES_PER_PAGE * 2)
+        .map((volume) => volume.coverImage)
+        .filter(Boolean),
+    [seriesVolumes, firstOnPage]
+  );
+  useImagePrefetch(nextPageCovers, volumeGridRef);
 
   const goToVolumePage = (page: number) => {
     const next = Math.min(volumePageCount, Math.max(1, page));
@@ -261,7 +275,7 @@ function SeriesView({ series }: { series: Series }) {
         </div>
 
         {/* Volumes Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+        <div ref={volumeGridRef} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
           {pagedVolumes.map((volume) => (
             <div
               key={volume.id}
