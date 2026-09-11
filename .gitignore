@@ -15,6 +15,11 @@
 
 # next.js
 /.next/
+# Builds run with KAIRO_DIST_DIR land beside .next. Tailwind v4 finds its own
+# sources and skips whatever git ignores, so a build directory left unignored
+# gets scanned like source code — and the binary cache inside it yields
+# candidates such as `w-[<junk>]`, which then fail to parse as CSS.
+/.next-*/
 /out/
 
 # production

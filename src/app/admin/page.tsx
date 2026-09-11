@@ -32,7 +32,6 @@ import {
   Filter,
   RefreshCw,
   Clock,
-  Globe,
   Cloud,
   Megaphone,
   TrendingUp,
@@ -40,6 +39,8 @@ import {
   ShieldCheck,
   Star,
   LayoutGrid,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useStorefrontStore, TICKER_SLOTS, type ShippingConfig } from "@/store/useStorefrontStore";
 import { useAuthStore, SavedOrder, UserProfile } from "@/store/useAuthStore";
@@ -105,9 +106,11 @@ function deepEqual(a: unknown, b: unknown): boolean {
 export default function AdminPage() {
   const mounted = useMounted();
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
+  const [ordersRange, setOrdersRange] = useState<"today" | "week" | "month" | "all">("today");
   const [searchQuery, setSearchQuery] = useState("");
   const [seriesFilter, setSeriesFilter] = useState("all");
   const [formatFilter, setFormatFilter] = useState("all");
+  const [volumePage, setVolumePage] = useState(1);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [serverOrders, setServerOrders] = useState<SavedOrder[]>([]);
 
@@ -568,6 +571,55 @@ export default function AdminPage() {
     });
   }, [serverOrders]);
 
+  // When an order was placed: createdAt is authoritative, date is the fallback.
+  const orderPlacedAt = (order: SavedOrder) => {
+    const ms = Number.isFinite(order.createdAt) ? (order.createdAt as number) : Date.parse(order.date);
+    return Number.isFinite(ms) ? ms : 0;
+  };
+
+  // Orders grouped by how recently they were placed — drives the ORDERS KPI card
+  const ordersByRange = useMemo(() => {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const dayMs = 24 * 60 * 60 * 1000;
+    const todayMs = startOfToday.getTime();
+
+    const since = (fromMs: number) => allOrders.filter(({ order }) => orderPlacedAt(order) >= fromMs);
+
+    return {
+      today: since(todayMs),
+      week: since(todayMs - 6 * dayMs),
+      month: since(todayMs - 29 * dayMs),
+      all: allOrders,
+    };
+  }, [allOrders]);
+
+  const todayOrders = ordersByRange.today;
+  const rangedOrders = ordersByRange[ordersRange];
+
+  const rangedRevenue = useMemo(
+    () => rangedOrders.reduce((sum, { order }) => sum + (order.total || 0), 0),
+    [rangedOrders]
+  );
+
+  const todayRevenue = useMemo(
+    () => todayOrders.reduce((sum, { order }) => sum + (order.total || 0), 0),
+    [todayOrders]
+  );
+
+  // Orders still waiting on the curator (payment not settled / not yet processed)
+  const pendingOrders = useMemo(
+    () => allOrders.filter(({ order }) => (order.status || "").toLowerCase().includes("pending")),
+    [allOrders]
+  );
+
+  const ORDER_RANGE_LABELS = {
+    today: "Today",
+    week: "Last 7 days",
+    month: "Last 30 days",
+    all: "All time",
+  } as const;
+
   // Top recent orders preview (latest 4 orders)
   const recentOrders = useMemo(() => {
     return allOrders.slice(0, 4);
@@ -682,10 +734,6 @@ export default function AdminPage() {
     return confirm({ title: `Delete "${volume.title}"?`, body, destructive: true });
   };
 
-  const totalRevenue = useMemo(() => {
-    return allOrders.reduce((sum, item) => sum + (item.order.total || 0), 0);
-  }, [allOrders]);
-
   // Filtered Volumes List
   const filteredVolumes = useMemo(() => {
     return volumes.filter((v) => {
@@ -699,6 +747,20 @@ export default function AdminPage() {
       return matchesSearch && matchesSeries && matchesFormat;
     });
   }, [volumes, searchQuery, seriesFilter, formatFilter]);
+
+  // Catalog pagination (mirrors the storefront manga catalog)
+  const VOLUMES_PER_PAGE = 20;
+  const volumePageCount = Math.max(1, Math.ceil(filteredVolumes.length / VOLUMES_PER_PAGE));
+  // Filters (or a deletion) can shrink the list below the page we are on, so the
+  // page in state is clamped while rendering rather than corrected afterwards.
+  const currentVolumePage = Math.min(volumePage, volumePageCount);
+  const volumePageStart = (currentVolumePage - 1) * VOLUMES_PER_PAGE;
+  const pagedVolumes = filteredVolumes.slice(volumePageStart, volumePageStart + VOLUMES_PER_PAGE);
+
+  const goToVolumePage = (page: number) => {
+    setVolumePage(Math.min(Math.max(1, page), volumePageCount));
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+  };
 
   const availableFormats = useMemo(() => {
     const base = formats && formats.length > 0
@@ -874,7 +936,7 @@ export default function AdminPage() {
       {/* Main Layout Container */}
       <div className="flex-1 flex flex-col md:flex-row">
         {/* Sidebar Nav with smooth mobile horizontal scrolling */}
-        <aside className="w-full md:w-64 bg-ink-surface/50 border-b md:border-b-0 md:border-r border-ink-border p-2 sm:p-4 shrink-0 flex flex-row md:flex-col gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar scroll-smooth">
+        <aside className="w-full md:w-64 bg-ink-surface/50 border-b md:border-b-0 md:border-r border-ink-border p-2 sm:p-4 shrink-0 flex flex-row md:flex-col gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar scroll-smooth md:sticky md:top-16 md:self-start md:h-[calc(100vh-4rem)] md:overflow-x-hidden md:overflow-y-auto">
           <button
             onClick={() => setActiveTab("overview")}
             className={`flex items-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
@@ -886,6 +948,19 @@ export default function AdminPage() {
             <LayoutDashboard className="w-4 h-4 shrink-0" />
             <span className="hidden sm:inline">Overview &amp; KPIs</span>
             <span className="sm:hidden">Overview</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("orders")}
+            className={`flex items-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+              activeTab === "orders"
+                ? "bg-gold text-ink font-bold shadow-md shadow-gold/10"
+                : "text-text-muted hover:text-paper hover:bg-ink-elevated"
+            }`}
+          >
+            <ShoppingBag className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline">Orders &amp; CRM ({allOrders.length})</span>
+            <span className="sm:hidden">Orders ({allOrders.length})</span>
           </button>
 
           <button
@@ -925,19 +1000,6 @@ export default function AdminPage() {
             <FileText className="w-4 h-4 shrink-0" />
             <span className="hidden sm:inline">Site Content CMS</span>
             <span className="sm:hidden">CMS</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("orders")}
-            className={`flex items-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2.5 rounded-sm text-xs font-mono tracking-wider text-left transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
-              activeTab === "orders"
-                ? "bg-gold text-ink font-bold shadow-md shadow-gold/10"
-                : "text-text-muted hover:text-paper hover:bg-ink-elevated"
-            }`}
-          >
-            <ShoppingBag className="w-4 h-4 shrink-0" />
-            <span className="hidden sm:inline">Orders &amp; CRM ({allOrders.length})</span>
-            <span className="sm:hidden">Orders ({allOrders.length})</span>
           </button>
 
           <button
@@ -988,16 +1050,28 @@ export default function AdminPage() {
                   <div className="text-[10px] sm:text-[11px] text-text-muted mt-1 truncate">Hub inventory</div>
                 </div>
 
-                <div className="p-3.5 sm:p-5 bg-ink-surface border border-ink-border rounded-sm">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setOrdersRange((prev) =>
+                      prev === "today" ? "week" : prev === "week" ? "month" : prev === "month" ? "all" : "today"
+                    )
+                  }
+                  title="Click to switch between today, last 7 days, last 30 days and all time"
+                  className="p-3.5 sm:p-5 bg-ink-surface border border-ink-border hover:border-gold/60 rounded-sm text-left transition-colors cursor-pointer"
+                >
                   <div className="flex items-center justify-between text-text-muted mb-1 sm:mb-2 text-[10px] sm:text-xs">
                     <span>ORDERS</span>
                     <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gold" />
                   </div>
-                  <div className="text-2xl sm:text-3xl font-extrabold text-paper">{allOrders.length}</div>
-                  <div className="text-[10px] sm:text-[11px] text-text-muted mt-1 truncate">
-                    <strong className="text-gold">{formatPrice(totalRevenue)}</strong>
+                  <div className="text-2xl sm:text-3xl font-extrabold text-paper">{rangedOrders.length}</div>
+                  <div className="text-[10px] sm:text-[11px] text-text-muted mt-1 flex items-center justify-between gap-2">
+                    <strong className="text-gold truncate">{formatPrice(rangedRevenue)}</strong>
+                    <span className="uppercase tracking-wider text-[9px] px-1.5 py-0.5 rounded-xs border border-ink-border bg-ink text-text-muted whitespace-nowrap">
+                      {ORDER_RANGE_LABELS[ordersRange]}
+                    </span>
                   </div>
-                </div>
+                </button>
 
                 <div className="p-3.5 sm:p-5 bg-ink-surface border border-ink-border rounded-sm">
                   <div className="flex items-center justify-between text-text-muted mb-1 sm:mb-2 text-[10px] sm:text-xs">
@@ -1047,6 +1121,176 @@ export default function AdminPage() {
                   <Download className="w-4 h-4 sm:w-5 sm:h-5 text-gold group-hover:scale-110 transition-transform shrink-0" />
                 </button>
               </div>
+
+              {/* Today's Orders */}
+              <div className="space-y-2.5 sm:space-y-3 font-mono">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-xs uppercase tracking-wider text-paper font-bold flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-gold/70" />
+                    <span>Today&apos;s Orders</span>
+                    <span className="text-text-muted font-normal">({todayOrders.length})</span>
+                  </h3>
+                  {todayOrders.length > 0 && (
+                    <div className="flex items-center gap-3 text-[11px]">
+                      <span className="text-text-muted">
+                        Revenue <span className="text-gold font-bold">{formatPrice(todayRevenue)}</span>
+                      </span>
+                      <button
+                        onClick={() => setActiveTab("orders")}
+                        className="text-text-muted hover:text-gold uppercase tracking-wider transition-colors cursor-pointer"
+                      >
+                        View all
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {todayOrders.length === 0 ? (
+                  <div className="border border-ink-border rounded-sm bg-ink-surface px-4 py-6 text-center text-xs text-text-muted">
+                    No orders placed today yet.
+                  </div>
+                ) : (
+                  <div className="border border-ink-border rounded-sm overflow-x-auto bg-ink-surface">
+                    <table className="w-full text-left text-xs min-w-[620px]">
+                      <thead className="bg-ink text-text-muted text-[10px] uppercase border-b border-ink-border">
+                        <tr>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3">Order</th>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3">Customer</th>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center">Items</th>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3">Payment</th>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3">Status</th>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-right">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-ink-border/50">
+                        {todayOrders.slice(0, 8).map(({ order, customer }) => (
+                          <tr
+                            key={`today-${order.id}`}
+                            onClick={() => {
+                              setSelectedOrder(order);
+                              setSelectedCustomer(customer);
+                              setIsOrderModalOpen(true);
+                            }}
+                            className="hover:bg-ink-elevated/40 cursor-pointer"
+                          >
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-gold font-bold whitespace-nowrap">
+                              #{order.id}
+                            </td>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-paper truncate max-w-[180px]">
+                              {customer.name || "Collector"}
+                            </td>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center text-text-muted">
+                              {order.items.length}
+                            </td>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-text-muted whitespace-nowrap">
+                              {order.paymentMethod === "wallet"
+                                ? "Wallet"
+                                : order.paymentMethod === "instapay"
+                                ? "InstaPay"
+                                : "COD"}
+                            </td>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3">
+                              <span
+                                className={`text-[9px] px-1.5 py-0.5 rounded-xs font-semibold whitespace-nowrap ${
+                                  order.status === "Delivered"
+                                    ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                                    : order.status === "Shipped"
+                                    ? "bg-sky-500/15 text-sky-400 border border-sky-500/30"
+                                    : order.status === "Processing" || order.status === "Confirmed"
+                                    ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                                    : order.status.includes("Pending")
+                                    ? "bg-rose-500/15 text-rose-400 border border-rose-500/30"
+                                    : "bg-ink border border-ink-border text-paper"
+                                }`}
+                              >
+                                {order.status}
+                              </span>
+                            </td>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-right text-gold font-bold whitespace-nowrap">
+                              {formatPrice(order.total)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Orders still awaiting action */}
+              {pendingOrders.length > 0 && (
+                <div className="space-y-2.5 sm:space-y-3 font-mono">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-xs uppercase tracking-wider text-paper font-bold flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 text-rose-400" />
+                      <span>Awaiting Action</span>
+                      <span className="text-text-muted font-normal">({pendingOrders.length})</span>
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setOrderStatusFilter("pending");
+                        setActiveTab("orders");
+                      }}
+                      className="text-[11px] text-text-muted hover:text-gold uppercase tracking-wider transition-colors cursor-pointer"
+                    >
+                      View all
+                    </button>
+                  </div>
+
+                  <div className="border border-ink-border rounded-sm overflow-x-auto bg-ink-surface">
+                    <table className="w-full text-left text-xs min-w-[620px]">
+                      <thead className="bg-ink text-text-muted text-[10px] uppercase border-b border-ink-border">
+                        <tr>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3">Order</th>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3">Customer</th>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3">Placed</th>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3">Payment</th>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3">Status</th>
+                          <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-right">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-ink-border/50">
+                        {pendingOrders.slice(0, 8).map(({ order, customer }) => (
+                          <tr
+                            key={`pending-${order.id}`}
+                            onClick={() => {
+                              setSelectedOrder(order);
+                              setSelectedCustomer(customer);
+                              setIsOrderModalOpen(true);
+                            }}
+                            className="hover:bg-ink-elevated/40 cursor-pointer"
+                          >
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-gold font-bold whitespace-nowrap">
+                              #{order.id}
+                            </td>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-paper truncate max-w-[180px]">
+                              {customer.name || "Collector"}
+                            </td>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-text-muted whitespace-nowrap">
+                              {order.date}
+                            </td>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-text-muted whitespace-nowrap">
+                              {order.paymentMethod === "wallet"
+                                ? "Wallet"
+                                : order.paymentMethod === "instapay"
+                                ? "InstaPay"
+                                : "COD"}
+                            </td>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3">
+                              <span className="text-[9px] px-1.5 py-0.5 rounded-xs font-semibold whitespace-nowrap bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                                {order.status}
+                              </span>
+                            </td>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-right text-gold font-bold whitespace-nowrap">
+                              {formatPrice(order.total)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
 
               {/* Low Stock Table */}
               {lowStockVolumes.length > 0 && (
@@ -1131,7 +1375,7 @@ export default function AdminPage() {
                   <input
                     type="text"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => { setSearchQuery(e.target.value); setVolumePage(1); }}
                     placeholder="Search title, series, or ISBN..."
                     className="w-full bg-ink-surface border border-ink-border pl-9 pr-3 py-2 text-paper rounded-sm outline-none focus:border-gold"
                   />
@@ -1141,7 +1385,7 @@ export default function AdminPage() {
                   <CustomSelect
                     fullWidth
                     value={seriesFilter}
-                    onChange={setSeriesFilter}
+                    onChange={(v) => { setSeriesFilter(v); setVolumePage(1); }}
                     options={[
                       { value: "all", label: "All Series" },
                       ...series.map((s) => ({ value: s.slug, label: s.title })),
@@ -1154,7 +1398,7 @@ export default function AdminPage() {
                   <CustomSelect
                     fullWidth
                     value={formatFilter}
-                    onChange={setFormatFilter}
+                    onChange={(v) => { setFormatFilter(v); setVolumePage(1); }}
                     options={[
                       { value: "all", label: "All Formats" },
                       ...availableFormats.map((f) => ({ value: f, label: f })),
@@ -1171,7 +1415,7 @@ export default function AdminPage() {
                     No manga volumes match your search.
                   </div>
                 ) : (
-                  filteredVolumes.map((vol) => (
+                  pagedVolumes.map((vol) => (
                     <div
                       key={`mob-${vol.id}`}
                       className="p-3 bg-ink-surface border border-ink-border rounded-sm flex gap-3 items-start shadow-xs"
@@ -1269,7 +1513,7 @@ export default function AdminPage() {
                         </td>
                       </tr>
                     ) : (
-                      filteredVolumes.map((vol) => (
+                      pagedVolumes.map((vol) => (
                         <tr key={vol.id} className="hover:bg-ink-elevated/40 transition-colors">
                           <td className="px-4 py-3 flex items-center gap-3">
                             <div className="w-9 h-13 border border-ink-border overflow-hidden rounded-xs shrink-0 bg-ink">
@@ -1385,6 +1629,77 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Catalog Pagination */}
+              {filteredVolumes.length > 0 && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono text-xs pt-1">
+                  <p className="text-text-muted text-[11px] uppercase tracking-wider">
+                    Showing {volumePageStart + 1}&ndash;
+                    {Math.min(volumePageStart + VOLUMES_PER_PAGE, filteredVolumes.length)} of{" "}
+                    {filteredVolumes.length}
+                  </p>
+
+                  {volumePageCount > 1 && (
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => goToVolumePage(currentVolumePage - 1)}
+                        disabled={currentVolumePage === 1}
+                        className="flex items-center gap-1 px-3 py-2 text-xs font-bold uppercase tracking-wider border border-ink-border text-text-muted hover:text-paper hover:border-gold/50 rounded-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Prev</span>
+                      </button>
+
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: volumePageCount }, (_, i) => i + 1).map((page) => {
+                          const showPage =
+                            page === 1 ||
+                            page === volumePageCount ||
+                            Math.abs(page - currentVolumePage) <= 1;
+                          const showEllipsisBefore = page === currentVolumePage - 2 && currentVolumePage > 3;
+                          const showEllipsisAfter =
+                            page === currentVolumePage + 2 && currentVolumePage < volumePageCount - 2;
+
+                          if (showEllipsisBefore || showEllipsisAfter) {
+                            return (
+                              <span key={page} className="w-8 text-center text-text-muted text-xs">
+                                &hellip;
+                              </span>
+                            );
+                          }
+                          if (!showPage) return null;
+
+                          return (
+                            <button
+                              key={page}
+                              type="button"
+                              onClick={() => goToVolumePage(page)}
+                              className={`w-9 h-9 text-xs font-bold rounded-sm transition-colors cursor-pointer ${
+                                page === currentVolumePage
+                                  ? "bg-gold text-ink border border-gold"
+                                  : "border border-ink-border text-text-muted hover:text-paper hover:border-gold/50"
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => goToVolumePage(currentVolumePage + 1)}
+                        disabled={currentVolumePage === volumePageCount}
+                        className="flex items-center gap-1 px-3 py-2 text-xs font-bold uppercase tracking-wider border border-ink-border text-text-muted hover:text-paper hover:border-gold/50 rounded-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        <span className="hidden sm:inline">Next</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -3698,7 +4013,7 @@ export default function AdminPage() {
 
               {/* 3. ADVANCED FILTERS & SEARCH TOOLBAR */}
               <div className="p-3 sm:p-4 bg-ink-surface border border-ink-border rounded-sm space-y-2.5 sm:space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 text-xs [&>*]:min-w-0">
                   {/* Search by Order ID / Customer / Phone / Tracking */}
                   <div className="relative">
                     <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
@@ -3724,8 +4039,8 @@ export default function AdminPage() {
                       { value: "delivered", label: "Delivered" },
                       { value: "cancelled", label: "Cancelled" },
                     ]}
+                    fullWidth
                     buttonClassName="h-9 bg-ink border-ink-border py-1 px-3 text-xs"
-                    className="w-full"
                   />
 
                   {/* Payment Method Dropdown */}
@@ -3740,8 +4055,8 @@ export default function AdminPage() {
                       { value: "unverified", label: "Pending Verification" },
                       { value: "paid", label: "Verified & Paid" },
                     ]}
+                    fullWidth
                     buttonClassName="h-9 bg-ink border-ink-border py-1 px-3 text-xs"
-                    className="w-full"
                   />
 
                   {/* Governorate Filter */}
@@ -3755,8 +4070,8 @@ export default function AdminPage() {
                         label: g.label,
                       })),
                     ]}
+                    fullWidth
                     buttonClassName="h-9 bg-ink border-ink-border py-1 px-3 text-xs"
-                    className="w-full"
                   />
                 </div>
 
@@ -4012,34 +4327,8 @@ export default function AdminPage() {
               <div>
                 <h1 className="font-cinzel text-2xl font-bold text-paper">Settings & Data Integrity</h1>
                 <p className="text-xs text-text-muted mt-1">
-                  Configure storefront localization, administrative credentials, export database snapshots, and restore factory defaults.
+                  Configure administrative credentials, export database snapshots, and restore factory defaults.
                 </p>
-              </div>
-
-              {/* 1. Storefront language policy */}
-              <div className="p-4 sm:p-6 bg-ink-surface border border-ink-border rounded-sm space-y-3 sm:space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-gold text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-                    <Globe className="w-3.5 h-3.5" />
-                    <span>Storefront Language</span>
-                  </h2>
-                  <span
-                    className="text-[10px] px-2 py-0.5 uppercase tracking-wider rounded-xs font-bold bg-ink-elevated text-text-muted border border-ink-border"
-                  >
-                    English only
-                  </span>
-                </div>
-                <p className="text-xs text-text-muted leading-relaxed">
-                  The customer storefront is locked to English. The language switcher is hidden from visitors.
-                </p>
-                <div className="pt-1">
-                  <button type="button" disabled className="px-4 py-2 text-xs uppercase tracking-wider rounded-sm border font-bold inline-flex items-center gap-2 bg-ink text-text-muted border-ink-border cursor-not-allowed opacity-70">
-                    <Globe className="w-3.5 h-3.5" />
-                    <span>
-                      Language switching disabled
-                    </span>
-                  </button>
-                </div>
               </div>
 
               {/* 2. Admin PIN */}

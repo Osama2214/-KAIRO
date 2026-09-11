@@ -62,6 +62,7 @@ export interface EditorialConfig {
   authenticityGuaranteeText: string;
   shippingPolicyText: string;
   returnPolicyText: string;
+  privacyPolicyText?: string;
   footerDescription: string;
   hubCities: string;
 }
@@ -193,6 +194,7 @@ export interface EditorialArabicConfig {
   authenticityGuaranteeText: string;
   shippingPolicyText: string;
   returnPolicyText: string;
+  privacyPolicyText?: string;
   footerDescription: string;
   hubCities: string;
 }
@@ -319,6 +321,7 @@ const DEFAULT_EDITORIAL: EditorialConfig = {
   authenticityGuaranteeText: "Every single volume in the ANIMEVERSE archive is sourced directly from certified Tokyo and Kyoto publishing houses. We guarantee 100% genuine Kodansha, Shueisha, Shogakukan, and Dark Horse editorial pressings.",
   shippingPolicyText: "Orders are hand-packaged using archival protective sleeves, reinforced corner bumpers, and moisture-resistant sealing. Dispatched daily across Cairo, Giza, Alexandria, and all Egyptian governorates.",
   returnPolicyText: "We honor a 14-day archival integrity inspection. If your volume arrives with any structural binding defect, spine dent, or print anomaly, our concierge provides immediate replacement.",
+  privacyPolicyText: "Your privacy is paramount. ANIMEVERSE adheres to strict data minimization standards and the Egyptian Data Protection Law (Law No. 151 of 2020). We never sell, rent, or trade your phone number, delivery address, or reading preferences.",
   footerDescription: "An editorial archive celebrating sequential art, Japanese literary epics, and tactile physical printing craftsmanship.",
   hubCities: "6TH OF OCTOBER • CAIRO • ALEXANDRIA • ALL EGYPT",
 };
@@ -391,8 +394,187 @@ const DEFAULT_EDITORIAL_ARABIC: EditorialArabicConfig = {
   authenticityGuaranteeText: "كل مجلد في أرشيف كايْرو مستورد مباشرة من دور النشر الرسمية في طوكيو وكيوتو. نضمن طبعات أصلية 100% من Kodansha و Shueisha و Shogakukan و Dark Horse.",
   shippingPolicyText: "تغليف يدوي أرشيفي فائق العناية مع حواجز صدمات لحماية الزوايا وغلاف مقاوم للرطوبة. شحن يومي مباشر للقاهرة، الجيزة، الإسكندرية، وكافة محافظات مصر.",
   returnPolicyText: "نلتزم بفحص الأمانة الأرشيفية لمدة 14 يوماً. إذا وصلك أي مجلد به عيب مصنعي في التجليد أو أثر صدمة أثناء الشحن، نقوم باستبداله فوراً.",
+  privacyPolicyText: "خصوصيتك أولويتنا المطلقة. تلتزم كايرو بأعلى معايير حماية البيانات وبقانون حماية البيانات الشخصية المصري (قانون رقم 151 لسنة 2020). لا نقوم ببيع أو مشاركة بياناتك إطلاقاً.",
   footerDescription: "أرشيف أدبي يحتفي بالفن القصصي المصور، والملاحم اليابانية، وإتقان الطباعة الورقية الأصيلة.",
   hubCities: "مدينة 6 أكتوبر • القاهرة • الإسكندرية • كافة المحافظات",
+};
+
+/** One titled paragraph inside a policy tab. */
+export interface PolicyPoint {
+  title: string;
+  body: string;
+}
+
+/** One delivery-time card in the shipping tab. */
+export interface PolicyDeliveryWindow {
+  region: string;
+  duration: string;
+  note: string;
+}
+
+/**
+ * The rest of the customer-facing Policies dialog.
+ *
+ * Each tab opens with a paragraph that already lived in `editorialConfig`; the
+ * headings, the titled points beneath it, the delivery-time cards and the
+ * certificate's tick list were written into the component itself, so a curator
+ * could change the opening line and nothing else on a screen that is mostly
+ * made of the rest. The same shape serves both languages.
+ */
+export interface PolicyContentConfig {
+  shipping: {
+    leadTitle: string;
+    windowsTitle: string;
+    windows: PolicyDeliveryWindow[];
+    points: PolicyPoint[];
+    couriers: string;
+  };
+  authenticity: {
+    leadTitle: string;
+    certificateTitle: string;
+    checks: string[];
+    points: PolicyPoint[];
+  };
+  privacy: { leadTitle: string; points: PolicyPoint[] };
+  terms: { leadTitle: string; points: PolicyPoint[] };
+}
+
+const DEFAULT_POLICY_CONTENT: PolicyContentConfig = {
+  shipping: {
+    leadTitle: "Central Dispatch: 6th of October City Hub • Giza, Egypt",
+    windowsTitle: "Delivery Windows & Estimates",
+    windows: [
+      { region: "CAIRO & GIZA", duration: "24 – 48 Hours", note: "Daily express dispatch" },
+      { region: "ALEX & DELTA", duration: "2 – 3 Days", note: "Canal Cities included" },
+      { region: "UPPER EGYPT & RED SEA", duration: "3 – 4 Days", note: "Full door-to-door transit" },
+    ],
+    points: [
+      {
+        title: "Collector Armor Packaging Guarantee",
+        body: "Every volume is packed using dual-wall reinforced corrugated cartons, high-density edge guards, and archival slip-sleeves. We strictly forbid thin plastic mailers to preserve crisp, unbent book corners during transit.",
+      },
+    ],
+    couriers: "COURIERS: BOSTA EXPRESS & ARAMEX EGYPT",
+  },
+  authenticity: {
+    leadTitle: "CERTIFICATE OF AUTHENTICITY",
+    certificateTitle: "100% GENUINE JAPANESE LICENSED EDITIONS",
+    checks: [
+      "Official ISBN & Tokyo registry barcoded",
+      "Archival acid-free paper stock",
+      "Zero counterfeit or bootleg prints",
+      "Free replacement for transit corner damage",
+    ],
+    points: [
+      {
+        title: "Collector Replacement Guarantee",
+        body: "As collectors ourselves, we inspect book jackets, spot-varnishes, and spine corners before packing. If your volume arrives with any physical dent or printing defect, notify us within 14 days for an immediate no-hassle exchange.",
+      },
+    ],
+  },
+  privacy: {
+    leadTitle: "Patron Data Encryption & Sovereignty",
+    points: [
+      {
+        title: "No Third-Party Data Selling",
+        body: "We never sell, rent, or trade your phone number, delivery address, or manga reading preferences to marketing agencies or ad trackers.",
+      },
+      {
+        title: "End-to-End Encrypted Checkout",
+        body: "All payment processing via Credit Card or Instapay is handled through PCI-DSS Level 1 compliant gateways. Card numbers are never stored in plain text or saved on our servers.",
+      },
+      {
+        title: "Local Storage & Session Control",
+        body: "Cart contents, wishlist volumes, and reading progress are stored locally in your browser and can be purged at any moment via your Account Settings.",
+      },
+    ],
+  },
+  terms: {
+    leadTitle: "Purchasing Terms & Patron Inspection",
+    points: [
+      {
+        title: "14-Day Return & Replacement:",
+        body: "Items that are damaged upon delivery or have binding defects are eligible for replacement within 14 days of receipt. Volumes must be in original condition with publisher sleeves.",
+      },
+      {
+        title: "Package Inspection:",
+        body: "Patrons in Egypt have the full right to inspect the external shipping container in the presence of the courier before final signature.",
+      },
+      {
+        title: "Cash on Delivery (COD) Terms:",
+        body: "Cash on Delivery is supported across all Egyptian governorates. Repeated uncollected orders may require prepaid verification for future orders.",
+      },
+    ],
+  },
+};
+
+const DEFAULT_POLICY_CONTENT_ARABIC: PolicyContentConfig = {
+  shipping: {
+    leadTitle: "مركز الشحن الرئيسي: مدينة 6 أكتوبر • الجيزة، مصر",
+    windowsTitle: "مواعيد وفترات التوصيل حسب المحافظة",
+    windows: [
+      { region: "القاهرة والجيزة", duration: "خلال 24 – 48 ساعة", note: "شحن يومي مباشر وسريع" },
+      { region: "الإسكندرية ومحافظات الدلتا", duration: "خلال 2 – 3 أيام عمل", note: "يشمل مدن القناة" },
+      { region: "الصعيد والبحر الأحمر ومطروح", duration: "خلال 3 – 4 أيام عمل", note: "توصيل آمن حتى باب المنزل" },
+    ],
+    points: [
+      {
+        title: "ميثاق التغليف المصفح للمقتنين",
+        body: "نعتمد كراتين مقوّاة مزدوجة الجدران مع دعامات زوايا متينة وأكياس أرشيفية عازلة لحماية المجلد من أي التواء أو احتكاك أثناء الشحن. نرفض تماماً استخدام الأكياس البلاستيكية الخفيفة حرصاً على سلامة الحواف.",
+      },
+    ],
+    couriers: "شركاء الشحن: بوسطة إكسبريس وأرامكس مصر",
+  },
+  authenticity: {
+    leadTitle: "شهادة الاعتماد والأصالة الأرشيفية",
+    certificateTitle: "طبعات رسمية مرخصة 100% من كبرى دور النشر اليابانية",
+    checks: [
+      "رقم إيداع دولي ISBN وباركود رسمي ياباني",
+      "ورق أرشيفي ممتاز خالٍ من الأحماض",
+      "خالٍ تماماً من النسخ المقلدة أو غير المصرح بها",
+      "استبدال فوري مجاني لأي عيب مصنعي أو تلف شحن",
+    ],
+    points: [
+      {
+        title: "ضمان الاستبدال الفوري للمقتنين",
+        body: "بصفتنا مقتنين للمانجا قبل كل شيء، نقوم بفحص أغلفة المجلدات ولمعان الحروف وزوايا الكعب بدقة بالغة قبل التغليف. وإذا وصلك أي مجلد به انثناء أو عيب في الطباعة أو التجليد، يحق لك استبداله مجاناً خلال 14 يوماً.",
+      },
+    ],
+  },
+  privacy: {
+    leadTitle: "تشفير بيانات المقتنين وحماية الخصوصية",
+    points: [
+      {
+        title: "حظر مشاركة أو بيع البيانات تماماً",
+        body: "لا نقوم إطلاقاً ببيع أو تأجير أرقام هواتف العملاء أو عناوين الشحن أو تفضيلات القراءة لأي شركات تسويق خارجية أو شبكات إعلانية.",
+      },
+      {
+        title: "دفع آمن ومعالجة مشفرة",
+        body: "تتم كافة عمليات الدفع والتحويل عبر قنوات مشفرة وفق بروتوكولات الأمان القياسية PCI-DSS. لا نحتفظ بأي بيانات مصرفية حساسة على خوادمنا.",
+      },
+      {
+        title: "تحكم كامل في جلسة التصفح",
+        body: "يتم حفظ محتويات السلة وقائمة الرغبات محلياً في متصفحك، ويمكنك حذفها أو تفريغها بضغطة زر واحدة في أي وقت عبر إعدادات حسابك.",
+      },
+    ],
+  },
+  terms: {
+    leadTitle: "شروط الشراء وحق المعاينة عند الاستلام",
+    points: [
+      {
+        title: "حق الاستبدال خلال 14 يوماً:",
+        body: "إذا استلمت مجلداً به أي تلف أو خطأ في التجليد، يحق لك استبداله خلال 14 يوماً من تاريخ الاستلام، بشرط بقاء الكتاب في حالته الأصلية وغلافه الحافظ.",
+      },
+      {
+        title: "حق المعاينة قبل الاستلام:",
+        body: "يحق للعميل معاينة الطرد والتأكد من سلامة التغليف الخارجي في وجود مندوب التوصيل قبل الاستلام والتوقيع النهائي.",
+      },
+      {
+        title: "شروط الدفع عند الاستلام (COD):",
+        body: "الدفع عند الاستلام متاح في كافة أنحاء مصر. في حالة تكرار رفض الاستلام بدون مبرر، قد يتم حصر الطلبات المستقبلية على الدفع المسبق.",
+      },
+    ],
+  },
 };
 
 const DEFAULT_NEW_RELEASES_ARABIC_CONFIG: NewReleasesArabicConfig = {
@@ -447,7 +629,11 @@ export type LiveEditTarget =
   | { type: "featured-series" }
   | { type: "featured-series-card" }
   | { type: "shipping" }
-  | { type: "editorial" }
+  // The footer's own brand copy and the customer-facing policy texts live in
+  // the same config object but are edited from two different places on the
+  // page, so they get a live-edit target each.
+  | { type: "footer" }
+  | { type: "editorial"; tab?: "shipping" | "authenticity" | "privacy" | "terms" }
   | { type: "manga-discovery" }
   | { type: "genre-card"; genreId: string };
 
@@ -482,6 +668,8 @@ export interface StorefrontState {
   boxSetsArabicConfig: BoxSetsArabicConfig;
   trendingArabicConfig: TrendingArabicConfig;
   genreBentoArabicConfig: GenreBentoArabicConfig;
+  policyContent: PolicyContentConfig;
+  policyContentArabic: PolicyContentConfig;
 
   /**
    * True once the catalogue has been fetched from the server, whether that
@@ -540,6 +728,8 @@ export interface StorefrontState {
   updateMangaDiscoveryArabicConfig: (updates: Partial<MangaDiscoveryArabicConfig>) => void;
   updateTrendingArabicConfig: (updates: Partial<TrendingArabicConfig>) => void;
   updateGenreBentoArabicConfig: (updates: Partial<GenreBentoArabicConfig>) => void;
+  updatePolicyContent: (updates: Partial<PolicyContentConfig>) => void;
+  updatePolicyContentArabic: (updates: Partial<PolicyContentConfig>) => void;
 
   // Cloud Neon DB Direct Synchronization
   syncToNeon: () => Promise<{ success: boolean }>;
@@ -590,6 +780,8 @@ export const useStorefrontStore = create<StorefrontState>()(
       boxSetsArabicConfig: DEFAULT_BOX_SETS_ARABIC_CONFIG,
       trendingArabicConfig: DEFAULT_TRENDING_ARABIC_CONFIG,
       genreBentoArabicConfig: DEFAULT_GENRE_BENTO_ARABIC_CONFIG,
+      policyContent: DEFAULT_POLICY_CONTENT,
+      policyContentArabic: DEFAULT_POLICY_CONTENT_ARABIC,
       catalogLoaded: false,
       isAdminAuthenticated: false,
       isVisualEditorActive: true,
@@ -854,6 +1046,14 @@ export const useStorefrontStore = create<StorefrontState>()(
         }));
       },
 
+      updatePolicyContent: (updates) => {
+        set((state) => ({ policyContent: { ...state.policyContent, ...updates } }));
+      },
+
+      updatePolicyContentArabic: (updates) => {
+        set((state) => ({ policyContentArabic: { ...state.policyContentArabic, ...updates } }));
+      },
+
       /**
        * The console's "Sync" button: pushes the whole payload immediately
        * instead of waiting on the debounce in StorefrontDataSync.
@@ -1029,6 +1229,8 @@ export const useStorefrontStore = create<StorefrontState>()(
           boxSetsArabicConfig: DEFAULT_BOX_SETS_ARABIC_CONFIG,
           trendingArabicConfig: DEFAULT_TRENDING_ARABIC_CONFIG,
           genreBentoArabicConfig: DEFAULT_GENRE_BENTO_ARABIC_CONFIG,
+          policyContent: DEFAULT_POLICY_CONTENT,
+          policyContentArabic: DEFAULT_POLICY_CONTENT_ARABIC,
         });
       },
 
@@ -1062,6 +1264,8 @@ export const useStorefrontStore = create<StorefrontState>()(
         boxSetsArabicConfig: state.boxSetsArabicConfig,
         trendingArabicConfig: state.trendingArabicConfig,
           genreBentoArabicConfig: state.genreBentoArabicConfig,
+          policyContent: state.policyContent,
+          policyContentArabic: state.policyContentArabic,
         };
         return JSON.stringify(exportPayload, null, 2);
       },
@@ -1114,6 +1318,8 @@ export const useStorefrontStore = create<StorefrontState>()(
             boxSetsArabicConfig: { ...DEFAULT_BOX_SETS_ARABIC_CONFIG, ...(parsed.boxSetsArabicConfig || {}) },
             trendingArabicConfig: { ...DEFAULT_TRENDING_ARABIC_CONFIG, ...(parsed.trendingArabicConfig || {}) },
             genreBentoArabicConfig: { ...DEFAULT_GENRE_BENTO_ARABIC_CONFIG, ...(parsed.genreBentoArabicConfig || {}) },
+            policyContent: { ...DEFAULT_POLICY_CONTENT, ...(parsed.policyContent || {}) },
+            policyContentArabic: { ...DEFAULT_POLICY_CONTENT_ARABIC, ...(parsed.policyContentArabic || {}) },
           });
           return true;
         } catch {
@@ -1155,6 +1361,8 @@ export const useStorefrontStore = create<StorefrontState>()(
         boxSetsArabicConfig: state.boxSetsArabicConfig,
         trendingArabicConfig: state.trendingArabicConfig,
         genreBentoArabicConfig: state.genreBentoArabicConfig,
+        policyContent: state.policyContent,
+        policyContentArabic: state.policyContentArabic,
       }),
       merge: (persistedState: unknown, currentState: StorefrontState): StorefrontState => {
         const persisted = persistedState as Partial<StorefrontState> | undefined;
@@ -1199,6 +1407,11 @@ export const useStorefrontStore = create<StorefrontState>()(
         } else {
           merged.genreBentoArabicConfig = DEFAULT_GENRE_BENTO_ARABIC_CONFIG;
         }
+        merged.policyContent = { ...DEFAULT_POLICY_CONTENT, ...(persisted?.policyContent || {}) };
+        merged.policyContentArabic = {
+          ...DEFAULT_POLICY_CONTENT_ARABIC,
+          ...(persisted?.policyContentArabic || {}),
+        };
         if (persisted?.trendingConfig) {
           merged.trendingConfig = { ...DEFAULT_TRENDING_CONFIG, ...persisted.trendingConfig };
         }
@@ -1290,6 +1503,16 @@ export function getActiveGovernorates(shippingConfig?: ShippingConfig | null): E
  */
 let seededInBrowser = false;
 
+/**
+ * The section defaults as the code declares them, captured before anything
+ * seeds over them. `getInitialState()` is written into on every seed, so it
+ * stops being a record of the defaults after the first one.
+ */
+const PRISTINE_DEFAULTS: Record<string, unknown> = { ...useStorefrontStore.getInitialState() };
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
 export function seedStorefrontFromServer(data: Record<string, unknown> | null | undefined): void {
   if (!data || typeof data !== "object") return;
 
@@ -1305,6 +1528,22 @@ export function seedStorefrontFromServer(data: Record<string, unknown> | null | 
       ),
     };
   }
+
+  // A config section stored in the database is a snapshot of the fields that
+  // existed the day a curator last saved it. Assigning it straight over the
+  // defaults means any field added to the code since then arrives `undefined`
+  // — the storefront falls back to its hard-coded copy and looks fine, while
+  // the console shows the curator an empty box for text that is plainly on the
+  // page. Laying each section over its default fills those gaps; anything the
+  // database does hold, including a deliberately blanked string, still wins.
+  // Lists (the catalogue, the genres) are replaced outright, as they should be.
+  data = Object.fromEntries(
+    Object.entries(data).map(([key, value]) =>
+      isPlainObject(value) && isPlainObject(PRISTINE_DEFAULTS[key])
+        ? [key, { ...PRISTINE_DEFAULTS[key], ...value }]
+        : [key, value]
+    )
+  );
 
   // zustand renders the server pass — and the browser's hydration pass — from
   // `getInitialState()`, a snapshot taken when this module was first evaluated.

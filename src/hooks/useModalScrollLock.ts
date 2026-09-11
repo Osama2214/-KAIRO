@@ -23,9 +23,15 @@ export function useModalScrollLock(isOpen: boolean = true) {
       window.__lenis.stop();
     }
 
+    // The ticker keeps scrolling behind a modal's backdrop-blur, and blurring a
+    // moving strip every frame reads as a stutter rather than smooth motion.
+    // Nothing needs to move back there while a dialog has focus.
+    document.body.classList.add("modal-open");
+
     return () => {
       document.body.style.overflow = originalOverflow;
       document.body.style.paddingRight = originalPaddingRight;
+      document.body.classList.remove("modal-open");
       if (window.__lenis) {
         window.__lenis.start();
         window.__lenis.resize();

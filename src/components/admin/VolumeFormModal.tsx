@@ -465,7 +465,7 @@ function VolumeFormDialog({
         <form
           data-lenis-prevent
           onSubmit={handleSubmit}
-          className="p-6 space-y-6 max-h-[75vh] overflow-y-auto overscroll-contain text-xs font-mono"
+          className="px-6 py-7 space-y-9 max-h-[75vh] overflow-y-auto overscroll-contain text-xs font-mono"
         >
           {errorMsg && (
             <div
@@ -479,17 +479,17 @@ function VolumeFormDialog({
 
           {/* Section: Basic Identity */}
           <div>
-            <h3 className="text-gold uppercase tracking-wider mb-3 font-bold border-b border-ink-border/50 pb-1 flex items-center gap-1.5">
-              <span>01. Identity & Series</span>
+            <h3 className="mb-4 pb-2 border-b border-ink-border/50 text-[11px] uppercase tracking-[0.18em] font-bold text-paper flex items-center gap-1.5">
+              <span><span className="text-gold/70">01.</span> Identity & Series</span>
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex flex-col justify-end">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-4">
+              <div className="md:col-span-5 flex flex-col justify-end">
                 <div className="flex items-center justify-between mb-1.5 min-h-[20px]">
                   <label className="block text-text-muted">Parent Series *</label>
                   <button
                     type="button"
                     onClick={() => setShowAddSeries(!showAddSeries)}
-                    className="text-[10px] text-gold hover:text-gold-light font-mono font-bold uppercase tracking-wider cursor-pointer transition-colors"
+                    className="text-[10px] text-text-muted hover:text-gold font-mono font-semibold uppercase tracking-wider cursor-pointer transition-colors"
                   >
                     {showAddSeries ? "Cancel" : "+ Add Series"}
                   </button>
@@ -540,7 +540,7 @@ function VolumeFormDialog({
                 )}
               </div>
 
-              <div className="flex flex-col justify-end">
+              <div className="md:col-span-3 flex flex-col justify-end">
                 <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">Volume Number *</label>
                 <CustomNumberInput
                   min={1}
@@ -551,13 +551,13 @@ function VolumeFormDialog({
                 />
               </div>
 
-              <div className="flex flex-col justify-end">
+              <div className="md:col-span-4 flex flex-col justify-end">
                 <div className="flex items-center justify-between mb-1.5 min-h-[20px]">
                   <label className="block text-text-muted">Format *</label>
                   <button
                     type="button"
                     onClick={() => setShowAddFormat(!showAddFormat)}
-                    className="text-[10px] text-gold hover:text-gold-light font-mono font-bold uppercase tracking-wider cursor-pointer transition-colors"
+                    className="text-[10px] text-text-muted hover:text-gold font-mono font-semibold uppercase tracking-wider cursor-pointer transition-colors"
                   >
                     {showAddFormat ? "Cancel" : "+ Add Format"}
                   </button>
@@ -600,7 +600,7 @@ function VolumeFormDialog({
                 )}
               </div>
 
-              <div className="md:col-span-2 flex flex-col justify-end">
+              <div className="md:col-span-8 flex flex-col justify-end">
                 <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">Volume Title / Edition Name *</label>
                 <input
                   type="text"
@@ -612,7 +612,7 @@ function VolumeFormDialog({
                 />
               </div>
 
-              <div className="flex flex-col justify-end">
+              <div className="md:col-span-4 flex flex-col justify-end">
                 <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">Japanese Title (Kanji)</label>
                 <input
                   type="text"
@@ -627,11 +627,11 @@ function VolumeFormDialog({
 
           {/* Section: Authorship & Print Specs */}
           <div>
-            <h3 className="text-gold uppercase tracking-wider mb-3 font-bold border-b border-ink-border/50 pb-1 flex items-center gap-1.5">
-              <span>02. Authorship & Editorial Specs</span>
+            <h3 className="mb-4 pb-2 border-b border-ink-border/50 text-[11px] uppercase tracking-[0.18em] font-bold text-paper flex items-center gap-1.5">
+              <span><span className="text-gold/70">02.</span> Authorship & Editorial Specs</span>
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="flex flex-col justify-end">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-4">
+              <div className="md:col-span-3 flex flex-col justify-end">
                 <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">Author</label>
                 <input
                   type="text"
@@ -640,7 +640,7 @@ function VolumeFormDialog({
                   className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-sm font-sans"
                 />
               </div>
-              <div className="flex flex-col justify-end">
+              <div className="md:col-span-3 flex flex-col justify-end">
                 <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">Artist / Illustrator</label>
                 <input
                   type="text"
@@ -649,7 +649,7 @@ function VolumeFormDialog({
                   className="w-full h-10 bg-ink border border-ink-border text-paper px-3 rounded-sm focus:border-gold outline-none text-sm font-sans"
                 />
               </div>
-              <div className="flex flex-col justify-end">
+              <div className="md:col-span-3 flex flex-col justify-end">
                 <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">Page Count</label>
                 <CustomNumberInput
                   min={1}
@@ -659,7 +659,7 @@ function VolumeFormDialog({
                   onChange={(e) => setFormData({ ...formData, pages: parseInt(e.target.value, 10) || 192 })}
                 />
               </div>
-              <div className="flex flex-col justify-end">
+              <div className="md:col-span-3 flex flex-col justify-end">
                 <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">ISBN-13</label>
                 <input
                   type="text"
@@ -673,11 +673,11 @@ function VolumeFormDialog({
 
           {/* Section: Pricing & Stock Inventory */}
           <div>
-            <h3 className="text-gold uppercase tracking-wider mb-3 font-bold border-b border-ink-border/50 pb-1 flex items-center gap-1.5">
-              <span>03. Pricing & Stock Inventory</span>
+            <h3 className="mb-4 pb-2 border-b border-ink-border/50 text-[11px] uppercase tracking-[0.18em] font-bold text-paper flex items-center gap-1.5">
+              <span><span className="text-gold/70">03.</span> Pricing & Stock Inventory</span>
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="flex flex-col justify-end">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-4">
+              <div className="md:col-span-3 flex flex-col justify-end">
                 <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end truncate" title="Selling Price (EGP) *">Selling Price (EGP) *</label>
                 <CustomNumberInput
                   step="any"
@@ -690,7 +690,7 @@ function VolumeFormDialog({
                   required
                 />
               </div>
-              <div className="flex flex-col justify-end" hidden={isBoxSet}>
+              <div className="md:col-span-3 flex flex-col justify-end" hidden={isBoxSet}>
                 <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end truncate" title="Original Price (EGP) (Strikethrough)">Original Price (EGP)</label>
                 <CustomNumberInput
                   step="any"
@@ -703,7 +703,7 @@ function VolumeFormDialog({
                   placeholder="e.g. 250"
                 />
               </div>
-              <div className="flex flex-col justify-end" hidden={isBoxSet}>
+              <div className="md:col-span-3 flex flex-col justify-end" hidden={isBoxSet}>
                 <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end truncate" title="Stock Units Available *">Stock Available *</label>
                 <CustomNumberInput
                   min={0}
@@ -714,7 +714,7 @@ function VolumeFormDialog({
                   required={!isBoxSet}
                 />
               </div>
-              <div className="flex flex-col justify-end">
+              <div className="md:col-span-3 flex flex-col justify-end">
                 <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end truncate" title="Review Rating (0.0 – 5.0)">Rating (0.0–5.0)</label>
                 <CustomNumberInput
                   step={0.1}
@@ -729,11 +729,11 @@ function VolumeFormDialog({
 
               {/* Box Set Contents */}
               {isBoxSet && (
-                <div className="p-3.5 bg-ink/60 border border-gold/30 rounded-xs space-y-3">
+                <div className="mt-5 p-4 bg-ink/50 border border-ink-border/70 rounded-sm space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <Package strokeWidth={1.6} className="w-3.5 h-3.5 text-gold" />
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-gold">
+                      <Package strokeWidth={1.6} className="w-3.5 h-3.5 text-gold/70" />
+                      <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-paper">
                         Box Contents — {memberIds.length} volume{memberIds.length === 1 ? "" : "s"}
                       </span>
                     </div>
@@ -837,11 +837,11 @@ function VolumeFormDialog({
               )}
 
               {/* Limited-Time Offer */}
-              <div className="p-3.5 bg-ink/60 border border-vermilion/30 rounded-xs space-y-3">
+              <div className="mt-5 p-4 bg-ink/50 border border-ink-border/70 rounded-sm space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Timer strokeWidth={1.6} className="w-3.5 h-3.5 text-vermilion" />
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-vermilion">Limited-Time Offer</span>
+                    <Timer strokeWidth={1.6} className="w-3.5 h-3.5 text-vermilion/80" />
+                    <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-paper">Limited-Time Offer</span>
                   </div>
                   {formData.promo?.endsAt ? (
                     <button
@@ -931,10 +931,10 @@ function VolumeFormDialog({
 
           {/* Section: Artwork & Manga Reader Preview */}
           <div>
-            <h3 className="text-gold uppercase tracking-wider mb-3 font-bold border-b border-ink-border/50 pb-1 flex items-center gap-1.5">
-              <span>04. Cover Artwork & Manga Reader Preview</span>
+            <h3 className="mb-4 pb-2 border-b border-ink-border/50 text-[11px] uppercase tracking-[0.18em] font-bold text-paper flex items-center gap-1.5">
+              <span><span className="text-gold/70">04.</span> Cover Artwork & Manga Reader Preview</span>
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-6">
               <ImageUploadInput
                 label="Volume Cover Artwork"
                 value={formData.coverImage}
@@ -950,13 +950,8 @@ function VolumeFormDialog({
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <label className="block text-text-muted text-[11px] uppercase tracking-wider font-semibold">
-                      Preview Reader Pages (RTL Reader Chapter)
-                    </label>
-                    <span className="inline-flex items-center gap-1 text-[10px] font-mono text-gold bg-gold/10 px-1.5 py-0.5 rounded-xs border border-gold/30 tracking-tight font-medium">
-                      <span className="text-gold/60 font-bold">REC:</span>
-                      <span>800 × 1200 px (2:3 Portrait per page)</span>
-                    </span>
+                    <label className="block text-text-muted">Preview Reader Pages (RTL reader chapter)</label>
+                    <span className="text-[10px] font-mono text-text-muted/80">Rec. 800 × 1200 px (2:3 portrait per page)</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
@@ -971,7 +966,7 @@ function VolumeFormDialog({
                       type="button"
                       disabled={isUploadingPreviews}
                       onClick={() => previewFileInputRef.current?.click()}
-                      className="px-2.5 py-1 bg-ink-surface hover:bg-gold/15 border border-ink-border hover:border-gold/60 text-gold text-[11px] font-mono font-bold uppercase tracking-wider rounded-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-2.5 py-1 bg-ink-surface hover:bg-gold/15 border border-ink-border hover:border-gold/60 text-text-muted hover:text-gold text-[11px] font-mono font-semibold uppercase tracking-wider rounded-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isUploadingPreviews ? (
                         <>
@@ -982,7 +977,7 @@ function VolumeFormDialog({
                         </>
                       ) : (
                         <>
-                          <Upload className="w-3 h-3 text-gold" />
+                          <Upload className="w-3 h-3" />
                           <span>Upload Pages from PC</span>
                         </>
                       )}
@@ -1060,9 +1055,7 @@ function VolumeFormDialog({
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <label className="block text-text-muted text-xs uppercase tracking-wider font-semibold">
-                      Genres &amp; Categories *
-                    </label>
+                    <label className="block text-text-muted">Genres &amp; Categories *</label>
                     <span className="text-[10px] text-paper-muted">
                       ({selectedGenres.length} selected)
                     </span>
@@ -1070,7 +1063,7 @@ function VolumeFormDialog({
                   <button
                     type="button"
                     onClick={() => setShowAddGenre(!showAddGenre)}
-                    className="flex items-center gap-1 text-[11px] text-gold hover:text-gold-light font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                    className="flex items-center gap-1 text-[11px] text-text-muted hover:text-gold font-mono font-semibold uppercase tracking-wider transition-colors cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>{showAddGenre ? "Cancel" : "+ Add New Category"}</span>
@@ -1161,9 +1154,7 @@ function VolumeFormDialog({
 
                 {/* Available Store Categories (Click to Toggle) */}
                 <div className="space-y-1.5 pt-1">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted block">
-                    Available Store Categories (Click to select/deselect):
-                  </span>
+                  <span className="block text-[10px] font-mono text-text-muted/80">Click a category to select or deselect it</span>
                   <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto overscroll-contain pr-1">
                     {storeGenres.map((genre) => {
                       const isSelected = selectedGenres.some(
@@ -1176,7 +1167,7 @@ function VolumeFormDialog({
                           onClick={() => toggleGenreSelection(genre.name)}
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xs text-[11px] font-mono uppercase tracking-wider border transition-all cursor-pointer ${
                             isSelected
-                              ? "bg-gold text-ink border-gold font-bold shadow-xs scale-105"
+                              ? "bg-gold text-ink border-gold font-bold shadow-xs"
                               : "bg-ink-surface text-text-muted border-ink-border hover:border-gold/50 hover:text-paper"
                           }`}
                         >
@@ -1193,20 +1184,22 @@ function VolumeFormDialog({
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-text-muted mb-1">Synopsis & Editorial Summary (English)</label>
+                <div className="flex flex-col">
+                  <label className="text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                    Synopsis &amp; Editorial Summary (English)
+                  </label>
                   <textarea
                     rows={4}
                     value={formData.synopsis}
                     onChange={(e) => setFormData({ ...formData, synopsis: e.target.value })}
                     placeholder="Story synopsis..."
-                    className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
+                    className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none resize-y"
                   />
                 </div>
-                <div>
-                  <label className="block text-text-muted mb-1">
-                    الوصف بالعربية
-                    <span className="text-text-muted/60 normal-case"> — optional; falls back to English</span>
+                <div className="flex flex-col">
+                  <label className="text-text-muted mb-1.5 min-h-[20px] flex items-end gap-1.5">
+                    <span>الوصف بالعربية</span>
+                    <span className="text-text-muted/60">(optional)</span>
                   </label>
                   <textarea
                     rows={4}
@@ -1214,7 +1207,7 @@ function VolumeFormDialog({
                     value={formData.synopsisAr || ""}
                     onChange={(e) => setFormData({ ...formData, synopsisAr: e.target.value })}
                     placeholder="وصف الكتاب بالعربية..."
-                    className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none font-sans"
+                    className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none font-sans resize-y"
                   />
                 </div>
               </div>
@@ -1223,8 +1216,8 @@ function VolumeFormDialog({
 
           {/* Section: Badges & Merchandising Flags */}
           <div>
-            <h3 className="text-gold uppercase tracking-wider mb-3 font-bold border-b border-ink-border/50 pb-1">
-              <span>05. Merchandising Flags</span>
+            <h3 className="mb-4 pb-2 border-b border-ink-border/50 text-[11px] uppercase tracking-[0.18em] font-bold text-paper flex items-center gap-1.5">
+              <span><span className="text-gold/70">05.</span> Merchandising Flags</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <label className="flex items-center gap-2.5 p-3 border border-ink-border rounded-sm bg-ink cursor-pointer hover:border-gold/50">
@@ -1260,7 +1253,7 @@ function VolumeFormDialog({
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
+          <div className="flex items-center justify-end gap-3 pt-5 border-t border-ink-border">
             <button
               type="button"
               onClick={onClose}

@@ -76,7 +76,12 @@ export function Footer() {
                   className="h-11 w-auto brightness-[0.80]"
                 />
               </div>
-              <LiveEditButton target={{ type: "editorial" }} label="Edit Policies & Quotes" variant="floating" size="xs" />
+              <LiveEditButton
+                target={{ type: "footer" }}
+                label={locale === "ar" ? "تعديل الفوتر" : "Edit Footer"}
+                variant="floating"
+                size="xs"
+              />
             </div>
             <p className="text-xs text-text-muted leading-relaxed max-w-sm">
               {footerDescription}

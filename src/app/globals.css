@@ -595,11 +595,13 @@ html.animeverse-loading #animeverse-restore-loader {
   to { transform: translateX(100%); }
 }
 
-.ticker-track {
+.ticker-track,
+.ticker-track-preview {
   animation: ticker-scroll var(--ticker-duration, 30s) linear infinite;
 }
 
-[dir="rtl"] .ticker-track {
+[dir="rtl"] .ticker-track,
+[dir="rtl"] .ticker-track-preview {
   animation-name: ticker-scroll-rtl;
 }
 
@@ -607,8 +609,19 @@ html.animeverse-loading #animeverse-restore-loader {
   animation-play-state: paused;
 }
 
+/* A modal's backdrop-blur re-samples whatever moves behind it every frame,
+   which turns the live ticker's smooth scroll into a visible stutter. Freeze
+   it for as long as a dialog is open (see useModalScrollLock) — but not the
+   Live Edit modal's own preview strip, which is the one thing in that dialog
+   meant to keep moving. That preview uses `.ticker-track-preview` instead so
+   this rule's selector never reaches it. */
+.modal-open .ticker-track {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .ticker-track {
+  .ticker-track,
+  .ticker-track-preview {
     animation: none;
   }
   .ticker-viewport {

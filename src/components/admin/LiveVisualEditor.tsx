@@ -19,6 +19,12 @@ import {
   Check,
   Plus,
   Trash2,
+  Info,
+  Truck,
+  ShieldCheck,
+  Lock,
+  FileText,
+  ArrowRight,
 } from "lucide-react";
 import {
   useStorefrontStore,
@@ -37,6 +43,10 @@ import {
   GenreBentoArabicConfig,
   MangaDiscoveryConfig,
   MangaDiscoveryArabicConfig,
+  TickerConfig,
+  TickerArabicConfig,
+  TICKER_SLOTS,
+  PolicyContentConfig,
 } from "@/store/useStorefrontStore";
 import { useMounted } from "@/store/useWishlistStore";
 import { useLanguageStore } from "@/store/useLanguageStore";
@@ -56,6 +66,7 @@ export function LiveVisualEditor() {
     setVisualEditorActive,
     activeLiveEditTarget,
     closeLiveEdit,
+    openLiveEdit,
     volumes,
     series,
     genres,
@@ -98,6 +109,14 @@ export function LiveVisualEditor() {
     updateNewReleasesArabicConfig,
     updateGenreBentoConfig,
     updateGenreBentoArabicConfig,
+    tickerConfig,
+    tickerArabicConfig,
+    updateTickerConfig,
+    updateTickerArabicConfig,
+    policyContent,
+    policyContentArabic,
+    updatePolicyContent,
+    updatePolicyContentArabic,
     updateMangaDiscoveryConfig,
     updateMangaDiscoveryArabicConfig,
     logoutAdmin,
@@ -440,9 +459,9 @@ export function LiveVisualEditor() {
         />
       )}
 
-      {/* Editorial Config Modal */}
-      {activeLiveEditTarget?.type === "editorial" && (
-        <EditorialLiveEditModal
+      {/* Footer Copy Modal */}
+      {activeLiveEditTarget?.type === "footer" && (
+        <FooterLiveEditModal
           initialConfig={editorialConfig}
           initialArabicConfig={editorialArabicConfig}
           currentLocale={locale}
@@ -450,13 +469,39 @@ export function LiveVisualEditor() {
           onSave={(updated) => {
             updateEditorialConfig(updated);
             closeLiveEdit();
-            showToast("Editorial quotes & store policies updated and synced live!");
+            showToast("Footer copy updated and synced live!");
           }}
           onSaveArabic={(updated) => {
             updateEditorialArabicConfig(updated);
             closeLiveEdit();
-            showToast("تم تحديث نصوص الفوتر والسياسات بالعربية ومزامنتها!");
+            showToast("تم تحديث نصوص الفوتر بالعربية ومزامنتها!");
           }}
+        />
+      )}
+
+      {/* Store Policies Modal */}
+      {activeLiveEditTarget?.type === "editorial" && (
+        <PoliciesLiveEditModal
+          initialConfig={editorialConfig}
+          initialArabicConfig={editorialArabicConfig}
+          initialPolicy={policyContent}
+          initialPolicyArabic={policyContentArabic}
+          initialTab={activeLiveEditTarget.tab || "shipping"}
+          currentLocale={locale}
+          onClose={closeLiveEdit}
+          onSave={(updated) => {
+            updateEditorialConfig(updated);
+            closeLiveEdit();
+            showToast("Store policies updated and synced live!");
+          }}
+          onSaveArabic={(updated) => {
+            updateEditorialArabicConfig(updated);
+            closeLiveEdit();
+            showToast("تم تحديث نصوص السياسات بالعربية ومزامنتها!");
+          }}
+          onSavePolicy={updatePolicyContent}
+          onSavePolicyArabic={updatePolicyContentArabic}
+          onOpenShippingRates={() => openLiveEdit({ type: "shipping" })}
         />
       )}
 
@@ -479,6 +524,26 @@ export function LiveVisualEditor() {
             updateBoxSetsArabicConfig(updated);
             closeLiveEdit();
             showToast("تم تحديث قسم المجموعات الكاملة بالعربية ومزامنته!");
+          }}
+        />
+      )}
+
+      {/* Announcement Ticker Modal */}
+      {activeLiveEditTarget?.type === "ticker" && (
+        <TickerLiveEditModal
+          initialConfig={tickerConfig}
+          initialArabicConfig={tickerArabicConfig}
+          currentLocale={locale}
+          onClose={closeLiveEdit}
+          onSave={(updated) => {
+            updateTickerConfig(updated);
+            closeLiveEdit();
+            showToast("Announcement ticker updated and synced live!");
+          }}
+          onSaveArabic={(updated) => {
+            updateTickerArabicConfig(updated);
+            closeLiveEdit();
+            showToast("تم تحديث نصوص الشريط الإعلاني بالعربية ومزامنتها!");
           }}
         />
       )}
@@ -733,8 +798,8 @@ function HeroLiveEditModal({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                <div className="space-y-1.5 flex flex-col justify-between">
+                  <label className="text-[11px] sm:text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
                     السطر الأول (Line 1)
                   </label>
                   <input
@@ -744,9 +809,9 @@ function HeroLiveEditModal({
                     className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-gold uppercase tracking-wider">
-                    الكلمة الذهبية المميزة (Highlight)
+                <div className="space-y-1.5 flex flex-col justify-between">
+                  <label className="text-[11px] sm:text-xs font-mono font-semibold text-gold uppercase tracking-wider">
+                    الكلمة الذهبية (Highlight)
                   </label>
                   <input
                     type="text"
@@ -755,8 +820,8 @@ function HeroLiveEditModal({
                     className="w-full bg-ink-surface border border-gold/40 text-gold px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                <div className="space-y-1.5 flex flex-col justify-between">
+                  <label className="text-[11px] sm:text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
                     السطر الثاني (Line 2)
                   </label>
                   <input
@@ -874,8 +939,8 @@ function HeroLiveEditModal({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                <div className="space-y-1.5 flex flex-col justify-between">
+                  <label className="text-[11px] sm:text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
                     Headline Line 1
                   </label>
                   <input
@@ -885,8 +950,8 @@ function HeroLiveEditModal({
                     className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-gold uppercase tracking-wider">
+                <div className="space-y-1.5 flex flex-col justify-between">
+                  <label className="text-[11px] sm:text-xs font-mono font-semibold text-gold uppercase tracking-wider">
                     Headline Highlight (Gold)
                   </label>
                   <input
@@ -896,8 +961,8 @@ function HeroLiveEditModal({
                     className="w-full bg-ink-surface border border-gold/40 text-gold px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                <div className="space-y-1.5 flex flex-col justify-between">
+                  <label className="text-[11px] sm:text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
                     Headline Line 2
                   </label>
                   <input
@@ -1377,7 +1442,250 @@ function ShippingLiveEditModal({
   );
 }
 
-function EditorialLiveEditModal({
+/* ── Editorial config: footer copy and customer policies ─────────────────
+ *
+ * Both live in the one `editorialConfig` object, but they are edited from two
+ * unrelated places — the footer itself, and the customer-facing Policies
+ * dialog — so they get a modal each rather than one screen that opens the same
+ * way from both. Each modal saves only the keys it owns, so neither can write
+ * over a field the other one is responsible for.
+ */
+
+/** A field both language configs carry — everything except contact/owner. */
+type EditorialSharedKey =
+  | "siteTagline"
+  | "footerQuote"
+  | "authenticityGuaranteeText"
+  | "shippingPolicyText"
+  | "returnPolicyText"
+  | "privacyPolicyText"
+  | "footerDescription"
+  | "hubCities";
+
+type PolicySectionId = "shipping" | "authenticity" | "privacy" | "terms";
+
+const POLICY_SECTIONS: {
+  id: PolicySectionId;
+  icon: typeof Info;
+  key: EditorialSharedKey;
+  en: string;
+  ar: string;
+  hintEn: string;
+  hintAr: string;
+}[] = [
+  {
+    id: "shipping",
+    icon: Truck,
+    key: "shippingPolicyText",
+    en: "Shipping",
+    ar: "الشحن",
+    hintEn: "Shown in the Shipping tab of the customer Policies dialog.",
+    hintAr: "يظهر في تبويب الشحن بنافذة السياسات للعملاء.",
+  },
+  {
+    id: "authenticity",
+    icon: ShieldCheck,
+    key: "authenticityGuaranteeText",
+    en: "Authenticity",
+    ar: "الأصالة",
+    hintEn: "Shown in the Authenticity tab of the customer Policies dialog.",
+    hintAr: "يظهر في تبويب الأصالة بنافذة السياسات للعملاء.",
+  },
+  {
+    id: "privacy",
+    icon: Lock,
+    key: "privacyPolicyText",
+    en: "Privacy",
+    ar: "الخصوصية",
+    hintEn: "Shown in the Privacy tab of the customer Policies dialog.",
+    hintAr: "يظهر في تبويب الخصوصية بنافذة السياسات للعملاء.",
+  },
+  {
+    id: "terms",
+    icon: FileText,
+    key: "returnPolicyText",
+    en: "Terms",
+    ar: "الاستبدال",
+    hintEn: "Shown in the Terms tab of the customer Policies dialog.",
+    hintAr: "يظهر في تبويب الاستبدال بنافذة السياسات للعملاء.",
+  },
+];
+
+const editorialFieldLabel = "text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider block mb-1.5";
+const editorialFieldInput =
+  "w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none";
+
+const ARABIC_EDITORIAL_FALLBACK: EditorialArabicConfig = {
+  siteTagline: "أرشيف المانجا اليابانية الفاخرة والطبعات الأصلية في مصر",
+  footerQuote: "كل صفحة تُقلب هي بوابة لعالم استثنائي، ومجلدات المقتنين تُصنع لتبقى حية عبر الأجيال.",
+  authenticityGuaranteeText: "نضمن أصالة 100% لجميع المجلدات والروايات المعروضة في ANIMEVERSE. طبعات يابانية رسمية ومرخصة بدون أي نسخ مقلدة.",
+  shippingPolicyText: "شحن مغلف بعناية فائقة ضد الصدمات والرطوبة، يصلك خلال 24-48 ساعة لجميع أنحاء مصر.",
+  privacyPolicyText: "خصوصيتك أولويتنا المطلقة. تلتزم كايرو بأعلى معايير حماية البيانات وبقانون حماية البيانات الشخصية المصري (قانون رقم 151 لسنة 2020). لا نقوم ببيع أو مشاركة بياناتك إطلاقاً.",
+  returnPolicyText: "حق الاستبدال الفوري خلال 14 يوماً في حالة وجود أي عيب طباعي أو تلف ناتج عن الشحن.",
+  footerDescription: "دار ANIMEVERSE — الأرشيف التحريري الأول في مصر المتخصص في استيراد وتوفير أندر مجلدات المانجا والروايات الخفيفة وبوكس سيت المقتنين الأصلية بأعلى معايير الجودة.",
+  hubCities: "مدينة 6 أكتوبر • القاهرة • الإسكندرية • كافة المحافظات",
+};
+
+/**
+ * A list a curator can grow and shrink: the delivery-time cards, the
+ * certificate's ticks, the titled paragraphs under each policy. The caller
+ * draws one row; this handles adding, removing and replacing.
+ */
+function RepeatableList<T>({
+  label,
+  addLabel,
+  isAr,
+  items,
+  onChange,
+  blank,
+  render,
+}: {
+  label: string;
+  addLabel: string;
+  isAr: boolean;
+  items: T[];
+  onChange: (items: T[]) => void;
+  /** A fresh, empty entry, copied when the curator adds a row. */
+  blank: T;
+  render: (item: T, update: (next: T) => void) => React.ReactNode;
+}) {
+  const replace = (index: number, next: T) => onChange(items.map((item, i) => (i === index ? next : item)));
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <label className={`${editorialFieldLabel} mb-0`}>{label}</label>
+        <button
+          type="button"
+          onClick={() => onChange([...items, structuredClone(blank)])}
+          className="flex items-center gap-1 text-[10px] font-mono font-bold text-gold hover:text-white uppercase tracking-wider cursor-pointer transition-colors"
+        >
+          <Plus className="w-3 h-3" />
+          {addLabel}
+        </button>
+      </div>
+
+      {items.length === 0 && (
+        <p className="text-[10px] text-text-muted italic">{isAr ? "لا يوجد شيء هنا." : "Nothing here yet."}</p>
+      )}
+
+      {items.map((item, index) => (
+        <div key={index} className="flex items-start gap-2 p-2.5 bg-ink-surface/40 border border-ink-border rounded-xs">
+          <span className="text-[10px] font-mono text-text-muted pt-2.5 w-4 shrink-0">{index + 1}</span>
+          <div className="flex-1 min-w-0">{render(item, (next) => replace(index, next))}</div>
+          <button
+            type="button"
+            onClick={() => onChange(items.filter((_, i) => i !== index))}
+            title={isAr ? "حذف" : "Remove"}
+            className="p-1.5 text-text-muted hover:text-vermilion cursor-pointer transition-colors shrink-0"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** The English and Arabic drafts, and one accessor pair over whichever is live. */
+function useEditorialDraft(
+  initialConfig: EditorialConfig,
+  initialArabicConfig: EditorialArabicConfig | undefined,
+  currentLocale: "en" | "ar"
+) {
+  const [editLang, setEditLang] = useState<"en" | "ar">(currentLocale);
+  const [form, setForm] = useState<EditorialConfig>(initialConfig);
+  const [arabicForm, setArabicForm] = useState<EditorialArabicConfig>(
+    initialArabicConfig || ARABIC_EDITORIAL_FALLBACK
+  );
+
+  const isAr = editLang === "ar";
+  const value = (key: EditorialSharedKey): string => (isAr ? arabicForm[key] : form[key]) || "";
+  const setValue = (key: EditorialSharedKey, next: string) => {
+    if (isAr) setArabicForm({ ...arabicForm, [key]: next });
+    else setForm({ ...form, [key]: next });
+  };
+
+  return { editLang, setEditLang, isAr, form, setForm, arabicForm, value, setValue };
+}
+
+/** The chrome both editorial modals share: header, language switch, buttons. */
+function EditorialModalShell({
+  title,
+  subtitle,
+  editLang,
+  onLangChange,
+  isAr,
+  onClose,
+  onSubmit,
+  nav,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  editLang: "en" | "ar";
+  onLangChange: (lang: "en" | "ar") => void;
+  isAr: boolean;
+  onClose: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+  nav?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  useModalScrollLock(true);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="w-full max-w-xl max-h-[90vh] flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50 gap-3">
+          <div className="min-w-0">
+            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider truncate">{title}</h3>
+            <p className="text-[11px] font-mono text-text-muted truncate">{subtitle}</p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <ModalLanguageSwitch activeLang={editLang} onChange={onLangChange} />
+            <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {nav}
+
+        <form
+          onSubmit={onSubmit}
+          className="flex-1 overflow-y-auto p-6 space-y-5 overscroll-contain"
+          dir={isAr ? "rtl" : "ltr"}
+        >
+          {children}
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
+            >
+              {isAr ? "إلغاء" : "Cancel"}
+            </button>
+            <button
+              type="submit"
+              className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-transform hover:scale-105"
+            >
+              <Save className="w-4 h-4" />
+              {isAr ? "حفظ ومزامنة فورية" : "Save & Sync Live"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The footer's own copy: brand narrative, hub cities, tagline, quote, and the
+ * contact details printed beside them. Opened from the footer, and it writes
+ * nothing the Policies dialog owns.
+ */
+function FooterLiveEditModal({
   initialConfig,
   initialArabicConfig,
   currentLocale = "en",
@@ -1389,313 +1697,427 @@ function EditorialLiveEditModal({
   initialArabicConfig?: EditorialArabicConfig;
   currentLocale?: "en" | "ar";
   onClose: () => void;
-  onSave: (config: EditorialConfig) => void;
-  onSaveArabic: (config: EditorialArabicConfig) => void;
+  onSave: (config: Partial<EditorialConfig>) => void;
+  onSaveArabic: (config: Partial<EditorialArabicConfig>) => void;
 }) {
-  useModalScrollLock(true);
-  const [editLang, setEditLang] = useState<"en" | "ar">(currentLocale);
-  const [form, setForm] = useState<EditorialConfig>(initialConfig);
-  const [arabicForm, setArabicForm] = useState<EditorialArabicConfig>(
-    initialArabicConfig || {
-      siteTagline: "أرشيف المانجا اليابانية الفاخرة والطبعات الأصلية في مصر",
-      footerQuote: "كل صفحة تُقلب هي بوابة لعالم استثنائي، ومجلدات المقتنين تُصنع لتبقى حية عبر الأجيال.",
-      authenticityGuaranteeText: "نضمن أصالة 100% لجميع المجلدات والروايات المعروضة في ANIMEVERSE. طبعات يابانية رسمية ومرخصة بدون أي نسخ مقلدة.",
-      shippingPolicyText: "شحن مغلف بعناية فائقة ضد الصدمات والرطوبة، يصلك خلال 24-48 ساعة لجميع أنحاء مصر.",
-      returnPolicyText: "حق الاستبدال الفوري خلال 14 يوماً في حالة وجود أي عيب طباعي أو تلف ناتج عن الشحن.",
-      footerDescription: "دار ANIMEVERSE — الأرشيف التحريري الأول في مصر المتخصص في استيراد وتوفير أندر مجلدات المانجا والروايات الخفيفة وبوكس سيت المقتنين الأصلية بأعلى معايير الجودة.",
-      hubCities: "مدينة 6 أكتوبر • القاهرة • الإسكندرية • كافة المحافظات",
-    }
+  const { editLang, setEditLang, isAr, form, setForm, arabicForm, value, setValue } = useEditorialDraft(
+    initialConfig,
+    initialArabicConfig,
+    currentLocale
   );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (editLang === "ar") {
-      onSaveArabic(arabicForm);
+    if (isAr) {
+      onSaveArabic({
+        footerDescription: arabicForm.footerDescription,
+        hubCities: arabicForm.hubCities,
+        siteTagline: arabicForm.siteTagline,
+        footerQuote: arabicForm.footerQuote,
+      });
     } else {
-      onSave(form);
+      onSave({
+        footerDescription: form.footerDescription,
+        hubCities: form.hubCities,
+        siteTagline: form.siteTagline,
+        footerQuote: form.footerQuote,
+        contactEmail: form.contactEmail,
+        contactPhone: form.contactPhone,
+        ownerName: form.ownerName,
+      });
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-xl max-h-[90vh] flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50 gap-3">
-          <div className="min-w-0">
-            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider truncate">
-              Live Edit: Editorial &amp; Footer Brand
-            </h3>
-            <p className="text-[11px] font-mono text-text-muted truncate">
-              {editLang === "ar" ? "تعديل هوية الفوتر والسياسات بالعربية" : "Configure site narrative & customer policies"}
-            </p>
+    <EditorialModalShell
+      title="Live Edit: Footer"
+      subtitle={isAr ? "تعديل نصوص الفوتر وبيانات التواصل" : "Footer brand copy & contact details"}
+      editLang={editLang}
+      onLangChange={setEditLang}
+      isAr={isAr}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+    >
+      {/* Contact details are printed identically in both languages, so they
+          live on the English side only rather than being typed twice. */}
+      {isAr ? (
+        <div className="p-3 bg-ink-surface/60 border border-ink-border rounded-xs flex items-center justify-between gap-3 text-[11px] font-mono">
+          <span className="text-paper-muted">
+            بيانات التواصل (الإيميل، الهاتف، اسم المالك) مشتركة بين اللغتين وتُعدَّل بالإنجليزية فقط.
+          </span>
+          <button
+            type="button"
+            onClick={() => setEditLang("en")}
+            className="flex items-center gap-1 text-gold hover:text-white font-bold uppercase tracking-wider shrink-0 cursor-pointer"
+          >
+            EN
+            <ArrowRight className="w-3 h-3 rotate-180" />
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <h4 className="text-xs font-mono font-bold text-gold uppercase tracking-wider">Contact &amp; Ownership</h4>
+          <p className="text-[10px] text-text-muted -mt-2">Shared across both languages.</p>
+          <div>
+            <label className={editorialFieldLabel}>Contact Email</label>
+            <input
+              type="email"
+              value={form.contactEmail || ""}
+              onChange={(e) => setForm({ ...form, contactEmail: e.target.value })}
+              className={editorialFieldInput}
+            />
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <ModalLanguageSwitch activeLang={editLang} onChange={setEditLang} />
-            <button type="button" onClick={onClose} className="text-text-muted hover:text-paper p-1 cursor-pointer">
-              <X className="w-5 h-5" />
+          <div>
+            <label className={editorialFieldLabel}>Contact Phone</label>
+            <input
+              type="tel"
+              value={form.contactPhone || ""}
+              onChange={(e) => setForm({ ...form, contactPhone: e.target.value })}
+              className={editorialFieldInput}
+            />
+          </div>
+          <div>
+            <label className={editorialFieldLabel}>Owner Name</label>
+            <input
+              type="text"
+              value={form.ownerName || ""}
+              onChange={(e) => setForm({ ...form, ownerName: e.target.value })}
+              className={editorialFieldInput}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-3 pt-3 border-t border-ink-border/60">
+        <h4 className="text-xs font-mono font-bold text-gold uppercase tracking-wider">
+          {isAr ? "هوية الفوتر" : "Footer Identity"}
+        </h4>
+        <div>
+          <label className={editorialFieldLabel}>{isAr ? "الوصف التحريري بالفوتر" : "Footer Brand Narrative"}</label>
+          <textarea
+            rows={3}
+            value={value("footerDescription")}
+            onChange={(e) => setValue("footerDescription", e.target.value)}
+            className={`${editorialFieldInput} resize-none`}
+          />
+        </div>
+        <div>
+          <label className={editorialFieldLabel}>{isAr ? "سطر المدن ومناطق الشحن" : "Hub Cities Line"}</label>
+          <input
+            type="text"
+            value={value("hubCities")}
+            onChange={(e) => setValue("hubCities", e.target.value)}
+            placeholder="6TH OF OCTOBER • CAIRO • ALEXANDRIA • ALL EGYPT"
+            className={editorialFieldInput}
+          />
+        </div>
+        <div>
+          <label className={editorialFieldLabel}>{isAr ? "شعار الموقع" : "Site Tagline"}</label>
+          <input
+            type="text"
+            value={value("siteTagline")}
+            onChange={(e) => setValue("siteTagline", e.target.value)}
+            className={editorialFieldInput}
+          />
+        </div>
+        <div>
+          <label className={editorialFieldLabel}>{isAr ? "المقولة الفلسفية بالفوتر" : "Footer Philosophical Quote"}</label>
+          <textarea
+            rows={2}
+            value={value("footerQuote")}
+            onChange={(e) => setValue("footerQuote", e.target.value)}
+            className={`${editorialFieldInput} resize-none`}
+          />
+        </div>
+      </div>
+    </EditorialModalShell>
+  );
+}
+
+/**
+ * The four policy texts behind the customer-facing Policies dialog. Opened
+ * from that dialog on whichever tab the customer is reading, and it writes
+ * nothing the footer owns.
+ */
+function PoliciesLiveEditModal({
+  initialConfig,
+  initialArabicConfig,
+  initialPolicy,
+  initialPolicyArabic,
+  initialTab = "shipping",
+  currentLocale = "en",
+  onClose,
+  onSave,
+  onSaveArabic,
+  onSavePolicy,
+  onSavePolicyArabic,
+  onOpenShippingRates,
+}: {
+  initialConfig: EditorialConfig;
+  initialArabicConfig?: EditorialArabicConfig;
+  initialPolicy: PolicyContentConfig;
+  initialPolicyArabic: PolicyContentConfig;
+  initialTab?: PolicySectionId;
+  currentLocale?: "en" | "ar";
+  onClose: () => void;
+  onSave: (config: Partial<EditorialConfig>) => void;
+  onSaveArabic: (config: Partial<EditorialArabicConfig>) => void;
+  onSavePolicy: (config: PolicyContentConfig) => void;
+  onSavePolicyArabic: (config: PolicyContentConfig) => void;
+  onOpenShippingRates?: () => void;
+}) {
+  const { editLang, setEditLang, isAr, form, arabicForm, value, setValue } = useEditorialDraft(
+    initialConfig,
+    initialArabicConfig,
+    currentLocale
+  );
+  const [section, setSection] = useState<PolicySectionId>(initialTab);
+  const [policyEn, setPolicyEn] = useState<PolicyContentConfig>(initialPolicy);
+  const [policyAr, setPolicyAr] = useState<PolicyContentConfig>(initialPolicyArabic);
+
+  const active = POLICY_SECTIONS.find((entry) => entry.id === section) || POLICY_SECTIONS[0];
+
+  const policy = isAr ? policyAr : policyEn;
+  const tab = policy[section];
+
+  /** Writes a patch into the tab on screen, in whichever language is live. */
+  const patchTab = (patch: Record<string, unknown>) => {
+    const next = { ...policy, [section]: { ...policy[section], ...patch } } as PolicyContentConfig;
+    if (isAr) setPolicyAr(next);
+    else setPolicyEn(next);
+  };
+
+  const save = () => {
+    if (isAr) {
+      onSavePolicyArabic(policyAr);
+      onSaveArabic({
+        shippingPolicyText: arabicForm.shippingPolicyText,
+        authenticityGuaranteeText: arabicForm.authenticityGuaranteeText,
+        privacyPolicyText: arabicForm.privacyPolicyText,
+        returnPolicyText: arabicForm.returnPolicyText,
+      });
+    } else {
+      onSavePolicy(policyEn);
+      onSave({
+        shippingPolicyText: form.shippingPolicyText,
+        authenticityGuaranteeText: form.authenticityGuaranteeText,
+        privacyPolicyText: form.privacyPolicyText,
+        returnPolicyText: form.returnPolicyText,
+      });
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    save();
+  };
+
+  /** Persists whatever's on screen before handing off to the rates editor,
+   *  so following the link never silently drops an unsaved policy edit. */
+  const goToShippingRates = () => {
+    if (!onOpenShippingRates) return;
+    save();
+    onOpenShippingRates();
+  };
+
+  return (
+    <EditorialModalShell
+      title="Live Edit: Store Policies"
+      subtitle={isAr ? "تعديل نصوص السياسات الظاهرة للعملاء" : "Policy texts shown to customers"}
+      editLang={editLang}
+      onLangChange={setEditLang}
+      isAr={isAr}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      nav={
+        <div className="flex items-center gap-1 px-3 py-2 bg-ink-surface/30 border-b border-ink-border overflow-x-auto text-[11px] font-mono scrollbar-none">
+          {POLICY_SECTIONS.map(({ id, icon: Icon, en, ar }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setSection(id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xs transition-colors shrink-0 uppercase tracking-wider cursor-pointer ${
+                section === id
+                  ? "bg-gold text-ink font-bold shadow-xs"
+                  : "text-text-muted hover:text-paper hover:bg-ink-border"
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {isAr ? ar : en}
             </button>
+          ))}
+        </div>
+      }
+    >
+      <div className="space-y-5">
+        <div className="space-y-3">
+          <div>
+            <h4 className="text-xs font-mono font-bold text-gold uppercase tracking-wider mb-1">
+              {isAr ? active.ar : active.en}
+            </h4>
+            <p className="text-[10px] text-text-muted">{isAr ? active.hintAr : active.hintEn}</p>
+          </div>
+
+          <div>
+            <label className={editorialFieldLabel}>{isAr ? "عنوان الصندوق العلوي" : "Header Line"}</label>
+            <input
+              type="text"
+              value={tab.leadTitle}
+              onChange={(e) => patchTab({ leadTitle: e.target.value })}
+              className={editorialFieldInput}
+            />
+          </div>
+
+          {section === "authenticity" && "certificateTitle" in tab && (
+            <div>
+              <label className={editorialFieldLabel}>{isAr ? "عنوان الشهادة" : "Certificate Title"}</label>
+              <input
+                type="text"
+                value={tab.certificateTitle}
+                onChange={(e) => patchTab({ certificateTitle: e.target.value })}
+                className={editorialFieldInput}
+              />
+            </div>
+          )}
+
+          <div>
+            <label className={editorialFieldLabel}>{isAr ? "الفقرة الافتتاحية" : "Opening Paragraph"}</label>
+            <textarea
+              rows={5}
+              value={value(active.key)}
+              onChange={(e) => setValue(active.key, e.target.value)}
+              className={`${editorialFieldInput} resize-none`}
+            />
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 overscroll-contain">
-          {editLang === "ar" ? (
-            <div className="space-y-6" dir="rtl">
-              {/* القسم الأول: هوية الفوتر التحريرية */}
-              <div className="space-y-4">
-                <h4 className="text-xs font-mono font-bold text-gold uppercase tracking-wider border-b border-ink-border/60 pb-1">
-                  01. هوية وتوصيف دار كايرو (بالفوتر)
-                </h4>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                    الوصف التحريري بالفوتر
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={arabicForm.footerDescription || ""}
-                    onChange={(e) => setArabicForm({ ...arabicForm, footerDescription: e.target.value })}
-                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none font-sans"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                    سطر المدن ومناطق الشحن
-                  </label>
-                  <input
-                    type="text"
-                    value={arabicForm.hubCities || ""}
-                    onChange={(e) => setArabicForm({ ...arabicForm, hubCities: e.target.value })}
-                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                    شعار الموقع (Site Tagline)
-                  </label>
-                  <input
-                    type="text"
-                    value={arabicForm.siteTagline || ""}
-                    onChange={(e) => setArabicForm({ ...arabicForm, siteTagline: e.target.value })}
-                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* القسم الثاني: السياسات والضمانات بالعربية */}
-              <div className="space-y-4 pt-2 border-t border-ink-border/60">
-                <h4 className="text-xs font-mono font-bold text-gold uppercase tracking-wider">
-                  02. السياسات والضمانات التحريرية
-                </h4>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                    المقولة الفلسفية بالفوتر
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={arabicForm.footerQuote || ""}
-                    onChange={(e) => setArabicForm({ ...arabicForm, footerQuote: e.target.value })}
-                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none font-sans"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                    سياسة ضمان الأصالة
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={arabicForm.authenticityGuaranteeText || ""}
-                    onChange={(e) => setArabicForm({ ...arabicForm, authenticityGuaranteeText: e.target.value })}
-                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none font-sans"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                    سياسة الشحن والتوصيل
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={arabicForm.shippingPolicyText || ""}
-                    onChange={(e) => setArabicForm({ ...arabicForm, shippingPolicyText: e.target.value })}
-                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none font-sans"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                    سياسة الاستبدال والاسترجاع
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={arabicForm.returnPolicyText || ""}
-                    onChange={(e) => setArabicForm({ ...arabicForm, returnPolicyText: e.target.value })}
-                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none font-sans"
-                  />
-                </div>
-              </div>
+        {/* Shipping: the delivery-time cards and the courier line. */}
+        {section === "shipping" && "windows" in tab && (
+          <div className="space-y-3 pt-3 border-t border-ink-border/60">
+            <div>
+              <label className={editorialFieldLabel}>{isAr ? "عنوان جدول المواعيد" : "Delivery Windows Heading"}</label>
+              <input
+                type="text"
+                value={tab.windowsTitle}
+                onChange={(e) => patchTab({ windowsTitle: e.target.value })}
+                className={editorialFieldInput}
+              />
             </div>
-          ) : (
-            <>
-              {/* Section 01: Footer Brand Identity */}
-              <div className="space-y-4">
-                <h4 className="text-xs font-mono font-bold text-gold uppercase tracking-wider border-b border-ink-border/60 pb-1">
-                  01. Footer Brand Identity
-                </h4>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                    Footer Brand Narrative / Description
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={form.footerDescription || ""}
-                    onChange={(e) => setForm({ ...form, footerDescription: e.target.value })}
-                    placeholder="An editorial archive celebrating sequential art, Japanese literary epics, and tactile physical printing craftsmanship."
-                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                    Hub Cities Line
-                  </label>
+            <RepeatableList
+              label={isAr ? "بطاقات مواعيد التوصيل" : "Delivery Windows"}
+              addLabel={isAr ? "إضافة منطقة" : "Add region"}
+              isAr={isAr}
+              items={tab.windows}
+              onChange={(windows) => patchTab({ windows })}
+              blank={{ region: "", duration: "", note: "" }}
+              render={(window, update) => (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <input
                     type="text"
-                    value={form.hubCities || ""}
-                    onChange={(e) => setForm({ ...form, hubCities: e.target.value })}
-                    placeholder="6TH OF OCTOBER • CAIRO • ALEXANDRIA • ALL EGYPT"
-                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                    value={window.region}
+                    onChange={(e) => update({ ...window, region: e.target.value })}
+                    placeholder={isAr ? "المنطقة" : "Region"}
+                    className={editorialFieldInput}
                   />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                    Site Tagline
-                  </label>
                   <input
                     type="text"
-                    value={form.siteTagline || ""}
-                    onChange={(e) => setForm({ ...form, siteTagline: e.target.value })}
-                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                    value={window.duration}
+                    onChange={(e) => update({ ...window, duration: e.target.value })}
+                    placeholder={isAr ? "المدة" : "Duration"}
+                    className={editorialFieldInput}
                   />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                    Contact Email
-                  </label>
-                  <input
-                    type="email"
-                    value={form.contactEmail || ""}
-                    onChange={(e) => setForm({ ...form, contactEmail: e.target.value })}
-                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                    Contact Phone
-                  </label>
-                  <input
-                    type="tel"
-                    value={form.contactPhone || ""}
-                    onChange={(e) => setForm({ ...form, contactPhone: e.target.value })}
-                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                    Owner Name
-                  </label>
                   <input
                     type="text"
-                    value={form.ownerName || ""}
-                    onChange={(e) => setForm({ ...form, ownerName: e.target.value })}
-                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none"
+                    value={window.note}
+                    onChange={(e) => update({ ...window, note: e.target.value })}
+                    placeholder={isAr ? "ملاحظة" : "Note"}
+                    className={editorialFieldInput}
                   />
                 </div>
-              </div>
+              )}
+            />
 
-              {/* Section 02: Canonical Store Policies */}
-              <div className="space-y-4 pt-2 border-t border-ink-border/60">
-                <h4 className="text-xs font-mono font-bold text-gold uppercase tracking-wider">
-                  02. Canonical Store Policies &amp; Philosophy
-                </h4>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                    Footer Philosophical Quote
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={form.footerQuote || ""}
-                    onChange={(e) => setForm({ ...form, footerQuote: e.target.value })}
-                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                    Authenticity Guarantee Policy
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={form.authenticityGuaranteeText || ""}
-                    onChange={(e) => setForm({ ...form, authenticityGuaranteeText: e.target.value })}
-                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                    Shipping Logistics Policy
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={form.shippingPolicyText || ""}
-                    onChange={(e) => setForm({ ...form, shippingPolicyText: e.target.value })}
-                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
-                    Return &amp; Replacement Policy
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={form.returnPolicyText || ""}
-                    onChange={(e) => setForm({ ...form, returnPolicyText: e.target.value })}
-                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-sm rounded-xs focus:border-gold outline-none resize-none"
-                  />
-                </div>
-              </div>
-            </>
-          )}
-
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
-            >
-              {editLang === "ar" ? "إلغاء" : "Cancel"}
-            </button>
-            <button
-              type="submit"
-              className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-transform hover:scale-105"
-            >
-              <Save className="w-4 h-4" />
-              {editLang === "ar" ? "حفظ ومزامنة فورية" : "Save & Sync Live"}
-            </button>
+            <div>
+              <label className={editorialFieldLabel}>{isAr ? "سطر شركاء الشحن" : "Courier Line"}</label>
+              <input
+                type="text"
+                value={tab.couriers}
+                onChange={(e) => patchTab({ couriers: e.target.value })}
+                className={editorialFieldInput}
+              />
+            </div>
           </div>
-        </form>
+        )}
+
+        {/* Authenticity: the tick list on the certificate. */}
+        {section === "authenticity" && "checks" in tab && (
+          <div className="pt-3 border-t border-ink-border/60">
+            <RepeatableList
+              label={isAr ? "بنود الشهادة" : "Certificate Ticks"}
+              addLabel={isAr ? "إضافة بند" : "Add tick"}
+              isAr={isAr}
+              items={tab.checks}
+              onChange={(checks) => patchTab({ checks })}
+              blank=""
+              render={(check, update) => (
+                <input
+                  type="text"
+                  value={check}
+                  onChange={(e) => update(e.target.value)}
+                  className={editorialFieldInput}
+                />
+              )}
+            />
+          </div>
+        )}
+
+        {/* Every tab: the titled paragraphs under the opening box. */}
+        <div className="pt-3 border-t border-ink-border/60">
+          <RepeatableList
+            label={isAr ? "الفقرات المعنونة" : "Titled Points"}
+            addLabel={isAr ? "إضافة فقرة" : "Add point"}
+            isAr={isAr}
+            items={tab.points}
+            onChange={(points) => patchTab({ points })}
+            blank={{ title: "", body: "" }}
+            render={(point, update) => (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={point.title}
+                  onChange={(e) => update({ ...point, title: e.target.value })}
+                  placeholder={isAr ? "العنوان" : "Title"}
+                  className={editorialFieldInput}
+                />
+                <textarea
+                  rows={3}
+                  value={point.body}
+                  onChange={(e) => update({ ...point, body: e.target.value })}
+                  placeholder={isAr ? "النص" : "Body"}
+                  className={`${editorialFieldInput} resize-none`}
+                />
+              </div>
+            )}
+          />
+        </div>
+
+        {section === "shipping" && onOpenShippingRates && (
+          <button
+            type="button"
+            onClick={goToShippingRates}
+            className="w-full flex items-center justify-between gap-2 p-2.5 bg-ink-surface/60 border border-gold/30 hover:border-gold rounded-xs transition-colors cursor-pointer text-left rtl:text-right"
+          >
+            <span className="text-[11px] font-mono text-paper-muted">
+              {isAr
+                ? "تعديل أسعار الشحن وعتبة الشحن المجاني لكل محافظة"
+                : "Edit per-governorate rates & the free-delivery threshold"}
+            </span>
+            <ArrowRight className={`w-3.5 h-3.5 text-gold shrink-0 ${isAr ? "rotate-180" : ""}`} />
+          </button>
+        )}
       </div>
-    </div>
+    </EditorialModalShell>
   );
 }
 
@@ -2280,6 +2702,390 @@ function TrendingLiveEditModal({
                 />
               </div>
             </>
+          )}
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-text-muted hover:text-paper cursor-pointer"
+            >
+              {editLang === "ar" ? "إلغاء" : "Cancel"}
+            </button>
+            <button
+              type="submit"
+              className="flex items-center gap-1.5 px-5 py-2 bg-gold hover:bg-gold-light text-ink text-xs font-mono font-bold uppercase tracking-wider rounded-xs cursor-pointer shadow-md transition-transform hover:scale-105"
+            >
+              <Save className="w-4 h-4" />
+              {editLang === "ar" ? "حفظ ومزامنة فورية" : "Save & Sync Live"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function TickerLiveEditModal({
+  initialConfig,
+  initialArabicConfig,
+  currentLocale = "en",
+  onClose,
+  onSave,
+  onSaveArabic,
+}: {
+  initialConfig: TickerConfig;
+  initialArabicConfig?: TickerArabicConfig;
+  currentLocale?: "en" | "ar";
+  onClose: () => void;
+  onSave: (config: TickerConfig) => void;
+  onSaveArabic: (config: TickerArabicConfig) => void;
+}) {
+  useModalScrollLock(true);
+  const [editLang, setEditLang] = useState<"en" | "ar">(currentLocale);
+  const [form, setForm] = useState<TickerConfig>(initialConfig);
+  const [arabicForm, setArabicForm] = useState<TickerArabicConfig>(
+    initialArabicConfig || {
+      messages: [
+        "شحن مجاني للطلبات فوق ٥٠٠ جنيه",
+        "إصدارات بأعلى جودة",
+        "الدفع عند الاستلام في كل محافظات مصر",
+      ],
+    }
+  );
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({
+      ...form,
+      messages: form.messages.map((m) => m.trim()).filter(Boolean),
+      placements: form.placements ?? [],
+    });
+    onSaveArabic({
+      messages: arabicForm.messages.map((m) => m.trim()).filter(Boolean),
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="w-full max-w-xl max-h-[90vh] flex flex-col bg-ink border border-ink-border rounded-sm shadow-2xl overflow-hidden font-sans">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink-surface/50 gap-3">
+          <div className="min-w-0">
+            <h3 className="font-cinzel text-base font-bold text-paper uppercase tracking-wider truncate">
+              Live Edit: Announcement Ticker
+            </h3>
+            <p className="text-[11px] font-mono text-text-muted truncate">
+              {editLang === "ar"
+                ? "تعديل نصوص ورسائل الشريط الإعلاني المتحرك فورياً"
+                : "Manage scrolling ticker messages, speed, and placement"}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <ModalLanguageSwitch activeLang={editLang} onChange={setEditLang} />
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-text-muted hover:text-paper p-1 cursor-pointer transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
+          {/* Status Toggle */}
+          <div className="flex items-center justify-between p-3 bg-ink-surface/60 border border-ink-border rounded-xs">
+            <div>
+              <span className="text-xs font-mono font-semibold uppercase text-paper block">
+                {editLang === "ar" ? "حالة الشريط الإعلاني" : "Announcement Ticker Status"}
+              </span>
+              <span className="text-[10px] text-text-muted">
+                {editLang === "ar"
+                  ? "تفعيل أو إخفاء ظهور الشريط في الواجهة"
+                  : "Enable or hide ticker display on storefront"}
+              </span>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+              <input
+                type="checkbox"
+                checked={form.enabled}
+                onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-ink border border-ink-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-paper after:border after:border-ink-border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold peer-checked:border-gold"></div>
+              <span
+                className={`ml-2.5 text-xs font-mono font-bold tracking-wider uppercase transition-colors ${
+                  form.enabled ? "text-gold" : "text-text-muted"
+                }`}
+              >
+                {form.enabled
+                  ? editLang === "ar"
+                    ? "مفعل"
+                    : "ACTIVE"
+                  : editLang === "ar"
+                  ? "معطل"
+                  : "HIDDEN"}
+              </span>
+            </label>
+          </div>
+
+          {editLang === "ar" ? (
+            <div className="space-y-4" dir="rtl">
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider block">
+                  نصوص رسائل الشريط (كل رسالة في سطر مستقل)
+                </label>
+                <textarea
+                  rows={4}
+                  value={arabicForm.messages.join("\n")}
+                  onChange={(e) =>
+                    setArabicForm({
+                      ...arabicForm,
+                      messages: e.target.value.split("\n"),
+                    })
+                  }
+                  placeholder={"شحن مجاني للطلبات فوق ٥٠٠ جنيه\nإصدارات بأعلى جودة\nالدفع عند الاستلام في كل محافظات مصر"}
+                  className="w-full bg-ink-surface border border-ink-border text-paper p-3 text-xs font-mono rounded-xs focus:border-gold outline-none resize-none leading-relaxed"
+                />
+              </div>
+
+              {/* Live Preview */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-mono text-text-muted uppercase tracking-wider block">
+                  معاينة الشريط المباشرة (العربية) — بنفس سرعة الحركة الحقيقية
+                </span>
+                <div
+                  dir="rtl"
+                  className="ticker-viewport flex w-full overflow-hidden rounded-xs border border-gold/25 bg-gradient-to-r from-[#8f2418] via-vermilion to-[#8f2418] text-white py-2"
+                  style={{ ["--ticker-duration" as string]: `${form.speedSeconds}s` }}
+                >
+                  {[0, 1].map((track) => (
+                    <div key={track} className="ticker-track-preview flex shrink-0 items-center gap-6 px-3">
+                      {Array.from({ length: 3 }, (_, pass) => (
+                        <span key={pass} className="flex items-center gap-6 shrink-0 pe-6">
+                          {(arabicForm.messages.filter((m) => m.trim()).length > 0
+                            ? arabicForm.messages.filter((m) => m.trim())
+                            : ["(لا توجد رسائل حالياً)"]
+                          ).map((m, i) => (
+                            <span
+                              key={i}
+                              className="text-[11px] font-mono font-semibold tracking-wider whitespace-nowrap flex items-center gap-6"
+                            >
+                              {m}
+                              <span className="text-gold">◆</span>
+                            </span>
+                          ))}
+                        </span>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Settings */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-ink-border">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                      سرعة حركة الشريط
+                    </label>
+                    <span className="text-gold font-mono font-bold text-xs">{form.speedSeconds} ثانية</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={10}
+                    max={120}
+                    step={1}
+                    value={form.speedSeconds}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        speedSeconds: parseInt(e.target.value, 10) || 30,
+                      })
+                    }
+                    className="w-full accent-gold cursor-pointer"
+                  />
+                  <p className="text-[10px] text-text-muted">الرقم الأقل يعني حركة أسرع للشريط.</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider block">
+                    رابط عند النقر (اختياري)
+                  </label>
+                  <input
+                    type="text"
+                    value={form.linkHref ?? ""}
+                    onChange={(e) => setForm({ ...form, linkHref: e.target.value })}
+                    placeholder="/manga أو #deals"
+                    dir="ltr"
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-xs font-mono rounded-xs focus:border-gold outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Placements */}
+              <div className="space-y-2 pt-2 border-t border-ink-border">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider block">
+                  أماكن ظهور الشريط
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+                  {TICKER_SLOTS.map((slot) => {
+                    const checked = (form.placements ?? []).includes(slot.id);
+                    return (
+                      <label
+                        key={slot.id}
+                        className="flex items-center gap-2 p-2 rounded-xs bg-ink-surface/60 border border-ink-border hover:border-gold/50 cursor-pointer transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => {
+                            const current = form.placements ?? [];
+                            setForm({
+                              ...form,
+                              placements: checked
+                                ? current.filter((id) => id !== slot.id)
+                                : [...current, slot.id],
+                            });
+                          }}
+                          className="accent-gold rounded-xs"
+                        />
+                        <span className="text-paper text-[11px]">{slot.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider block">
+                  Ticker Messages (one per line)
+                </label>
+                <textarea
+                  rows={4}
+                  value={form.messages.join("\n")}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      messages: e.target.value.split("\n"),
+                    })
+                  }
+                  placeholder={"FREE SHIPPING ON ORDERS OVER EGP 500\nAUTHENTIC VIZ MEDIA ENGLISH EDITIONS\nCASH ON DELIVERY ACROSS EGYPT"}
+                  className="w-full bg-ink-surface border border-ink-border text-paper p-3 text-xs font-mono rounded-xs focus:border-gold outline-none resize-none leading-relaxed"
+                />
+              </div>
+
+              {/* Live Preview */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-mono text-text-muted uppercase tracking-wider block">
+                  Live Strip Preview (English) — runs at the real scroll speed
+                </span>
+                <div
+                  dir="ltr"
+                  className="ticker-viewport flex w-full overflow-hidden rounded-xs border border-gold/25 bg-gradient-to-r from-[#8f2418] via-vermilion to-[#8f2418] text-white py-2"
+                  style={{ ["--ticker-duration" as string]: `${form.speedSeconds}s` }}
+                >
+                  {[0, 1].map((track) => (
+                    <div key={track} className="ticker-track-preview flex shrink-0 items-center gap-6 px-3">
+                      {Array.from({ length: 3 }, (_, pass) => (
+                        <span key={pass} className="flex items-center gap-6 shrink-0 pe-6">
+                          {(form.messages.filter((m) => m.trim()).length > 0
+                            ? form.messages.filter((m) => m.trim())
+                            : ["(no messages entered)"]
+                          ).map((m, i) => (
+                            <span
+                              key={i}
+                              className="text-[11px] font-mono font-semibold tracking-wider whitespace-nowrap flex items-center gap-6"
+                            >
+                              {m}
+                              <span className="text-gold">◆</span>
+                            </span>
+                          ))}
+                        </span>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Settings */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-ink-border">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider">
+                      Scroll Speed
+                    </label>
+                    <span className="text-gold font-mono font-bold text-xs">{form.speedSeconds}s / pass</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={10}
+                    max={120}
+                    step={1}
+                    value={form.speedSeconds}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        speedSeconds: parseInt(e.target.value, 10) || 30,
+                      })
+                    }
+                    className="w-full accent-gold cursor-pointer"
+                  />
+                  <p className="text-[10px] text-text-muted">Lower is faster. Strip pauses on hover.</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider block">
+                    Link Destination (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={form.linkHref ?? ""}
+                    onChange={(e) => setForm({ ...form, linkHref: e.target.value })}
+                    placeholder="/manga or #offers"
+                    className="w-full bg-ink-surface border border-ink-border text-paper px-3 py-2 text-xs font-mono rounded-xs focus:border-gold outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Placements */}
+              <div className="space-y-2 pt-2 border-t border-ink-border">
+                <label className="text-xs font-mono font-semibold text-paper-muted uppercase tracking-wider block">
+                  Show In Locations
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+                  {TICKER_SLOTS.map((slot) => {
+                    const checked = (form.placements ?? []).includes(slot.id);
+                    return (
+                      <label
+                        key={slot.id}
+                        className="flex items-center gap-2 p-2 rounded-xs bg-ink-surface/60 border border-ink-border hover:border-gold/50 cursor-pointer transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => {
+                            const current = form.placements ?? [];
+                            setForm({
+                              ...form,
+                              placements: checked
+                                ? current.filter((id) => id !== slot.id)
+                                : [...current, slot.id],
+                            });
+                          }}
+                          className="accent-gold rounded-xs"
+                        />
+                        <span className="text-paper text-[11px]">{slot.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           )}
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-ink-border">

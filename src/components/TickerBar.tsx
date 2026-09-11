@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useStorefrontStore, type TickerSlot } from "@/store/useStorefrontStore";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useMounted } from "@/store/useWishlistStore";
+import { LiveEditButton } from "@/components/admin/LiveEditButton";
 
 /**
  * Divider between two messages: a pair of uneven gold hairlines, like tally
@@ -135,6 +136,16 @@ export function TickerBar({ slot }: { slot: TickerSlot }) {
       {/* Feathered edges so messages slide in and out instead of being clipped. */}
       <div className="pointer-events-none absolute inset-y-0 left-0 w-14 sm:w-20 z-10 bg-gradient-to-r from-[#8f2418] to-transparent" />
       <div className="pointer-events-none absolute inset-y-0 right-0 w-14 sm:w-20 z-10 bg-gradient-to-l from-[#8f2418] to-transparent" />
+
+      {/* Live Visual Editor Button */}
+      <div className="absolute top-1/2 -translate-y-1/2 end-3 z-30 pointer-events-auto">
+        <LiveEditButton
+          target={{ type: "ticker" }}
+          label={isArabic ? "تعديل الشريط" : "Edit Ticker"}
+          variant="floating"
+          size="xs"
+        />
+      </div>
 
       {href ? (
         <Link href={href} className="block hover:opacity-90 transition-opacity">

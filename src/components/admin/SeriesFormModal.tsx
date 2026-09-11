@@ -175,9 +175,13 @@ function SeriesFormDialog({
         <form
           data-lenis-prevent
           onSubmit={handleSubmit}
-          className="p-6 space-y-4 max-h-[75vh] overflow-y-auto overscroll-contain text-xs font-mono"
+          className="px-6 py-7 space-y-9 max-h-[75vh] overflow-y-auto overscroll-contain text-xs font-mono"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <h3 className="mb-4 pb-2 border-b border-ink-border/50 text-[11px] uppercase tracking-[0.18em] font-bold text-paper flex items-center gap-1.5">
+              <span><span className="text-gold/70">01.</span> Identity &amp; Publication</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4">
             <div className="flex flex-col justify-end">
               <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">Series Title *</label>
               <input
@@ -269,15 +273,17 @@ function SeriesFormDialog({
                 onChange={(e) => setFormData({ ...formData, totalVolumes: parseInt(e.target.value, 10) || 1 })}
               />
             </div>
+            </div>
           </div>
 
           {/* Category / Genres Selection & Quick Add */}
           <div className="space-y-2.5">
+            <h3 className="mb-4 pb-2 border-b border-ink-border/50 text-[11px] uppercase tracking-[0.18em] font-bold text-paper flex items-center gap-1.5">
+              <span><span className="text-gold/70">02.</span> Genres &amp; Categories</span>
+            </h3>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <label className="block text-text-muted text-xs uppercase tracking-wider font-semibold">
-                  Genres &amp; Categories *
-                </label>
+<label className="block text-text-muted">Genres &amp; Categories *</label>
                 <span className="text-[10px] text-paper-muted">
                   ({selectedGenres.length} selected)
                 </span>
@@ -285,7 +291,7 @@ function SeriesFormDialog({
               <button
                 type="button"
                 onClick={() => setShowAddGenre(!showAddGenre)}
-                className="flex items-center gap-1 text-[11px] text-gold hover:text-gold-light font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                className="flex items-center gap-1 text-[11px] text-text-muted hover:text-gold font-mono font-semibold uppercase tracking-wider transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>{showAddGenre ? "Cancel" : "+ Add New Category"}</span>
@@ -376,9 +382,7 @@ function SeriesFormDialog({
 
             {/* Available Store Categories (Click to Toggle) */}
             <div className="space-y-1.5 pt-1">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted block">
-                Available Store Categories (Click to select/deselect):
-              </span>
+<span className="block text-[10px] font-mono text-text-muted/80">Click a category to select or deselect it</span>
               <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto overscroll-contain pr-1">
                 {storeGenres.map((genre) => {
                   const isSelected = selectedGenres.some(
@@ -391,7 +395,7 @@ function SeriesFormDialog({
                       onClick={() => toggleGenreSelection(genre.name)}
                       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xs text-[11px] font-mono uppercase tracking-wider border transition-all cursor-pointer ${
                         isSelected
-                          ? "bg-gold text-ink border-gold font-bold shadow-xs scale-105"
+                          ? "bg-gold text-ink border-gold font-bold shadow-xs"
                           : "bg-ink-surface text-text-muted border-ink-border hover:border-gold/50 hover:text-paper"
                       }`}
                     >
@@ -408,7 +412,12 @@ function SeriesFormDialog({
           </div>
 
           <div>
-            <label className="block text-text-muted mb-1">Editorial Quote / Tagline</label>
+            <h3 className="mb-4 pb-2 border-b border-ink-border/50 text-[11px] uppercase tracking-[0.18em] font-bold text-paper flex items-center gap-1.5">
+              <span><span className="text-gold/70">03.</span> Editorial Copy</span>
+            </h3>
+            <div className="space-y-4">
+            <div>
+            <label className="block text-text-muted mb-1.5">Editorial Quote / Tagline</label>
             <input
               type="text"
               value={formData.quote}
@@ -416,36 +425,44 @@ function SeriesFormDialog({
               placeholder="e.g. In a world where negative human emotions manifest as deadly curses..."
               className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
             />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="flex flex-col">
+                <label className="text-text-muted mb-1.5 min-h-[20px] flex items-end">
+                  Synopsis &amp; Editorial Overview (English)
+                </label>
+                <textarea
+                  rows={4}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Series narrative breakdown..."
+                  className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none resize-y"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-text-muted mb-1.5 min-h-[20px] flex items-end gap-1.5">
+                  <span>وصف السلسلة بالعربية</span>
+                  <span className="text-text-muted/60">(optional)</span>
+                </label>
+                <textarea
+                  rows={4}
+                  dir="rtl"
+                  value={formData.descriptionAr || ""}
+                  onChange={(e) => setFormData({ ...formData, descriptionAr: e.target.value })}
+                  placeholder="وصف السلسلة بالعربية..."
+                  className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none font-sans resize-y"
+                />
+              </div>
+            </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-text-muted mb-1">Synopsis & Editorial Overview (English)</label>
-              <textarea
-                rows={4}
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Series narrative breakdown..."
-                className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-text-muted mb-1">
-                وصف السلسلة بالعربية
-                <span className="text-text-muted/60 normal-case"> — optional; falls back to English</span>
-              </label>
-              <textarea
-                rows={4}
-                dir="rtl"
-                value={formData.descriptionAr || ""}
-                onChange={(e) => setFormData({ ...formData, descriptionAr: e.target.value })}
-                placeholder="وصف السلسلة بالعربية..."
-                className="w-full bg-ink border border-ink-border text-paper px-3 py-2 rounded-sm focus:border-gold outline-none font-sans"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-4">
+          <div>
+            <h3 className="mb-4 pb-2 border-b border-ink-border/50 text-[11px] uppercase tracking-[0.18em] font-bold text-paper flex items-center gap-1.5">
+              <span><span className="text-gold/70">04.</span> Artwork</span>
+            </h3>
+            <div className="space-y-5">
             <ImageUploadInput
               label="Banner Artwork"
               value={formData.bannerImage}
@@ -465,10 +482,11 @@ function SeriesFormDialog({
               recommendedDimensions="800 × 1200 px (3:4 or 2:3 Poster)"
               helpText="Vertical poster for catalog cards"
             />
+            </div>
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-between gap-3 pt-4 border-t border-ink-border">
+          <div className="flex items-center justify-between gap-3 pt-5 border-t border-ink-border">
             {initialSeries && onDelete ? (
               <button
                 type="button"

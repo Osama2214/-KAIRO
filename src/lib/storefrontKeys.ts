@@ -34,6 +34,8 @@ export const STOREFRONT_DATA_KEYS = [
   "boxSetsArabicConfig",
   "tickerArabicConfig",
   "genreBentoArabicConfig",
+  "policyContent",
+  "policyContentArabic",
 ] as const;
 
 export type StorefrontDataKey = (typeof STOREFRONT_DATA_KEYS)[number];

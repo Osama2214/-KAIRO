@@ -17,6 +17,7 @@ import {
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
+import { LiveEditButton } from "@/components/admin/LiveEditButton";
 
 export type PolicyTab = "shipping" | "authenticity" | "privacy" | "terms";
 
@@ -37,8 +38,16 @@ export function PolicyModal({
   const { locale, isRTL } = useTranslation();
   const isArabic = locale === "ar";
   const editorialConfig = useStorefrontStore((state) => state.editorialConfig);
+  const editorialArabicConfig = useStorefrontStore((state) => state.editorialArabicConfig);
+  const shippingConfig = useStorefrontStore((state) => state.shippingConfig);
+  const policyContentEn = useStorefrontStore((state) => state.policyContent);
+  const policyContentAr = useStorefrontStore((state) => state.policyContentArabic);
+  // Every heading, titled point, delivery card and tick below is curator copy.
+  const policy = isArabic ? policyContentAr : policyContentEn;
   const contactEmail = editorialConfig?.contactEmail || "";
   const contactPhone = editorialConfig?.contactPhone || "";
+  const freeShippingEnabled = shippingConfig?.freeShippingEnabled ?? true;
+  const freeShippingThreshold = shippingConfig?.freeShippingThreshold ?? 500;
 
   // Close on Escape key
   useEffect(() => {
@@ -93,18 +102,37 @@ export function PolicyModal({
             </h3>
             <p className="hidden sm:block text-xs text-text-muted mt-0.5">
               {isArabic
-                ? "مركز الشحن الرئيسي: الحي المتميز، 6 أكتوبر، الجيزة • شحن وتوصيل مباشر لكافة محافظات مصر"
-                : "Operating out of 6th of October Hub, Giza • Direct delivery to all Egypt"}
+                ? (editorialArabicConfig?.hubCities ? `مركز الشحن الرئيسي: ${editorialArabicConfig.hubCities}` : "مركز الشحن الرئيسي: الحي المتميز، 6 أكتوبر، الجيزة • شحن وتوصيل مباشر لكافة محافظات مصر")
+                : (editorialConfig?.hubCities ? `Operating out of ${editorialConfig.hubCities}` : "Operating out of 6th of October Hub, Giza • Direct delivery to all Egypt")}
             </p>
           </div>
 
-          <button
-            onClick={onClose}
-            className="p-2 text-text-muted hover:text-paper hover:bg-ink border border-transparent hover:border-ink-border rounded-xs transition-colors cursor-pointer shrink-0 z-10"
-            aria-label="Close dialog"
-          >
-            <X className="w-5 h-5 text-gold" />
-          </button>
+          <div className="flex items-center gap-3 shrink-0 z-10">
+            {/* Admin-only control, kept a clear step away from the close
+                button so the two are never mistaken for a matched pair. */}
+            <LiveEditButton
+              target={{ type: "editorial", tab: activeTab }}
+              label={
+                activeTab === "shipping"
+                  ? (isArabic ? "تعديل الشحن" : "Edit Shipping")
+                  : activeTab === "authenticity"
+                  ? (isArabic ? "تعديل الأصالة" : "Edit Authenticity")
+                  : activeTab === "privacy"
+                  ? (isArabic ? "تعديل الخصوصية" : "Edit Privacy")
+                  : (isArabic ? "تعديل الشروط" : "Edit Terms")
+              }
+              variant="floating"
+              size="xs"
+              className="me-1"
+            />
+            <button
+              onClick={onClose}
+              className="p-2 text-text-muted hover:text-paper hover:bg-ink border border-ink-border/60 rounded-xs transition-colors cursor-pointer shrink-0"
+              aria-label="Close dialog"
+            >
+              <X className="w-5 h-5 text-gold" />
+            </button>
+          </div>
         </div>
 
         {/* Tab Navigation - Clean responsive grid with zero horizontal scrollbar */}
@@ -173,58 +201,54 @@ export function PolicyModal({
               <div className="p-4 bg-ink-surface border border-ink-border rounded-xs">
                 <div className="flex items-center gap-2 text-gold font-mono text-[11px] font-bold uppercase mb-2">
                   <MapPin className="w-4 h-4 text-gold" />
-                  <span>
-                    {isArabic
-                      ? "مركز الشحن الرئيسي: مدينة 6 أكتوبر • الجيزة، مصر"
-                      : "Central Dispatch: 6th of October City Hub • Giza, Egypt"}
-                  </span>
+                  <span>{policy.shipping.leadTitle}</span>
                 </div>
                 <p className="text-paper">
                   {isArabic
-                    ? "تخرج جميع طلبات المانجا المطبوعة مباشرة من مركز التجهيز المتطور المخصص للأرشيف في الحي المتميز، مدينة 6 أكتوبر، الجيزة. نغطي كافة محافظات جمهورية مصر العربية الـ 27 بتوصيل سريع ومباشر حتى باب المنزل."
-                    : "All physical manga orders are handled and dispatched directly from our specialized climate-controlled fulfillment hub in the Al Motamayez District, 6th of October City, Giza. We deliver to all 27 governorates across Egypt."}
+                    ? (editorialArabicConfig?.shippingPolicyText || "تخرج جميع طلبات المانجا المطبوعة مباشرة من مركز التجهيز المتطور المخصص للأرشيف في الحي المتميز، مدينة 6 أكتوبر، الجيزة. نغطي كافة محافظات جمهورية مصر العربية الـ 27 بتوصيل سريع ومباشر حتى باب المنزل.")
+                    : (editorialConfig?.shippingPolicyText || "All physical manga orders are handled and dispatched directly from our specialized climate-controlled fulfillment hub in the Al Motamayez District, 6th of October City, Giza. We deliver to all 27 governorates across Egypt.")}
                 </p>
               </div>
 
               <div>
                 <h4 className="font-mono text-paper font-bold text-xs uppercase tracking-wider mb-3 flex items-center gap-2">
                   <Clock className="w-3.5 h-3.5 text-gold" />
-                  <span>{isArabic ? "مواعيد وفترات التوصيل حسب المحافظة" : "Delivery Windows & Estimates"}</span>
+                  <span>{policy.shipping.windowsTitle}</span>
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono">
-                  <div className="p-3 bg-ink-surface/50 border border-ink-border rounded-xs">
-                    <span className="text-gold block font-bold text-[11px]">{isArabic ? "القاهرة والجيزة" : "CAIRO & GIZA"}</span>
-                    <span className="text-paper font-extrabold text-sm block mt-1">{isArabic ? "خلال 24 – 48 ساعة" : "24 – 48 Hours"}</span>
-                    <span className="text-[10px] text-text-muted mt-1 block">{isArabic ? "شحن يومي مباشر وسريع" : "Daily express dispatch"}</span>
-                  </div>
-                  <div className="p-3 bg-ink-surface/50 border border-ink-border rounded-xs">
-                    <span className="text-gold block font-bold text-[11px]">{isArabic ? "الإسكندرية ومحافظات الدلتا" : "ALEX & DELTA"}</span>
-                    <span className="text-paper font-extrabold text-sm block mt-1">{isArabic ? "خلال 2 – 3 أيام عمل" : "2 – 3 Days"}</span>
-                    <span className="text-[10px] text-text-muted mt-1 block">{isArabic ? "يشمل مدن القناة" : "Canal Cities included"}</span>
-                  </div>
-                  <div className="p-3 bg-ink-surface/50 border border-ink-border rounded-xs">
-                    <span className="text-gold block font-bold text-[11px]">{isArabic ? "الصعيد والبحر الأحمر ومطروح" : "UPPER EGYPT & RED SEA"}</span>
-                    <span className="text-paper font-extrabold text-sm block mt-1">{isArabic ? "خلال 3 – 4 أيام عمل" : "3 – 4 Days"}</span>
-                    <span className="text-[10px] text-text-muted mt-1 block">{isArabic ? "توصيل آمن حتى باب المنزل" : "Full door-to-door transit"}</span>
-                  </div>
+                  {policy.shipping.windows.map((window, index) => (
+                    <div key={index} className="p-3 bg-ink-surface/50 border border-ink-border rounded-xs">
+                      <span className="text-gold block font-bold text-[11px]">{window.region}</span>
+                      <span className="text-paper font-extrabold text-sm block mt-1">{window.duration}</span>
+                      <span className="text-[10px] text-text-muted mt-1 block">{window.note}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div>
-                <h4 className="font-mono text-paper font-bold text-xs uppercase tracking-wider mb-2 flex items-center gap-2">
-                  <PackageCheck className="w-3.5 h-3.5 text-gold" />
-                  <span>{isArabic ? "ميثاق التغليف المصفح للمقتنين" : "Collector Armor Packaging Guarantee"}</span>
-                </h4>
-                <p>
-                  {isArabic
-                    ? "نعتمد كراتين مقوّاة مزدوجة الجدران مع دعامات زوايا متينة وأكياس أرشيفية عازلة لحماية المجلد من أي التواء أو احتكاك أثناء الشحن. نرفض تماماً استخدام الأكياس البلاستيكية الخفيفة حرصاً على سلامة الحواف."
-                    : "Every volume is packed using dual-wall reinforced corrugated cartons, high-density edge guards, and archival slip-sleeves. We strictly forbid thin plastic mailers to preserve crisp, unbent book corners during transit."}
-                </p>
-              </div>
+              {policy.shipping.points.map((point, index) => (
+                <div key={index}>
+                  <h4 className="font-mono text-paper font-bold text-xs uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <PackageCheck className="w-3.5 h-3.5 text-gold" />
+                    <span>{point.title}</span>
+                  </h4>
+                  <p>{point.body}</p>
+                </div>
+              ))}
 
               <div className="pt-2 border-t border-ink-border/50 flex items-center justify-between text-[11px] font-mono text-text-muted">
-                <span>{isArabic ? "شركاء الشحن: بوسطة إكسبريس وأرامكس مصر" : "COURIERS: BOSTA EXPRESS & ARAMEX EGYPT"}</span>
-                <span className="text-gold">{isArabic ? "شحن مجاني للطلبات فوق 750 ج.م" : "FREE DISPATCH OVER EGP 750"}</span>
+                <span>{policy.shipping.couriers}</span>
+                {freeShippingEnabled ? (
+                  <span className="text-gold font-semibold">
+                    {isArabic
+                      ? `شحن مجاني للطلبات فوق ${freeShippingThreshold} ج.م`
+                      : `FREE DISPATCH OVER EGP ${freeShippingThreshold}`}
+                  </span>
+                ) : (
+                  <span className="text-gold font-semibold">
+                    {isArabic ? "تغطية شحن لكافة المحافظات" : "ALL-EGYPT TRANSIT"}
+                  </span>
+                )}
               </div>
             </div>
           )}
@@ -238,10 +262,10 @@ export function PolicyModal({
                     <Award className="w-5 h-5 text-gold shrink-0" />
                     <div>
                       <span className="font-mono text-[10px] text-gold tracking-widest uppercase block">
-                        {isArabic ? "شهادة الاعتماد والأصالة الأرشيفية" : "CERTIFICATE OF AUTHENTICITY"}
+                        {policy.authenticity.leadTitle}
                       </span>
                       <span className="text-paper font-extrabold text-sm uppercase tracking-tight">
-                        {isArabic ? "طبعات رسمية مرخصة 100% من كبرى دور النشر اليابانية" : "100% GENUINE JAPANESE LICENSED EDITIONS"}
+                        {policy.authenticity.certificateTitle}
                       </span>
                     </div>
                   </div>
@@ -264,40 +288,26 @@ export function PolicyModal({
 
                 <p className="text-paper mb-3">
                   {isArabic
-                    ? "تضمن هذه الوثيقة أن جميع مجلدات المانجا والكتب الفنية المعروضة في منصة كايرو مستوردة بشكل قانوني ورسمي من أصحاب الحقوق المعتمدين، بما في ذلك Shueisha و Kodansha و Hakusensha و Shogakukan و Square Enix، إضافةً إلى الدور العالمية المرخصة (Dark Horse, Viz Media)."
-                    : "This document certifies that every volume distributed through ANIMEVERSE Publishing Archive is imported directly from official licensed rights holders, including Shueisha, Kodansha, Hakusensha, Shogakukan, Square Enix, and authorized Western imprints (Dark Horse, Viz Media)."}
+                    ? (editorialArabicConfig?.authenticityGuaranteeText || "تضمن هذه الوثيقة أن جميع مجلدات المانجا والكتب الفنية المعروضة في منصة كايرو مستوردة بشكل قانوني ورسمي من أصحاب الحقوق المعتمدين، بما في ذلك Shueisha و Kodansha و Hakusensha و Shogakukan و Square Enix، إضافةً إلى الدور العالمية المرخصة (Dark Horse, Viz Media).")
+                    : (editorialConfig?.authenticityGuaranteeText || "This document certifies that every volume distributed through ANIMEVERSE Publishing Archive is imported directly from official licensed rights holders, including Shueisha, Kodansha, Hakusensha, Shogakukan, Square Enix, and authorized Western imprints (Dark Horse, Viz Media).")}
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px] font-mono pt-2">
-                  <div className="flex items-center gap-2 text-paper">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-gold shrink-0" />
-                    <span>{isArabic ? "رقم إيداع دولي ISBN وباركود رسمي ياباني" : "Official ISBN & Tokyo registry barcoded"}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-paper">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-gold shrink-0" />
-                    <span>{isArabic ? "ورق أرشيفي ممتاز خالٍ من الأحماض" : "Archival acid-free paper stock"}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-paper">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-gold shrink-0" />
-                    <span>{isArabic ? "خالٍ تماماً من النسخ المقلدة أو غير المصرح بها" : "Zero counterfeit or bootleg prints"}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-paper">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-gold shrink-0" />
-                    <span>{isArabic ? "استبدال فوري مجاني لأي عيب مصنعي أو تلف شحن" : "Free replacement for transit corner damage"}</span>
-                  </div>
+                  {policy.authenticity.checks.map((check, index) => (
+                    <div key={index} className="flex items-center gap-2 text-paper">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-gold shrink-0" />
+                      <span>{check}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div>
-                <h4 className="font-mono text-paper font-bold text-xs uppercase tracking-wider mb-2">
-                  {isArabic ? "ضمان الاستبدال الفوري للمقتنين" : "Collector Replacement Guarantee"}
-                </h4>
-                <p>
-                  {isArabic
-                    ? "بصفتنا مقتنين للمانجا قبل كل شيء، نقوم بفحص أغلفة المجلدات ولمعان الحروف وزوايا الكعب بدقة بالغة قبل التغليف. وإذا وصلك أي مجلد به انثناء أو عيب في الطباعة أو التجليد، يحق لك استبداله مجاناً خلال 14 يوماً."
-                    : "As collectors ourselves, we inspect book jackets, spot-varnishes, and spine corners before packing. If your volume arrives with any physical dent or printing defect, notify us within 14 days for an immediate no-hassle exchange."}
-                </p>
-              </div>
+              {policy.authenticity.points.map((point, index) => (
+                <div key={index}>
+                  <h4 className="font-mono text-paper font-bold text-xs uppercase tracking-wider mb-2">{point.title}</h4>
+                  <p>{point.body}</p>
+                </div>
+              ))}
             </div>
           )}
 
@@ -307,48 +317,25 @@ export function PolicyModal({
               <div className="p-4 bg-ink-surface border border-ink-border rounded-xs">
                 <div className="flex items-center gap-2 text-gold font-mono text-[11px] font-bold uppercase mb-2">
                   <Lock className="w-4 h-4 text-gold" />
-                  <span>{isArabic ? "تشفير بيانات المقتنين وحماية الخصوصية" : "Patron Data Encryption & Sovereignty"}</span>
+                  <span>{policy.privacy.leadTitle}</span>
                 </div>
                 <p className="text-paper">
                   {isArabic
-                    ? "خصوصيتك أولويتنا المطلقة. تلتزم كايرو بأعلى معايير حماية البيانات وبقانون حماية البيانات الشخصية المصري (قانون رقم 151 لسنة 2020)."
-                    : "Your privacy is paramount. ANIMEVERSE adheres to strict data minimization standards and the Egyptian Data Protection Law (Law No. 151 of 2020)."}
+                    ? (editorialArabicConfig?.privacyPolicyText || "خصوصيتك أولويتنا المطلقة. تلتزم كايرو بأعلى معايير حماية البيانات وبقانون حماية البيانات الشخصية المصري (قانون رقم 151 لسنة 2020).")
+                    : (editorialConfig?.privacyPolicyText || "Your privacy is paramount. ANIMEVERSE adheres to strict data minimization standards and the Egyptian Data Protection Law (Law No. 151 of 2020).")}
                 </p>
               </div>
 
               <div className="space-y-3">
-                <div className={`${isRTL ? "border-r-2 pr-3.5" : "border-l-2 pl-3.5"} border-gold`}>
-                  <h5 className="font-mono text-paper font-bold text-xs uppercase">
-                    {isArabic ? "حظر مشاركة أو بيع البيانات تماماً" : "No Third-Party Data Selling"}
-                  </h5>
-                  <p className="mt-1">
-                    {isArabic
-                      ? "لا نقوم إطلاقاً ببيع أو تأجير أرقام هواتف العملاء أو عناوين الشحن أو تفضيلات القراءة لأي شركات تسويق خارجية أو شبكات إعلانية."
-                      : "We never sell, rent, or trade your phone number, delivery address, or manga reading preferences to marketing agencies or ad trackers."}
-                  </p>
-                </div>
-
-                <div className={`${isRTL ? "border-r-2 pr-3.5" : "border-l-2 pl-3.5"} border-gold`}>
-                  <h5 className="font-mono text-paper font-bold text-xs uppercase">
-                    {isArabic ? "دفع آمن ومعالجة مشفرة" : "End-to-End Encrypted Checkout"}
-                  </h5>
-                  <p className="mt-1">
-                    {isArabic
-                      ? "تتم كافة عمليات الدفع والتحويل عبر قنوات مشفرة وفق بروتوكولات الأمان القياسية PCI-DSS. لا نحتفظ بأي بيانات مصرفية حساسة على خوادمنا."
-                      : "All payment processing via Credit Card or Instapay is handled through PCI-DSS Level 1 compliant gateways. Card numbers are never stored in plain text or saved on our servers."}
-                  </p>
-                </div>
-
-                <div className={`${isRTL ? "border-r-2 pr-3.5" : "border-l-2 pl-3.5"} border-gold`}>
-                  <h5 className="font-mono text-paper font-bold text-xs uppercase">
-                    {isArabic ? "تحكم كامل في جلسة التصفح" : "Local Storage & Session Control"}
-                  </h5>
-                  <p className="mt-1">
-                    {isArabic
-                      ? "يتم حفظ محتويات السلة وقائمة الرغبات محلياً في متصفحك، ويمكنك حذفها أو تفريغها بضغطة زر واحدة في أي وقت عبر إعدادات حسابك."
-                      : "Cart contents, wishlist volumes, and reading progress are stored locally in your browser and can be purged at any moment via your Account Settings."}
-                  </p>
-                </div>
+                {policy.privacy.points.map((point, index) => (
+                  <div
+                    key={index}
+                    className={`${isRTL ? "border-r-2 pr-3.5" : "border-l-2 pl-3.5"} border-gold`}
+                  >
+                    <h5 className="font-mono text-paper font-bold text-xs uppercase">{point.title}</h5>
+                    <p className="mt-1">{point.body}</p>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -359,57 +346,30 @@ export function PolicyModal({
               <div className="p-4 bg-ink-surface border border-ink-border rounded-xs">
                 <div className="flex items-center gap-2 text-gold font-mono text-[11px] font-bold uppercase mb-2">
                   <FileText className="w-4 h-4 text-gold" />
-                  <span>{isArabic ? "شروط الشراء وحق المعاينة عند الاستلام" : "Purchasing Terms & Patron Inspection"}</span>
+                  <span>{policy.terms.leadTitle}</span>
                 </div>
                 <p className="text-paper">
                   {isArabic
-                    ? "عند تأكيد طلبك في كايرو، فإنك توافق على الشروط والضوابط التالية المصممة لضمان تجربة اقتناء مريحة وموثوقة."
-                    : "By placing an order on ANIMEVERSE, you agree to the following terms designed to ensure collector satisfaction across Egypt."}
+                    ? (editorialArabicConfig?.returnPolicyText || "عند تأكيد طلبك في كايرو، فإنك توافق على الشروط والضوابط التالية المصممة لضمان تجربة اقتناء مريحة وموثوقة.")
+                    : (editorialConfig?.returnPolicyText || "By placing an order on ANIMEVERSE, you agree to the following terms designed to ensure collector satisfaction across Egypt.")}
                 </p>
               </div>
 
               <div className="space-y-3 font-sans">
-                <div className="flex items-start gap-2">
-                  <RefreshCcw className="w-4 h-4 text-gold shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="text-paper font-mono uppercase text-[11px]">
-                      {isArabic ? "حق الاستبدال خلال 14 يوماً:" : "14-Day Return & Replacement:"}
-                    </strong>
-                    <p className="mt-0.5">
-                      {isArabic
-                        ? "إذا استلمت مجلداً به أي تلف أو خطأ في التجليد، يحق لك استبداله خلال 14 يوماً من تاريخ الاستلام، بشرط بقاء الكتاب في حالته الأصلية وغلافه الحافظ."
-                        : "Items that are damaged upon delivery or have binding defects are eligible for replacement within 14 days of receipt. Volumes must be in original condition with publisher sleeves."}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-gold shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="text-paper font-mono uppercase text-[11px]">
-                      {isArabic ? "حق المعاينة قبل الاستلام:" : "Package Inspection:"}
-                    </strong>
-                    <p className="mt-0.5">
-                      {isArabic
-                        ? "يحق للعميل معاينة الطرد والتأكد من سلامة التغليف الخارجي في وجود مندوب التوصيل قبل الاستلام والتوقيع النهائي."
-                        : "Patrons in Egypt have the full right to inspect the external shipping container in the presence of the courier before final signature."}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2">
-                  <Truck className="w-4 h-4 text-gold shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="text-paper font-mono uppercase text-[11px]">
-                      {isArabic ? "شروط الدفع عند الاستلام (COD):" : "Cash on Delivery (COD) Terms:"}
-                    </strong>
-                    <p className="mt-0.5">
-                      {isArabic
-                        ? "الدفع عند الاستلام متاح في كافة أنحاء مصر. في حالة تكرار رفض الاستلام بدون مبرر، قد يتم حصر الطلبات المستقبلية على الدفع المسبق."
-                        : "Cash on Delivery is supported across all Egyptian governorates. Repeated uncollected orders may require prepaid verification for future orders."}
-                    </p>
-                  </div>
-                </div>
+                {policy.terms.points.map((point, index) => {
+                  // The first three keep the icons they have always had; any
+                  // point a curator adds past them falls back to the tick.
+                  const Icon = [RefreshCcw, CheckCircle2, Truck][index] || CheckCircle2;
+                  return (
+                    <div key={index} className="flex items-start gap-2">
+                      <Icon className="w-4 h-4 text-gold shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="text-paper font-mono uppercase text-[11px]">{point.title}</strong>
+                        <p className="mt-0.5">{point.body}</p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
