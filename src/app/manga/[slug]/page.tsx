@@ -4,7 +4,7 @@ import React, { useState, use } from "react";
 import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
 import { Plus, Minus, ShoppingBag, BookOpen, Share2, ShieldCheck, Truck, ArrowRight, Eye, Check, Heart } from "lucide-react";
-import { ALL_VOLUMES } from "@/data/manga";
+import { ALL_VOLUMES, type MangaVolume } from "@/data/manga";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
 import { useUIStore } from "@/store/useUIStore";
@@ -15,14 +15,34 @@ import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
 import { StarRating } from "@/components/StarRating";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
+import { CatalogPending } from "@/components/CatalogPending";
 
 interface MangaPageProps {
   params: Promise<{ slug: string }>;
 }
 
+/**
+ * Resolves the volume before the view mounts, so the view can assume it exists
+ * and keep its hook order stable no matter how the lookup goes.
+ */
 export default function MangaDetailPage({ params }: MangaPageProps) {
-  const router = useRouter();
   const resolvedParams = use(params);
+  const catalogLoaded = useStorefrontStore((state) => state.catalogLoaded);
+  const storeVolumes = useStorefrontStore((state) => state.volumes);
+  const activeVolumes = storeVolumes && storeVolumes.length > 0 ? storeVolumes : ALL_VOLUMES;
+  const volume = activeVolumes.find((v) => v.id === resolvedParams.slug);
+
+  if (!volume) {
+    // The bundled catalogue only holds what existed at build time, so a product
+    // the curator added later is absent until the fetch lands.
+    if (!catalogLoaded) return <CatalogPending />;
+    notFound();
+  }
+  return <MangaDetailView volume={volume} />;
+}
+
+function MangaDetailView({ volume }: { volume: MangaVolume }) {
+  const router = useRouter();
   const { locale, isRTL } = useTranslation();
   const isArabic = locale === "ar";
 
@@ -30,12 +50,6 @@ export default function MangaDetailPage({ params }: MangaPageProps) {
   const shippingConfig = useStorefrontStore((state) => state.shippingConfig);
   const shippingArabicConfig = useStorefrontStore((state) => state.shippingArabicConfig);
   const activeVolumes = storeVolumes && storeVolumes.length > 0 ? storeVolumes : ALL_VOLUMES;
-
-  const volume = activeVolumes.find((v) => v.id === resolvedParams.slug);
-
-  if (!volume) {
-    notFound();
-  }
 
   const [quantity, setQuantity] = useState(1);
   const [copied, setCopied] = useState(false);

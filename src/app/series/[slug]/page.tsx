@@ -3,7 +3,7 @@
 import React, { use, useMemo } from "react";
 import { notFound, useRouter } from "next/navigation";
 import { BookOpen, Plus, Eye, User, Heart } from "lucide-react";
-import { ALL_SERIES, ALL_VOLUMES, type MangaVolume } from "@/data/manga";
+import { ALL_SERIES, ALL_VOLUMES, type MangaVolume, type Series } from "@/data/manga";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
 import { useUIStore } from "@/store/useUIStore";
@@ -13,28 +13,37 @@ import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
 import { StarRating } from "@/components/StarRating";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
+import { CatalogPending } from "@/components/CatalogPending";
 
 interface SeriesPageProps {
   params: Promise<{ slug: string }>;
 }
 
+/**
+ * Resolves the series before the view mounts, so the view can assume it exists
+ * and keep its hook order stable no matter how the lookup goes.
+ */
 export default function SeriesPage({ params }: SeriesPageProps) {
-  const router = useRouter();
   const resolvedParams = use(params);
-  const { locale } = useTranslation();
-  const isArabic = locale === "ar";
-
+  const catalogLoaded = useStorefrontStore((state) => state.catalogLoaded);
   const allSeries = useStorefrontStore((state) => state.series);
-  const allVolumes = useStorefrontStore((state) => state.volumes);
-
   const seriesList = allSeries && allSeries.length > 0 ? allSeries : ALL_SERIES;
-  const activeVolumes = allVolumes && allVolumes.length > 0 ? allVolumes : ALL_VOLUMES;
-
   const series = seriesList.find((s) => s.slug === resolvedParams.slug);
 
   if (!series) {
+    if (!catalogLoaded) return <CatalogPending />;
     notFound();
   }
+  return <SeriesView series={series} />;
+}
+
+function SeriesView({ series }: { series: Series }) {
+  const router = useRouter();
+  const { locale } = useTranslation();
+  const isArabic = locale === "ar";
+
+  const allVolumes = useStorefrontStore((state) => state.volumes);
+  const activeVolumes = allVolumes && allVolumes.length > 0 ? allVolumes : ALL_VOLUMES;
 
   const seriesEntries = activeVolumes.filter((v) => v.seriesSlug === series.slug);
   // A box set is a way to buy the books, not a book — it does not belong in the

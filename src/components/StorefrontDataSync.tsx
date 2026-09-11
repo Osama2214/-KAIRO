@@ -52,14 +52,27 @@ export function StorefrontDataSync() {
           useStorefrontStore.setState(payload.data);
         }
       } finally {
-        // Cart and wishlist persist ids only, so fill in titles, art and prices
-        // here — unconditionally. Doing it only on a successful fetch meant a
-        // storefront API outage left every restored cart line blank at zero.
-        const volumes = useStorefrontStore.getState().volumes;
-        useCartStore.getState().hydrateFromCatalog(volumes);
-        useWishlistStore.getState().hydrateFromCatalog(volumes);
-        hydrated = true;
-        previous = JSON.stringify(snapshot(useStorefrontStore.getState() as unknown as Record<string, unknown>));
+        // Only the live run may finish. A cancelled one — React's double-mount
+        // in development, or a real unmount — had its own fetch result thrown
+        // away by the `active` check above, so letting it fall through here
+        // announced a catalogue that was never actually applied: pages then
+        // resolved products against the defaults bundled at build time and
+        // 404'd everything added since.
+        if (active) {
+          // Cart and wishlist persist ids only, so fill in titles, art and
+          // prices here — unconditionally. Doing it only on a successful fetch
+          // meant a storefront API outage left every restored cart line blank
+          // at zero.
+          const volumes = useStorefrontStore.getState().volumes;
+          useCartStore.getState().hydrateFromCatalog(volumes);
+          useWishlistStore.getState().hydrateFromCatalog(volumes);
+          hydrated = true;
+          // Pages that resolve a product by id wait on this before deciding it
+          // is missing; it is set even on a failed fetch so an API outage shows
+          // the bundled catalogue rather than hanging on a spinner.
+          useStorefrontStore.setState({ catalogLoaded: true });
+          previous = JSON.stringify(snapshot(useStorefrontStore.getState() as unknown as Record<string, unknown>));
+        }
       }
     };
 

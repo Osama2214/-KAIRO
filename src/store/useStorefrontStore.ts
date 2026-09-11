@@ -477,6 +477,15 @@ export interface StorefrontState {
   trendingArabicConfig: TrendingArabicConfig;
   genreBentoArabicConfig: GenreBentoArabicConfig;
 
+  /**
+   * True once the catalogue has been fetched from the server, whether that
+   * succeeded or failed. Until then the store still holds the defaults bundled
+   * into the JS, which contain only the products that existed at build time —
+   * so a page that looks a product up by id has to wait for this before
+   * deciding the product does not exist.
+   */
+  catalogLoaded: boolean;
+
   // Admin Access & Live Visual Editor
   isAdminAuthenticated: boolean;
   isVisualEditorActive: boolean;
@@ -575,6 +584,7 @@ export const useStorefrontStore = create<StorefrontState>()(
       boxSetsArabicConfig: DEFAULT_BOX_SETS_ARABIC_CONFIG,
       trendingArabicConfig: DEFAULT_TRENDING_ARABIC_CONFIG,
       genreBentoArabicConfig: DEFAULT_GENRE_BENTO_ARABIC_CONFIG,
+      catalogLoaded: false,
       isAdminAuthenticated: false,
       isVisualEditorActive: true,
       activeLiveEditTarget: null,
