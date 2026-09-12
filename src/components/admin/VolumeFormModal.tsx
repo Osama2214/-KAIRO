@@ -337,14 +337,22 @@ function VolumeFormDialog({
   const allVolumes = useStorefrontStore((s) => s.volumes);
   const isBoxSet = formData.format === "Box Set";
 
-  // A box cannot contain itself, and listing another box would let one bundle
-  // silently depend on another's contents.
-  const eligibleMembers = useMemo(
-    () => allVolumes.filter((v) => v.id !== formData.id && v.format !== "Box Set"),
-    [allVolumes, formData.id]
-  );
-
   const memberIds = useMemo(() => formData.bundleOf || [], [formData.bundleOf]);
+
+  // A box cannot contain itself, and listing another box would let one bundle
+  // silently depend on another's contents. Only the chosen series' volumes are
+  // offered; anything already in the box stays listed so it can be unticked
+  // after the series is changed.
+  const eligibleMembers = useMemo(
+    () =>
+      allVolumes.filter(
+        (v) =>
+          v.id !== formData.id &&
+          v.format !== "Box Set" &&
+          (v.seriesSlug === formData.seriesSlug || memberIds.includes(v.id))
+      ),
+    [allVolumes, formData.id, formData.seriesSlug, memberIds]
+  );
 
   const toggleMember = (id: string) => {
     const next = memberIds.includes(id)
@@ -740,7 +748,7 @@ function VolumeFormDialog({
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => setFormData({ ...formData, bundleOf: eligibleMembers.map((v) => v.id) })}
+                        onClick={() => setFormData({ ...formData, bundleOf: eligibleMembers.filter((v) => v.seriesSlug === formData.seriesSlug).map((v) => v.id) })}
                         className="text-[10px] font-mono uppercase tracking-wider text-text-muted hover:text-gold cursor-pointer"
                       >
                         Select all
