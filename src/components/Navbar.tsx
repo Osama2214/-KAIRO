@@ -190,12 +190,18 @@ export function Navbar() {
             isScrolled ? "py-2.5 sm:py-3.5" : "py-3 sm:py-5"
           }`}
         >
-          {/* Brand Logo */}
+          {/* Brand Logo. `data-intro-logo-target` is how the opening title
+              sequence finds this box: its closing scene measures it and flies
+              the assembled intro lockup into it, so the intro ends by
+              *becoming* this logo. Measured rather than hard-coded because the
+              mark changes height on scroll and its left edge moves with the
+              responsive gutter. */}
           <Link
             href="/"
             onClick={handleLogoClick}
             aria-label="AnimeVerse — Your Universe of Manga & Collector Editions"
             className="group flex items-center focus:outline-none cursor-pointer shrink-0"
+            data-intro-logo-target=""
           >
             <Image
               src={storeMark}

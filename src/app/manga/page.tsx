@@ -38,6 +38,9 @@ function MangaCatalogContent() {
   const isArabic = locale === "ar";
   const initialGenre = searchParams.get("genre");
   const isSaleParam = searchParams.get("sort") === "sale";
+  // Header and footer link straight to a format ("/manga?format=Box+Set"); without
+  // this the visitor landed on the unfiltered catalogue.
+  const initialFormat = searchParams.get("format");
 
   const storeVolumes = useStorefrontStore((state) => state.volumes);
   const storeGenres = useStorefrontStore((state) => state.genres);
@@ -91,7 +94,9 @@ function MangaCatalogContent() {
   const [selectedGenres, setSelectedGenres] = useState<string[]>(
     initialGenre ? [initialGenre.toLowerCase()] : []
   );
-  const [selectedFormats, setSelectedFormats] = useState<string[]>([]);
+  const [selectedFormats, setSelectedFormats] = useState<string[]>(
+    initialFormat ? [initialFormat] : []
+  );
   const [inStockOnly, setInStockOnly] = useState(false);
   const [onSaleOnly, setOnSaleOnly] = useState(isSaleParam);
   const [priceMax, setPriceMax] = useState<number | null>(null);
@@ -120,10 +125,14 @@ function MangaCatalogContent() {
   React.useEffect(() => {
     const isSale = searchParams.get("sort") === "sale";
     const genre = searchParams.get("genre");
+    const format = searchParams.get("format");
     const raf = requestAnimationFrame(() => {
       setOnSaleOnly(isSale);
       if (genre) {
         setSelectedGenres([genre.toLowerCase()]);
+      }
+      if (format) {
+        setSelectedFormats([format]);
       }
     });
     return () => cancelAnimationFrame(raf);

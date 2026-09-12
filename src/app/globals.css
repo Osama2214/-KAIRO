@@ -657,9 +657,24 @@ html.animeverse-loading #animeverse-restore-loader {
   animation: kairoIntroDriftSoft 38s ease-in-out infinite alternate;
 }
 
+/* Atmospheric embers in the intro's hero hold. Compositor-only (transform +
+   opacity), one pass per particle, and short enough that the sequence is over
+   before any of them would repeat. */
+@keyframes kairoIntroEmber {
+  0%   { transform: translate3d(0, 0, 0); opacity: 0; }
+  18%  { opacity: 0.55; }
+  100% { transform: translate3d(0, var(--ember-drift, -24px), 0); opacity: 0; }
+}
+
+.kairo-intro-ember {
+  animation: kairoIntroEmber 2.4s ease-out infinite;
+  will-change: transform, opacity;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .kairo-intro-drift,
-  .kairo-intro-drift-soft {
+  .kairo-intro-drift-soft,
+  .kairo-intro-ember {
     animation: none;
   }
 }

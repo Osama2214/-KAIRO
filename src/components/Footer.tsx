@@ -10,6 +10,7 @@ import { PolicyModal, PolicyTab } from "./PolicyModal";
 
 import { useAuthStore } from "@/store/useAuthStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
+import { ALL_SERIES } from "@/data/manga";
 import { useMounted } from "@/store/useWishlistStore";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -29,6 +30,11 @@ export function Footer() {
   const mounted = useMounted();
 
   const isAr = locale === "ar";
+
+  // The column used to be four hardcoded titles that drifted from the catalogue.
+  // Show the first three series the store actually carries, then a link to all.
+  const allSeries = useStorefrontStore((state) => state.series);
+  const footerSeries = (mounted ? allSeries : ALL_SERIES).slice(0, 3);
 
   const footerDescription = mounted
     ? (isAr ? (editorialArabicConfig?.footerDescription || t.footer.description) : (editorialConfig?.footerDescription || t.footer.description))
@@ -125,24 +131,16 @@ export function Footer() {
               {locale === "ar" ? "السلاسل" : "SERIES"}
             </h5>
             <ul className="space-y-2.5 text-xs">
+              {footerSeries.map((series) => (
+                <li key={series.slug}>
+                  <Link href={`/series/${series.slug}`} className="hover:text-paper transition-colors">
+                    {series.title}
+                  </Link>
+                </li>
+              ))}
               <li>
-                <Link href="/series/jujutsu-kaisen" className="hover:text-paper transition-colors">
-                  Jujutsu Kaisen
-                </Link>
-              </li>
-              <li>
-                <Link href="/series/one-piece" className="hover:text-paper transition-colors">
-                  One Piece
-                </Link>
-              </li>
-              <li>
-                <Link href="/series/berserk" className="hover:text-paper transition-colors">
-                  Berserk (Deluxe)
-                </Link>
-              </li>
-              <li>
-                <Link href="/series/chainsaw-man" className="hover:text-paper transition-colors">
-                  Chainsaw Man
+                <Link href="/series" className="text-gold/90 hover:text-gold transition-colors">
+                  {locale === "ar" ? "كل السلاسل" : "View All Series"}
                 </Link>
               </li>
             </ul>

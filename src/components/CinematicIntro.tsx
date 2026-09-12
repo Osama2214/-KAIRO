@@ -1,60 +1,86 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useUIStore } from "@/store/useUIStore";
 import { useMounted } from "@/store/useWishlistStore";
-import storeMark from "../../public/animeverse-mark.png";
+
+import backgroundEmblem from "../../public/animat/animeverse-background-emblem.png";
+import characterArt from "../../public/animat/animeverse-character.png";
+import wordmarkArt from "../../public/animat/animeverse-wordmark.png";
+import fullLogo from "../../public/animat/animeverse-full-logo.png";
 
 gsap.registerPlugin(useGSAP);
 
 /**
- * Opening title sequence.
+ * AnimeVerse title sequence — a ~4.3s brand reveal built entirely from the
+ * shipped brand assets. No video, no canvas, no redrawn artwork: six PNG
+ * layers moved with GPU-friendly transforms, plus a handful of CSS effect
+ * layers.
  *
- * One hero element: the existing AnimeVerse lockup, used exactly as it
- * ships and never redrawn.
+ * The sequence, one continuous move rather than a stack of fades:
  *
- * Two real bugs were behind the last "it barely moves" report, both fixed
- * here rather than papered over with bigger numbers:
+ *   the red moon rises out of the void → the character steps out of it on a
+ *   short manga impact → the wordmark wipes in from the right → eye glow and
+ *   a pass of light across the assembled lockup → hero hold → the whole
+ *   lockup shrinks into the navbar logo and the site is live.
  *
- * 1. The mark's reveal was split into three tweens sharing a start time but
- *    different durations and eases (opacity fast + power1, blur/scale slow
- *    + power3). power3.out is heavily front-loaded, so by the time opacity
- *    finished, blur and scale were already ~70% resolved — the "reveal"
- *    was mostly over before it was visible enough to watch. Fixed by
- *    animating opacity, blur, scale, position and rotation together in one
- *    tween, one duration, one (more moderate) ease, starting from a
- *    non-zero opacity — a true rack-focus, not a pop-then-settle.
+ * Two of the six assets are deliberately unused:
  *
- * 2. Several elements (the glows, the vertical spine) combined a CSS
- *    percentage-translate class for centring with a GSAP-animated x/y on
- *    that same axis. GSAP parses an element's transform once on first
- *    touch and treats whatever axis you hand it as absolute from then on —
- *    so the centring offset was silently replaced, not added to, the
- *    moment GSAP set a value on it. Fixed with GSAP's own xPercent/yPercent
- *    (which compose correctly with animated x/y) instead of a CSS class.
+ * - `animeverse-red-slash.png` — the wordmark already carries its own red
+ *   stroke through the V, and a second slash sweeping over it read as one
+ *   effect too many.
+ * - `animeverse-circular-logo.png` — the sequence used to open on the circular
+ *   emblem for its first second and then dissolve it into the moon and the
+ *   character it is made of. That opening was cut, so the sequence now starts
+ *   on the moon itself.
  *
- * The story: the room opens first (texture, then light drifting in from
- * off-centre) → the light finishes arriving at its post as anticipation →
- * the mark resolves through a single unified rack-focus move, light still
- * climbing and drifting slightly, peaking as it lands → a real overshoot,
- * not a pulse → light recedes → the rule draws → the taglines arrive
- * staggered → the frame and its labels settle in last, slowest, with a
- * bigger retraction than before → everything stops except a slow breathing
- * drift on the two glows. The mark itself never repeats.
+ * Both times the remaining scenes were retimed around the gap rather than left
+ * with a hole where the cut beat used to be.
  *
- * Reduced motion never sees any of this; hasSeenIntro() below treats that
- * preference the same as already seen.
+ * Two facts about the assets make the composition work and are worth knowing
+ * before touching the layout:
+ *
+ * 1. `animeverse-character.png` and `animeverse-background-emblem.png` are the
+ *    same 1374×1145 canvas with different ink on it. Stacked at identical size
+ *    they register exactly as they do in the full logo, so the character never
+ *    has to be nudged into place against the moon.
+ *
+ * 2. The navbar mark (`animeverse-mark.png`) is the same horizontal lockup this
+ *    intro assembles — small character/moon on the left, wordmark on the right.
+ *    That is why scene 08 can fly the group into the navbar's own measured box
+ *    and read as the intro logo *becoming* the site logo rather than a
+ *    dissolve between two similar images.
+ *
+ * GSAP note carried over from the previous sequence and still load-bearing:
+ * never combine a CSS percentage-translate (`-translate-x-1/2`) with a
+ * GSAP-animated `x` on the same axis. GSAP parses the transform once and
+ * treats its value as absolute from then on, silently dropping the centring.
+ * Use GSAP's own `xPercent`/`yPercent`, which compose with `x`/`y`.
  */
 
-/** When the auto-exit fires, measured from the moment the sequence starts.
- *  The timeline below settles at ~2.9s, so this leaves a beat of stillness
- *  before the overlay begins to leave. Move it and that pause moves with it;
- *  set it under ~2.9s and the sequence is cut off mid-move. */
-const INTRO_MS = 3150;
+/** Flip to false to show the intro on every home-page landing within a
+ *  session (including client-side navigations back to `/`). True is the
+ *  shipped behaviour: once per browsing session, surviving a refresh,
+ *  dying with the tab. */
+const SHOW_INTRO_ONCE_PER_SESSION = true;
+
+/** Safety net, in seconds, armed when the overlay actually appears and run on
+ *  GSAP's own ticker — the same clock as the sequence. The timeline ends at
+ *  ~4.28s, so this only ever fires if a tween is dropped and onComplete never
+ *  arrives. Two details matter and both are deliberate:
+ *
+ *  - Armed on appearance, not on the decision to play. A page opened in a
+ *    background tab holds the overlay's first frame until the tab is looked
+ *    at (rAF is suspended there); a wall-clock timer started at that decision
+ *    would expire unseen and leave the overlay stuck on screen forever when
+ *    the visitor finally arrived.
+ *  - GSAP's ticker, not setTimeout, for the same reason: it does not advance
+ *    while the tab is hidden, so it can never outrun the sequence it guards. */
+const INTRO_FALLBACK_S = 5.2;
 
 function prefersReducedMotion(): boolean {
   try {
@@ -67,21 +93,15 @@ function prefersReducedMotion(): boolean {
 /**
  * Whether the intro has already played *this visit*.
  *
- * Deliberately scoped to the browsing session rather than the device. It used
- * to be remembered in `localStorage` and in a day-long cookie as well, which
- * meant a visitor saw the sequence once and then never again. The intent is the
- * opposite: it should open every visit, but a reload in the middle of one is
- * not a new visit and replaying it there would be tiresome.
- *
- * `sessionStorage` draws exactly that line — it survives a refresh and dies
- * with the tab — and the in-memory flag covers a client-side navigation back to
- * the home page within the same page load.
+ * Scoped to the browsing session rather than the device: it should open every
+ * visit, but a reload in the middle of one is not a new visit and replaying it
+ * there would be tiresome. `sessionStorage` draws exactly that line, and the
+ * in-memory flag covers a client-side navigation back to the home page within
+ * the same page load.
  */
 function hasSeenIntro(): boolean {
   if (typeof window === "undefined") return true;
-  // A full-screen animated takeover is exactly what reduced-motion asks us not
-  // to play, so treat it as already seen.
-  if (prefersReducedMotion()) return true;
+  if (!SHOW_INTRO_ONCE_PER_SESSION) return false;
   try {
     if ((window as unknown as { __kairo_intro_seen?: boolean }).__kairo_intro_seen) return true;
     if (sessionStorage.getItem("kairo_intro_seen") === "true") return true;
@@ -105,85 +125,249 @@ function markIntroSeen(): void {
   } catch {}
 }
 
-/** The base "room" the mark stands in — a composited gradient, not a flat
- *  fill and not a single radial. A warm, slightly off-centre ellipse (echoes
- *  the mark's own sun-disc without redrawing it) sits under a vertical
- *  darken that keeps the top and bottom edges cooler than the middle band. */
-const ATMOSPHERE_STYLE: React.CSSProperties = {
+/** The void the emblem emerges from: a single dark-red atmospheric bloom on
+ *  near-black, with the edges pulled darker so the centre reads first. */
+const VOID_STYLE: React.CSSProperties = {
+  backgroundColor: "#050506",
   backgroundImage:
-    "radial-gradient(ellipse 60% 48% at 47% 39%, rgba(217,74,58,0.13) 0%, rgba(199,167,108,0.05) 42%, transparent 72%)," +
-    "linear-gradient(180deg, rgba(5,5,7,0.62) 0%, rgba(13,13,15,0) 30%, rgba(13,13,15,0) 64%, rgba(4,4,6,0.68) 100%)",
+    "radial-gradient(ellipse 50% 42% at 50% 48%, rgba(217,74,58,0.16) 0%, rgba(217,74,58,0.04) 46%, transparent 74%)," +
+    // Two vignettes rather than one: a tight circular fall-off that shapes the
+    // centre, and a vertical crush that keeps the top and bottom bands darker
+    // than the middle. A single radial flattens the frame.
+    "radial-gradient(circle at 50% 48%, transparent 24%, rgba(3,3,4,0.92) 78%)," +
+    "linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 26%, rgba(0,0,0,0) 70%, rgba(0,0,0,0.6) 100%)",
 };
 
-/** Archival texture, masked so it reads as emerging from the dark near the
- *  mark rather than a uniform wallpaper across the whole frame. */
-const TEXTURE_MASK =
-  "radial-gradient(circle at 47% 40%, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.5) 42%, rgba(0,0,0,0) 78%)";
-
-/** A single static grain pass — film-texture, not motion. */
+/** One static grain pass — film stock, not motion. */
 const GRAIN_STYLE: React.CSSProperties = {
   backgroundImage:
     "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
   backgroundSize: "140px 140px",
 };
 
+/** Speed-line angles, in degrees, measured from the emblem's centre. Four on
+ *  desktop, three on mobile — deliberately uneven so they read as manga
+ *  linework rather than a spoked wheel, and short enough (see the markup)
+ *  that they never reach the edge of the frame, which is what made the
+ *  earlier pass read as stray lines across the screen rather than impact. */
+const SPEED_LINE_ANGLES = [-27, 26, 152, -154];
+
+/** Per-line length multipliers. Four lines of identical length read as a
+ *  drawn diagram; uneven ones read as ink. Paired with the angles above so
+ *  the two long strokes sit on opposite corners rather than side by side. */
+const SPEED_LINE_LENGTHS = [1, 0.72, 0.94, 0.6];
+
+/** Fixed particle offsets (unit vectors × distance factor) rather than
+ *  `Math.random()`, so a re-render never reshuffles the burst mid-flight and
+ *  server/client markup can never disagree. */
+const IMPACT_PARTICLES = [
+  { x: -1.0, y: -0.55, s: 1.0 },
+  { x: 0.92, y: -0.7, s: 0.75 },
+  { x: -0.78, y: 0.66, s: 0.85 },
+  { x: 0.83, y: 0.58, s: 0.6 },
+  { x: -0.35, y: -1.0, s: 0.7 },
+  { x: 0.28, y: 0.98, s: 0.9 },
+  { x: 1.0, y: 0.12, s: 0.55 },
+  { x: -1.0, y: -0.08, s: 0.65 },
+  { x: 0.55, y: -0.95, s: 0.5 },
+  { x: -0.6, y: 0.9, s: 0.7 },
+];
+
+/** The phone breakpoint the composition switches on. Crossing it mid-sequence
+ *  rebuilds the timeline for the other layout — correct, and rare enough over
+ *  4.3 seconds not to be worth freezing. */
+const COMPACT_QUERY = "(max-width: 767px)";
+
+function subscribeCompact(onChange: () => void): () => void {
+  try {
+    const mql = window.matchMedia(COMPACT_QUERY);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  } catch {
+    return () => {};
+  }
+}
+
+function getCompact(): boolean {
+  try {
+    return window.matchMedia(COMPACT_QUERY).matches;
+  } catch {
+    return false;
+  }
+}
+
+/** The overlay only ever mounts on the client, so the server snapshot is a
+ *  formality — it just has to be stable. */
+function getCompactServer(): boolean {
+  return false;
+}
+
+/**
+ * Where the wordmark's ink actually sits inside each of the two images, as
+ * fractions of that image's own box. Measured off the files, not guessed,
+ * because both carry transparent margin and the navbar mark also carries the
+ * small character block on its left:
+ *
+ *   animeverse-wordmark.png  2172×724, ink 2141×520 at (10, 68)
+ *   animeverse-mark.png      1400×377, wordmark ink spans x 0.300–0.994,
+ *                            y 0.297–0.966 (the gap at x≈0.29 separates it
+ *                            from the character block)
+ *
+ * Scene 07 lands the intro's wordmark exactly on the navbar's wordmark using
+ * these — matching the two outer boxes instead leaves the type a visibly
+ * different size at the swap, because the intro lockup and the navbar mark do
+ * not share internal proportions (the intro's character is far larger relative
+ * to its type).
+ */
+const WORDMARK_INK = { width: 2141 / 2172, cx: (10 + 2141 / 2) / 2172, cy: (68 + 520 / 2) / 724 };
+
+/**
+ * Eye trim on the landing, applied on top of the measured match.
+ *
+ * The maths below lands the intro's wordmark ink exactly on the navbar mark's
+ * wordmark ink — same width, same centre, to a hundredth of a pixel. It still
+ * reads a touch large and a touch left, because the intro lockup carries a much
+ * bigger character to the left of its type than the navbar mark does, and the
+ * eye weighs that mass rather than the geometry. These three numbers are the
+ * correction for that, and they are the only place to tune it: `scale` shrinks
+ * the whole group a little further, `nudgeX` shifts it right and `nudgeY` lifts
+ * it. Both nudges are fractions of the navbar wordmark's own width rather than
+ * pixel counts, so the correction holds at every breakpoint.
+ */
+const LANDING_TRIM = { scale: 0.94, nudgeX: 0.06, nudgeY: -0.05 };
+const NAV_MARK_INK = { width: 0.6936, cx: 0.6468, cy: 0.6313 };
+
+/** Slow-drifting atmosphere for the hero hold. Positions are percentages of
+ *  the stage so they stay inside the frame at any viewport. */
+const HAZE_PARTICLES = [
+  { left: 18, top: 70, size: 3, drift: -26, dur: 2.1 },
+  { left: 31, top: 28, size: 2, drift: -34, dur: 2.6 },
+  { left: 44, top: 82, size: 4, drift: -22, dur: 2.3 },
+  { left: 58, top: 36, size: 2, drift: -30, dur: 2.8 },
+  { left: 69, top: 74, size: 3, drift: -25, dur: 2.2 },
+  { left: 81, top: 44, size: 2, drift: -32, dur: 2.5 },
+  { left: 26, top: 52, size: 2, drift: -28, dur: 3.0 },
+  { left: 73, top: 22, size: 3, drift: -20, dur: 2.4 },
+];
+
 export function CinematicIntro() {
   const pathname = usePathname();
   const mounted = useMounted();
   const [visible, setVisible] = useState(false);
+  // Which composition to build: horizontal lockup, or stacked for phones.
+  // Read through useSyncExternalStore rather than a setState-in-effect so the
+  // first client render already has the right answer and React never has to
+  // re-render the overlay to correct itself.
+  const isCompact = useSyncExternalStore(subscribeCompact, getCompact, getCompactServer);
 
   const isIntroActive = useUIStore((state) => state.isIntroActive);
   const closeIntro = useUIStore((state) => state.closeIntro);
   const playIntro = useUIStore((state) => state.playIntro);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const textureRef = useRef<HTMLDivElement>(null);
-  const glowRef = useRef<HTMLDivElement>(null);
-  const glowGoldRef = useRef<HTMLDivElement>(null);
-  const markWrapRef = useRef<HTMLDivElement>(null);
-  const ruleRef = useRef<HTMLSpanElement>(null);
-  const slitRef = useRef<HTMLDivElement>(null);
-  const tagRef = useRef<HTMLParagraphElement>(null);
-  const subRef = useRef<HTMLParagraphElement>(null);
-  const frameRef = useRef<HTMLDivElement>(null);
-  const estRef = useRef<HTMLSpanElement>(null);
-  const spineRef = useRef<HTMLDivElement>(null);
-  const skipRef = useRef<HTMLButtonElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const voidGlowRef = useRef<HTMLDivElement>(null);
 
-  const entranceTl = useRef<gsap.core.Timeline | null>(null);
+  const flashRef = useRef<HTMLDivElement>(null);
+  const speedLinesRef = useRef<HTMLDivElement>(null);
+  const impactBurstRef = useRef<HTMLDivElement>(null);
+
+  const groupRef = useRef<HTMLDivElement>(null);
+  const emblemRef = useRef<HTMLDivElement>(null);
+  const characterRef = useRef<HTMLDivElement>(null);
+  const eyesRef = useRef<HTMLDivElement>(null);
+  const wordmarkRef = useRef<HTMLDivElement>(null);
+  const sweepRef = useRef<HTMLDivElement>(null);
+  const keyLightRef = useRef<HTMLDivElement>(null);
+  const groundRef = useRef<HTMLDivElement>(null);
+  const hazeRef = useRef<HTMLDivElement>(null);
+  const skipRef = useRef<HTMLButtonElement>(null);
+  const fallbackRef = useRef<HTMLDivElement>(null);
+
+  // The site's own navbar logo. Held while the sequence runs and handed back
+  // at the moment the intro lockup lands on it, so the two are never on screen
+  // together. Kept in a ref because `finish` has to restore it on any exit —
+  // a click, a keypress, the safety net — not just the natural ending.
+  const navLogoRef = useRef<HTMLElement | null>(null);
+  const timelineRef = useRef<gsap.core.Timeline | null>(null);
+
+  /**
+   * Give the navbar its logo back.
+   *
+   * Twice, and with plain DOM writes rather than GSAP, both deliberately.
+   * `useGSAP` wraps everything this component animates in a `gsap.context`,
+   * and tearing that context down *reverts* it — which re-applies the start
+   * value of every tween it owns, including the `opacity: 0` this sequence
+   * parks the navbar logo at. A restore that runs before the revert is simply
+   * undone by it, and the site is left with a permanently invisible logo until
+   * the next full reload. The deferred second pass lands after the revert.
+   */
+  const releaseNavLogo = useCallback(() => {
+    const el = navLogoRef.current;
+    if (!el) return;
+    const clear = () => {
+      el.style.opacity = "";
+      el.style.transform = "";
+      el.style.transition = "";
+    };
+    clear();
+    setTimeout(clear, 0);
+  }, []);
   const idleTweens = useRef<gsap.core.Tween[]>([]);
   const finishedRef = useRef(false);
 
-  const finish = useCallback(() => {
-    if (finishedRef.current) return;
-    finishedRef.current = true;
-    markIntroSeen();
-    closeIntro();
-    entranceTl.current?.kill();
-    idleTweens.current.forEach((t) => t.kill());
-    idleTweens.current = [];
+  const particles = useMemo(
+    () => (isCompact ? IMPACT_PARTICLES.slice(0, 5) : IMPACT_PARTICLES),
+    [isCompact]
+  );
+  const hazeDots = useMemo(() => (isCompact ? HAZE_PARTICLES.slice(0, 4) : HAZE_PARTICLES), [isCompact]);
+  const speedAngles = useMemo(
+    () => (isCompact ? SPEED_LINE_ANGLES.slice(0, 3) : SPEED_LINE_ANGLES),
+    [isCompact]
+  );
 
-    if (containerRef.current) containerRef.current.style.pointerEvents = "none";
-    const reduced = prefersReducedMotion();
+  const finish = useCallback(
+    (immediate = false) => {
+      if (finishedRef.current) return;
+      finishedRef.current = true;
+      markIntroSeen();
+      closeIntro();
+      timelineRef.current?.kill();
+      idleTweens.current.forEach((t) => t.kill());
+      idleTweens.current = [];
 
-    // A quick rack-defocus away mirrors the rack-focus arrival — the exit
-    // is the entrance run backwards at higher speed, not an unrelated fade.
-    gsap.timeline({
-      defaults: { ease: "power2.in", duration: reduced ? 0.01 : 0.35 },
-      onComplete: () => setVisible(false),
-    })
-      .to(containerRef.current, { opacity: 0 }, 0)
-      .to(markWrapRef.current, { scale: reduced ? 1 : 1.045, filter: reduced ? "blur(0px)" : "blur(16px)" }, 0)
-      .to(glowRef.current, { opacity: 0, duration: reduced ? 0.01 : 0.3 }, 0)
-      .to(glowGoldRef.current, { opacity: 0, duration: reduced ? 0.01 : 0.28 }, 0);
-  }, [closeIntro]);
+      // Pointer events go first so the homepage is interactive the instant the
+      // sequence is over, even while the last frames of opacity are running.
+      if (containerRef.current) containerRef.current.style.pointerEvents = "none";
+      releaseNavLogo();
+
+      if (immediate || prefersReducedMotion()) {
+        setVisible(false);
+        return;
+      }
+      // Guarded: `finish` can be reached after the overlay has already left
+      // the DOM (the fallback timer racing the timeline's own onComplete), and
+      // GSAP warns loudly about a null target.
+      if (!containerRef.current) {
+        setVisible(false);
+        return;
+      }
+      gsap.to(containerRef.current, {
+        opacity: 0,
+        duration: 0.18,
+        ease: "power2.in",
+        onComplete: () => setVisible(false),
+      });
+    },
+    [closeIntro, releaseNavLogo]
+  );
 
   useEffect(() => {
     if (!mounted || pathname?.startsWith("/admin")) return;
 
     // Plays on a first landing on the home page, and whenever something asks
-    // for it explicitly (the account page replays it after signing up, the
-    // dev replay control below asks for it directly).
+    // for it explicitly (the account page replays it after signing up, the dev
+    // replay control below asks for it directly).
     const onHome = pathname === "/" || pathname === "";
     const shouldPlay = isIntroActive || (onHome && !hasSeenIntro());
     if (!shouldPlay) return;
@@ -191,14 +375,15 @@ export function CinematicIntro() {
     markIntroSeen();
     finishedRef.current = false;
 
-    // Deferred a frame rather than set synchronously in the effect body, so
-    // this doesn't trigger a cascading render on mount.
-    const raf = requestAnimationFrame(() => setVisible(true));
-    const timer = setTimeout(finish, INTRO_MS);
-    return () => {
-      cancelAnimationFrame(raf);
-      clearTimeout(timer);
-    };
+    // The page underneath keeps loading and hydrating throughout — the
+    // overlay never gates it.
+    // Deferred a task rather than set synchronously in the effect body, so
+    // this doesn't trigger a cascading render on mount. A timeout, not a
+    // rAF: rAF is suspended whenever the page is not being painted (a
+    // background tab, a devtools pane that isn't compositing), and gating the
+    // overlay's existence on paint made the sequence unreachable there.
+    const timer = setTimeout(() => setVisible(true), 0);
+    return () => clearTimeout(timer);
   }, [mounted, pathname, isIntroActive, finish]);
 
   // Any key or click gets past it immediately.
@@ -218,209 +403,453 @@ export function CinematicIntro() {
       if (!visible || !containerRef.current) return;
       containerRef.current.style.pointerEvents = "";
 
+      // ── Reduced motion ─────────────────────────────────────────────
+      // The whole point of the sequence is a full-screen animated takeover,
+      // which is exactly what this preference asks us not to play. Show the
+      // static logo for a beat, then hand over to the site.
       if (prefersReducedMotion()) {
-        // Jump straight to the finished composition rather than clearing
-        // GSAP's inline styles back to bare CSS — glowRef, glowGoldRef and
-        // spineRef now rely on GSAP-owned xPercent/yPercent for centring
-        // (see the note above), which a clearProps would strip along with
-        // everything else, leaving them mispositioned for exactly the
-        // users this branch exists for.
-        gsap.set(textureRef.current, { opacity: 0.22 });
-        gsap.set(glowRef.current, { opacity: 0.19, scale: 1, xPercent: -50, yPercent: -50, x: 0, y: 0 });
-        gsap.set(glowGoldRef.current, { opacity: 0.13, scale: 1, xPercent: -50, yPercent: -50, x: 0, y: 0 });
-        gsap.set(markWrapRef.current, { opacity: 1, scale: 1, y: 0, rotation: 0, filter: "blur(0px)" });
-        gsap.set(ruleRef.current, { scaleX: 1, opacity: 1 });
-        gsap.set(slitRef.current, { opacity: 0 });
-        gsap.set([tagRef.current, subRef.current], { opacity: 1, y: 0, filter: "blur(0px)" });
-        gsap.set(frameRef.current, { opacity: 1, scale: 1, y: 0 });
-        gsap.set(estRef.current, { opacity: 1, y: 0 });
-        gsap.set(spineRef.current, { opacity: 1, yPercent: -50, y: 0 });
-        gsap.set(skipRef.current, { opacity: 1, y: 0 });
-        return;
+        gsap.set(fallbackRef.current, { opacity: 1 });
+        gsap.set([groupRef.current, skipRef.current], { opacity: 0 });
+        const t = gsap.delayedCall(0.6, () => finish(true));
+        return () => t.kill();
       }
+
+      const compact = isCompact;
+      // The scaled lines, not their rotation wrappers — see the note in the
+      // markup for why those are two separate elements.
+      const speedLines = Array.from(
+        speedLinesRef.current?.querySelectorAll<HTMLElement>(".intro-speed-line") ?? []
+      );
+
+      // ── Scene 07 target: the navbar's own logo ───────────────
+      // The image, not its link: the link is a flex child of the navbar's grid
+      // and stretches across its whole column (measured, 442px wide against a
+      // 178px logo), so landing on the link's box overshoots the logo by 2.5×.
+      const targetEl =
+        document.querySelector("[data-intro-logo-target] img") ??
+        document.querySelector("[data-intro-logo-target]");
+
+      // The intro wordmark's own box, taken now, before the resting state
+      // below transforms it. Everything else is measured at the last possible
+      // moment instead — see `landing()`.
+      const wordmarkBoxNow = wordmarkRef.current?.getBoundingClientRect();
+
+      // Held for the duration of the sequence: with both on screen the closing
+      // move reads as one logo sliding on top of an identical one. The navbar's
+      // own mark is handed back at the instant the intro lockup settles onto
+      // it. Its transition is suppressed too — the navbar image carries a
+      // 300ms `transition-all` for its hover brightness, which would otherwise
+      // drag this crossfade out over three times its intended length.
+      // Phones never hand over to the navbar (see the exit below), so the
+      // navbar logo is left completely alone there — not hidden, not held, not
+      // restored. Touching it at all on mobile is how it ends up invisible.
+      navLogoRef.current = compact ? null : ((targetEl as HTMLElement) ?? null);
+      if (navLogoRef.current) {
+        navLogoRef.current.style.transition = "none";
+        gsap.set(navLogoRef.current, { opacity: 0 });
+      }
+
+      /**
+       * Where the lockup has to end up, resolved once, when the closing tween
+       * actually starts rather than when the timeline is built.
+       *
+       * The three seconds in between are not dead time: the navbar shrinks its
+       * logo on scroll, its left edge moves with the responsive gutter, and a
+       * late web font or image can still reflow the row. Measuring at build
+       * time and flying to that number lands the lockup wherever the navbar
+       * *used* to be — visibly off to one side if the visitor scrolled while
+       * the sequence played.
+       */
+      const land = () => {
+        const groupBox = groupRef.current?.getBoundingClientRect();
+        const targetBox = targetEl?.getBoundingClientRect();
+        if (!groupBox || !targetBox || !wordmarkBoxNow || groupBox.width <= 0) {
+          return { x: 0, y: 0, scale: 0.12 };
+        }
+
+        // Matched wordmark-to-wordmark, ink to ink. The eye reads the type, and
+        // a scale derived from the outer boxes lands it noticeably smaller than
+        // the navbar's own — the one mismatch that would give the swap away.
+        const introInkW = wordmarkBoxNow.width * WORDMARK_INK.width;
+        const introInkCx = wordmarkBoxNow.left + wordmarkBoxNow.width * WORDMARK_INK.cx;
+        const introInkCy = wordmarkBoxNow.top + wordmarkBoxNow.height * WORDMARK_INK.cy;
+
+        // getBoundingClientRect returns the *transformed* box, so any scale
+        // on the navbar logo has to be divided back out — otherwise the intro
+        // matches the size the logo happens to be mid-animation rather than
+        // the size it will settle at. This cost a whole round of "it lands too
+        // small": the logo used to wait at scale 0.8 for a pop-in, and the
+        // lockup dutifully landed at 80% of full size.
+        const navScale = Number(gsap.getProperty(targetEl as Element, "scaleX")) || 1;
+        const navInkW = (targetBox.width / navScale) * NAV_MARK_INK.width;
+        const navInkCx = targetBox.left + targetBox.width * NAV_MARK_INK.cx;
+        const navInkCy = targetBox.top + targetBox.height * NAV_MARK_INK.cy;
+
+        // This rect is transformed, and during the flight it is *translated*
+        // as well as scaled — so the measured centre is not the layout centre
+        // the maths below needs. Scaling happens about the centre and leaves
+        // it alone; translation does not, so it is subtracted back out. Miss
+        // this and the target chases its own tail: every frame solves for a G
+        // that the previous frame just moved.
+        const curX = Number(gsap.getProperty(groupRef.current, "x")) || 0;
+        const curY = Number(gsap.getProperty(groupRef.current, "y")) || 0;
+        const gx = groupBox.left + groupBox.width / 2 - curX;
+        const gy = groupBox.top + groupBox.height / 2 - curY;
+
+        // The group scales about its own centre, so a child at C ends up at
+        // G + s·(C − G) + d. Solve that for d rather than translating by the
+        // difference of the centres, which would be right only if the wordmark
+        // sat exactly at the middle of the group — it never does.
+        const scale = (navInkW / introInkW) * LANDING_TRIM.scale;
+        return {
+          scale,
+          x: navInkCx + navInkW * LANDING_TRIM.nudgeX - gx - scale * (introInkCx - gx),
+          y: navInkCy + navInkW * LANDING_TRIM.nudgeY - gy - scale * (introInkCy - gy),
+        };
+      };
+
+      // The flight is driven through a proxy so the target can be re-read on
+      // every frame instead of being resolved once when the tween starts.
+      //
+      // This is not belt-and-braces. Measured off a screen recording, the
+      // lockup was landing 10% small and 10px left of the navbar mark even
+      // though the same numbers came out exact when measured in isolation: the
+      // navbar animates its own logo between h-12 and h-10 (with a 300ms
+      // `transition-all`) as the page scrolls, so a target resolved at the
+      // start of a 0.56s flight can be a stale, mid-transition size by the time
+      // the flight ends. Following it frame by frame means the last frame is
+      // always the box that is actually there.
+      const flight = { p: 0 };
+      let flightFrom: { x: number; y: number; s: number } | null = null;
+      const readGroup = () => ({
+        x: Number(gsap.getProperty(groupRef.current, "x")) || 0,
+        y: Number(gsap.getProperty(groupRef.current, "y")) || 0,
+        s: Number(gsap.getProperty(groupRef.current, "scaleX")) || 1,
+      });
+
+      /** Place the group `k` of the way from where the flight began to where
+       *  the navbar logo is *right now*. At k = 1 that is a magnet: whatever
+       *  the navbar does, the lockup is back on it the very next frame. */
+      const pin = (k: number) => {
+        if (!groupRef.current) return;
+        // Seeking straight into the middle of the flight skips onStart.
+        if (!flightFrom) flightFrom = readGroup();
+        const to = land();
+        gsap.set(groupRef.current, {
+          x: flightFrom.x + (to.x - flightFrom.x) * k,
+          y: flightFrom.y + (to.y - flightFrom.y) * k,
+          scale: flightFrom.s + (to.scale - flightFrom.s) * k,
+        });
+      };
 
       // ── Resting state ──────────────────────────────────────────────
-      gsap.set(textureRef.current, { opacity: 0 });
-      // xPercent/yPercent do the centring GSAP's own way — composes
-      // correctly with the animated x/y below, unlike a CSS translate class.
-      gsap.set(glowRef.current, { opacity: 0.03, scale: 0.86, xPercent: -50, yPercent: -50, x: -30, y: 24 });
-      gsap.set(glowGoldRef.current, { opacity: 0.015, scale: 0.78, xPercent: -50, yPercent: -50, x: 22, y: -18 });
-      // The mark waits inside the slit: squeezed to nothing horizontally and
-      // parked on the line's own x, so the first frame of its move reads as
-      // the line releasing it rather than a logo sliding in from off-screen.
-      //
-      // The offset is measured rather than guessed. The mark is centred by
-      // flex and the slit is placed by percentage, so the gap between them
-      // depends on the logo's rendered width and the viewport — a fixed `vw`
-      // lined up at one size and sat off-screen at another.
-      // The slit is placed from the mark's own geometry rather than from a
-      // percentage of the viewport. A percentage that reads well on a desk
-      // lands *inside* the mark on a tablet — measured here, the travel was
-      // 6px at 768px wide — because the mark is centred and its width changes
-      // with the breakpoint while the percentage does not.
-      gsap.set(markWrapRef.current, { clearProps: "transform" });
-      const markBox = markWrapRef.current?.getBoundingClientRect();
-      const markLeft = markBox?.left ?? 0;
-      // Far enough left of the mark to be clearly beside it, without crowding
-      // the screen edge on a narrow phone.
-      const gap = Math.max(34, Math.min(110, (markBox?.width ?? 0) * 0.22));
-      const slitLeft = Math.max(18, markLeft - gap);
-      const offsetToSlit = slitLeft - markLeft;
+      gsap.set(fallbackRef.current, { opacity: 0 });
+      gsap.set(backdropRef.current, { opacity: 1 });
+      gsap.set(voidGlowRef.current, { opacity: 0.25, scale: 0.7, xPercent: -50, yPercent: -50 });
+      gsap.set(flashRef.current, { opacity: 0, scale: 0.6, xPercent: -50, yPercent: -50 });
+      gsap.set(speedLinesRef.current, { opacity: 0 });
+      gsap.set(speedLines, { scaleX: 0, opacity: 0 });
+      gsap.set(impactBurstRef.current?.children ?? [], { opacity: 0, x: 0, y: 0, scale: 1 });
 
-      // Centred on the mark, not on the viewport. The mark sits above true
-      // centre because the wordmark and taglines stack beneath it — measured,
-      // the line's middle was 46px below the mark's, so the mark appeared to
-      // come out of the line's upper third rather than its centre.
-      if (slitRef.current) {
-        const slitHeight = slitRef.current.getBoundingClientRect().height;
-        const markCentreY = (markBox?.top ?? 0) + (markBox?.height ?? 0) / 2;
-        slitRef.current.style.left = `${Math.round(slitLeft)}px`;
-        slitRef.current.style.top = `${Math.round(markCentreY - slitHeight / 2)}px`;
-      }
-      // How far past centre the mark carries before the line lets go of it.
-      // Proportional so the overshoot reads the same on a phone as on a desk.
-      const overshoot = Math.min(64, Math.max(26, window.innerWidth * 0.05));
-
-      gsap.set(markWrapRef.current, {
+      gsap.set(groupRef.current, { opacity: 1, scale: 1, x: 0, y: 0 });
+      // The moon rises into the frame rather than fading in on the spot, and
+      // arrives slightly soft before it sharpens — a horizon coming up, not a
+      // picture being switched on.
+      gsap.set(emblemRef.current, {
         opacity: 0,
-        // Thin enough to be indistinguishable from the line it sits on, so the
-        // first frame of the move reads as the line itself widening.
-        scaleX: 0.015,
-        scaleY: 0.72,
-        x: offsetToSlit,
-        rotation: 0,
-        filter: "blur(6px)",
-        transformOrigin: "left center",
+        scale: 0.9,
+        y: compact ? 26 : 42,
+        filter: `blur(${compact ? 4 : 7}px)`,
       });
-      gsap.set(slitRef.current, { opacity: 0, scaleY: 0, transformOrigin: "center center" });
-      gsap.set(ruleRef.current, { scaleX: 0, opacity: 0 });
-      gsap.set([tagRef.current, subRef.current], { opacity: 0, y: 16, filter: "blur(8px)" });
-      gsap.set(frameRef.current, { opacity: 0, scale: 0.82, y: -28 });
-      gsap.set(estRef.current, { opacity: 0, y: -10 });
-      gsap.set(spineRef.current, { opacity: 0, yPercent: -50, y: 18 });
-      gsap.set(skipRef.current, { opacity: 0, y: 6 });
+      gsap.set(characterRef.current, {
+        opacity: 0,
+        x: compact ? -26 : -50,
+        scale: 0.94,
+        filter: `blur(${compact ? 2.5 : 4}px)`,
+      });
+      gsap.set(eyesRef.current, { opacity: 0 });
+      gsap.set(wordmarkRef.current, {
+        opacity: 0,
+        x: compact ? 48 : 100,
+        scale: 0.96,
+        clipPath: "inset(0% 100% 0% 0%)",
+      });
+      gsap.set(sweepRef.current, { opacity: 0, xPercent: -150 });
+      gsap.set(keyLightRef.current, { opacity: 0, scale: 0.55, xPercent: -50, yPercent: -50 });
+      gsap.set(groundRef.current, { opacity: 0, scaleX: 0.45 });
+      gsap.set(hazeRef.current, { opacity: 0 });
+      gsap.set(skipRef.current, { opacity: 0, y: 8 });
 
       const tl = gsap.timeline({
-        onComplete: () => {
-          // Stage 6 — final ambient state: the mark, typography and frame
-          // are all stable now. Only the two glows keep a slow breath —
-          // opacity, scale, and a few px of drift — so the room feels alive
-          // without anything repeating or pulsing.
-          idleTweens.current = [
-            gsap.to(glowRef.current, {
-              opacity: 0.24,
-              scale: 1.035,
-              x: "+=6",
-              y: "-=4",
-              duration: 4.6,
-              ease: "sine.inOut",
-              yoyo: true,
-              repeat: -1,
-            }),
-            gsap.to(glowGoldRef.current, {
-              opacity: 0.17,
-              scale: 1.02,
-              x: "-=5",
-              y: "+=4",
-              duration: 5.6,
-              ease: "sine.inOut",
-              yoyo: true,
-              repeat: -1,
-              delay: 0.4,
-            }),
-          ];
-        },
+        onComplete: () => finish(true),
       });
-      entranceTl.current = tl;
+      timelineRef.current = tl;
+      const guard = gsap.delayedCall(INTRO_FALLBACK_S, () => finish(true));
+      // Dev-only handle for tuning: `__introTl.pause(2.1)` parks the sequence
+      // on any beat so a scene can be looked at rather than caught in passing.
+      if (process.env.NODE_ENV !== "production") {
+        const w = window as unknown as {
+          __introTl?: gsap.core.Timeline;
+          __introGuard?: gsap.core.Tween;
+        };
+        w.__introTl = tl;
+        // The safety net, exposed with it: stepping through the closing frames
+        // by hand takes longer than the net's own timeout, so it has to be
+        // killable while tuning.
+        w.__introGuard = guard;
+      }
 
       tl
-        // 1 — OPENING ATMOSPHERE: the room appears before anything in it
-        // does. Texture leads; the two lights drift in from off-centre
-        // (position, not just opacity/scale) a beat later.
-        .to(textureRef.current, { opacity: 0.22, duration: 0.33, ease: "power2.out" }, 0.0)
-        .to(glowRef.current, { opacity: 0.11, scale: 0.93, x: -10, y: 9, duration: 0.28, ease: "power2.out" }, 0.04)
-        .to(glowGoldRef.current, { opacity: 0.06, scale: 0.88, x: 9, y: -8, duration: 0.24, ease: "power2.out" }, 0.07)
+        // ── ACT I · 0.00–0.35 — THE VOID ────────────────────────
+        // Black, grain, and one ember of crimson breathing at the centre. No
+        // artwork yet — a third of a second of empty frame is what makes the
+        // moon an arrival rather than the first slide of a sequence.
+        .to(voidGlowRef.current, { opacity: 0.34, scale: 0.9, duration: 0.42, ease: "power2.out" }, 0)
 
-        // 2 — ANTICIPATION: the light finishes drifting into its resting
-        // post and brightens well before the mark appears — the room is
-        // visibly expecting something.
-        .to(glowRef.current, { opacity: 0.3, scale: 1.04, x: 0, y: 0, duration: 0.21, ease: "power1.out" }, 0.33)
-        .to(glowGoldRef.current, { opacity: 0.15, scale: 1.0, x: 0, y: 0, duration: 0.24, ease: "power1.out" }, 0.33)
-
-        // 3a — THE SLIT OPENS: a vertical line of light draws itself from the
-        // centre outwards. Nothing else moves while it does.
-        //
-        // The light comes up first and the length follows, on a longer and
-        // gentler curve. `power3.out` covered most of its travel in the first
-        // few frames, which read as a snap; `sine.out` leaves the line still
-        // visibly growing as it arrives.
-        .fromTo(
-          slitRef.current,
-          { scaleY: 0, opacity: 0 },
-          { opacity: 1, duration: 0.26, ease: "sine.out" },
-          0.42
-        )
-        .to(slitRef.current, { scaleY: 1, duration: 0.55, ease: "sine.out" }, 0.32)
-
-        // 3b — THE MARK IS PUSHED OUT: it unsqueezes off the line's edge
-        // (transformOrigin sits on the left, so width grows away from the
-        // slit) and is carried a little past centre — the push has momentum,
-        // so it does not stop dead on its mark.
+        // ── ACT II · 0.35–1.05 — THE MOON RISES ─────────────────
+        // The scenery comes up from below and sharpens as it settles: red moon,
+        // torii, mountains, birds. Position, scale and focus on one tween, so
+        // it reads as one move rather than three effects.
         .to(
-          markWrapRef.current,
+          emblemRef.current,
+          { opacity: 1, scale: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease: "power3.out" },
+          0.35
+        )
+        // The scene is lit before anything stands in it — key light with the
+        // moon, contact pool a beat later so the horizon has ground under it.
+        .to(
+          keyLightRef.current,
+          { opacity: compact ? 0.45 : 0.62, scale: 1, duration: 0.8, ease: "power2.out" },
+          0.35
+        )
+        .to(voidGlowRef.current, { opacity: 0.22, scale: 1.2, duration: 0.7, ease: "power2.out" }, 0.5)
+        .to(
+          groundRef.current,
+          { opacity: compact ? 0.35 : 0.5, scaleX: 1, duration: 0.7, ease: "power2.out" },
+          0.62
+        )
+
+        // ── ACT III · 1.05–1.70 — THE FIGURE ───────────────────
+        // He steps out of the moon: in from the left, soft, and resolving sharp
+        // on his mark.
+        .to(
+          characterRef.current,
+          { opacity: 1, x: 0, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power3.out" },
+          1.05
+        )
+        // The hit lands on the frame he does — not earlier, or it punctuates
+        // nothing. One snap of scale, a crimson flash behind him, four ink
+        // strokes thrown outward, and it is over inside a quarter-second.
+        .to(groupRef.current, { scale: 1.035, duration: 0.09, ease: "power2.out" }, 1.42)
+        .to(groupRef.current, { scale: 1, duration: 0.26, ease: "power2.inOut" }, 1.51)
+        .to(flashRef.current, { opacity: 0.42, scale: 1, duration: 0.07, ease: "power2.out" }, 1.42)
+        .to(flashRef.current, { opacity: 0, duration: 0.28, ease: "power2.in" }, 1.49)
+        .set(speedLinesRef.current, { opacity: 1 }, 1.42)
+        .to(
+          speedLines,
           {
-            opacity: 1,
             scaleX: 1,
-            scaleY: 1,
-            x: overshoot,
-            filter: "blur(0px)",
-            duration: 0.7,
+            opacity: compact ? 0.2 : 0.3,
+            duration: 0.13,
+            ease: "power3.out",
+            stagger: 0.02,
+          },
+          1.42
+        )
+        .to(speedLines, { opacity: 0, duration: 0.18, ease: "power2.in", stagger: 0.015 }, 1.6)
+        .to(
+          impactBurstRef.current?.children ?? [],
+          { opacity: 0.8, duration: 0.05, ease: "none", stagger: 0.005 },
+          1.42
+        )
+        .to(
+          impactBurstRef.current?.children ?? [],
+          {
+            x: (i: number) => particles[i].x * (compact ? 80 : 132),
+            y: (i: number) => particles[i].y * (compact ? 80 : 132),
+            scale: 0.25,
+            opacity: 0,
+            duration: 0.5,
             ease: "power2.out",
           },
-          1.04
+          1.45
         )
 
-        // 3c — THE SLIT CLOSES: from the top down, so it collapses onto its
-        // own base and vanishes rather than fading out where it stands.
-        .to(slitRef.current, { transformOrigin: "center bottom" }, 0.88)
-        .to(slitRef.current, { scaleY: 0, duration: 0.5, ease: "sine.inOut" }, 0.91)
-        .to(slitRef.current, { opacity: 0, duration: 0.32, ease: "sine.in" }, 1.08)
+        // ── ACT IV · 1.70–2.40 — THE NAME ─────────────────────
+        // A beat of quiet after the hit, then the wordmark wipes in from the
+        // right and lands beside him. A clip does the revealing while position
+        // and scale carry the momentum; the artwork is never stretched, and its
+        // own red stroke through the V is the only slash in the sequence.
+        .to(
+          wordmarkRef.current,
+          {
+            opacity: 1,
+            x: 0,
+            scale: 1,
+            clipPath: "inset(0% 0% 0% 0%)",
+            duration: 0.7,
+            ease: "power3.out",
+          },
+          1.7
+        )
+        // The way out, offered quietly once there is a logo to skip, and gone
+        // before the closing move so it never flies to the navbar with it.
+        .to(skipRef.current, { opacity: 0.45, y: 0, duration: 0.3, ease: "power2.out" }, 2.0)
 
-        // 3d — AND BACK: with the line gone there is nothing holding it out
-        // of place, so it drifts back onto centre. Slower and softer than the
-        // push, which is what makes the push read as a push.
-        .to(markWrapRef.current, { x: 0, duration: 0.59, ease: "sine.inOut" }, 1.32)
-        // Light interacts with the reveal: both blooms keep climbing and
-        // drifting a few px while the mark resolves, peaking as it lands.
-        .to(glowRef.current, { opacity: 0.42, scale: 1.12, x: 5, y: -4, duration: 0.54, ease: "power2.out" }, 0.54)
-        .to(glowGoldRef.current, { opacity: 0.23, scale: 1.06, x: -4, y: 3, duration: 0.52, ease: "power2.out" }, 0.56)
+        // ── ACT V · 2.40–3.20 — THE HERO SHOT ──────────────────
+        // The shot the sequence exists for. The camera leans in a fraction and
+        // settles; after this nothing moves except light.
+        .to(groupRef.current, { scale: 1.025, duration: 0.42, ease: "sine.inOut" }, 2.4)
+        .to(groupRef.current, { scale: 1, duration: 0.42, ease: "sine.inOut" }, 2.82)
+        // One pass of light behind the artwork. Soft-edged and unclipped: an
+        // earlier version travelled inside a clipped box and painted a visible
+        // rectangular panel behind the lockup every time it passed.
+        .to(sweepRef.current, { opacity: compact ? 0.26 : 0.38, duration: 0.16, ease: "power2.out" }, 2.35)
+        .to(sweepRef.current, { xPercent: 150, duration: 0.95, ease: "power1.inOut" }, 2.35)
+        .to(sweepRef.current, { opacity: 0, duration: 0.26, ease: "power2.in" }, 3.0)
+        // As that light crosses his face his eyes catch it — one pulse, about
+        // 0.2s, never a continuous glow. Shape and artwork untouched: this is a
+        // screen-blended highlight sitting exactly over them.
+        .to(eyesRef.current, { opacity: 0.5, duration: 0.07, ease: "power2.out" }, 2.72)
+        .to(eyesRef.current, { opacity: 0.92, duration: 0.06, ease: "power2.out" }, 2.79)
+        .to(eyesRef.current, { opacity: 0, duration: 0.1, ease: "power2.inOut" }, 2.85)
+        .to(keyLightRef.current, { opacity: compact ? 0.5 : 0.7, duration: 0.38, ease: "sine.inOut" }, 2.45)
+        .to(hazeRef.current, { opacity: 1, duration: 0.32, ease: "power2.out" }, 2.55)
+        .to(keyLightRef.current, { opacity: compact ? 0.42 : 0.58, duration: 0.38, ease: "sine.inOut" }, 2.85)
 
-        // Controlled overshoot — a real, visible settle, not a cosmetic
-        // wobble — then everything falls back to rest.
-        .to(markWrapRef.current, { scale: 1.012, duration: 0.12, ease: "sine.out" }, 1.84)
-        .to(markWrapRef.current, { scale: 1, duration: 0.2, ease: "sine.inOut" }, 1.96)
-        .to(glowRef.current, { opacity: 0.19, scale: 1, x: 0, y: 0, duration: 0.28, ease: "power2.inOut" }, 1.09)
-        .to(glowGoldRef.current, { opacity: 0.13, scale: 1, x: 0, y: 0, duration: 0.3, ease: "power2.inOut" }, 1.09)
+        // ── ACT VI · 3.05→ — THE WAY OUT ───────────────────────
+        // Common to both compositions: the affordance and the atmosphere leave
+        // first, whatever happens to the lockup after them.
+        .to(skipRef.current, { opacity: 0, y: -4, duration: 0.18, ease: "power2.in" }, 3.05)
+        .to(hazeRef.current, { opacity: 0, duration: 0.28, ease: "power2.in" }, 3.15);
 
-        // 4 — GOLD RULE: draws left to right from a true edge — a line
-        // being drawn, not a shape fading in.
-        .to(ruleRef.current, { scaleX: 1, opacity: 1, duration: 0.29, ease: "power2.out" }, 2.11)
+      if (compact) {
+        // ── PHONES · 3.20–3.80 — IT SIMPLY ENDS ─────────────────
+        //
+        // No flight, no handover, nothing aimed at the navbar. The stacked
+        // phone composition is a completely different shape from the navbar's
+        // horizontal mark, so flying one into the other lands a tall lockup on
+        // a wide box — it cannot be made to match, and trying is what made the
+        // ending look broken on a phone. The sequence closes on itself instead:
+        // the composition eases back a fraction and the whole overlay goes.
+        tl.to(groupRef.current, { scale: 0.94, duration: 0.6, ease: "power2.in" }, 3.2)
+          .to(
+            [emblemRef.current, characterRef.current],
+            { opacity: 0, duration: 0.46, ease: "power2.in" },
+            3.2
+          )
+          .to(
+            [keyLightRef.current, groundRef.current],
+            { opacity: 0, duration: 0.42, ease: "power2.in" },
+            3.2
+          )
+          .to(backdropRef.current, { opacity: 0, duration: 0.46, ease: "power2.inOut" }, 3.3)
+          .to(voidGlowRef.current, { opacity: 0, duration: 0.42, ease: "power2.in" }, 3.3)
+          .to(containerRef.current, { opacity: 0, duration: 0.34, ease: "power2.inOut" }, 3.44)
+          // Input reaches the site before the last frames of opacity finish.
+          .call(
+            () => {
+              if (containerRef.current) containerRef.current.style.pointerEvents = "none";
+            },
+            undefined,
+            3.5
+          )
+          .set({}, {}, 3.82);
+      } else {
+        // ── DESKTOP · 3.20–4.05 — BECOMING THE SITE ──────────────
+        //
+        // One continuous move that ends in a swap, with no pause anywhere in
+        // it. An earlier cut held the landed lockup still for a third of a
+        // second before starting the swap, and that hold was the problem: by
+        // then the backdrop is gone and the site is up, so a motionless logo on
+        // a live page does not read as a beat — it reads as a freeze.
+        //
+        //   3.20 → 3.95   flies to the navbar logo and decelerates into it;
+        //                  the void, the moon and the lighting all finish
+        //                  leaving on the same frame
+        //   3.95 → 4.05   the lockup and the navbar's own logo cross-fade
+        tl.to(
+          flight,
+          {
+            p: 1,
+            duration: 0.75,
+            // Decelerating rather than in-and-out: the move should still be
+            // visibly slowing as the swap takes over, so the two read as one
+            // gesture instead of a move and then an event.
+            ease: "power3.out",
+            onStart: () => {
+              flightFrom = readGroup();
+            },
+            onUpdate: () => pin(flight.p),
+          },
+          3.2
+        )
+          // Magnet. The flight is over at 3.95 but the lockup is still on
+          // screen through the cross-fade, and the navbar can move under it in
+          // that window — its logo animates size on scroll, and a late image or
+          // font can reflow the row. This tween changes nothing; it exists so
+          // `pin(1)` runs on every frame until the lockup is gone.
+          .to(
+            flight,
+            {
+              p: 1,
+              duration: 0.1,
+              ease: "none",
+              onUpdate: () => pin(1),
+            },
+            3.95
+          )
+          // The scenery, the lighting and the figure all leave *during* the
+          // flight and land on zero with it. What actually arrives at the
+          // navbar is the wordmark — the one element that matches the navbar
+          // mark exactly — with everything that does not match already gone.
+          .to(emblemRef.current, { opacity: 0, duration: 0.44, ease: "power2.in" }, 3.2)
+          .to(keyLightRef.current, { opacity: 0, duration: 0.48, ease: "power2.in" }, 3.2)
+          .to(groundRef.current, { opacity: 0, duration: 0.46, ease: "power2.in" }, 3.2)
+          // The intro's character is far larger than the small figure baked
+          // into the navbar mark; it is the one part a cross-fade cannot
+          // disguise, so it is down to nothing before the swap starts.
+          .to(characterRef.current, { opacity: 0, duration: 0.42, ease: "power2.in" }, 3.26)
+          // The void goes out with the move, finishing on the same frame the
+          // lockup lands. Opening it earlier leaves a big logo sliding over a
+          // live homepage; later, and the swap happens against a dark screen.
+          .to(backdropRef.current, { opacity: 0, duration: 0.52, ease: "power2.inOut" }, 3.43)
+          .to(voidGlowRef.current, { opacity: 0, duration: 0.48, ease: "power2.in" }, 3.43)
+          // The swap: 0.10s, both directions at once, starting the frame the
+          // flight ends. By this point the two are the same artwork at the same
+          // size in the same place, so the overlap is invisible — whereas any
+          // gap between them, even two frames, reads as a cut.
+          .to(containerRef.current, { opacity: 0, duration: 0.1, ease: "none" }, 3.95)
+          .to(navLogoRef.current, { opacity: 1, duration: 0.1, ease: "none" }, 3.95)
+          // Input reaches the site the moment the swap begins.
+          .call(
+            () => {
+              if (containerRef.current) containerRef.current.style.pointerEvents = "none";
+            },
+            undefined,
+            3.95
+          )
+          .call(() => releaseNavLogo(), undefined, 4.07)
+          .set({}, {}, 4.12);
+      }
 
-        // 4 — TAGLINES: staggered, each with its own blur-to-sharp arrival
-        // so they read as arriving in sequence, not switching on together.
-        .to(tagRef.current, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.26, ease: "power2.out" }, 2.2)
-        .to(subRef.current, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.23, ease: "power2.out" }, 2.34)
-
-        // 5 — ARCHIVAL FRAME: retracted and displaced well beyond the
-        // logo's own move, arriving last and slowest so the hierarchy
-        // reads front-to-back rather than everything landing together.
-        .to(frameRef.current, { opacity: 1, scale: 1, y: 0, duration: 0.33, ease: "power2.out" }, 2.51)
-        .to(estRef.current, { opacity: 1, y: 0, duration: 0.26, ease: "power2.out" }, 2.55)
-        .to(spineRef.current, { opacity: 1, y: 0, duration: 0.26, ease: "power2.out" }, 2.6)
-        .to(skipRef.current, { opacity: 1, y: 0, duration: 0.21, ease: "power2.out" }, 2.69);
+      return () => {
+        guard.kill();
+        // Whatever tears this down — a route change, a hot reload, the user
+        // navigating away mid-sequence — the navbar must never be left holding
+        // an invisible logo.
+        releaseNavLogo();
+      };
     },
-    { scope: containerRef, dependencies: [visible] }
+    { scope: containerRef, dependencies: [visible, isCompact, releaseNavLogo] }
   );
+
+  // Layout numbers, resolved per breakpoint rather than sprinkled through the
+  // markup: horizontal lockup on desktop/tablet, stacked on phones.
+  const characterBox = isCompact
+    ? "w-[62vw] max-w-[330px]"
+    : "w-[34vw] max-w-[420px] lg:w-[32vw]";
+  const wordmarkBox = isCompact ? "w-[74vw] max-w-[360px]" : "w-[38vw] max-w-[520px]";
 
   return (
     <>
@@ -429,179 +858,275 @@ export function CinematicIntro() {
           ref={containerRef}
           role="presentation"
           aria-hidden="true"
-          className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden bg-ink select-none"
-          style={ATMOSPHERE_STYLE}
+          className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden select-none"
         >
-          {/* ── Backdrop ───────────────────────────────────────────────── */}
+          {/* ── Backdrop: the void ─────────────────────────────────────── */}
+          <div ref={backdropRef} className="absolute inset-0" style={VOID_STYLE} />
+          <div className="absolute inset-0 pointer-events-none opacity-[0.04] mix-blend-overlay" style={GRAIN_STYLE} />
 
-          {/* The same watermark texture used across the storefront, masked
-              so it reads as emerging from the dark near the mark rather
-              than a uniform wallpaper — and given its own slow, continuous
-              pan (compositor-only transform) so it's never a still image. */}
+          {/* The single atmospheric red source. Centred by GSAP's own
+              xPercent/yPercent — see the transform note at the top. */}
           <div
-            ref={textureRef}
-            className="absolute inset-0 bg-japanese-pattern kairo-intro-drift-soft pointer-events-none"
-            style={{ WebkitMaskImage: TEXTURE_MASK, maskImage: TEXTURE_MASK }}
-          />
-
-          {/* A single static grain pass for film-stock texture. */}
-          <div className="absolute inset-0 pointer-events-none opacity-[0.035] mix-blend-overlay" style={GRAIN_STYLE} />
-
-          {/* Two light sources, not one — a wider vermilion bloom and a
-              smaller muted-gold bloom offset from it, each drifting in
-              from off-centre rather than simply changing opacity in place.
-              No CSS translate class here — GSAP owns the centring via
-              xPercent/yPercent so the animated x/y compose correctly. */}
-          <div
-            ref={glowGoldRef}
-            className="absolute left-[38%] top-[33%] w-[32vw] max-w-[320px] h-[24vw] max-h-[240px] rounded-full pointer-events-none"
+            ref={voidGlowRef}
+            className="absolute left-1/2 top-1/2 w-[70vw] max-w-[760px] h-[70vw] max-h-[760px] rounded-full pointer-events-none"
             style={{
-              background: "radial-gradient(ellipse at 50% 50%, rgba(199,167,108,0.30) 0%, rgba(199,167,108,0.10) 45%, transparent 72%)",
-              filter: "blur(46px)",
-            }}
-          />
-          <div
-            ref={glowRef}
-            className="absolute left-[47%] top-[41%] w-[66vw] max-w-[700px] h-[42vw] max-h-[420px] rounded-full pointer-events-none"
-            style={{
-              background: "radial-gradient(ellipse at 50% 50%, rgba(217,74,58,0.34) 0%, rgba(217,74,58,0.13) 38%, transparent 68%)",
-              filter: "blur(62px)",
+              background:
+                "radial-gradient(circle at 50% 50%, rgba(217,74,58,0.30) 0%, rgba(217,74,58,0.09) 42%, transparent 70%)",
+              filter: "blur(60px)",
             }}
           />
 
-          {/* Two drifting watermarks, reused from the site's own
-              vocabulary rather than an invented pattern, balancing the
-              composition left and right at different scales and speeds. */}
-          <div className="absolute inset-0 pointer-events-none kairo-intro-drift-soft">
-            <span
-              className="absolute font-serif font-bold text-paper leading-none whitespace-nowrap"
-              style={{ top: "15%", left: "9%", fontSize: "clamp(50px, 8vw, 120px)", opacity: 0.028 }}
-            >
-              幽玄
-            </span>
-          </div>
-          <div className="absolute inset-0 pointer-events-none kairo-intro-drift">
-            <span
-              className="absolute font-serif font-bold text-paper leading-none whitespace-nowrap"
-              style={{ top: "66%", left: "70%", fontSize: "clamp(70px, 11vw, 170px)", opacity: 0.035 }}
-            >
-              蒐集
-            </span>
-          </div>
-
-          {/* Fixed vignette keeps the edges dark so the centre reads first. */}
-          <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_43%,transparent_20%,rgba(13,13,15,0.86)_76%)]" />
-
-          {/* Registration marks — the frame of an archival plate. Sized and
-              spaced asymmetrically (a larger bottom margin than top, the
-              way a print is mounted slightly above true centre) rather
-              than four identical corners, with a restrained vermilion
-              accent on the diagonal pair. */}
-          <div ref={frameRef} className="absolute inset-0 pointer-events-none">
-            <span className="absolute top-6 left-6 sm:top-10 sm:left-10 w-9 h-9 sm:w-11 sm:h-11 border-t border-l border-gold/32" />
-            <span className="absolute top-6 left-6 sm:top-10 sm:left-10 w-[3px] h-[3px] rounded-full bg-vermilion/70" />
-
-            <span className="absolute top-6 right-6 sm:top-10 sm:right-10 w-7 h-7 sm:w-8 sm:h-8 border-t border-r border-gold/18" />
-
-            <span className="absolute bottom-9 left-6 sm:bottom-16 sm:left-10 w-7 h-7 sm:w-8 sm:h-8 border-b border-l border-gold/18" />
-
-            <span className="absolute bottom-9 right-6 sm:bottom-16 sm:right-10 w-9 h-9 sm:w-11 sm:h-11 border-b border-r border-gold/32" />
-            <span className="absolute bottom-9 right-6 sm:bottom-16 sm:right-10 w-[3px] h-[3px] -translate-x-full -translate-y-full rounded-full bg-vermilion/70" />
-          </div>
-
-          <span
-            ref={estRef}
-            className="absolute top-8 sm:top-12 left-1/2 -translate-x-1/2 font-mono text-[9px] tracking-[0.5em] uppercase text-gold/45"
-          >
-            Est. Cairo
-          </span>
-
-          {/* A single vertical line of type, set the way a spine is —
-              re-centred on the light's own focal point, warmed up so it
-              reads as archival marginalia, paired with a short editorial
-              tick-rule beneath it. No CSS translate class — see the
-              xPercent/yPercent note above; this element's own vertical
-              centring was being silently overwritten by its GSAP y tween
-              before this fix. */}
-          <div
-            ref={spineRef}
-            className="absolute right-8 sm:right-11 top-[43%] flex flex-col items-center gap-3 pointer-events-none"
-          >
-            <span
-              className="font-serif text-gold/35 leading-none"
+          {/* ── Scene 07 atmosphere ────────────────────────────────────── */}
+          <div ref={hazeRef} className="absolute inset-0 pointer-events-none">
+            <div
+              className="absolute inset-0"
               style={{
-                writingMode: "vertical-rl",
-                fontSize: "clamp(26px, 3.6vw, 46px)",
-                letterSpacing: "0.3em",
+                background:
+                  "radial-gradient(ellipse 60% 40% at 50% 55%, rgba(217,74,58,0.08) 0%, transparent 70%)",
               }}
-            >
-              物語の始まり
-            </span>
-            <span className="h-8 w-px bg-gradient-to-b from-gold/40 to-transparent" />
+            />
+            {hazeDots.map((p, i) => (
+              <span
+                key={i}
+                className="absolute rounded-full bg-vermilion kairo-intro-ember"
+                style={{
+                  left: `${p.left}%`,
+                  top: `${p.top}%`,
+                  width: p.size,
+                  height: p.size,
+                  opacity: 0.5,
+                  ["--ember-drift" as string]: `${p.drift}px`,
+                  animationDuration: `${p.dur}s`,
+                }}
+              />
+            ))}
           </div>
 
-          {/* The slit the mark is pushed out of: a thin vertical line of
-              light standing left of centre. It opens, releases the mark,
-              then closes from the top down and is gone. */}
+          {/* ── Impact effects ──────────────────────────────── */}
           <div
-            ref={slitRef}
-            aria-hidden="true"
-            className="absolute top-0 z-10 w-px origin-top bg-gradient-to-b from-transparent via-gold to-transparent"
-            style={{ height: "clamp(96px, 19vh, 260px)" }}
+            ref={flashRef}
+            className="absolute left-1/2 top-1/2 w-[46vw] max-w-[520px] h-[46vw] max-h-[520px] rounded-full pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(circle at 50% 50%, rgba(255,90,70,0.85) 0%, rgba(217,74,58,0.35) 38%, transparent 68%)",
+              filter: "blur(24px)",
+            }}
           />
 
-          {/* ── The mark ───────────────────────────────────────────────── */}
-          <div className="relative z-10 flex flex-col items-center px-6 text-center">
-            <div ref={markWrapRef} className="relative">
-              <Image
-                src={storeMark}
-                alt=""
-                sizes="(max-width: 639px) 300px, 480px"
-                quality={90}
-                priority
-                className="w-auto h-14 sm:h-20 lg:h-28 xl:h-32 drop-shadow-[0_0_30px_rgba(199,167,108,0.3)]"
-              />
-            </div>
+          {/* Manga speed lines, drawn from behind the emblem outward. Each
+              line owns its rotation on a wrapper so GSAP animates scaleX on
+              the inner element without fighting the transform. */}
+          {/* The rotation lives on a wrapper and the scaled line inside it,
+              offset with a margin rather than a second transform. GSAP parses
+              an element's transform into its own matrix the first time it
+              touches it, so a hand-written `rotate() translateX()` on the same
+              node it animates `scaleX` on would be re-composed and land the
+              line somewhere other than where it was authored. */}
+          <div ref={speedLinesRef} className="absolute left-1/2 top-1/2 pointer-events-none">
+            {speedAngles.map((angle, i) => (
+              <span
+                key={angle}
+                className="absolute block origin-left"
+                style={{ transform: `rotate(${angle}deg)` }}
+              >
+                <span
+                  className="intro-speed-line block h-px origin-left"
+                  style={{
+                    // Short, tapered at both ends, and each a different
+                    // length: a stroke of ink thrown off the impact, not a
+                    // rule pointing at the emblem.
+                    width: `calc(${isCompact ? "15vw" : "11vw"} * ${SPEED_LINE_LENGTHS[i]})`,
+                    marginLeft: isCompact ? 100 : 166,
+                    background:
+                      i % 2 === 0
+                        ? "linear-gradient(90deg, rgba(217,74,58,0) 0%, rgba(217,74,58,0.9) 30%, rgba(217,74,58,0) 100%)"
+                        : "linear-gradient(90deg, rgba(244,240,232,0) 0%, rgba(244,240,232,0.62) 30%, rgba(244,240,232,0) 100%)",
+                  }}
+                />
+              </span>
+            ))}
+          </div>
 
-            <span
-              ref={ruleRef}
-              className="origin-left mt-6 sm:mt-8 block h-px w-40 sm:w-56 bg-gradient-to-r from-transparent via-gold to-transparent"
+          <div ref={impactBurstRef} className="absolute left-1/2 top-1/2 pointer-events-none">
+            {particles.map((p, i) => (
+              <span
+                key={i}
+                className="absolute block rounded-full bg-vermilion"
+                style={{ width: 2 + p.s * 3, height: 2 + p.s * 3 }}
+              />
+            ))}
+          </div>
+
+          {/* ── The assembled lockup ───────────────────────────────────────
+              Layer order is the spec's, back to front: background emblem →
+              character → wordmark → light. `groupRef` is the single
+              transform handle the push-in and the flight to the navbar both
+              use, so the composition never comes apart. */}
+          <div
+            ref={groupRef}
+            className={`relative z-10 flex items-center justify-center ${
+              isCompact ? "flex-col gap-3 px-6" : "flex-row gap-[2vw] px-8"
+            }`}
+          >
+            {/* ── Lighting ──────────────────────────────────────────────
+                Three soft sources, no hard geometry anywhere. Every one of
+                them is an unclipped, heavily blurred radial: the previous
+                pass ran its sweep inside a clipped box, which painted a
+                visible rectangular panel behind the artwork on every pass.
+
+                Key light — a standing warm bloom the moon rises into, so the
+                scene is lit before the figure arrives in it. */}
+            <div
+              ref={keyLightRef}
+              className="absolute left-[30%] top-1/2 w-[70%] h-[130%] rounded-full pointer-events-none"
+              style={{
+                background:
+                  "radial-gradient(ellipse at 50% 50%, rgba(217,74,58,0.34) 0%, rgba(150,40,32,0.14) 44%, transparent 72%)",
+                filter: "blur(56px)",
+              }}
             />
 
-            <p ref={tagRef} className="mt-4 font-serif text-xs sm:text-sm tracking-[0.42em] uppercase text-gold/80">
-              アニメヴァース
-            </p>
+            {/* Contact pool — a low, wide glow under the lockup so it sits in
+                the frame instead of floating on it. */}
+            <div
+              ref={groundRef}
+              className="absolute left-1/2 bottom-[-14%] w-[86%] h-[22%] -translate-x-1/2 rounded-[50%] pointer-events-none"
+              style={{
+                background:
+                  "radial-gradient(ellipse at 50% 50%, rgba(217,74,58,0.26) 0%, rgba(217,74,58,0.07) 45%, transparent 74%)",
+                filter: "blur(34px)",
+              }}
+            />
 
-            <p ref={subRef} className="mt-2 font-mono text-[9px] sm:text-[10px] tracking-[0.3em] uppercase text-text-muted">
-              Manga &amp; Collector Editions
-            </p>
+            {/* The pass of light itself: one soft ellipse crossing behind the
+                artwork, wider than it is tall and blurred past any edge. */}
+            <div
+              ref={sweepRef}
+              className="absolute left-1/2 top-1/2 w-[46%] h-[120%] -translate-y-1/2 rounded-full pointer-events-none"
+              style={{
+                background:
+                  "radial-gradient(ellipse at 50% 50%, rgba(255,142,120,0.55) 0%, rgba(255,190,175,0.22) 40%, transparent 72%)",
+                filter: "blur(46px)",
+              }}
+            />
+
+            {/* LAYER 1 + LAYER 2 — the moon behind, the character in front.
+                Same source canvas, so stacking them at identical size
+                reproduces the registration of the original artwork exactly;
+                the emblem is pushed marginally larger so it reads as scenery
+                sitting behind the figure. */}
+            <div className={`relative ${characterBox} shrink-0`}>
+              <div ref={emblemRef} className="absolute inset-0 -m-[9%] pointer-events-none">
+                <Image
+                  src={backgroundEmblem}
+                  alt=""
+                  sizes="(max-width: 767px) 70vw, 460px"
+                  quality={90}
+                  priority
+                  className="w-full h-auto"
+                />
+              </div>
+
+              <div ref={characterRef} className="relative">
+                <Image
+                  src={characterArt}
+                  alt=""
+                  sizes="(max-width: 767px) 62vw, 420px"
+                  quality={90}
+                  priority
+                  className="w-full h-auto drop-shadow-[0_10px_26px_rgba(0,0,0,0.75)]"
+                />
+
+                {/* The eye catch-light. Positioned as a fraction of the
+                    character's own box — the artwork is untouched, this only
+                    adds light over it. */}
+                <div ref={eyesRef} className="absolute inset-0 pointer-events-none mix-blend-screen">
+                  <span
+                    className="absolute rounded-full"
+                    style={{
+                      left: "30.2%",
+                      top: "47.2%",
+                      width: "4.2%",
+                      aspectRatio: "1",
+                      transform: "translate(-50%, -50%)",
+                      background:
+                        "radial-gradient(circle, rgba(255,120,95,0.95) 0%, rgba(217,74,58,0.45) 45%, transparent 72%)",
+                      filter: "blur(2px)",
+                    }}
+                  />
+                  <span
+                    className="absolute rounded-full"
+                    style={{
+                      left: "48.6%",
+                      top: "46.4%",
+                      width: "4.2%",
+                      aspectRatio: "1",
+                      transform: "translate(-50%, -50%)",
+                      background:
+                        "radial-gradient(circle, rgba(255,120,95,0.95) 0%, rgba(217,74,58,0.45) 45%, transparent 72%)",
+                      filter: "blur(2px)",
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* LAYER 3 — the wordmark. */}
+            <div className={`relative ${wordmarkBox} shrink-0`}>
+              <div ref={wordmarkRef} className="relative">
+                <Image
+                  src={wordmarkArt}
+                  alt="AnimeVerse"
+                  sizes="(max-width: 767px) 74vw, 520px"
+                  quality={90}
+                  priority
+                  className="w-full h-auto"
+                />
+              </div>
+
+            </div>
           </div>
 
-          {/* A quiet hint rather than a progress bar racing the animation. */}
+          {/* Reduced-motion fallback: the shipped static logo, nothing moving. */}
+          <div ref={fallbackRef} className="absolute z-20 w-[70vw] max-w-[520px] opacity-0 pointer-events-none">
+            <Image src={fullLogo} alt="AnimeVerse" sizes="(max-width: 767px) 70vw, 520px" quality={90} priority className="w-full h-auto" />
+          </div>
+
+          {/* A quiet affordance rather than a progress bar racing the sequence. */}
           <button
             ref={skipRef}
             type="button"
-            onClick={finish}
-            className="absolute bottom-8 sm:bottom-10 font-mono text-[9px] sm:text-[10px] tracking-[0.28em] uppercase text-text-muted/70 hover:text-gold transition-colors cursor-pointer"
+            onClick={() => finish()}
+            className="absolute bottom-8 sm:bottom-10 left-1/2 -translate-x-1/2 z-30 font-mono text-[9px] sm:text-[10px] tracking-[0.28em] uppercase text-paper/70 hover:text-vermilion transition-colors cursor-pointer"
           >
             <span className="inline-flex items-center gap-3">
-              <span className="h-px w-6 bg-gold/40" />
-              Enter the archive
-              <span className="h-px w-6 bg-gold/40" />
+              <span className="h-px w-6 bg-vermilion/40" />
+              Enter
+              <span className="h-px w-6 bg-vermilion/40" />
             </span>
           </button>
         </div>
       )}
 
-      {/* Dev-only replay control. Renders regardless of `visible` so it's
-          always reachable — no fighting cookies/localStorage/sessionStorage
-          to see the sequence again while tuning it. Calls the same
-          isIntroActive flag the account page's post-signup replay uses. */}
+      {/* Dev-only replay control. Renders regardless of `visible` so the
+          sequence is always reachable while tuning it, without fighting
+          sessionStorage. */}
       {process.env.NODE_ENV !== "production" && (
         <button
           type="button"
-          onClick={() => playIntro()}
-          className="fixed bottom-3 left-3 z-[200] rounded-sm border border-gold/30 bg-ink/90 px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-gold/70 backdrop-blur-sm transition-colors hover:border-gold/60 hover:text-gold cursor-pointer"
+          onClick={() => {
+            // Cleared first: `playIntro()` only starts a run by *changing*
+            // isIntroActive, so asking for one while a previous run is still
+            // flagged active is a no-op — which is exactly the state you are
+            // in after pausing the timeline by hand to look at a frame.
+            finishedRef.current = false;
+            closeIntro();
+            // A timeout, not a rAF, for the same reason the mount uses one:
+            // rAF never runs while the page isn't being painted, and the
+            // replay control then does nothing at all.
+            setTimeout(() => playIntro(), 0);
+          }}
+          className="fixed bottom-3 left-3 z-[200] rounded-sm border border-vermilion/30 bg-ink/90 px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-vermilion/70 backdrop-blur-sm transition-colors hover:border-vermilion/60 hover:text-vermilion cursor-pointer"
         >
           ⟲ Replay intro
         </button>
