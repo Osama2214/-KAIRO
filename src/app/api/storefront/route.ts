@@ -37,6 +37,29 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, message: "Invalid storefront data." }, { status: 400 });
     }
     const data = Object.fromEntries(Object.entries(source).filter(([key]) => ALLOWED_KEYS.has(key)));
+
+    // A save is a whole-payload replace, so a console whose store went empty
+    // (a failed hydration, a bug) would blank the shop in one request. The
+    // client guards against it; the server refuses it outright.
+    if ("volumes" in data) {
+      const incoming = data.volumes;
+      if (!Array.isArray(incoming)) {
+        return NextResponse.json({ success: false, message: "Catalogue payload is malformed." }, { status: 400 });
+      }
+      if (incoming.length === 0) {
+        const current = await getStorefrontData().catch(() => null);
+        const stored = Array.isArray(current?.volumes) ? (current!.volumes as unknown[]).length : 0;
+        if (stored > 0) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: "Refused: this would erase every volume in the catalogue. Reload the console and try again.",
+            },
+            { status: 409 }
+          );
+        }
+      }
+    }
     if (JSON.stringify(data).length > 1_500_000) {
       return NextResponse.json({ success: false, message: "Storefront update is too large." }, { status: 413 });
     }

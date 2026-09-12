@@ -68,9 +68,9 @@ export function isTrustedOrigin(request: Request): boolean {
   if (!origin) return process.env.NODE_ENV !== "production";
 
   const cleanOrigin = origin.trim().replace(/\/+$/, "");
-  const allowed = new Set<string>([
-    "https://animeverse-rosy-five.vercel.app",
-  ]);
+  // Deployment hostnames come from the environment: a hard-coded one drifted
+  // out of date and left the check leaning on the forwarded-host fallback.
+  const allowed = new Set<string>();
 
   const configured = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "");
   if (configured) allowed.add(configured);

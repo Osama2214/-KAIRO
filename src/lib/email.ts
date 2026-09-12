@@ -9,6 +9,58 @@ function appUrl(): string {
   return "http://localhost:3000";
 }
 
+/**
+ * The store's logo, served from object storage rather than from the app.
+ *
+ * A mail sent today is opened weeks later: pointing at a per-deployment Vercel
+ * host would break the image on the next push, and at localhost in development
+ * it would never have loaded at all. R2 is stable and independent of deploys.
+ */
+const BRAND_LOGO_URL =
+  process.env.BRAND_LOGO_URL?.trim() ||
+  (process.env.R2_PUBLIC_URL?.trim()
+    ? `${process.env.R2_PUBLIC_URL.trim().replace(/\/+$/, "")}/brand/animeverse-logo-email.png`
+    : `${appUrl()}/animeverse-logo.png`);
+
+/**
+ * One header for every message the shop sends.
+ *
+ * It used to be a 30px red square with the nine-letter word "ANIMEVERSE"
+ * inside it — the text overflowed the box and collided with the title beside
+ * it — and three of the five templates carried no brand mark at all.
+ *
+ * `alt` matters more than usual here: most mail clients block remote images by
+ * default, so that text is what a large share of recipients actually read.
+ */
+function brandHeader(options: {
+  title: string;
+  eyebrow?: string;
+  meta?: string;
+  accent?: string;
+  background?: string;
+  border?: string;
+}): string {
+  const accent = options.accent || "#D4AF37";
+  const background = options.background || "linear-gradient(180deg, #181818 0%, #121212 100%)";
+  const border = options.border || "#222222";
+  return `
+          <tr>
+            <td style="padding: 30px 30px 22px; text-align: center; border-bottom: 1px solid ${border}; background: ${background};">
+              <img src="${BRAND_LOGO_URL}" width="178" height="48" alt="AnimeVerse"
+                   style="display: block; margin: 0 auto 14px; width: 178px; height: 48px; max-width: 60%; border: 0; outline: none; text-decoration: none;" />
+              ${options.eyebrow
+                ? `<span style="display: block; font-family: monospace; font-size: 11px; letter-spacing: 2.2px; color: ${accent}; text-transform: uppercase;">${options.eyebrow}</span>`
+                : ""}
+              <h1 style="margin: ${options.eyebrow ? "8px" : "0"} 0 0; font-size: 19px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: #ffffff;">
+                ${options.title}
+              </h1>
+              ${options.meta
+                ? `<p style="margin: 6px 0 0; font-size: 11px; font-family: monospace; letter-spacing: 1px; color: #888888;">${options.meta}</p>`
+                : ""}
+            </td>
+          </tr>`;
+}
+
 /** Collapses newlines so customer text cannot split an SMTP header. */
 function headerSafe(str: unknown, max = 80): string {
   return String(str ?? "").replace(/\s+/g, " ").trim().slice(0, max);
@@ -204,19 +256,7 @@ function generateOtpHtmlEmail(code: string, recipientEmail: string, purpose: "RE
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 540px; background-color: #121212; border: 1px solid #262626; border-radius: 4px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.8);">
           
           <!-- Top Header Strip -->
-          <tr>
-            <td style="padding: 32px 32px 24px; text-align: center; border-bottom: 1px solid #222222; background: linear-gradient(180deg, #181818 0%, #121212 100%);">
-              <div style="display: inline-block; background-color: #D94A3A; color: #ffffff; width: 32px; height: 32px; line-height: 32px; font-size: 15px; font-weight: bold; border-radius: 3px; margin-bottom: 12px; font-family: serif;">
-                ANIMEVERSE
-              </div>
-              <h1 style="margin: 0; font-size: 19px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; color: #f5f3ef;">
-                ANIMEVERSE ARCHIVE
-              </h1>
-              <p style="margin: 6px 0 0; font-size: 11px; font-family: monospace; letter-spacing: 1.5px; color: #888888; text-transform: uppercase;">
-                ${title}
-              </p>
-            </td>
-          </tr>
+          ${brandHeader({ title: "AnimeVerse Archive", meta: title })}
 
           <!-- Body Content -->
           <tr>
@@ -335,20 +375,13 @@ export async function sendAdminNewOrderNotification(order: ServerOrder): Promise
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #121212; border: 1px solid #2e2e2e; border-radius: 4px; overflow: hidden;">
           
           <!-- Header -->
-          <tr>
-            <td style="padding: 24px 30px; background: linear-gradient(180deg, #1f1a14 0%, #121212 100%); border-bottom: 1px solid #2e2e2e;">
-              <div style="display: flex; align-items: center; justify-content: space-between;">
-                <div>
-                  <span style="font-family: monospace; font-size: 11px; letter-spacing: 2px; color: #D4AF37; text-transform: uppercase;">
-                    ANIMEVERSE ADMIN ARCHIVE ALERT
-                  </span>
-                  <h1 style="margin: 4px 0 0; font-size: 20px; font-weight: 800; color: #ffffff;">
-                    New Order Received: #${order.id}
-                  </h1>
-                </div>
-              </div>
-            </td>
-          </tr>
+          ${brandHeader({
+            eyebrow: "Admin Archive Alert",
+            title: "New Order Received",
+            meta: `ORDER #${escapeHtml(order.id)}`,
+            background: "linear-gradient(180deg, #1f1a14 0%, #121212 100%)",
+            border: "#2e2e2e",
+          })}
 
           <!-- Content -->
           <tr>
@@ -516,19 +549,7 @@ export async function sendCustomerOrderStatusUpdateEmail(
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 550px; background-color: #121212; border: 1px solid #262626; border-radius: 4px; overflow: hidden;">
           
           <!-- Header -->
-          <tr>
-            <td style="padding: 28px 30px 20px; text-align: center; border-bottom: 1px solid #222; background: linear-gradient(180deg, #181818 0%, #121212 100%);">
-              <div style="display: inline-block; background-color: #D94A3A; color: #ffffff; width: 30px; height: 30px; line-height: 30px; font-size: 14px; font-weight: bold; border-radius: 3px; margin-bottom: 10px; font-family: serif;">
-                ANIMEVERSE
-              </div>
-              <h1 style="margin: 0; font-size: 18px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: #ffffff;">
-                Order Status Update
-              </h1>
-              <p style="margin: 5px 0 0; font-size: 11px; font-family: monospace; letter-spacing: 1px; color: #888;">
-                ORDER #${order.id}
-              </p>
-            </td>
-          </tr>
+          ${brandHeader({ title: "Order Status Update", meta: `ORDER #${escapeHtml(order.id)}` })}
 
           <!-- Body -->
           <tr>
@@ -635,19 +656,13 @@ export async function sendCustomerOrderShippedEmail(order: ServerOrder): Promise
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 580px; background-color: #121212; border: 1px solid #2e2e2e; border-radius: 4px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.9);">
           
           <!-- Top Banner -->
-          <tr>
-            <td style="padding: 32px 30px 24px; text-align: center; border-bottom: 1px solid #2a2a2a; background: linear-gradient(180deg, #1c1810 0%, #121212 100%);">
-              <span style="font-family: monospace; font-size: 11px; letter-spacing: 2.5px; color: #D4AF37; text-transform: uppercase;">
-                DISPATCH PROTOCOL INITIATED
-              </span>
-              <h1 style="margin: 8px 0 0; font-size: 22px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: #ffffff;">
-                Your Order Has Shipped!
-              </h1>
-              <p style="margin: 6px 0 0; font-size: 12px; font-family: monospace; color: #888;">
-                ORDER #${escapeHtml(order.id)} • ${escapeHtml(order.customerGovernorate || "Egypt")}
-              </p>
-            </td>
-          </tr>
+          ${brandHeader({
+            eyebrow: "Dispatch Protocol Initiated",
+            title: "Your Order Has Shipped",
+            meta: `ORDER #${escapeHtml(order.id)} &bull; ${escapeHtml(order.customerGovernorate || "Egypt")}`,
+            background: "linear-gradient(180deg, #1c1810 0%, #121212 100%)",
+            border: "#2a2a2a",
+          })}
 
           <!-- Body -->
           <tr>
@@ -771,16 +786,14 @@ export async function sendCustomerOrderAutoCancelledEmail(order: ServerOrder): P
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 540px; background-color: #121212; border: 1px solid #332222; border-radius: 4px; overflow: hidden;">
           
           <!-- Header -->
-          <tr>
-            <td style="padding: 28px 30px 20px; text-align: center; border-bottom: 1px solid #2e1e1e; background: linear-gradient(180deg, #1f1212 0%, #121212 100%);">
-              <span style="font-family: monospace; font-size: 11px; letter-spacing: 2px; color: #f87171; text-transform: uppercase;">
-                PAYMENT WINDOW EXPIRED (36 HOURS)
-              </span>
-              <h1 style="margin: 6px 0 0; font-size: 20px; font-weight: 800; color: #ffffff;">
-                Order Cancelled: #${order.id}
-              </h1>
-            </td>
-          </tr>
+          ${brandHeader({
+            eyebrow: "Payment Window Expired (36 Hours)",
+            title: "Order Cancelled",
+            meta: `ORDER #${escapeHtml(order.id)}`,
+            accent: "#f87171",
+            background: "linear-gradient(180deg, #1f1212 0%, #121212 100%)",
+            border: "#2e1e1e",
+          })}
 
           <!-- Body -->
           <tr>

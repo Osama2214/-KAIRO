@@ -38,12 +38,10 @@ const nextConfig: NextConfig = {
   //   KAIRO_DIST_DIR=.next-analyze npx next build
   distDir: process.env.KAIRO_DIST_DIR || ".next",
   images: {
+    // Only hosts the catalogue actually serves from. Each extra entry is a
+    // host anyone can make this optimiser fetch and cache on our bill, and
+    // every image in the shop now lives in our own R2 bucket.
     remotePatterns: [
-      { protocol: "https", hostname: "dw9to29mmj727.cloudfront.net", pathname: "/products/**" },
-      { protocol: "https", hostname: "images-na.ssl-images-amazon.com", pathname: "/images/**" },
-      { protocol: "https", hostname: "s4.anilist.co", pathname: "/file/anilistcdn/media/**" },
-      { protocol: "https", hostname: "uploads.mangadex.org", pathname: "/covers/**" },
-      { protocol: "https", hostname: "images.unsplash.com", pathname: "/**" },
       // Cloudflare R2: the bucket's own r2.dev subdomain and any custom domain.
       { protocol: "https", hostname: "*.r2.dev", pathname: "/**" },
       ...(process.env.R2_PUBLIC_HOSTNAME

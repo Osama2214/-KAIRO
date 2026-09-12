@@ -116,7 +116,13 @@ async function ensureOrdersFile(): Promise<void> {
 /**
  * Automatically evaluates and cancels electronic payment orders that exceeded 36 hours without admin verification
  */
-export function processExpiredPendingOrders(orders: ServerOrder[]): { orders: ServerOrder[]; changed: ServerOrder[]; hasChanges: boolean } {
+export function processExpiredPendingOrders(orders: ServerOrder[]): {
+  orders: ServerOrder[];
+  changed: ServerOrder[];
+  hasChanges: boolean;
+  /** Restock and notification work. Await it before the response ends. */
+  settled: Promise<void>;
+} {
   const now = Date.now();
   const expiredOrdersToNotify: ServerOrder[] = [];
 
@@ -146,8 +152,10 @@ export function processExpiredPendingOrders(orders: ServerOrder[]): { orders: Se
     return order;
   });
 
+  let settled: Promise<void> = Promise.resolve();
+
   if (expiredOrdersToNotify.length > 0) {
-    (async () => {
+    settled = (async () => {
       try {
         const { restoreCatalogItems } = await import("./storefrontDataStore");
         for (const exp of expiredOrdersToNotify) {
@@ -170,7 +178,12 @@ export function processExpiredPendingOrders(orders: ServerOrder[]): { orders: Se
     })();
   }
 
-  return { orders: updatedOrders, changed: expiredOrdersToNotify, hasChanges: expiredOrdersToNotify.length > 0 };
+  return {
+    orders: updatedOrders,
+    changed: expiredOrdersToNotify,
+    hasChanges: expiredOrdersToNotify.length > 0,
+    settled,
+  };
 }
 
 /**
@@ -184,12 +197,13 @@ export async function getAllServerOrders(): Promise<ServerOrder[]> {
       const orders = rows
         .map((row) => parseOrderPayload(row.payload))
         .filter((order): order is ServerOrder => order !== null);
-      const { orders: processed, changed } = processExpiredPendingOrders(orders);
+      const { orders: processed, changed, settled } = processExpiredPendingOrders(orders);
       // Persist only the orders that expired. This used to rewrite every row in
       // the table whenever a single order timed out.
       if (changed.length > 0) {
         await Promise.all(changed.map((order) => persistOrders(order)));
       }
+      await settled;
       return processed;
     } catch (error) {
       console.error("Error reading Neon orders store:", error);
@@ -198,8 +212,9 @@ export async function getAllServerOrders(): Promise<ServerOrder[]> {
   }
 
   if (globalThis.__kairo_orders_cache) {
-    const { orders: processed, hasChanges } = processExpiredPendingOrders(globalThis.__kairo_orders_cache);
+    const { orders: processed, hasChanges, settled } = processExpiredPendingOrders(globalThis.__kairo_orders_cache);
     if (hasChanges) {
+      await settled;
       globalThis.__kairo_orders_cache = processed;
       persistOrders(processed).catch(console.error);
     }
@@ -211,9 +226,10 @@ export async function getAllServerOrders(): Promise<ServerOrder[]> {
     const raw = await readFile(ORDERS_FILE, "utf-8");
     const parsed = JSON.parse(raw);
     const orders: ServerOrder[] = Array.isArray(parsed) ? parsed : [];
-    const { orders: processed, hasChanges } = processExpiredPendingOrders(orders);
+    const { orders: processed, hasChanges, settled } = processExpiredPendingOrders(orders);
     globalThis.__kairo_orders_cache = processed;
     if (hasChanges) {
+      await settled;
       persistOrders(processed).catch(console.error);
     }
     return processed;
@@ -425,7 +441,8 @@ export async function getServerOrdersByIds(orderIds: string[]): Promise<ServerOr
   const orders = rows
     .map((row) => parseOrderPayload(row.payload))
     .filter((order): order is ServerOrder => order !== null);
-  const { orders: processed, changed } = processExpiredPendingOrders(orders);
+  const { orders: processed, changed, settled } = processExpiredPendingOrders(orders);
   if (changed.length > 0) await Promise.all(changed.map((order) => persistOrders(order)));
+  await settled;
   return processed;
 }
