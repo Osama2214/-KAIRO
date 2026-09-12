@@ -670,6 +670,10 @@ function AccountContent() {
     const doc = iframe.contentWindow?.document;
     if (!doc) return;
 
+    // The receipt is written into an about:blank iframe, which resolves no
+    // relative paths of its own, so the logo needs an absolute URL.
+    const assetBase = window.location.origin;
+
     const itemsRows = (order.items || [])
       .map(
         (item: SavedOrderItem) => `
@@ -735,23 +739,18 @@ function AccountContent() {
               gap: 8px;
               margin-bottom: 4px;
             }
-            .brand-seal {
-              background: #D94A3A;
-              color: #ffffff;
-              width: 24px;
-              height: 24px;
-              display: inline-flex;
-              align-items: center;
-              justify-content: center;
-              font-weight: bold;
-              font-size: 12px;
-              border-radius: 2px;
+            .brand-logo {
+              height: 46px;
+              width: auto;
+              object-fit: contain;
             }
             .brand-name {
-              font-size: 15px;
+              font-size: 11px;
               font-weight: 900;
-              letter-spacing: 2px;
+              letter-spacing: 4px;
               text-transform: uppercase;
+              color: #475569;
+              margin-bottom: 4px;
             }
             .hub-line {
               font-family: monospace;
@@ -850,9 +849,9 @@ function AccountContent() {
           <div class="receipt-card">
             <div class="header">
               <div class="brand-row">
-                <div class="brand-seal">ANIMEVERSE</div>
-                <span class="brand-name">ANIMEVERSE PUBLISHING ARCHIVE</span>
+                <img class="brand-logo" src="${assetBase}/animeverse-logo.png" alt="AnimeVerse" />
               </div>
+              <div class="brand-name">PUBLISHING ARCHIVE</div>
               <div class="hub-line">6th of October Central Archival Hub • Giza, Egypt</div>
               <div class="receipt-h1">OFFICIAL ORDER RECEIPT</div>
               <div class="meta-line">INVOICE #${escapeHtml(order.id)} • DATE: ${escapeHtml(order.date)}</div>
@@ -919,7 +918,8 @@ function AccountContent() {
     `);
     doc.close();
 
-    setTimeout(() => {
+    // Printing on a bare timer raced the logo and produced a logo-less receipt.
+    const startPrint = () => {
       iframe.contentWindow?.focus();
       iframe.contentWindow?.print();
       setTimeout(() => {
@@ -927,7 +927,22 @@ function AccountContent() {
           document.body.removeChild(iframe);
         }
       }, 3000);
-    }, 200);
+    };
+
+    const logo = doc.querySelector("img.brand-logo") as HTMLImageElement | null;
+    if (logo && !logo.complete) {
+      let started = false;
+      const once = () => {
+        if (started) return;
+        started = true;
+        setTimeout(startPrint, 120);
+      };
+      logo.addEventListener("load", once);
+      logo.addEventListener("error", once);
+      setTimeout(once, 2500);
+    } else {
+      setTimeout(startPrint, 200);
+    }
   };
 
   const addItem = useCartStore((state) => state.addItem);
@@ -3098,12 +3113,14 @@ function AccountContent() {
 
             {/* Header */}
             <div className="border-b border-ink-border/80 print:border-black/20 pb-4 text-center space-y-1">
-              <div className="flex items-center justify-center gap-2 mb-1.5">
-                <div className="w-6 h-6 bg-vermilion rounded-xs flex items-center justify-center text-paper font-serif font-bold text-xs print:bg-neutral-900 print:text-white">
-                  ANIMEVERSE
-                </div>
-                <span className="font-extrabold tracking-[0.2em] text-sm uppercase text-paper print:text-black font-sans">
-                  ANIMEVERSE PUBLISHING ARCHIVE
+              <div className="flex flex-col items-center gap-1.5 mb-2">
+                <img
+                  src="/animeverse-logo.png"
+                  alt="AnimeVerse"
+                  className="h-9 sm:h-11 w-auto object-contain"
+                />
+                <span className="font-extrabold tracking-[0.32em] text-[10px] sm:text-[11px] uppercase text-text-muted print:text-neutral-600 font-sans">
+                  Publishing Archive
                 </span>
               </div>
               <span className="text-[9px] sm:text-[10px] font-mono tracking-[0.25em] sm:tracking-[0.3em] text-gold print:text-neutral-700 uppercase block">

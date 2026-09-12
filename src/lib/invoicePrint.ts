@@ -31,6 +31,10 @@ export function printCustomerInvoice(order: SavedOrder, customer?: UserProfile |
   const doc = iframe.contentWindow?.document;
   if (!doc) return;
 
+  // The print document is written into an about:blank iframe, which has no
+  // base URL of its own — a relative /logo.png would resolve to nothing.
+  const assetBase = window.location.origin;
+
   const patronName = order.customerName || customer?.name || "Valued Patron";
   const patronPhone = order.customerPhone || customer?.phone || "+20 100 000 0000";
   const patronEmail = order.customerEmail || customer?.email || "";
@@ -131,14 +135,13 @@ export function printCustomerInvoice(order: SavedOrder, customer?: UserProfile |
             align-items: center;
             gap: 8px;
           }
-          .brand-kanji {
-            background: #D94A3A;
-            color: #ffffff;
-            font-size: 12px;
-            font-weight: 900;
-            padding: 2px 6px;
-            border-radius: 2px;
-            letter-spacing: 1px;
+          .brand-mark {
+            height: 52px;
+            width: auto;
+            object-fit: contain;
+            /* Printers drop CSS backgrounds by default; an <img> always prints. */
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
           }
           .brand-text {
             font-size: 18px;
@@ -314,8 +317,7 @@ export function printCustomerInvoice(order: SavedOrder, customer?: UserProfile |
           <div class="header">
             <div class="brand-col">
               <div class="brand-title">
-                <span class="brand-kanji">アニメ</span>
-                <span class="brand-text">ANIMEVERSE ARCHIVE</span>
+                <img class="brand-mark" src="${assetBase}/animeverse-logo.png" alt="AnimeVerse" />
               </div>
               <div class="hub-text">
                 Central Fulfillment Hub • 6th of October City, Giza, Egypt
@@ -425,8 +427,9 @@ export function printCustomerInvoice(order: SavedOrder, customer?: UserProfile |
 
   doc.close();
 
-  // Trigger browser print dialog once content is fully rendered
-  setTimeout(() => {
+  // Trigger the print dialog once the content — the logo included — is ready.
+  // Printing on a bare timer raced the image and produced a logo-less invoice.
+  const startPrint = () => {
     iframe.contentWindow?.focus();
     iframe.contentWindow?.print();
 
@@ -436,5 +439,21 @@ export function printCustomerInvoice(order: SavedOrder, customer?: UserProfile |
         document.body.removeChild(iframe);
       }
     }, 2000);
-  }, 400);
+  };
+
+  const logo = doc.querySelector<HTMLImageElement>(".brand-mark");
+  if (logo && !logo.complete) {
+    let started = false;
+    const once = () => {
+      if (started) return;
+      started = true;
+      setTimeout(startPrint, 120);
+    };
+    logo.addEventListener("load", once);
+    logo.addEventListener("error", once);
+    // A slow or blocked asset must not leave the curator without a dialog.
+    setTimeout(once, 2500);
+  } else {
+    setTimeout(startPrint, 400);
+  }
 }
