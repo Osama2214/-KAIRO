@@ -120,6 +120,23 @@ export default async function RootLayout({
               'document.documentElement.dir=l==="ar"?"rtl":"ltr";}catch(e){}',
           }}
         />
+        {/*
+          Arm the intro cover before the first paint. The React intro cannot
+          run until the bundle hydrates, and until this existed the homepage
+          was visible for that whole gap. Same session rule the overlay uses,
+          read here from sessionStorage directly.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              'try{var p=location.pathname;' +
+              'if((p==="/"||p==="")&&sessionStorage.getItem("kairo_intro_seen")!=="true"){' +
+              'document.documentElement.classList.add("intro-pending");' +
+              'setTimeout(function(){document.documentElement.classList.remove("intro-pending");},6000);' +
+              '}}catch(e){}',
+          }}
+        />
+        <div id="av-intro-cover" aria-hidden="true" />
         <div id="animeverse-restore-loader" aria-hidden="true">
           <div className="av-loader-bg-glow" />
           <div className="av-loader-content">

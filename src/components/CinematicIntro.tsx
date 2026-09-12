@@ -125,6 +125,17 @@ function markIntroSeen(): void {
   } catch {}
 }
 
+/**
+ * Drop the pre-hydration cover painted by the layout's inline script.
+ *
+ * Called once the real overlay is on screen, and again on every exit path, so
+ * a visitor can never be left looking at the bare cover.
+ */
+function releaseIntroCover(): void {
+  if (typeof document === "undefined") return;
+  document.documentElement.classList.remove("intro-pending");
+}
+
 /** The void the emblem emerges from: a single dark-red atmospheric bloom on
  *  near-black, with the edges pulled darker so the centre reads first. */
 const VOID_STYLE: React.CSSProperties = {
@@ -331,6 +342,7 @@ export function CinematicIntro() {
       if (finishedRef.current) return;
       finishedRef.current = true;
       markIntroSeen();
+      releaseIntroCover();
       closeIntro();
       timelineRef.current?.kill();
       idleTweens.current.forEach((t) => t.kill());
@@ -363,14 +375,24 @@ export function CinematicIntro() {
   );
 
   useEffect(() => {
-    if (!mounted || pathname?.startsWith("/admin")) return;
+    if (!mounted) return;
+    if (pathname?.startsWith("/admin")) {
+      releaseIntroCover();
+      return;
+    }
 
     // Plays on a first landing on the home page, and whenever something asks
     // for it explicitly (the account page replays it after signing up, the dev
     // replay control below asks for it directly).
     const onHome = pathname === "/" || pathname === "";
     const shouldPlay = isIntroActive || (onHome && !hasSeenIntro());
-    if (!shouldPlay) return;
+    if (!shouldPlay) {
+      // Nothing is going to play, so the pre-hydration cover has to come down.
+      // Only here: releasing it anywhere `visible` is still false tears it
+      // away before the overlay mounts, and the page flashes through the gap.
+      releaseIntroCover();
+      return;
+    }
 
     markIntroSeen();
     finishedRef.current = false;
@@ -385,6 +407,14 @@ export function CinematicIntro() {
     const timer = setTimeout(() => setVisible(true), 0);
     return () => clearTimeout(timer);
   }, [mounted, pathname, isIntroActive, finish]);
+
+  // The overlay now owns the screen, so the static cover underneath can go.
+  // One frame later, so the two never swap on the same paint.
+  useEffect(() => {
+    if (!visible) return;
+    const raf = requestAnimationFrame(() => releaseIntroCover());
+    return () => cancelAnimationFrame(raf);
+  }, [visible]);
 
   // Any key or click gets past it immediately.
   useEffect(() => {
