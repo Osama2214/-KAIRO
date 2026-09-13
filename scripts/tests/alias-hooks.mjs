@@ -8,6 +8,10 @@ function withExt(p) {
 }
 export async function resolve(specifier, context, next) {
   if (specifier === "server-only") return { url: "data:text/javascript,export {}", shortCircuit: true };
+  // Outside Next there is no data cache; invalidating it is a no-op.
+  if (specifier === "next/cache") {
+    return { url: "data:text/javascript,export function revalidateTag() {}; export function unstable_cache(fn) { return fn; }", shortCircuit: true };
+  }
   if (specifier.startsWith("@/")) {
     const file = withExt(path.join(root, specifier.slice(2)));
     if (file) return { url: pathToFileURL(file).href, shortCircuit: true };

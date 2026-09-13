@@ -20,8 +20,10 @@ export type WelcomeCoupon = { code: string; expiresAt: number; used: boolean; di
  */
 async function welcomeOfferEnabled(): Promise<boolean> {
   try {
-    const { getStorefrontData } = await import("@/lib/storefrontDataStore");
-    const data = await getStorefrontData();
+    // The cached read: a curator's save invalidates it at once, so switching
+    // the offer off still takes effect on the next request.
+    const { readStorefrontSnapshot } = await import("@/lib/storefrontSnapshot");
+    const data = await readStorefrontSnapshot();
     const announcement = data?.announcement as { enabled?: unknown } | undefined;
     // Absent means a shop that has never touched the setting, which is the
     // state the offer shipped in — on.

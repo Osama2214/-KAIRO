@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { curatorSession, isTrustedOrigin } from "@/lib/serverAuth";
 import { getStorefrontData, saveStorefrontData } from "@/lib/storefrontDataStore";
-import { STOREFRONT_CACHE_TAG } from "@/lib/storefrontSnapshot";
+import { readStorefrontSnapshot, STOREFRONT_CACHE_TAG } from "@/lib/storefrontSnapshot";
 import { STOREFRONT_DATA_KEYS } from "@/lib/storefrontKeys";
 import { validateCatalogue } from "@/lib/variants";
 import type { MangaVolume } from "@/data/manga";
@@ -18,9 +18,10 @@ export async function GET() {
     // Every page load fetches this ~70KB payload, and each request previously
     // ran three Neon queries with no-store. A short shared cache absorbs the
     // repeat traffic; stock shown here is advisory anyway, since checkout
-    // reserves against the authoritative catalogue rows.
+    // reserves against the authoritative catalogue rows. A CDN miss reads the
+    // server-side cache rather than Neon, which saves and orders invalidate.
     return NextResponse.json(
-      { success: true, data: await getStorefrontData() },
+      { success: true, data: await readStorefrontSnapshot() },
       { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=300" } }
     );
   } catch (error) {

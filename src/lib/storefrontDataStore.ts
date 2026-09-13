@@ -1,6 +1,7 @@
 import "server-only";
 
 import { neon } from "@neondatabase/serverless";
+import { revalidateTag } from "next/cache";
 import { ALL_VOLUMES, MangaVolume } from "@/data/manga";
 import { effectivePrice } from "@/lib/pricing";
 import { applyBundleFacts, expandToPhysicalUnits, indexById, withBundleFacts, type VolumeLike } from "@/lib/bundle";
@@ -10,6 +11,23 @@ import { applyVariantStock, toCatalogRows } from "@/lib/variants";
 const databaseUrl = process.env.DATABASE_URL;
 const sql = databaseUrl ? neon(databaseUrl) : null;
 let schemaReady: Promise<void> | null = null;
+
+/** Tag on the cached catalogue read in `lib/storefrontSnapshot.ts`. */
+export const STOREFRONT_CACHE_TAG = "kairo-storefront";
+
+/**
+ * Marks the cached catalogue stale after stock moves, so cards stop showing
+ * the old count. Stale copies may be served while it refreshes: stock shown on
+ * a page is advisory, and checkout reserves against the table itself.
+ */
+function markCatalogueStale(): void {
+  try {
+    revalidateTag(STOREFRONT_CACHE_TAG, "max");
+  } catch (error) {
+    // Outside a request (a script) there is no cache to mark; stock is already written.
+    console.error("Could not mark the catalogue cache stale:", error);
+  }
+}
 
 async function ensureSchema(): Promise<void> {
   if (!sql) throw new Error("DATABASE_URL is required for storefront data.");
@@ -257,6 +275,7 @@ export async function reserveCatalogItems(rawItems: Array<{ id: string; quantity
   if (rows.length !== physical.length) {
     throw new CatalogReservationError("One or more items are unavailable or no longer have enough stock.");
   }
+  markCatalogueStale();
 
   // Stock after the reservation, so a bundle's remaining count reflects the
   // copies this very order just consumed.
@@ -316,4 +335,5 @@ export async function restoreCatalogItems(items: Array<{ volumeId?: string; id?:
     FROM jsonb_to_recordset(${JSON.stringify(restored)}::jsonb) AS item(id TEXT, quantity INTEGER)
     WHERE catalog.id = item.id
   `;
+  markCatalogueStale();
 }

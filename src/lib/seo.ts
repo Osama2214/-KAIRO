@@ -28,13 +28,13 @@ export const DEFAULT_OG_IMAGE = "/animeverse-og.png";
 
 /**
  * Reads the live catalogue for metadata, falling back to the bundled data if
- * the database is unreachable. Cached per request so a page and its layout
- * never query twice.
+ * the database is unreachable. Goes through the shared catalogue cache, and is
+ * also memoised per request so a page and its layout never read it twice.
  */
 export const getCatalog = cache(async (): Promise<{ volumes: MangaVolume[]; series: Series[] }> => {
   try {
-    const { getStorefrontData } = await import("@/lib/storefrontDataStore");
-    const data = await getStorefrontData();
+    const { readStorefrontSnapshot } = await import("@/lib/storefrontSnapshot");
+    const data = await readStorefrontSnapshot();
     const volumes = Array.isArray(data?.volumes) && data.volumes.length > 0
       ? (data.volumes as MangaVolume[])
       : ALL_VOLUMES;
@@ -56,8 +56,8 @@ export interface StoreProfile {
 /** The store's public contact details and social profiles, as the curator set them. */
 export const getStoreProfile = cache(async (): Promise<StoreProfile> => {
   try {
-    const { getStorefrontData } = await import("@/lib/storefrontDataStore");
-    const data = await getStorefrontData();
+    const { readStorefrontSnapshot } = await import("@/lib/storefrontSnapshot");
+    const data = await readStorefrontSnapshot();
     const editorial = (data?.editorialConfig || {}) as Record<string, unknown>;
     const text = (key: string) => (typeof editorial[key] === "string" ? String(editorial[key]).trim() : "");
     return {

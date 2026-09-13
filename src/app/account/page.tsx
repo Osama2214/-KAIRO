@@ -605,6 +605,9 @@ function AccountContent() {
     let disposed = false;
 
     const refreshCentralOrders = async () => {
+      // A tab left open in the background kept querying the database around
+      // the clock; its orders refresh again the moment it is focused.
+      if (typeof document !== "undefined" && document.hidden) return;
       try {
         if (currentUser?.email) {
           // 1. Authenticated user: fetch their verified orders from server
@@ -652,12 +655,16 @@ function AccountContent() {
     };
 
     void refreshCentralOrders();
-    const interval = window.setInterval(refreshCentralOrders, 8_000); // Poll every 8 seconds
+    // Order status changes by hand, a few times a day at most; focus refreshes too.
+    const interval = window.setInterval(refreshCentralOrders, 60_000);
     window.addEventListener("focus", refreshCentralOrders);
+    // Returning to a phone browser tab does not always fire `focus`.
+    document.addEventListener("visibilitychange", refreshCentralOrders);
     return () => {
       disposed = true;
       window.clearInterval(interval);
       window.removeEventListener("focus", refreshCentralOrders);
+      document.removeEventListener("visibilitychange", refreshCentralOrders);
     };
   }, [currentUser?.email]);
 
