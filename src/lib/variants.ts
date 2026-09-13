@@ -151,7 +151,7 @@ export function validateProduct(item: MangaVolume): string[] {
     if (variantRowId(item.id, sku).length > MAX_ROW_ID_LENGTH) errors.push(`${name}: the id and code "${sku}" are too long together.`);
     if (!String(variant?.label || "").trim()) errors.push(`${name}: every variant needs a name.`);
     const price = Number(variant?.price);
-    if (!Number.isFinite(price) || price <= 0) errors.push(`${name}: "${label}" needs a price above zero.`);
+    if (!Number.isFinite(price) || price < 0) errors.push(`${name}: "${label}" has an invalid price.`);
     const original = variant?.originalPrice;
     if (original !== undefined && original !== null && (!Number.isFinite(Number(original)) || Number(original) < 0)) {
       errors.push(`${name}: "${label}" has an invalid before-discount price.`);

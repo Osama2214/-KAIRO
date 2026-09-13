@@ -72,8 +72,8 @@ function VolumeFormDialog({
       japaneseTitle: "",
       author: defaultSeries.author || "",
       artist: defaultSeries.artist || "",
-      price: 11.99,
-      originalPrice: 14.99,
+      price: 0,
+      originalPrice: undefined,
       rating: 4.9,
       reviewCount: 50,
       coverImage: PLACEHOLDER_COVER,
@@ -692,7 +692,7 @@ function VolumeFormDialog({
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-4">
               <div className="md:col-span-3 flex flex-col justify-end">
-                <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end truncate" title="Selling Price (EGP) *">Selling Price (EGP) *</label>
+                <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end truncate" title="Selling Price (EGP)">Selling Price (EGP) <span className="ms-1 text-text-muted/60">(optional)</span></label>
                 <CustomNumberInput
                   step="any"
                   min={0}
@@ -701,7 +701,6 @@ function VolumeFormDialog({
                   inputClassName="text-gold font-bold"
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                  required
                 />
               </div>
               <div className="md:col-span-3 flex flex-col justify-end" hidden={isBoxSet}>
@@ -1236,7 +1235,7 @@ function VolumeFormDialog({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <label className="flex items-center gap-2.5 p-3 border border-gold/30 rounded-sm bg-gold/5 cursor-pointer hover:border-gold/60">
                 <input type="checkbox" checked={formData.comingSoon || false} onChange={(e) => setFormData({ ...formData, comingSoon: e.target.checked })} className="accent-gold w-4 h-4 cursor-pointer" />
-                <span className="text-paper">Coming soon — visible, wishlist only</span>
+                <span className="text-paper">Coming soon — visible to shoppers; they can save it to Wishlist, not buy it</span>
               </label>
               <label className="flex items-center gap-2.5 p-3 border border-ink-border rounded-sm bg-ink cursor-pointer hover:border-gold/50">
                 <input

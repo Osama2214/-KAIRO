@@ -54,6 +54,11 @@ export function PriceTag({
     ? "text-xs sm:text-sm font-mono text-text-muted/70 line-through"
     : "text-[11px] font-mono text-text-muted/70 line-through";
 
+  const hasPrice = Number(volume.price) > 0;
+  if (!hasPrice) {
+    return <span className={`${priceClass} text-gold`}>{isArabic ? "السعر قريبًا" : "PRICE TBA"}</span>;
+  }
+
   return (
     <div className={`flex flex-wrap items-baseline gap-x-2 leading-tight ${className}`}>
       <span className={live ? priceClass.replace("text-paper", "text-vermilion") : priceClass}>

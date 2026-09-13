@@ -499,7 +499,7 @@ function SeriesFormDialog({
 
             <label className="flex items-center gap-2.5 p-3 border border-gold/30 rounded-sm bg-gold/5 cursor-pointer hover:border-gold/60">
               <input type="checkbox" checked={formData.comingSoon || false} onChange={(e) => setFormData({ ...formData, comingSoon: e.target.checked })} className="accent-gold w-4 h-4 cursor-pointer" />
-              <span className="text-paper">Coming soon — show this series as an upcoming release</span>
+              <span className="text-paper">Coming soon — show this series as an upcoming release; its books cannot be added as a complete set</span>
             </label>
             </div>
           </div>

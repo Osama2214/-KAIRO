@@ -31,6 +31,8 @@ export interface Franchise {
   image: string;
   /** Set when the franchise has a series page. */
   seriesSlug?: string;
+  /** The linked series is announced but not yet available to order. */
+  comingSoon?: boolean;
   bookCount: number;
   merchCount: number;
   /** Where the franchise card leads: the series page, or the shop filtered to it. */
@@ -55,6 +57,7 @@ export function buildFranchises(volumes: MangaVolume[], seriesList: Series[]): F
       // one. Older series keep their existing banner fallback unchanged.
       image: series.franchiseImage?.trim() || series.bannerImage || series.featuredImage,
       seriesSlug: series.slug,
+      comingSoon: Boolean(series.comingSoon),
       bookCount,
       merchCount: 0,
       href: `/series/${series.slug}`,

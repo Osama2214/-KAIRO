@@ -913,7 +913,7 @@ function MangaCatalogContent() {
                       <div className="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-ink-border/50 flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5">
                         <div className="flex flex-wrap items-baseline gap-x-2 leading-tight">
                           <span className="text-sm font-mono font-extrabold text-paper">
-                            {formatPrice(volume.price)}
+                            {volume.price > 0 ? formatPrice(volume.price) : (isArabic ? "السعر قريبًا" : "PRICE TBA")}
                           </span>
                           {volume.originalPrice && volume.originalPrice > volume.price && (
                             <span className="text-[11px] font-mono text-text-muted/70 line-through">
@@ -921,9 +921,17 @@ function MangaCatalogContent() {
                             </span>
                           )}
                         </div>
-                        {volume.comingSoon ? (
-                          <button type="button" disabled className="grow basis-auto px-3 py-2 bg-gold/10 border border-gold/40 text-gold text-[9px] font-mono font-bold tracking-widest uppercase rounded-sm cursor-not-allowed whitespace-nowrap">
-                            {isArabic ? "أضف للمفضلة" : "SAVE TO WISHLIST"}
+                        {volume.comingSoon || volume.price <= 0 ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              toggleWishlist(volume);
+                            }}
+                            className="grow basis-auto px-3 py-2 bg-gold/10 border border-gold/50 text-gold hover:bg-gold hover:text-ink text-[9px] font-mono font-bold tracking-widest uppercase rounded-sm transition-colors whitespace-nowrap"
+                          >
+                            {mounted && isInWishlist(volume.id) ? (isArabic ? "محفوظ بالمفضلة" : "SAVED TO WISHLIST") : (isArabic ? "أضف للمفضلة" : "SAVE TO WISHLIST")}
                           </button>
                         ) : volume.stock <= 0 ? (
                           <button

@@ -81,7 +81,7 @@ export function ShopProductCard({
             {volumeBadgeLabel(item, isArabic)}
           </span>
           {!home && <PromoBadge volume={item} isArabic={isArabic} />}
-          {comingSoon ? (
+          {comingSoon || item.price <= 0 ? (
             <span className="px-2 py-0.5 rounded-xs bg-gold/15 border border-gold/60 text-[8px] font-mono font-bold tracking-wider text-gold uppercase">
               {isArabic ? "قريبًا" : "COMING SOON"}
             </span>
@@ -155,9 +155,17 @@ export function ShopProductCard({
             )}
             <PriceTag volume={item} isArabic={isArabic} showTimer={false} />
           </div>
-          {comingSoon ? (
-            <button type="button" disabled className="grow basis-auto px-3 py-2 bg-gold/10 border border-gold/40 text-gold text-[9px] font-mono font-bold tracking-widest uppercase rounded-sm cursor-not-allowed whitespace-nowrap">
-              {isArabic ? "أضف للمفضلة" : "WISHLIST IT"}
+          {comingSoon || item.price <= 0 ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleWishlist(item);
+              }}
+              className="grow basis-auto px-3 py-2 bg-gold/10 border border-gold/50 text-gold hover:bg-gold hover:text-ink text-[9px] font-mono font-bold tracking-widest uppercase rounded-sm transition-colors whitespace-nowrap"
+            >
+              {saved ? (isArabic ? "محفوظ بالمفضلة" : "SAVED TO WISHLIST") : (isArabic ? "أضف للمفضلة" : "SAVE TO WISHLIST")}
             </button>
           ) : soldOut ? (
             <button

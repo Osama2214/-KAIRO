@@ -116,7 +116,8 @@ function ShopProductView({ product }: { product: MangaVolume }) {
   }, [volumes, product.id, merch.franchise, type]);
 
   const saved = mounted && isInWishlist(product.id);
-  const soldOut = stock <= 0;
+  const comingSoon = Boolean(product.comingSoon) || Number(row.price) <= 0;
+  const soldOut = stock <= 0 || comingSoon;
 
   const handleAdd = () => {
     if (!chosen || soldOut) return;
@@ -243,7 +244,9 @@ function ShopProductView({ product }: { product: MangaVolume }) {
                       >
                         <span className="font-bold">{pick(variant.label, variant.labelAr)}</span>
                         <span className="text-[10px] text-text-muted no-underline">
-                          {formatPrice(effectivePrice(variantRow(product, variant)))}
+                          {Number(variant.price) > 0
+                            ? formatPrice(effectivePrice(variantRow(product, variant)))
+                            : (isArabic ? "السعر قريبًا" : "PRICE TBA")}
                         </span>
                       </button>
                     );
@@ -255,8 +258,8 @@ function ShopProductView({ product }: { product: MangaVolume }) {
             <div className="py-3.5 sm:py-4 border-y border-ink-border/70 flex items-center justify-between gap-3 font-mono flex-wrap">
               <PriceTag volume={row} isArabic={isArabic} size="lg" />
               {soldOut ? (
-                <span className="text-[10px] text-vermilion bg-vermilion/15 border border-vermilion/40 px-2.5 py-1 rounded-xs uppercase tracking-wider font-bold">
-                  {isArabic ? "غير متوفر" : "OUT OF STOCK"}
+                <span className={`text-[10px] px-2.5 py-1 rounded-xs uppercase tracking-wider font-bold ${comingSoon ? "text-gold bg-gold/15 border border-gold/50" : "text-vermilion bg-vermilion/15 border border-vermilion/40"}`}>
+                  {comingSoon ? (isArabic ? "قريبًا — أضفه للمفضلة" : "COMING SOON — WISHLIST IT") : (isArabic ? "غير متوفر" : "OUT OF STOCK")}
                 </span>
               ) : stock <= 5 ? (
                 <span className="text-[10px] text-vermilion bg-vermilion/10 border border-vermilion/30 px-2.5 py-0.5 rounded-xs uppercase tracking-wider font-semibold">
@@ -307,16 +310,20 @@ function ShopProductView({ product }: { product: MangaVolume }) {
               </div>
               <button
                 type="button"
-                disabled={soldOut || !chosen}
-                onClick={handleAdd}
+                disabled={!comingSoon && (soldOut || !chosen)}
+                onClick={comingSoon ? () => toggleWishlist(product) : handleAdd}
                 className={`sm:order-2 w-full sm:flex-1 h-11 sm:h-12 px-4 sm:px-6 font-extrabold text-[11px] sm:text-xs tracking-[0.12em] sm:tracking-[0.15em] uppercase rounded-sm shadow-xl flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] ${
-                  soldOut ? "bg-ink-surface/80 border border-ink-border text-text-muted/60 cursor-not-allowed" : "bg-paper text-ink hover:bg-vermilion hover:text-white"
+                  comingSoon
+                    ? "bg-gold/15 border border-gold/60 text-gold hover:bg-gold hover:text-ink"
+                    : soldOut
+                      ? "bg-ink-surface/80 border border-ink-border text-text-muted/60 cursor-not-allowed"
+                      : "bg-paper text-ink hover:bg-vermilion hover:text-white"
                 }`}
               >
-                <ShoppingBag strokeWidth={1.5} className="w-4 h-4" />
+                {comingSoon ? <Heart strokeWidth={1.5} className="w-4 h-4" /> : <ShoppingBag strokeWidth={1.5} className="w-4 h-4" />}
                 <span className="truncate">
                   {soldOut
-                    ? (isArabic ? "نفد من المخزن حالياً" : "CURRENTLY OUT OF STOCK")
+                    ? (comingSoon ? (saved ? (isArabic ? "محفوظ بالمفضلة" : "SAVED TO WISHLIST") : (isArabic ? "قريبًا — أضف للمفضلة" : "COMING SOON — SAVE TO WISHLIST")) : (isArabic ? "نفد من المخزن حالياً" : "CURRENTLY OUT OF STOCK"))
                     : (isArabic ? `أضف للسلة — ${formatPrice(effectivePrice(row) * qty)}` : `ADD TO CART — ${formatPrice(effectivePrice(row) * qty)}`)}
                 </span>
               </button>

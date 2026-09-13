@@ -71,6 +71,8 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
   const { hasOffer: hasWelcomeOffer, voucherCode: welcomeCode } = useWelcomeOffer();
 
   const isSavedInWishlist = mounted && isInWishlist(volume.id);
+  const comingSoon = Boolean(volume.comingSoon) || Number(volume.price) <= 0;
+  const unavailable = comingSoon || (volume.stock ?? 0) <= 0;
 
   const recordView = useBrowsingHistoryStore((state) => state.recordView);
   useEffect(() => {
@@ -82,6 +84,7 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
   };
 
   const handleAddToCart = () => {
+    if (unavailable) return;
     addItem(volume, quantity);
     openCart();
   };
@@ -384,7 +387,7 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
             <div className="py-3.5 sm:py-4 border-y border-ink-border/70 flex items-center justify-between gap-3 font-mono flex-wrap">
               <div className="flex items-baseline gap-2.5">
                 <span className="text-[1.4rem] sm:text-3xl font-extrabold text-paper">
-                  {formatPrice(volume.price)}
+                  {volume.price > 0 ? formatPrice(volume.price) : (isArabic ? "السعر قريبًا" : "PRICE TBA")}
                 </span>
                 {volume.originalPrice && (
                   <span className="text-xs sm:text-sm text-text-muted line-through">
@@ -392,9 +395,9 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                   </span>
                 )}
               </div>
-              {((volume.stock ?? 0) <= 0) ? (
-                <span className="text-[10px] text-vermilion bg-vermilion/15 border border-vermilion/40 px-2.5 py-1 rounded-xs uppercase tracking-wider font-bold animate-pulse shrink-0">
-                  {isArabic ? "غير متوفر" : "OUT OF STOCK"}
+              {unavailable ? (
+                <span className={`text-[10px] px-2.5 py-1 rounded-xs uppercase tracking-wider font-bold shrink-0 ${comingSoon ? "text-gold bg-gold/15 border border-gold/50" : "text-vermilion bg-vermilion/15 border border-vermilion/40 animate-pulse"}`}>
+                  {comingSoon ? (isArabic ? "قريبًا — أضفه للمفضلة" : "COMING SOON — WISHLIST IT") : (isArabic ? "غير متوفر" : "OUT OF STOCK")}
                 </span>
               ) : (volume.stock ?? 0) <= 5 ? (
                 <span className="text-[10px] text-vermilion bg-vermilion/10 border border-vermilion/30 px-2.5 py-0.5 rounded-xs uppercase tracking-wider font-semibold shrink-0">
@@ -408,7 +411,7 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
             </div>
 
             {/* Patron Inaugural Grant Callout (Only if book is in stock) */}
-            {hasWelcomeOffer && ((volume.stock ?? 0) > 0) && (
+            {hasWelcomeOffer && !unavailable && (
               <div className="p-3 bg-gold/10 border border-gold/40 rounded-xs flex flex-row items-center justify-between gap-2.5 text-xs font-mono animate-in fade-in">
                 <div className="flex items-center gap-2 text-gold min-w-0">
                   <div className="truncate">
@@ -439,9 +442,9 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                 {/* Mobile Row: Stepper + Wishlist Button */}
                 <div className="flex items-center gap-3">
                   {/* Stepper */}
-                  <div className={`flex items-center border border-ink-border bg-ink-surface rounded-sm h-11 sm:h-12 flex-1 sm:flex-none ${((volume.stock ?? 0) <= 0) ? "opacity-50 pointer-events-none" : ""}`}>
+                  <div className={`flex items-center border border-ink-border bg-ink-surface rounded-sm h-11 sm:h-12 flex-1 sm:flex-none ${unavailable ? "opacity-50 pointer-events-none" : ""}`}>
                     <button
-                      disabled={(volume.stock ?? 0) <= 0 || quantity <= 1}
+                      disabled={unavailable || quantity <= 1}
                       onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                       className="p-3 sm:p-3.5 text-text-muted hover:text-paper transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                       aria-label="Decrease"
@@ -449,10 +452,10 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                       <Minus strokeWidth={1.4} className="w-4 h-4" />
                     </button>
                     <span className="px-4 font-mono text-sm font-bold text-paper text-center flex-1 sm:flex-none sm:min-w-[2.5rem]">
-                      {((volume.stock ?? 0) <= 0) ? 0 : quantity}
+                      {unavailable ? 0 : quantity}
                     </span>
                     <button
-                      disabled={(volume.stock ?? 0) <= 0 || quantity >= (volume.stock ?? 9999)}
+                      disabled={unavailable || quantity >= (volume.stock ?? 9999)}
                       onClick={() => setQuantity((q) => Math.min((volume.stock ?? 9999), q + 1))}
                       className="p-3 sm:p-3.5 text-text-muted hover:text-paper transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                       aria-label="Increase"
@@ -487,18 +490,20 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                 {/* Add to Cart CTA */}
                 <button
                   type="button"
-                  disabled={(volume.stock ?? 0) <= 0}
-                  onClick={handleAddToCart}
+                  disabled={!comingSoon && unavailable}
+                  onClick={comingSoon ? handleToggleWishlist : handleAddToCart}
                   className={`w-full sm:flex-1 h-11 sm:h-12 px-4 sm:px-6 font-extrabold text-[11px] sm:text-xs tracking-[0.12em] sm:tracking-[0.2em] uppercase rounded-sm transition-all duration-300 shadow-xl flex items-center justify-center gap-2 group cursor-pointer active:scale-[0.98] ${
-                    ((volume.stock ?? 0) <= 0)
-                      ? "bg-ink-surface/80 border border-ink-border text-text-muted/60 cursor-not-allowed"
-                      : "bg-paper text-ink hover:bg-vermilion hover:text-white"
+                    comingSoon
+                      ? "bg-gold/15 border border-gold/60 text-gold hover:bg-gold hover:text-ink"
+                      : unavailable
+                        ? "bg-ink-surface/80 border border-ink-border text-text-muted/60 cursor-not-allowed"
+                        : "bg-paper text-ink hover:bg-vermilion hover:text-white"
                   }`}
                 >
-                  <ShoppingBag strokeWidth={1.5} className="w-4 h-4" />
+                  {comingSoon ? <Heart strokeWidth={1.5} className="w-4 h-4" /> : <ShoppingBag strokeWidth={1.5} className="w-4 h-4" />}
                   <span className="truncate">
-                    {((volume.stock ?? 0) <= 0)
-                      ? (isArabic ? "نفد من المخزن حالياً" : "CURRENTLY OUT OF STOCK")
+                    {unavailable
+                      ? (comingSoon ? (isSavedInWishlist ? (isArabic ? "محفوظ بالمفضلة" : "SAVED TO WISHLIST") : (isArabic ? "قريبًا — أضف للمفضلة" : "COMING SOON — SAVE TO WISHLIST")) : (isArabic ? "نفد من المخزن حالياً" : "CURRENTLY OUT OF STOCK"))
                       : (isArabic ? `أضف للسلة — ${formatPrice(volume.price * quantity)}` : `ADD TO CART — ${formatPrice(volume.price * quantity)}`)}
                   </span>
                 </button>

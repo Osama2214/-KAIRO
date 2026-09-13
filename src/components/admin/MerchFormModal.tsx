@@ -460,7 +460,7 @@ function MerchFormDialog({
               <div className="hidden md:grid grid-cols-12 gap-2 text-[10px] uppercase tracking-wider text-text-muted px-1">
                 <span className="col-span-2">Name *</span>
                 <span className="col-span-2">الاسم</span>
-                <span className="col-span-2">Price *</span>
+                <span className="col-span-2">Price (optional)</span>
                 <span className="col-span-2">Before discount</span>
                 <span className="col-span-2">Stock *</span>
                 <span className="col-span-2 text-end">Order</span>
@@ -651,7 +651,7 @@ function MerchFormDialog({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <label className="flex items-center gap-2.5 p-3 border border-gold/30 rounded-sm bg-gold/5 cursor-pointer hover:border-gold/60 md:col-span-1">
                 <input type="checkbox" checked={comingSoon} onChange={(e) => setComingSoon(e.target.checked)} className="accent-gold w-4 h-4 cursor-pointer" />
-                <span className="text-paper">Coming soon — visible, wishlist only</span>
+                <span className="text-paper">Coming soon — visible to shoppers; they can save it to Wishlist, not buy it</span>
               </label>
               <label className="flex items-center gap-2.5 p-3 border border-ink-border rounded-sm bg-ink cursor-pointer hover:border-gold/50 md:col-span-1">
                 <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} className="accent-gold w-4 h-4 cursor-pointer" />

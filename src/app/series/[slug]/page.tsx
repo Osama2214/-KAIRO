@@ -83,7 +83,8 @@ function SeriesView({ series }: { series: Series }) {
    * tops up with anything it leaves out.
    */
   const seriesBasket = useMemo(() => {
-    const wanted = seriesVolumes.filter((v) => v.stock > 0);
+    if (series.comingSoon) return null;
+    const wanted = seriesVolumes.filter((v) => v.stock > 0 && !v.comingSoon && Number(v.price) > 0);
     if (wanted.length === 0) return null;
 
     const wantedIds = new Set(wanted.map((v) => v.id));
@@ -126,7 +127,7 @@ function SeriesView({ series }: { series: Series }) {
       total,
       saving: Math.max(0, Math.round((separatelyTotal - total) * 100) / 100),
     };
-  }, [seriesVolumes, seriesBoxes]);
+  }, [series.comingSoon, seriesVolumes, seriesBoxes]);
 
   /**
    * A long series would otherwise put every volume on the page at once — a
