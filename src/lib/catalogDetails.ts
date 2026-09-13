@@ -45,7 +45,33 @@ export function detailsOf(volume: MangaVolume): VolumeDetails {
   };
 }
 
-/** Puts details back onto the products they belong to; others are returned as they were. */
+/**
+ * Whether a product (still carrying the marker) has a value of its own for a
+ * detail field — one a curator typed after the page loaded — rather than the
+ * blank the page-wide catalogue came with. Such a value always wins.
+ */
+function hasOwnValue(record: Record<string, unknown>, field: (typeof DETAIL_FIELDS)[number]): boolean {
+  const value = record[field];
+  if (Array.isArray(value)) return value.length > 0;
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+/** Fills a marked product's blank detail fields from `source` and clears the marker. */
+function fillDetails(record: Record<string, unknown>, source: Partial<Record<(typeof DETAIL_FIELDS)[number], unknown>>) {
+  const filled: Record<string, unknown> = { ...record };
+  delete filled[DETAILS_OMITTED];
+  for (const field of DETAIL_FIELDS) {
+    if (hasOwnValue(record, field)) continue;
+    if (source[field] !== undefined) filled[field] = source[field];
+  }
+  return filled;
+}
+
+/**
+ * Puts details back onto the products they belong to; others are returned as
+ * they were. A field already filled in on the product (an edit made while the
+ * details were still loading) is kept rather than overwritten.
+ */
 export function mergeDetails<T extends MangaVolume>(volumes: T[], details: VolumeDetails[]): T[] {
   if (!details.length) return volumes;
   const byId = new Map(details.map((d) => [d.id, d]));
@@ -54,9 +80,7 @@ export function mergeDetails<T extends MangaVolume>(volumes: T[], details: Volum
     const found = byId.get(volume.id);
     if (!found || !hasOmittedDetails(volume)) return volume;
     changed = true;
-    const merged = { ...volume, ...found } as unknown as Record<string, unknown>;
-    delete merged[DETAILS_OMITTED];
-    return merged as unknown as T;
+    return fillDetails(volume as unknown as Record<string, unknown>, found as unknown as Record<string, unknown>) as unknown as T;
   });
   return changed ? next : volumes;
 }
@@ -64,6 +88,7 @@ export function mergeDetails<T extends MangaVolume>(volumes: T[], details: Volum
 /**
  * Server side of a save: a product that still carries the marker gets its
  * stored details back, so a console that never loaded them cannot blank them.
+ * Text typed into a field in the meantime is kept.
  */
 export function restoreOmittedDetails(incoming: unknown[], stored: unknown[]): unknown[] {
   const storedById = new Map(
@@ -73,15 +98,8 @@ export function restoreOmittedDetails(incoming: unknown[], stored: unknown[]): u
   );
   return incoming.map((volume) => {
     if (!hasOmittedDetails(volume)) return volume;
-    const record: Record<string, unknown> = { ...(volume as Record<string, unknown>) };
-    delete record[DETAILS_OMITTED];
+    const record = volume as Record<string, unknown>;
     const previous = storedById.get(String(record.id));
-    if (previous) {
-      for (const field of DETAIL_FIELDS) {
-        if (previous[field] !== undefined) record[field] = previous[field];
-        else delete record[field];
-      }
-    }
-    return record;
+    return fillDetails(record, (previous || {}) as unknown as Record<string, unknown>);
   });
 }

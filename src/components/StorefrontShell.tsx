@@ -32,6 +32,14 @@ const CinematicIntro = dynamic(loadIntro, { ssr: false });
 // starting up. Returning visitors are not armed and fetch nothing.
 if (typeof document !== "undefined" && document.documentElement.classList.contains("intro-pending")) {
   void loadIntro().catch(() => {});
+  // The cover's 6s safety net assumes the app never loaded. The app is loading
+  // now, and on a slow phone the intro can still be a few seconds from
+  // mounting — dropping the cover at 6s flashed the homepage before the intro
+  // then played over it. Give it more room; the intro releases the cover itself
+  // the moment it is on screen, and on every exit path.
+  const w = window as unknown as { __avCoverTimer?: ReturnType<typeof setTimeout> };
+  if (w.__avCoverTimer) clearTimeout(w.__avCoverTimer);
+  w.__avCoverTimer = setTimeout(() => document.documentElement.classList.remove("intro-pending"), 12000);
 }
 
 /** Client-only flag source: nothing ever changes, so it never notifies. */

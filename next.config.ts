@@ -51,6 +51,10 @@ const nextConfig: NextConfig = {
         : []),
     ],
     formats: ["image/webp"],
+    // Next's steps jump from 384px straight to 640px, so a cover or intro layer
+    // drawn ~260-300px wide on a phone (≈450-520px at its pixel density) was
+    // sent at 640px. The in-between steps let it get a file its own size.
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384, 480, 560],
     minimumCacheTTL: 2_592_000,
     qualities: [75, 90],
   },

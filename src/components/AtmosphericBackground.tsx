@@ -60,6 +60,27 @@ export function AtmosphericBackground() {
 
     let time = 0;
 
+    // One soft golden dot, blurred once up front. Drawing each mote with a live
+    // `shadowBlur` re-ran a blur filter 32 times a frame, which on a mid-range
+    // phone showed up as seconds of main-thread work; stamping this sprite at
+    // the mote's size and opacity draws the same glow for the cost of a copy.
+    const SPRITE_RADIUS = 2.4; // the largest mote
+    const SPRITE_PAD = 4; // room for the 3px glow
+    const scale = 4;
+    const sprite = document.createElement("canvas");
+    sprite.width = sprite.height = Math.ceil((SPRITE_RADIUS + SPRITE_PAD) * 2 * scale);
+    const sctx = sprite.getContext("2d");
+    if (sctx) {
+      const c = sprite.width / 2;
+      sctx.scale(scale, scale);
+      sctx.beginPath();
+      sctx.arc(c / scale, c / scale, SPRITE_RADIUS, 0, Math.PI * 2);
+      sctx.fillStyle = "rgb(199, 167, 108)";
+      sctx.shadowColor = "rgba(199, 167, 108, 0.35)";
+      sctx.shadowBlur = 3 * scale;
+      sctx.fill();
+    }
+
     const render = () => {
       ctx.clearRect(0, 0, width, height);
       time += 0.015;
@@ -86,15 +107,12 @@ export function AtmosphericBackground() {
           p.maxOpacity * (0.5 + 0.5 * Math.sin(time * 1.5 + p.pulseOffset))
         );
 
-        // Soft golden glow circle
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(199, 167, 108, ${dynamicOpacity})`;
-        ctx.shadowColor = "rgba(199, 167, 108, 0.35)";
-        ctx.shadowBlur = 3;
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        // Soft golden glow circle, stamped from the pre-blurred sprite.
+        const drawn = ((p.size + SPRITE_PAD * (p.size / SPRITE_RADIUS)) * 2);
+        ctx.globalAlpha = dynamicOpacity;
+        ctx.drawImage(sprite, p.x - drawn / 2, p.y - drawn / 2, drawn, drawn);
       }
+      ctx.globalAlpha = 1;
 
       animFrame = requestAnimationFrame(render);
     };
@@ -110,17 +128,13 @@ export function AtmosphericBackground() {
   return (
     <div
       aria-hidden="true"
-      className="absolute inset-0 min-h-full pointer-events-none z-0 overflow-hidden select-none [container-type:size]"
+      className="absolute inset-0 min-h-full pointer-events-none z-0 overflow-hidden select-none atmo-layer"
     >
       {/* 1. Slow-Drifting Ambient Glowing Orbs */}
-      {/* Vertical placement uses `translate` against the page height (cqh) rather
-          than top/bottom percentages: the page grows while it loads, and moving
-          a percentage-placed glow or kanji with it counted as a layout shift
-          (over 1.0 CLS on a slow phone). A translate lands in the same place
-          but is not a layout move. */}
+      {/* Vertical placement: see .atmo-layer in globals.css. */}
       {/* Orb 1: Archival Gold Glowing Nebula (Top Left to Center) */}
       <div
-        className="absolute top-0 [translate:0_-10cqh] -left-[10%] w-[600px] h-[600px] rounded-full opacity-35 blur-[130px] animate-orb-drift-1 pointer-events-none"
+        className="absolute atmo-orb-1 -left-[10%] w-[600px] h-[600px] rounded-full opacity-35 blur-[130px] animate-orb-drift-1 pointer-events-none"
         style={{
           background: "radial-gradient(circle, rgba(199, 167, 108, 0.20) 0%, rgba(199, 167, 108, 0.04) 55%, transparent 75%)",
         }}
@@ -128,7 +142,7 @@ export function AtmosphericBackground() {
 
       {/* Orb 2: Japanese Vermilion Deep Glowing Nebula (Bottom Right to Center) */}
       <div
-        className="absolute top-0 [translate:0_calc(95cqh_-_100%)] -right-[10%] w-[650px] h-[650px] rounded-full opacity-30 blur-[140px] animate-orb-drift-2 pointer-events-none"
+        className="absolute atmo-orb-2 -right-[10%] w-[650px] h-[650px] rounded-full opacity-30 blur-[140px] animate-orb-drift-2 pointer-events-none"
         style={{
           background: "radial-gradient(circle, rgba(217, 74, 58, 0.18) 0%, rgba(217, 74, 58, 0.03) 55%, transparent 80%)",
         }}
@@ -136,7 +150,7 @@ export function AtmosphericBackground() {
 
       {/* Orb 3: Central Deep Amber Warmth Breathing Pulsar */}
       <div
-        className="absolute top-0 [translate:0_40cqh] left-[30%] w-[450px] h-[450px] rounded-full opacity-25 blur-[120px] animate-orb-drift-3 pointer-events-none"
+        className="absolute atmo-orb-3 left-[30%] w-[450px] h-[450px] rounded-full opacity-25 blur-[120px] animate-orb-drift-3 pointer-events-none"
         style={{
           background: "radial-gradient(circle, rgba(199, 167, 108, 0.14) 0%, rgba(217, 74, 58, 0.05) 50%, transparent 75%)",
         }}
@@ -149,10 +163,10 @@ export function AtmosphericBackground() {
       />
 
       {/* 3. Giant Subtle Japanese Calligraphy Watermarks (Moving with the page) */}
-      <div className="absolute top-0 [translate:0_12cqh] right-[5%] font-serif text-[180px] sm:text-[240px] font-bold text-white/[0.02] animate-kanji-float pointer-events-none leading-none select-none">
+      <div className="absolute atmo-kanji-1 right-[5%] font-serif text-[180px] sm:text-[240px] font-bold text-white/[0.02] animate-kanji-float pointer-events-none leading-none select-none">
         蒐集
       </div>
-      <div className="absolute top-0 [translate:0_calc(80cqh_-_100%)] left-[4%] font-serif text-[140px] sm:text-[190px] font-bold text-white/[0.015] animate-kanji-float-reverse pointer-events-none leading-none select-none">
+      <div className="absolute atmo-kanji-2 left-[4%] font-serif text-[140px] sm:text-[190px] font-bold text-white/[0.015] animate-kanji-float-reverse pointer-events-none leading-none select-none">
         幽玄
       </div>
 

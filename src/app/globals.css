@@ -360,6 +360,30 @@ input[type="number"] {
   }
 }
 
+/*
+ * Background glows and kanji (AtmosphericBackground) are placed against the
+ * full page height. The classic placement below — top/bottom percentages —
+ * moves them whenever the page grows while it loads, which browsers count as
+ * a layout shift (CLS over 1.0 on a slow phone). Where container units are
+ * supported, the same spot is reached with `translate` instead, which is not a
+ * layout move. Browsers without them (iOS 15 and older) keep the classic
+ * placement, so every visitor sees the decorations in the same place.
+ */
+.atmo-orb-1 { top: -10%; }
+.atmo-orb-2 { bottom: 5%; }
+.atmo-orb-3 { top: 40%; }
+.atmo-kanji-1 { top: 12%; }
+.atmo-kanji-2 { bottom: 20%; }
+
+@supports (height: 1cqh) and (translate: 0 0) {
+  .atmo-layer { container-type: size; }
+  .atmo-orb-1 { top: 0; translate: 0 -10cqh; }
+  .atmo-orb-2 { top: 0; bottom: auto; translate: 0 calc(95cqh - 100%); }
+  .atmo-orb-3 { top: 0; translate: 0 40cqh; }
+  .atmo-kanji-1 { top: 0; translate: 0 12cqh; }
+  .atmo-kanji-2 { top: 0; bottom: auto; translate: 0 calc(80cqh - 100%); }
+}
+
 .animate-orb-drift-1 {
   animation: orbDrift1 22s ease-in-out infinite alternate;
 }
@@ -488,6 +512,13 @@ html.animeverse-loading #animeverse-restore-loader {
   margin-right: -0.15em;
   margin-bottom: 0.35rem;
   text-shadow: 0 0 24px rgba(199, 167, 108, 0.4);
+}
+
+/* The loader's glow and shimmer run only while it is showing. It sits hidden
+   on every page, and its text-shadow glow (not GPU-composited) was being
+   recalculated every frame for as long as the page stayed open. */
+html.animeverse-restoring .av-loader-kanji,
+html.animeverse-loading .av-loader-kanji {
   animation: avKanjiGlow 1.6s ease-in-out infinite alternate;
 }
 
@@ -520,6 +551,10 @@ html.animeverse-loading #animeverse-restore-loader {
   bottom: 0;
   background: linear-gradient(90deg, transparent, #C7A76C, #F4F0E8, #C7A76C, transparent);
   border-radius: 9999px;
+}
+
+html.animeverse-restoring .av-loader-bar-fill,
+html.animeverse-loading .av-loader-bar-fill {
   animation: avShimmer 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 

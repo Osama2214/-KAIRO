@@ -204,7 +204,7 @@ export default async function RootLayout({
               'try{var p=location.pathname;' +
               'if((p==="/"||p==="")&&sessionStorage.getItem("kairo_intro_seen")!=="true"){' +
               'document.documentElement.classList.add("intro-pending");' +
-              'setTimeout(function(){document.documentElement.classList.remove("intro-pending");},6000);' +
+              'window.__avCoverTimer=setTimeout(function(){document.documentElement.classList.remove("intro-pending");},6000);' +
               // Start fetching the intro artwork now. The intro itself mounts
               // only once the app has loaded, and until then the browser had no
               // idea these images were needed — on a phone that left the

@@ -39,6 +39,16 @@ test("a save of a slim product keeps the stored text", () => {
   assert.ok(!hasOmittedDetails(saved));
 });
 
+test("text typed before the details loaded is never overwritten", () => {
+  const typed = { ...slimVolume(full), synopsis: "Curator's new text" };
+  const [saved] = restoreOmittedDetails([typed], [full]) as MangaVolume[];
+  assert.equal(saved.synopsis, "Curator's new text", "server keeps the edit");
+  assert.deepEqual(saved.previewPages, ["p1", "p2"], "untouched fields still come back");
+  const [merged] = mergeDetails([typed], [detailsOf(full)]);
+  assert.equal(merged.synopsis, "Curator's new text", "late-arriving details do not replace the edit");
+  assert.equal(merged.synopsisAr, "نص عربي");
+});
+
 test("a save of a fully loaded product is taken as sent", () => {
   const edited = { ...full, synopsis: "New text" };
   const [saved] = restoreOmittedDetails([edited], [full]) as MangaVolume[];
