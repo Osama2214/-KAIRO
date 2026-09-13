@@ -14,6 +14,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { StarRating } from "@/components/StarRating";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 import { CatalogPending } from "@/components/CatalogPending";
+import { ComingSoonRibbon } from "@/components/ComingSoonRibbon";
 import { usePaginatedImagePrefetch } from "@/hooks/useImagePrefetch";
 import Link from "next/link";
 import { ShopProductCard } from "@/components/shop/ShopProductCard";
@@ -303,6 +304,7 @@ function SeriesView({ series }: { series: Series }) {
                   sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
                 />
+                {(volume.comingSoon || volume.price <= 0) && <ComingSoonRibbon isArabic={isArabic} />}
 
                 {/* Live Edit Volume Button */}
                 <LiveEditButton
@@ -315,18 +317,14 @@ function SeriesView({ series }: { series: Series }) {
                   <span className="px-1.5 sm:px-2 py-0.5 rounded-xs bg-ink/90 backdrop-blur-md text-[8px] sm:text-[9px] font-mono tracking-wider text-gold border border-ink-border">
                     {isArabic ? "المجلد" : "VOL."} {volume.volumeNumber < 10 ? `0${volume.volumeNumber}` : volume.volumeNumber}
                   </span>
-                  {volume.comingSoon ? (
-                    <span className="px-1.5 py-0.5 rounded-xs bg-gold/15 border border-gold/60 text-[7px] sm:text-[8px] font-mono font-bold tracking-wider text-gold uppercase">
-                      {isArabic ? "قريبًا" : "COMING SOON"}
-                    </span>
-                  ) : volume.stock <= 0 && (
+                  {!volume.comingSoon && volume.price > 0 && volume.stock <= 0 && (
                     <span className="px-1.5 py-0.5 rounded-xs bg-red-950/90 border border-red-800/80 text-[7px] sm:text-[8px] font-mono font-bold tracking-wider text-red-400 uppercase">
                       {isArabic ? "نفد" : "OUT OF STOCK"}
                     </span>
                   )}
                 </div>
                 <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-10">
-                  <button
+                  {!(volume.comingSoon || volume.price <= 0) && <button
                     type="button"
                     onClick={(e) => {
                       e.preventDefault();
@@ -347,7 +345,7 @@ function SeriesView({ series }: { series: Series }) {
                         mounted && isInWishlist(volume.id) ? "fill-vermilion text-vermilion scale-110" : ""
                       }`}
                     />
-                  </button>
+                  </button>}
 
                   <button
                     type="button"
@@ -379,17 +377,27 @@ function SeriesView({ series }: { series: Series }) {
                   {/* Show what the volume was struck through from — the catalogue
                       card does this, and the series grid was dropping it. */}
                   <span className="flex flex-col leading-tight min-w-0">
-                    <span className="text-paper font-bold text-[11px] sm:text-xs truncate">{formatPrice(volume.price)}</span>
+                    <span className="text-paper font-bold text-[11px] sm:text-xs truncate">
+                      {volume.price > 0 ? formatPrice(volume.price) : (isArabic ? "السعر قريبًا" : "PRICE TBA")}
+                    </span>
                     {volume.originalPrice && volume.originalPrice > volume.price && (
                       <span className="text-[9px] sm:text-[10px] text-text-muted line-through truncate">
                         {formatPrice(volume.originalPrice)}
                       </span>
                     )}
                   </span>
-                  {volume.comingSoon ? (
-                    <span className="px-2 py-0.5 bg-gold/10 border border-gold/40 text-gold text-[8px] sm:text-[9px] font-mono font-bold uppercase rounded-xs">
-                      {isArabic ? "قريبًا" : "COMING SOON"}
-                    </span>
+                  {volume.comingSoon || volume.price <= 0 ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleWishlist(volume);
+                      }}
+                      className="h-7 sm:h-8 px-2 sm:px-3 bg-gold/10 border border-gold/50 text-gold hover:bg-gold hover:text-ink text-[8px] sm:text-[9px] font-mono font-bold uppercase rounded-xs transition-colors shrink-0"
+                    >
+                      {mounted && isInWishlist(volume.id) ? (isArabic ? "محفوظ" : "SAVED") : (isArabic ? "أضف للمفضلة" : "WISHLIST")}
+                    </button>
                   ) : volume.stock <= 0 ? (
                     <span className="px-2 py-0.5 bg-ink-surface/90 border border-ink-border text-text-muted text-[8px] sm:text-[9px] font-mono font-bold uppercase rounded-xs cursor-not-allowed opacity-80">
                       {isArabic ? "نفد" : "OUT"}

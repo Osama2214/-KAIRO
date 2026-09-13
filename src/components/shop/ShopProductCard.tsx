@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Heart, ShoppingBag } from "lucide-react";
 import type { MangaVolume } from "@/data/manga";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
+import { ComingSoonRibbon } from "@/components/ComingSoonRibbon";
 import { PriceTag, PromoBadge, PromoTimer } from "@/components/PriceTag";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { StarRating } from "@/components/StarRating";
@@ -69,6 +70,7 @@ export function ShopProductCard({
           sizes={home ? "(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw" : "(max-width: 1023px) 50vw, 33vw"}
           className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${home ? "ease-out " : ""}pointer-events-none`}
         />
+        {(comingSoon || item.price <= 0) && <ComingSoonRibbon isArabic={isArabic} />}
         <LiveEditButton target={{ type: "volume", volumeId: item.id }} label="Edit" variant="card" size="xs" />
         {/* On a phone the card is too narrow for the countdown to sit under
             the heart beside the badges, so it moves to the image's bottom corner. */}
@@ -81,11 +83,7 @@ export function ShopProductCard({
             {volumeBadgeLabel(item, isArabic)}
           </span>
           {!home && <PromoBadge volume={item} isArabic={isArabic} />}
-          {comingSoon || item.price <= 0 ? (
-            <span className="px-2 py-0.5 rounded-xs bg-gold/15 border border-gold/60 text-[8px] font-mono font-bold tracking-wider text-gold uppercase">
-              {isArabic ? "قريبًا" : "COMING SOON"}
-            </span>
-          ) : soldOut && (
+          {soldOut && !(comingSoon || item.price <= 0) && (
             <span className="px-2 py-0.5 rounded-xs bg-red-950/90 border border-red-800/80 text-[8px] font-mono font-bold tracking-wider text-red-400 uppercase">
               {isArabic ? "نفد من المخزن" : "OUT OF STOCK"}
             </span>
@@ -95,7 +93,7 @@ export function ShopProductCard({
             While the heart is hidden (desktop, not hovered) the countdown
             moves up into its place. */}
         <div className={`absolute z-10 flex flex-col items-end gap-1.5 ${home ? "top-2 sm:top-2.5 end-2 sm:end-2.5" : "top-2 end-2"}`}>
-          <button
+          {!(comingSoon || item.price <= 0) && <button
             type="button"
             onClick={(e) => {
               e.preventDefault();
@@ -118,7 +116,7 @@ export function ShopProductCard({
             aria-label={isArabic ? "المفضلة" : "Wishlist"}
           >
             <Heart strokeWidth={home ? 1.4 : 1.5} className={`w-3.5 h-3.5 transition-transform ${saved ? "fill-vermilion text-vermilion scale-110" : ""}`} />
-          </button>
+          </button>}
           <span className="hidden sm:flex">
             <PromoTimer volume={item} isArabic={isArabic} />
           </span>

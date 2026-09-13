@@ -17,6 +17,7 @@ import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { PriceTag, PromoBadge } from "@/components/PriceTag";
 import { ShopProductCard } from "@/components/shop/ShopProductCard";
 import { ImageLightbox, ImagePreviewTrigger } from "@/components/ImageLightbox";
+import { ComingSoonRibbon } from "@/components/ComingSoonRibbon";
 import { isMerch, productTypeOf, variantRow, withVariantSummary } from "@/lib/variants";
 import { formatPrice, volumeBadgeLabel } from "@/lib/utils";
 import { effectivePrice } from "@/lib/pricing";
@@ -157,6 +158,7 @@ function ShopProductView({ product }: { product: MangaVolume }) {
                 preload
                 className="w-full h-full object-cover"
               />
+              {comingSoon && <ComingSoonRibbon isArabic={isArabic} />}
               <ImagePreviewTrigger onClick={() => setPreviewOpen(true)} isArabic={isArabic} />
               <LiveEditButton target={{ type: "volume", volumeId: product.id }} label="Edit Product" variant="card" size="sm" />
               <div className="absolute top-3 start-3 z-10 flex flex-col gap-1 pointer-events-none">
@@ -297,6 +299,7 @@ function ShopProductView({ product }: { product: MangaVolume }) {
                     <Plus strokeWidth={1.4} className="w-4 h-4" />
                   </button>
                 </div>
+                {!comingSoon && (
                 <button
                   type="button"
                   onClick={() => toggleWishlist(product)}
@@ -307,6 +310,7 @@ function ShopProductView({ product }: { product: MangaVolume }) {
                 >
                   <Heart strokeWidth={1.5} className={`w-4 h-4 ${saved ? "fill-vermilion" : ""}`} />
                 </button>
+                )}
               </div>
               <button
                 type="button"

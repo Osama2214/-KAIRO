@@ -6,6 +6,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
+import { ComingSoonRibbon } from "@/components/ComingSoonRibbon";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { resolveHomeExtras, useStorefrontStore } from "@/store/useStorefrontStore";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -151,11 +152,7 @@ export function FranchiseShowcase() {
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 pointer-events-none"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none" />
-                    {f.comingSoon && (
-                      <span className="absolute top-3 start-3 px-2 py-1 rounded-xs bg-gold/15 border border-gold/70 text-[9px] font-mono font-bold tracking-[0.16em] text-gold uppercase">
-                        {isArabic ? "قريبًا" : "COMING SOON"}
-                      </span>
-                    )}
+                    {f.comingSoon && <ComingSoonRibbon isArabic={isArabic} />}
                     <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5 pointer-events-none">
                       <h3 className="text-base sm:text-xl font-extrabold uppercase tracking-tight text-paper font-sans line-clamp-2">
                         {isArabic && f.nameAr ? f.nameAr : f.name}

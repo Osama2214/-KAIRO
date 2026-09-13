@@ -21,6 +21,7 @@ import { StarRating } from "@/components/StarRating";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 import { CatalogPending } from "@/components/CatalogPending";
 import { ImageLightbox, ImagePreviewTrigger } from "@/components/ImageLightbox";
+import { ComingSoonRibbon } from "@/components/ComingSoonRibbon";
 
 interface MangaPageProps {
   params: Promise<{ slug: string }>;
@@ -271,6 +272,7 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                 preload
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
               />
+              {comingSoon && <ComingSoonRibbon isArabic={isArabic} />}
 
               <ImagePreviewTrigger onClick={() => setCoverPreviewOpen(true)} isArabic={isArabic} />
 
@@ -465,6 +467,7 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                   </div>
 
                   {/* Wishlist Button on Mobile (next to stepper) */}
+                  {!comingSoon && (
                   <button
                     type="button"
                     onClick={handleToggleWishlist}
@@ -485,6 +488,7 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                       className={`w-4 h-4 ${isSavedInWishlist ? "fill-vermilion text-vermilion scale-110" : ""}`}
                     />
                   </button>
+                  )}
                 </div>
 
                 {/* Add to Cart CTA */}
@@ -509,6 +513,7 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                 </button>
 
                 {/* Wishlist Button on Desktop (at the end) */}
+                {!comingSoon && (
                 <button
                   type="button"
                   onClick={handleToggleWishlist}
@@ -531,6 +536,7 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                     }`}
                   />
                 </button>
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-start gap-2 sm:gap-6 pt-1 sm:pt-2 text-[10.5px] sm:text-[11px] font-mono text-text-muted">

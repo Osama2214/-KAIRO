@@ -30,6 +30,7 @@ import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
+import { ComingSoonRibbon } from "@/components/ComingSoonRibbon";
 import { usePaginatedImagePrefetch } from "@/hooks/useImagePrefetch";
 
 function MangaCatalogContent() {
@@ -811,6 +812,7 @@ function MangaCatalogContent() {
                         sizes="(max-width: 1023px) 50vw, 33vw"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
                       />
+                      {(volume.comingSoon || volume.price <= 0) && <ComingSoonRibbon isArabic={isArabic} />}
 
                       {/* Live Edit Volume Button */}
                       <LiveEditButton
@@ -833,11 +835,7 @@ function MangaCatalogContent() {
                             DELUXE
                           </span>
                         )}
-                        {volume.comingSoon ? (
-                          <span className="px-2 py-0.5 rounded-xs bg-gold/15 border border-gold/60 text-[8px] font-mono font-bold tracking-wider text-gold uppercase">
-                            {isArabic ? "قريبًا" : "COMING SOON"}
-                          </span>
-                        ) : volume.stock <= 0 && (
+                        {!volume.comingSoon && volume.price > 0 && volume.stock <= 0 && (
                           <span className="px-2 py-0.5 rounded-xs bg-red-950/90 border border-red-800/80 text-[8px] font-mono font-bold tracking-wider text-red-400 uppercase">
                             {isArabic ? "نفد من المخزن" : "OUT OF STOCK"}
                           </span>
@@ -847,7 +845,7 @@ function MangaCatalogContent() {
                       {/* Floating Action Triggers */}
                       <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-10">
                         {/* Wishlist Trigger */}
-                        <button
+                        {!(volume.comingSoon || volume.price <= 0) && <button
                           type="button"
                           onClick={(e) => {
                             e.preventDefault();
@@ -868,7 +866,7 @@ function MangaCatalogContent() {
                               mounted && isInWishlist(volume.id) ? "fill-vermilion text-vermilion scale-110" : ""
                             }`}
                           />
-                        </button>
+                        </button>}
 
                         {/* Quick Read Trigger */}
                         <button
