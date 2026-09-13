@@ -18,7 +18,7 @@ export const SITE_URL = (
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
     : "") ||
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
-  "https://animeverse-store.vercel.app"
+  "https://www.animeverse-store.com"
 );
 
 export const SITE_NAME = "AnimeVerse";

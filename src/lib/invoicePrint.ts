@@ -14,7 +14,7 @@ export function printCustomerInvoice(order: SavedOrder, customer?: UserProfile |
   // Store contact details come from the CMS so a curator can change them
   // without a deploy.
   const editorial = useStorefrontStore.getState().editorialConfig;
-  const storeEmail = editorial?.contactEmail || "animeversebooks@gmail.com";
+  const storeEmail = editorial?.contactEmail || "animeversestore.eg@gmail.com";
   const storePhone = editorial?.contactPhone || "+20 10 36225385";
   const storeOwner = editorial?.ownerName || "";
 

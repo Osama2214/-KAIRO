@@ -529,7 +529,7 @@ export default function AdminPage() {
           customer: {
             id: `PATRON-${o.id}`,
             name: o.customerName || "Collector",
-            email: o.customerEmail || "guest@animeversebooks.com",
+            email: o.customerEmail || "guest@animeverse-store.com",
             phone: o.customerPhone || "+20 100 000 0000",
             governorate: o.customerGovernorate || "Cairo",
             address: o.customerAddress || "Cairo, Egypt",
@@ -554,7 +554,7 @@ export default function AdminPage() {
           customer: {
             id: `PATRON-${o.id}`,
             name: o.customerName || "Collector",
-            email: o.customerEmail || "guest@animeversebooks.com",
+            email: o.customerEmail || "guest@animeverse-store.com",
             phone: o.customerPhone || "+20 100 000 0000",
             governorate: o.customerGovernorate || "Cairo",
             address: o.customerAddress || "Cairo, Egypt",

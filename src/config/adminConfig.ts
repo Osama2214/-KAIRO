@@ -31,7 +31,7 @@ import { neon } from "@neondatabase/serverless";
  * is authoritative, so an address removed through the console stays removed.
  */
 const SEED_ADMIN_EMAILS: string[] = [
-  "animeversebooks@gmail.com",
+  "animeversestore.eg@gmail.com",
   "osamahamad261981@gmail.com",
 ];
 

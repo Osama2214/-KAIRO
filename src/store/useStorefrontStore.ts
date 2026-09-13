@@ -396,7 +396,7 @@ const DEFAULT_SHIPPING_CONFIG: ShippingConfig = {
 const DEFAULT_EDITORIAL: EditorialConfig = {
   siteTagline: "Japanese Manga & Editorial Storefront",
   footerQuote: "In the quiet chambers between panels, human truths linger. ANIMEVERSE stands as an altar to physical print, Japanese craft, and uncompromising sequential art.",
-  contactEmail: "animeversebooks@gmail.com",
+  contactEmail: "animeversestore.eg@gmail.com",
   contactPhone: "+20 10 36225385",
   ownerName: "Mahmoud Waleed",
   authenticityGuaranteeText: "Every single volume in the ANIMEVERSE archive is sourced directly from certified Tokyo and Kyoto publishing houses. We guarantee 100% genuine Kodansha, Shueisha, Shogakukan, and Dark Horse editorial pressings.",
