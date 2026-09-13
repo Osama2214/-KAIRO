@@ -9,6 +9,10 @@ import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { MAX_VARIANTS, validateProduct, VARIANT_SEPARATOR, withVariantSummary } from "@/lib/variants";
 import { PLACEHOLDER_COVER } from "@/config/mediaDefaults";
+import { CustomSelect } from "@/components/CustomSelect";
+import { buildFranchises, franchiseKey } from "@/lib/franchise";
+
+const OTHER_FRANCHISE = "__other__";
 
 type MerchType = "figure" | "poster";
 
@@ -115,6 +119,50 @@ function MerchFormDialog({
 
   const setMerchField = <K extends keyof MerchDetails>(key: K, value: MerchDetails[K]) =>
     setMerch((prev) => ({ ...prev, [key]: value }));
+
+  // The franchise is picked from what the store already sells — every series,
+  // plus anime that so far only have figures/posters — so a product always
+  // matches its series by name. "Other" allows a brand-new anime.
+  const seriesList = useStorefrontStore((state) => state.series);
+  const franchises = useMemo(() => {
+    const list = buildFranchises(volumes, seriesList);
+    const known = new Set(list.map((f) => f.key));
+    // Series with nothing in stock yet are still valid choices.
+    for (const s of seriesList) {
+      const key = franchiseKey(s.title);
+      if (key && !known.has(key)) list.push({ key, name: s.title, image: "", seriesSlug: s.slug, bookCount: 0, merchCount: 0, href: "" });
+    }
+    return list.sort((a, b) => a.name.localeCompare(b.name));
+  }, [volumes, seriesList]);
+  const franchiseOptions = useMemo(
+    () => [
+      ...franchises.map((f) => ({ value: f.key, label: f.name, badge: f.seriesSlug ? "SERIES" : "SHOP" })),
+      { value: OTHER_FRANCHISE, label: "Other — new anime…" },
+    ],
+    [franchises]
+  );
+  const [otherMode, setOtherMode] = useState(false);
+  const currentKey = franchiseKey(merch.franchise);
+  const matched = franchises.find((f) => f.key === currentKey);
+  const franchiseChoice = otherMode || (!matched && currentKey) ? OTHER_FRANCHISE : matched?.key || "";
+  const linkedSeries = matched?.seriesSlug ? seriesList.find((s) => s.slug === matched.seriesSlug) : undefined;
+  const chooseFranchise = (value: string) => {
+    if (value === OTHER_FRANCHISE) {
+      setOtherMode(true);
+      if (matched) setMerch((prev) => ({ ...prev, franchise: "", franchiseAr: "" }));
+      return;
+    }
+    const picked = franchises.find((f) => f.key === value);
+    if (!picked) return;
+    setOtherMode(false);
+    setMerch((prev) => ({
+      ...prev,
+      franchise: picked.name,
+      // Keep a hand-typed Arabic name for the same anime; otherwise reuse the
+      // one other products of this anime already use.
+      franchiseAr: franchiseKey(prev.franchise) === picked.key && prev.franchiseAr ? prev.franchiseAr : picked.nameAr || "",
+    }));
+  };
 
   // The id is fixed once saved: catalogue rows, carts and orders refer to it.
   // Used only when the name has no latin letters to build an id from.
@@ -297,7 +345,30 @@ function MerchFormDialog({
                 <TextField label="Product Name *" value={title} onChange={setTitle} placeholder={type === "figure" ? "e.g. Satoru Gojo — Jujutsu Kaisen" : "e.g. Naruto Uzumaki Sage Mode Poster"} required />
               </div>
               <div className="md:col-span-6">
-                <TextField label="Franchise (English)" value={merch.franchise} onChange={(v) => setMerchField("franchise", v)} placeholder="e.g. Naruto" />
+                <label className={labelClass}>Anime / Series</label>
+                <CustomSelect
+                  options={franchiseOptions}
+                  value={franchiseChoice}
+                  onChange={chooseFranchise}
+                  placeholder="Choose an anime…"
+                  fullWidth
+                  buttonClassName="h-10"
+                />
+                {franchiseChoice === OTHER_FRANCHISE && (
+                  <input
+                    type="text"
+                    value={merch.franchise || ""}
+                    onChange={(e) => setMerchField("franchise", e.target.value)}
+                    placeholder="New anime name (English), e.g. Chainsaw Man"
+                    className={`${inputClass} mt-2`}
+                    autoFocus
+                  />
+                )}
+                {linkedSeries && (
+                  <p className="mt-1.5 text-[10px] font-mono text-text-muted">
+                    Shown on the {linkedSeries.title} series page and its Shop by Franchise card.
+                  </p>
+                )}
               </div>
               <div className="md:col-span-6">
                 <TextField label="الأنمي (عربي)" value={merch.franchiseAr} onChange={(v) => setMerchField("franchiseAr", v)} placeholder="مثال: ناروتو" rtl />

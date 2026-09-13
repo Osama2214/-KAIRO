@@ -5,12 +5,14 @@ import Link from "next/link";
 import Image from "next/image";
 import storeLogo from "../../public/animeverse-logo.png";
 import { usePathname } from "next/navigation";
-import { Copyright, Phone, Mail, MessageCircle } from "lucide-react";
+import { Banknote, Copyright, Phone, Mail, MessageCircle } from "lucide-react";
 import { PolicyModal, PolicyTab } from "./PolicyModal";
 
 import { useAuthStore } from "@/store/useAuthStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
-import { ALL_SERIES } from "@/data/manga";
+import { ALL_SERIES, ALL_VOLUMES } from "@/data/manga";
+import { buildFranchises } from "@/lib/franchise";
+import { FacebookIcon, InstagramIcon, TikTokIcon, XIcon, YoutubeIcon } from "@/components/SocialIcons";
 import { useMounted } from "@/store/useWishlistStore";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -28,13 +30,30 @@ export function Footer() {
   const whatsappNumber = contactPhone.replace(/[^0-9]/g, "");
   const editorialArabicConfig = useStorefrontStore((state) => state.editorialArabicConfig);
   const mounted = useMounted();
+  // Only real web links become icons; an empty or malformed one is left out.
+  const socialLinks = (
+    [
+      { label: "Instagram", href: editorialConfig?.instagramUrl, Icon: InstagramIcon },
+      { label: "Facebook", href: editorialConfig?.facebookUrl, Icon: FacebookIcon },
+      { label: "TikTok", href: editorialConfig?.tiktokUrl, Icon: TikTokIcon },
+      { label: "YouTube", href: editorialConfig?.youtubeUrl, Icon: YoutubeIcon },
+      { label: "X", href: editorialConfig?.xUrl, Icon: XIcon },
+    ] as const
+  )
+    .map((link) => ({ ...link, href: (link.href || "").trim() }))
+    .filter((link) => mounted && /^https?:\/\/\S+$/i.test(link.href));
 
   const isAr = locale === "ar";
 
   // The column used to be four hardcoded titles that drifted from the catalogue.
-  // Show the first three series the store actually carries, then a link to all.
+  // Show the store's five biggest series (books plus collectibles, the same
+  // order as Shop by Franchise), then a link to all.
   const allSeries = useStorefrontStore((state) => state.series);
-  const footerSeries = (mounted ? allSeries : ALL_SERIES).slice(0, 3);
+  const allVolumes = useStorefrontStore((state) => state.volumes);
+  const footerSeries = buildFranchises(mounted ? allVolumes : ALL_VOLUMES, mounted ? allSeries : ALL_SERIES)
+    .filter((f) => f.seriesSlug)
+    .slice(0, 5)
+    .map((f) => ({ slug: f.seriesSlug!, title: f.name }));
 
   const footerDescription = mounted
     ? (isAr ? (editorialArabicConfig?.footerDescription || t.footer.description) : (editorialConfig?.footerDescription || t.footer.description))
@@ -69,7 +88,7 @@ export function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10">
 
         {/* Main Footer Links */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 sm:gap-10 py-12 sm:py-16">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 sm:gap-10 py-12 sm:py-16">
           {/* Brand Info */}
           <div className="col-span-2 space-y-4">
             <div className="flex items-center justify-between">
@@ -95,6 +114,23 @@ export function Footer() {
             <div className="pt-2 flex items-center gap-3 font-mono text-[11px] text-paper-muted">
               <span>{hubCities}</span>
             </div>
+            {socialLinks.length > 0 && (
+              <div className="pt-2 flex items-center gap-2.5">
+                {socialLinks.map(({ label, href, Icon }) => (
+                  <a
+                    key={label}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={label}
+                    title={label}
+                    className="w-9 h-9 flex items-center justify-center rounded-sm border border-ink-border text-paper-muted hover:text-gold hover:border-gold/60 transition-colors"
+                  >
+                    <Icon className="w-4 h-4" />
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Navigation Links */}
@@ -123,6 +159,19 @@ export function Footer() {
                   {locale === "ar" ? "تصفح حسب التصنيف" : "Explore by Genre"}
                 </Link>
               </li>
+            </ul>
+          </div>
+
+          <div>
+            <h5 className="text-[11px] font-mono tracking-[0.2em] uppercase text-paper font-semibold mb-4 font-sans">
+              {locale === "ar" ? "مقتنيات" : "COLLECTIBLES"}
+            </h5>
+            <ul className="space-y-2.5 text-xs font-sans">
+              <li>
+                <Link href="/shop" className="hover:text-paper transition-colors">
+                  {locale === "ar" ? "كل المقتنيات" : "All Collectibles"}
+                </Link>
+              </li>
               <li>
                 <Link href="/shop?type=figure" className="hover:text-paper transition-colors">
                   {locale === "ar" ? "فيجرز" : "Figures"}
@@ -131,6 +180,11 @@ export function Footer() {
               <li>
                 <Link href="/shop?type=poster" className="hover:text-paper transition-colors">
                   {locale === "ar" ? "بوسترات" : "Posters"}
+                </Link>
+              </li>
+              <li>
+                <Link href="/shop?sort=sale" className="hover:text-paper transition-colors">
+                  {locale === "ar" ? "عروض المقتنيات" : "Collectibles on Sale"}
                 </Link>
               </li>
             </ul>
@@ -183,6 +237,25 @@ export function Footer() {
                 >
                   {locale === "ar" ? "ضمان وشهادة الأصالة" : "Authenticity Certificate"}
                 </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => openPolicy("terms")}
+                  className="hover:text-gold transition-colors text-left rtl:text-right text-text-muted cursor-pointer block"
+                >
+                  {locale === "ar" ? "الاستبدال والاسترجاع" : "Returns & Exchanges"}
+                </button>
+              </li>
+              <li>
+                <Link href="/account" className="hover:text-gold transition-colors block">
+                  {locale === "ar" ? "حسابي" : "My Account"}
+                </Link>
+              </li>
+              <li>
+                <Link href="/account?tab=WISHLIST" className="hover:text-gold transition-colors block">
+                  {locale === "ar" ? "المفضلة" : "Wishlist"}
+                </Link>
               </li>
             </ul>
           </div>
@@ -238,6 +311,10 @@ export function Footer() {
                   </li>
                 )}
               </ul>
+              <p className="mt-5 flex items-center gap-2 text-[11px] font-sans text-paper-muted whitespace-nowrap">
+                <Banknote strokeWidth={1.6} className="w-3.5 h-3.5 text-gold shrink-0" />
+                {locale === "ar" ? "الدفع عند الاستلام في كل مصر" : "Cash on delivery across Egypt"}
+              </p>
             </div>
           )}
         </div>
@@ -247,7 +324,7 @@ export function Footer() {
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-[11px] font-mono tracking-wider text-text-muted font-sans text-center sm:text-left">
             <Copyright strokeWidth={1.6} className="w-3.5 h-3.5 text-gold shrink-0" />
             <span>{new Date().getFullYear()}</span>
-            <span className="text-paper font-semibold">ANIMEVERSE PUBLISHING ARCHIVE.</span>
+            <span className="text-paper font-semibold">ANIMEVERSE.</span>
             <span className="text-text-muted/75">{locale === "ar" ? "جميع الحقوق محفوظة." : "ALL RIGHTS RESERVED."}</span>
           </div>
           <div className="flex flex-wrap items-center justify-center sm:justify-end gap-4 sm:gap-6 font-sans text-xs">

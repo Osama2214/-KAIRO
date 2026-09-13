@@ -1766,6 +1766,11 @@ function FooterLiveEditModal({
         contactEmail: form.contactEmail,
         contactPhone: form.contactPhone,
         ownerName: form.ownerName,
+        instagramUrl: form.instagramUrl?.trim() || "",
+        facebookUrl: form.facebookUrl?.trim() || "",
+        tiktokUrl: form.tiktokUrl?.trim() || "",
+        youtubeUrl: form.youtubeUrl?.trim() || "",
+        xUrl: form.xUrl?.trim() || "",
       });
     }
   };
@@ -1785,7 +1790,7 @@ function FooterLiveEditModal({
       {isAr ? (
         <div className="p-3 bg-ink-surface/60 border border-ink-border rounded-xs flex items-center justify-between gap-3 text-[11px] font-mono">
           <span className="text-paper-muted">
-            بيانات التواصل (الإيميل، الهاتف، اسم المالك) مشتركة بين اللغتين وتُعدَّل بالإنجليزية فقط.
+            بيانات التواصل (الإيميل، الهاتف، اسم المالك، السوشيال ميديا) مشتركة بين اللغتين وتُعدَّل بالإنجليزية فقط.
           </span>
           <button
             type="button"
@@ -1827,6 +1832,29 @@ function FooterLiveEditModal({
               className={editorialFieldInput}
             />
           </div>
+          <h4 className="pt-3 text-xs font-mono font-bold text-gold uppercase tracking-wider">Social Media</h4>
+          <p className="text-[10px] text-text-muted -mt-2">Full profile links (https://…). Leave empty to hide that icon.</p>
+          {(
+            [
+              ["instagramUrl", "Instagram", "https://instagram.com/…"],
+              ["facebookUrl", "Facebook", "https://facebook.com/…"],
+              ["tiktokUrl", "TikTok", "https://tiktok.com/@…"],
+              ["youtubeUrl", "YouTube", "https://youtube.com/@…"],
+              ["xUrl", "X (Twitter)", "https://x.com/…"],
+            ] as const
+          ).map(([key, label, placeholder]) => (
+            <div key={key}>
+              <label className={editorialFieldLabel}>{label}</label>
+              <input
+                type="url"
+                dir="ltr"
+                value={form[key] || ""}
+                onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                placeholder={placeholder}
+                className={editorialFieldInput}
+              />
+            </div>
+          ))}
         </div>
       )}
 

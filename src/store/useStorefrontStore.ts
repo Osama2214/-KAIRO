@@ -60,6 +60,12 @@ export interface EditorialConfig {
   contactEmail: string;
   contactPhone: string;
   ownerName: string;
+  /** Social profile links shown as icons in the footer; an empty one is hidden. */
+  instagramUrl?: string;
+  facebookUrl?: string;
+  tiktokUrl?: string;
+  youtubeUrl?: string;
+  xUrl?: string;
   authenticityGuaranteeText: string;
   shippingPolicyText: string;
   returnPolicyText: string;

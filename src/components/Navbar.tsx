@@ -73,10 +73,10 @@ export function Navbar() {
 
   const navLinks = [
     { label: t.nav.manga, href: "/manga", kanji: "漫画" },
-    { label: t.nav.series, href: "/series", kanji: "連載" },
-    { label: t.nav.genres, href: "/#genres", kanji: "分類" },
-    { label: t.nav.newReleases, href: "/#new-releases", kanji: "新刊" },
     { label: t.nav.shop, href: "/shop", kanji: "グッズ" },
+    { label: t.nav.series, href: "/series", kanji: "連載" },
+    { label: t.nav.newReleases, href: "/#new-releases", kanji: "新刊" },
+    { label: t.nav.genres, href: "/#genres", kanji: "分類" },
     { label: t.nav.sale, href: "/manga?sort=sale", kanji: "特選" },
   ];
 

@@ -8,7 +8,6 @@ import { useMounted } from "@/store/useWishlistStore";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useNow } from "@/hooks/useNow";
 import { recommend } from "@/lib/recommendations";
-import { isBook } from "@/lib/variants";
 import { ShopProductCard } from "@/components/shop/ShopProductCard";
 import { HomeSectionFrame, fullRows } from "@/components/home/HomeSectionFrame";
 
@@ -41,12 +40,6 @@ export function ForYouSection() {
   const items = fullRows(recommendations, settings.maxCards);
   if (!mounted || !settings.enabled || items.length === 0) return null;
 
-  const lastViewed = volumes.find((v) => v.id === views[0]?.id);
-  const because = !lastViewed
-    ? ""
-    : isBook(lastViewed) && lastViewed.format !== "Box Set"
-      ? `${lastViewed.seriesTitle} ${isArabic ? "مجلد" : "Vol."} ${lastViewed.volumeNumber}`
-      : lastViewed.title;
 
   return (
     <HomeSectionFrame
@@ -57,12 +50,6 @@ export function ForYouSection() {
       isArabic={isArabic}
       isRTL={isRTL}
     >
-      {because && (
-        <p className="-mt-8 mb-8 text-[11px] font-mono tracking-wider text-text-muted">
-          {isArabic ? "لأنك شاهدت: " : "BECAUSE YOU VIEWED: "}
-          <span className="text-paper">{because}</span>
-        </p>
-      )}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
         {items.map(({ item }) => (
           <ShopProductCard key={item.id} product={item} isArabic={isArabic} layout="home" />
