@@ -11,7 +11,7 @@
  * seed catalogue) rather than read from an env var, because these constants are
  * imported by client components.
  */
-const MEDIA_BASE = "https://pub-bcd1e08babc14c4dae45de0caa3e4b0f.r2.dev/media";
+const MEDIA_BASE = "https://media.animeverse-store.com/media";
 
 /** Portrait 2:3 placeholder for a volume cover, genre card, or series poster. */
 export const PLACEHOLDER_COVER = `${MEDIA_BASE}/placeholder-cover.webp`;

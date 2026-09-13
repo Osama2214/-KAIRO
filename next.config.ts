@@ -44,6 +44,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       // Cloudflare R2: the bucket's own r2.dev subdomain and any custom domain.
       { protocol: "https", hostname: "*.r2.dev", pathname: "/**" },
+      // The store's own media domain, in front of its R2 bucket.
+      { protocol: "https", hostname: "media.animeverse-store.com", pathname: "/**" },
       ...(process.env.R2_PUBLIC_HOSTNAME
         ? [{ protocol: "https" as const, hostname: process.env.R2_PUBLIC_HOSTNAME, pathname: "/**" }]
         : []),
