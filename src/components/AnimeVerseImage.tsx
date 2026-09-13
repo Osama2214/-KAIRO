@@ -10,9 +10,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
  */
 const RETRY_DELAYS_MS = [400, 1400, 3500];
 
-/** Retries carry a nonce so the optimizer treats each one as a new request. */
+/**
+ * Retries carry a nonce so the optimizer treats each one as a new request.
+ *
+ * Not on the site's own files (`/images/...`): next/image throws on a local
+ * path with a query string unless `images.localPatterns` allows it, so one
+ * failed load of a bundled image crashed the component. Those files come from
+ * this deployment, so they are retried by remounting (see `key`) instead.
+ */
 function withRetryNonce(src: string, nonce: number): string {
-  if (nonce === 0 || src.startsWith("data:") || src.startsWith("blob:")) return src;
+  if (nonce === 0 || src.startsWith("data:") || src.startsWith("blob:") || src.startsWith("/")) return src;
   return `${src}${src.includes("?") ? "&" : "?"}avr=${nonce}`;
 }
 
@@ -74,7 +81,14 @@ export function useImageRetry(src: string) {
     };
   }, [exhausted]);
 
-  return { src: withRetryNonce(src, state.nonce), exhausted, onError, onLoad };
+  return {
+    src: withRetryNonce(src, state.nonce),
+    // Changes on every attempt, so the <Image> remounts even when `src` cannot.
+    key: `${src}#${state.nonce}`,
+    exhausted,
+    onError,
+    onLoad,
+  };
 }
 
 type AnimeVerseImageProps = {
@@ -100,7 +114,7 @@ export function AnimeVerseImage({ src, alt, className, sizes, preload = false, q
   return (
     <>
       <Image
-        key={retry.src}
+        key={retry.key}
         src={retry.src}
         alt={alt}
         fill

@@ -21,7 +21,7 @@ function HeroBackdropFrame({ src, alt, first, active }: { src: string; alt: stri
   const retry = useImageRetry(src);
   return (
     <Image
-      key={retry.src}
+      key={retry.key}
       src={retry.src}
       alt={alt}
       fill
@@ -336,7 +336,7 @@ export function Hero() {
           >
             {/* Background Artwork */}
             <Image
-              key={featuredCover.src}
+              key={featuredCover.key}
               src={featuredCover.src}
               alt={featuredVolume?.title || "ANIMEVERSE Manga Hero Cover"}
               fill
