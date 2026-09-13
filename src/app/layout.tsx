@@ -41,9 +41,12 @@ const shippori = localFont({
   ],
   variable: "--font-shippori",
   display: "swap",
-  // Kept preloaded: the giant background kanji are set in this face, and when
-  // it arrived late they reflowed as it swapped in, which Lighthouse measured
-  // as a layout shift of over 1.0 on a throttled phone.
+  // Not preloaded: ~170KB that is only ever decoration (kanji accents and the
+  // background watermarks), and on a slow connection it competed with the
+  // intro artwork and the page's own text for the first second. The
+  // watermarks are positioned with `translate` (see .atmo-layer in
+  // globals.css), so this face arriving a moment later moves nothing.
+  preload: false,
   // Any character outside the subset lands here rather than on a blank box.
   fallback: ["Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", "serif"],
 });

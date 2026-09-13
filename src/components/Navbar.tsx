@@ -192,7 +192,11 @@ export function Navbar() {
       <header
         ref={headerRef}
         className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 ${
-          isScrolled
+          // With the mobile menu open the header sits over a scrolling list, so
+          // it needs a solid ground or the menu reads through the logo.
+          mobileMenuOpen
+            ? "bg-[#0a0a0d] border-b border-ink-border/60 lg:bg-transparent lg:border-transparent"
+            : isScrolled
             ? "bg-ink/70 backdrop-blur-sm border-b border-ink-border/60 shadow-xl"
             : "bg-transparent"
         }`}
@@ -367,7 +371,9 @@ export function Navbar() {
 
       {/* Mobile Drawer Menu with Smooth Touch Layout and Safe-Area Support */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-30 bg-[#0a0a0d]/98 backdrop-blur-2xl lg:hidden pt-16 px-4.5 sm:px-8 pb-8 flex flex-col overflow-y-auto animate-in fade-in duration-300">
+        <div
+          style={headerHeight ? { paddingTop: headerHeight } : undefined}
+          className="fixed inset-0 z-30 bg-[#0a0a0d]/98 backdrop-blur-2xl lg:hidden pt-16 px-4.5 sm:px-8 pb-8 flex flex-col overflow-y-auto animate-in fade-in duration-300">
           <div className="relative z-10 flex flex-col space-y-5 md:space-y-8 py-2 md:py-6 max-w-lg sm:max-w-xl md:max-w-2xl mx-auto w-full">
             {/* Quick Archive Search Pill */}
             <button
@@ -458,15 +464,15 @@ export function Navbar() {
                   />
 
                   {/* Text Container matching Complete Boxsets */}
-                  <div className="relative z-10 flex flex-col flex-1 min-w-0 pl-[53%] xs:pl-[55%] md:pl-[52%] pr-3 md:pr-4 pt-3.5 md:pt-4 pb-0.5">
-                    <span className="font-serif font-bold text-[13px] xs:text-[14.5px] md:text-[16px] leading-[1.15] text-paper group-hover:text-gold transition-colors tracking-tight drop-shadow-md">
+                  <div className="relative z-10 flex flex-col flex-1 min-w-0 pl-[50%] xs:pl-[52%] md:pl-[52%] pr-1 md:pr-4 pt-4 md:pt-4 pb-0.5">
+                    <span className="font-serif font-bold text-[11.5px] xs:text-[12.5px] md:text-[16px] leading-[1.15] text-paper group-hover:text-gold transition-colors tracking-tight drop-shadow-md">
                       {isArabic ? (
                         <>طبعات<br />Deluxe</>
                       ) : (
                         <>Deluxe<br />Hardcovers</>
                       )}
                     </span>
-                    <span className="text-[9px] xs:text-[10px] md:text-[11px] leading-[1.25] text-text-muted font-mono mt-1.5 drop-shadow-md">
+                    <span className="text-[8.5px] xs:text-[9px] md:text-[11px] leading-[1.25] text-text-muted font-mono mt-1 pr-4 md:pr-0 drop-shadow-md">
                       {isArabic ? (
                         <>مجلدات<br />مقواة</>
                       ) : (
@@ -476,7 +482,7 @@ export function Navbar() {
                   </div>
 
                   {/* Golden Kanji matching user design: 豪華 */}
-                  <span className="absolute top-2.5 right-2.5 md:top-3 md:right-3.5 z-10 text-[12.5px] xs:text-[13.5px] md:text-[15px] text-gold/90 font-serif drop-shadow-md font-medium">豪華</span>
+                  <span className="absolute top-1.5 right-2 md:top-3 md:right-3.5 z-10 text-[10.5px] xs:text-[11.5px] md:text-[15px] text-gold/90 font-serif drop-shadow-md font-medium">豪華</span>
 
                   {/* Sleek navigation arrow */}
                   <ArrowRight
@@ -499,15 +505,15 @@ export function Navbar() {
                   />
 
                   {/* Text Container matching the mockup layout */}
-                  <div className="relative z-10 flex flex-col flex-1 min-w-0 pl-[53%] xs:pl-[55%] md:pl-[52%] pr-3 md:pr-4 pt-3.5 md:pt-4 pb-0.5">
-                    <span className="font-serif font-bold text-[13px] xs:text-[14.5px] md:text-[16px] leading-[1.15] text-paper group-hover:text-gold transition-colors tracking-tight drop-shadow-md">
+                  <div className="relative z-10 flex flex-col flex-1 min-w-0 pl-[50%] xs:pl-[52%] md:pl-[52%] pr-1 md:pr-4 pt-4 md:pt-4 pb-0.5">
+                    <span className="font-serif font-bold text-[11.5px] xs:text-[12.5px] md:text-[16px] leading-[1.15] text-paper group-hover:text-gold transition-colors tracking-tight drop-shadow-md">
                       {isArabic ? (
                         <>مجموعات<br />بوكس سيت</>
                       ) : (
                         <>Complete<br />Boxsets</>
                       )}
                     </span>
-                    <span className="font-mono text-[9px] xs:text-[10px] md:text-[11px] leading-[1.25] text-text-muted mt-1.5 drop-shadow-md">
+                    <span className="font-mono text-[8.5px] xs:text-[9px] md:text-[11px] leading-[1.25] text-text-muted mt-1 pr-4 md:pr-0 drop-shadow-md">
                       {isArabic ? (
                         <>سلاسل<br />كاملة</>
                       ) : (
@@ -517,7 +523,7 @@ export function Navbar() {
                   </div>
 
                   {/* Golden Kanji matching user mockup: 全集 */}
-                  <span className="absolute top-2.5 right-2.5 md:top-3 md:right-3.5 z-10 text-[12.5px] xs:text-[13.5px] md:text-[15px] text-gold/90 font-serif drop-shadow-md font-medium">全集</span>
+                  <span className="absolute top-1.5 right-2 md:top-3 md:right-3.5 z-10 text-[10.5px] xs:text-[11.5px] md:text-[15px] text-gold/90 font-serif drop-shadow-md font-medium">全集</span>
 
                   {/* Sleek navigation arrow matching user mockup */}
                   <ArrowRight
@@ -550,35 +556,35 @@ export function Navbar() {
               <Link
                 href="/account"
                 onClick={() => setMobileMenuOpen(false)}
-                className="relative p-3.5 xs:p-4 md:p-4.5 min-h-[76px] xs:min-h-[82px] md:min-h-[92px] rounded-xs bg-[#101014] hover:bg-ink-surface border border-ink-border/80 hover:border-gold/50 flex items-center gap-3.5 md:gap-4 group transition-all overflow-hidden"
+                className="relative p-3 xs:p-3.5 md:p-4.5 min-h-[68px] xs:min-h-[72px] md:min-h-[92px] rounded-xs bg-[#101014] hover:bg-ink-surface border border-ink-border/80 hover:border-gold/50 flex items-center gap-2.5 md:gap-4 group transition-all overflow-hidden"
               >
-                <User strokeWidth={1.5} className={`w-6 h-6 xs:w-6.5 xs:h-6.5 md:w-7 md:h-7 shrink-0 ${mounted && currentUser ? "text-gold" : "text-paper/80 group-hover:text-gold"}`} />
-                <div className="flex flex-col flex-1 min-w-0 pr-4">
-                  <div className="text-[12.5px] xs:text-[13.5px] md:text-sm font-bold text-paper group-hover:text-gold transition-colors truncate font-mono">
+                <User strokeWidth={1.5} className={`w-5 h-5 xs:w-5.5 xs:h-5.5 md:w-7 md:h-7 shrink-0 ${mounted && currentUser ? "text-gold" : "text-paper/80 group-hover:text-gold"}`} />
+                <div className="flex flex-col flex-1 min-w-0 pe-3.5 md:pe-4">
+                  <div className="text-[11px] xs:text-[11.5px] md:text-sm font-bold text-paper group-hover:text-gold transition-colors truncate font-mono">
                     {mounted && currentUser ? currentUser.name.split(" ")[0].toUpperCase() : (isArabic ? "حسابي" : "MY ACCOUNT")}
                   </div>
-                  <div className="text-[10px] xs:text-[10.5px] md:text-xs text-text-muted font-mono truncate mt-0.5">
+                  <div className="text-[9px] xs:text-[9.5px] md:text-xs text-text-muted font-mono truncate mt-0.5">
                     {isArabic ? "تتبع الطلبات" : "Order Tracking"}
                   </div>
                 </div>
-                <ArrowRight className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 md:w-4.5 md:h-4.5 text-text-muted/40 group-hover:text-gold group-hover:translate-x-0.5 transition-all" />
+                <ArrowRight className="absolute right-2.5 md:right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 md:w-4.5 md:h-4.5 text-text-muted/40 group-hover:text-gold group-hover:translate-x-0.5 transition-all" />
               </Link>
 
               <Link
                 href="/account?tab=WISHLIST"
                 onClick={() => setMobileMenuOpen(false)}
-                className="relative p-3.5 xs:p-4 md:p-4.5 min-h-[76px] xs:min-h-[82px] md:min-h-[92px] rounded-xs bg-[#101014] hover:bg-ink-surface border border-ink-border/80 hover:border-gold/50 flex items-center gap-3.5 md:gap-4 group transition-all overflow-hidden"
+                className="relative p-3 xs:p-3.5 md:p-4.5 min-h-[68px] xs:min-h-[72px] md:min-h-[92px] rounded-xs bg-[#101014] hover:bg-ink-surface border border-ink-border/80 hover:border-gold/50 flex items-center gap-2.5 md:gap-4 group transition-all overflow-hidden"
               >
-                <Heart strokeWidth={1.5} className="w-6 h-6 xs:w-6.5 xs:h-6.5 md:w-7 md:h-7 text-vermilion fill-vermilion/10 group-hover:fill-vermilion/30 transition-all shrink-0" />
-                <div className="flex flex-col flex-1 min-w-0 pr-4">
-                  <div className="text-[12.5px] xs:text-[13.5px] md:text-sm font-bold text-paper group-hover:text-gold transition-colors truncate font-mono">
+                <Heart strokeWidth={1.5} className="w-5 h-5 xs:w-5.5 xs:h-5.5 md:w-7 md:h-7 text-vermilion fill-vermilion/10 group-hover:fill-vermilion/30 transition-all shrink-0" />
+                <div className="flex flex-col flex-1 min-w-0 pe-3.5 md:pe-4">
+                  <div className="text-[11px] xs:text-[11.5px] md:text-sm font-bold text-paper group-hover:text-gold transition-colors truncate font-mono">
                     {isArabic ? "المفضلة" : "WISHLIST"}
                   </div>
-                  <div className="text-[10px] xs:text-[10.5px] md:text-xs text-text-muted font-mono truncate mt-0.5">
+                  <div className="text-[9px] xs:text-[9.5px] md:text-xs text-text-muted font-mono truncate mt-0.5">
                     {isArabic ? "المجلدات المحفوظة" : "Saved Volumes"}
                   </div>
                 </div>
-                <ArrowRight className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 md:w-4.5 md:h-4.5 text-text-muted/40 group-hover:text-gold group-hover:translate-x-0.5 transition-all" />
+                <ArrowRight className="absolute right-2.5 md:right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 md:w-4.5 md:h-4.5 text-text-muted/40 group-hover:text-gold group-hover:translate-x-0.5 transition-all" />
               </Link>
             </div>
 

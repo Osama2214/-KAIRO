@@ -48,10 +48,10 @@ export function PriceTag({
   const live = now !== null ? priced.activePromo : null;
 
   const priceClass = size === "lg"
-    ? "text-2xl sm:text-3xl font-extrabold text-paper"
+    ? "text-[1.4rem] sm:text-3xl font-extrabold text-paper"
     : "text-sm font-mono font-extrabold text-paper";
   const strikeClass = size === "lg"
-    ? "text-sm font-mono text-text-muted/70 line-through"
+    ? "text-xs sm:text-sm font-mono text-text-muted/70 line-through"
     : "text-[11px] font-mono text-text-muted/70 line-through";
 
   return (

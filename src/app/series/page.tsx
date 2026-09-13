@@ -17,12 +17,12 @@ export default function SeriesDirectoryPage() {
   const seriesList = allSeries && allSeries.length > 0 ? allSeries : ALL_SERIES;
 
   return (
-    <div className="min-h-screen bg-ink pt-20 sm:pt-28 pb-16 sm:pb-24 px-3.5 sm:px-6 md:px-12 text-paper">
+    <div className="min-h-screen bg-ink pt-8 sm:pt-28 pb-16 sm:pb-24 px-3.5 sm:px-6 md:px-12 text-paper">
       <div className="max-w-7xl mx-auto space-y-8 sm:space-y-16">
         {/* Header */}
-        <div className="pb-6 sm:pb-8 border-b border-ink-border/70 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="mb-5 sm:mb-16 pb-5 sm:pb-8 border-b border-ink-border/70 flex flex-col md:flex-row md:items-end justify-between gap-3 sm:gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2 font-mono text-[10px] sm:text-[11px] text-gold tracking-widest uppercase">
+            <div className="flex items-center gap-2 mb-1.5 sm:mb-2 font-mono text-[10px] sm:text-[11px] text-gold tracking-widest uppercase">
               <span>{isArabic ? "الدليل الشامل" : "CANONICAL COMPENDIUM"}</span>
               <span>•</span>
               <span>{isArabic ? "سلاسل المانجا الأرشيفية" : "SERIES DIRECTORY"}</span>
@@ -31,19 +31,12 @@ export default function SeriesDirectoryPage() {
               {isArabic ? "السلاسل الأرشيفية المعتمدة" : "FEATURED SERIES"}
             </h1>
           </div>
-          <div className="flex flex-col sm:flex-row md:items-center gap-3 sm:gap-4">
-            <p className="text-xs sm:text-sm text-text-muted font-mono max-w-md">
-              {isArabic
-                ? "أرشيفات كاملة بطبعات إنجليزية رسمية وبوكس سيت للمقتنين."
-                : "Complete archives — official English editions and collector boxsets."}
-            </p>
-            <LiveEditButton
-              target={{ type: "new-series" }}
-              label={isArabic ? "إضافة سلسلة" : "Add Series"}
-              variant="floating"
-              size="sm"
-            />
-          </div>
+          <LiveEditButton
+            target={{ type: "new-series" }}
+            label={isArabic ? "إضافة سلسلة" : "Add Series"}
+            variant="floating"
+            size="sm"
+          />
         </div>
 
         {/* Series Cards Grid */}

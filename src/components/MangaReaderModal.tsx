@@ -46,17 +46,21 @@ export function MangaReaderModal() {
   const frameRef = React.useRef<HTMLDivElement>(null);
   const dragRef = React.useRef<{ id: number; startX: number; startY: number; originX: number; originY: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  // Fingers on the page, for two-finger pinch zoom on phones.
+  const pointersRef = React.useRef(new Map<number, { x: number; y: number }>());
+  const pinchRef = React.useRef<{ startDistance: number; startScale: number } | null>(null);
 
-  const MIN_SCALE = 1;
-  const MAX_SCALE = 4;
+  const MIN_SCALE = 0.5;
+  const MAX_SCALE = 8;
 
   /** Keeps the artwork's edges from ever pulling inside the page frame. */
   const clamp = React.useCallback((next: { scale: number; x: number; y: number }) => {
     const frame = frameRef.current;
     const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, next.scale));
     if (!frame) return { scale, x: 0, y: 0 };
-    const limitX = (frame.clientWidth * (scale - 1)) / 2;
-    const limitY = (frame.clientHeight * (scale - 1)) / 2;
+    // Zoomed out below 100% the page sits centred and does not pan.
+    const limitX = Math.max(0, (frame.clientWidth * (scale - 1)) / 2);
+    const limitY = Math.max(0, (frame.clientHeight * (scale - 1)) / 2);
     return {
       scale,
       x: Math.min(limitX, Math.max(-limitX, next.x)),
@@ -69,10 +73,12 @@ export function MangaReaderModal() {
    * cursor stays under the cursor — the difference between magnifying a page
    * and actually reading a panel.
    */
-  const zoomAt = React.useCallback((factor: number, clientX?: number, clientY?: number) => {
+  const zoomAt = React.useCallback((factor: number | ((scale: number) => number), clientX?: number, clientY?: number) => {
     setView((current) => {
       const frame = frameRef.current;
-      const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, current.scale * factor));
+      // A function names the target scale outright (pinch); a number multiplies.
+      const target = typeof factor === "function" ? factor(current.scale) : current.scale * factor;
+      const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, target));
       if (!frame || scale === current.scale) return clamp({ ...current, scale });
       const box = frame.getBoundingClientRect();
       // Anchor on the frame's centre when no pointer is involved (the buttons).
@@ -277,14 +283,14 @@ export function MangaReaderModal() {
         {/* Right: Actions */}
         <div className="flex items-center gap-0.5 sm:gap-3 shrink-0">
           <button
-            onClick={() => zoomAt(1.35)}
+            onClick={() => zoomAt(1.5)}
             className="p-2 text-text-muted hover:text-paper transition-colors rounded-sm hover:bg-ink-surface cursor-pointer"
             title={isArabic ? "تكبير" : "Zoom In"}
           >
             <ZoomIn strokeWidth={1.4} className="w-4 h-4" />
           </button>
           <button
-            onClick={() => zoomAt(1 / 1.35)}
+            onClick={() => zoomAt(1 / 1.5)}
             className="p-2 text-text-muted hover:text-paper transition-colors rounded-sm hover:bg-ink-surface cursor-pointer"
             title={isArabic ? "تصغير" : "Zoom Out"}
           >
@@ -359,16 +365,37 @@ export function MangaReaderModal() {
             }}
             onDoubleClick={(e) => {
               if (isLastPage) return;
-              if (view.scale > 1.05) resetView();
+              if (Math.abs(view.scale - 1) > 0.05) resetView();
               else zoomAt(2.5, e.clientX, e.clientY);
             }}
             onPointerDown={(e) => {
-              if (isLastPage || view.scale <= 1) return;
+              if (isLastPage) return;
+              const pointers = pointersRef.current;
+              pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+              e.currentTarget.setPointerCapture(e.pointerId);
+              if (pointers.size === 2) {
+                // Second finger down: stop panning and start pinching.
+                const [a, b] = [...pointers.values()];
+                pinchRef.current = { startDistance: Math.hypot(a.x - b.x, a.y - b.y) || 1, startScale: view.scale };
+                dragRef.current = null;
+                setIsDragging(true);
+                return;
+              }
+              if (view.scale <= 1) return;
               dragRef.current = { id: e.pointerId, startX: e.clientX, startY: e.clientY, originX: view.x, originY: view.y };
               setIsDragging(true);
-              e.currentTarget.setPointerCapture(e.pointerId);
             }}
             onPointerMove={(e) => {
+              const pointers = pointersRef.current;
+              if (!pointers.has(e.pointerId)) return;
+              pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+              const pinch = pinchRef.current;
+              if (pinch && pointers.size >= 2) {
+                const [a, b] = [...pointers.values()];
+                const distance = Math.hypot(a.x - b.x, a.y - b.y);
+                zoomAt(() => pinch.startScale * (distance / pinch.startDistance), (a.x + b.x) / 2, (a.y + b.y) / 2);
+                return;
+              }
               const drag = dragRef.current;
               if (!drag || drag.id !== e.pointerId) return;
               setView((current) =>
@@ -376,12 +403,20 @@ export function MangaReaderModal() {
               );
             }}
             onPointerUp={(e) => {
-              if (dragRef.current?.id !== e.pointerId) return;
+              pointersRef.current.delete(e.pointerId);
+              if (pointersRef.current.size < 2) pinchRef.current = null;
+              if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+              if (dragRef.current?.id === e.pointerId || pointersRef.current.size === 0) {
+                dragRef.current = null;
+                setIsDragging(false);
+              }
+            }}
+            onPointerCancel={(e) => {
+              pointersRef.current.delete(e.pointerId);
+              pinchRef.current = null;
               dragRef.current = null;
               setIsDragging(false);
-              e.currentTarget.releasePointerCapture(e.pointerId);
             }}
-            onPointerCancel={() => { dragRef.current = null; setIsDragging(false); }}
             className={`relative w-[85vw] sm:w-[540px] md:w-[620px] lg:w-[700px] xl:w-[760px] aspect-[2/3] max-h-[85vh] rounded-sm overflow-hidden border border-ink-border/90 shadow-[0_30px_120px_rgba(0,0,0,0.98)] bg-[#111114] flex flex-col justify-between touch-none select-none ${
               isLastPage ? "" : view.scale > 1 ? (isDragging ? "cursor-grabbing" : "cursor-grab") : "cursor-zoom-in"
             }`}
@@ -389,6 +424,16 @@ export function MangaReaderModal() {
             {/* Manga Artwork Page — the frame stays put and the artwork moves
                 inside it, so zooming reveals detail instead of pushing the
                 whole page off the screen. */}
+            {/* The same page, blurred, fills the frame around the whole-page view. */}
+            {!isLastPage && (
+              <img
+                src={currentPage}
+                alt=""
+                aria-hidden="true"
+                draggable={false}
+                className="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 opacity-30 pointer-events-none"
+              />
+            )}
             <img
               src={currentPage}
               alt={`Manga Page ${pageNumber}`}
@@ -397,8 +442,8 @@ export function MangaReaderModal() {
                 transform: `translate3d(${view.x}px, ${view.y}px, 0) scale(${view.scale})`,
                 transition: isDragging ? "none" : "transform 180ms ease-out",
               }}
-              className={`absolute inset-0 w-full h-full object-cover object-top pointer-events-none will-change-transform ${
-                isLastPage ? "blur-xl scale-110 opacity-35" : ""
+              className={`absolute inset-0 w-full h-full pointer-events-none will-change-transform ${
+                isLastPage ? "object-cover object-top blur-xl scale-110 opacity-35" : "object-contain"
               }`}
             />
 

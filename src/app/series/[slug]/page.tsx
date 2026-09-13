@@ -205,11 +205,11 @@ function SeriesView({ series }: { series: Series }) {
             />
           </div>
 
-          <h1 className="text-2xl sm:text-4xl md:text-6xl font-extrabold tracking-tight uppercase font-sans">
+          <h1 className="text-[1.65rem] leading-tight sm:text-4xl md:text-6xl font-extrabold tracking-tight uppercase font-sans">
             {series.title}
           </h1>
 
-          <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-[11px] sm:text-xs font-mono text-paper-muted">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 sm:gap-6 text-[10.5px] sm:text-xs font-mono text-paper-muted">
             <div className="flex items-center gap-1.5">
               <User strokeWidth={1.4} className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gold" />
               <span>{isArabic ? `تأليف ورسم: ${series.author}` : `Written & Illustrated by ${series.author}`}</span>
@@ -224,25 +224,25 @@ function SeriesView({ series }: { series: Series }) {
             </div>
           </div>
 
-          <p className="text-xs sm:text-sm text-text-muted max-w-2xl leading-relaxed">
+          <p className="text-[12.5px] sm:text-sm text-text-muted max-w-2xl leading-relaxed">
             {isArabic && series.descriptionAr ? series.descriptionAr : series.description}
           </p>
 
-          <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-4">
+          <div className="pt-1 sm:pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
             <a
               href="#volumes"
-              className="w-full sm:w-auto text-center px-6 sm:px-8 py-3 bg-paper text-ink font-bold text-xs tracking-[0.2em] uppercase rounded-sm hover:bg-vermilion hover:text-white transition-colors active:scale-95"
+              className="w-full sm:w-auto text-center px-6 sm:px-8 py-2.5 sm:py-3 bg-paper text-ink font-bold text-[11px] sm:text-xs tracking-[0.18em] sm:tracking-[0.2em] uppercase rounded-sm hover:bg-vermilion hover:text-white transition-colors active:scale-95"
             >
               {isArabic ? "استعراض المجلدات" : "EXPLORE VOLUMES"}
             </a>
             <button
               onClick={handleAddAllVolumes}
               disabled={!seriesBasket}
-              className="w-full sm:w-auto text-center px-5 sm:px-6 py-3 bg-ink-surface border border-ink-border text-paper font-semibold text-xs tracking-[0.15em] sm:tracking-[0.2em] uppercase rounded-sm hover:border-gold hover:text-gold transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto flex flex-col sm:block items-center gap-0.5 text-center px-5 sm:px-6 py-2 sm:py-3 bg-ink-surface border border-ink-border text-paper font-semibold text-[11px] sm:text-xs tracking-[0.12em] sm:tracking-[0.2em] uppercase rounded-sm hover:border-gold hover:text-gold transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isArabic ? "إضافة السلسلة كاملة للسلة" : "ADD ENTIRE SERIES TO CART"}
               {seriesBasket && seriesBasket.saving > 0 && (
-                <span className="ms-2 text-gold normal-case tracking-normal">
+                <span className="sm:ms-2 text-gold normal-case tracking-normal text-[10.5px] sm:text-xs font-medium">
                   {isArabic
                     ? `— وفّر ${formatPrice(seriesBasket.saving)}`
                     : `— save ${formatPrice(seriesBasket.saving)}`}
@@ -254,17 +254,17 @@ function SeriesView({ series }: { series: Series }) {
       </div>
 
       {/* Volumes Section */}
-      <section id="volumes" className="py-12 sm:py-20 px-4 sm:px-6 md:px-12 max-w-7xl mx-auto">
-        <div className="mb-10 sm:mb-12 pb-4 border-b border-ink-border/70 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <section id="volumes" className="py-8 sm:py-20 px-4 sm:px-6 md:px-12 max-w-7xl mx-auto">
+        <div className="mb-5 sm:mb-12 pb-3 sm:pb-4 border-b border-ink-border/70 flex flex-col sm:flex-row sm:items-end justify-between gap-1.5 sm:gap-4">
           <div>
-            <span className="text-[11px] font-mono tracking-[0.25em] text-gold uppercase block mb-1">
+            <span className="text-[10px] sm:text-[11px] font-mono tracking-[0.2em] sm:tracking-[0.25em] text-gold uppercase block mb-1">
               {isArabic ? "التسلسل الزمني الرسمي" : "CHRONOLOGICAL CANON"}
             </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight uppercase text-paper font-sans">
+            <h2 className="text-[1.35rem] sm:text-3xl font-extrabold tracking-tight uppercase text-paper font-sans">
               {isArabic ? "المجلدات المتوفرة" : "AVAILABLE VOLUMES"}
             </h2>
           </div>
-          <span className="text-xs font-mono text-text-muted">
+          <span className="text-[10.5px] sm:text-xs font-mono text-text-muted sm:text-end shrink-0 sm:pb-0.5">
             {volumePageCount > 1
               ? (isArabic
                   ? `عرض ${firstOnPage + 1}–${firstOnPage + pagedVolumes.length} من ${seriesVolumes.length} مجلداً`
@@ -470,20 +470,21 @@ function SeriesMerch({ volumes, series, isArabic }: { volumes: MangaVolume[]; se
   if (seriesMerch.length === 0) return null;
   return (
         <section id="shop" className="pb-16 sm:pb-24 px-4 sm:px-6 md:px-12 max-w-7xl mx-auto">
-          <div className="mb-10 sm:mb-12 pb-4 border-b border-ink-border/70 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-            <div>
-              <span className="text-[11px] font-mono tracking-[0.25em] text-gold uppercase block mb-1">
+          {/* The page is already about this series, so the heading does not repeat its name. */}
+          <div className="mb-5 sm:mb-12 pb-3 sm:pb-4 border-b border-ink-border/70 flex flex-row items-end justify-between gap-3 sm:gap-4">
+            <div className="min-w-0">
+              <span className="text-[10px] sm:text-[11px] font-mono tracking-[0.2em] sm:tracking-[0.25em] text-gold uppercase block mb-1">
                 {isArabic ? "المقتنيات" : "COLLECTIBLES"}
               </span>
-              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight uppercase text-paper font-sans">
-                {isArabic ? `فيجرز وبوسترات ${series.title}` : `${series.title} FIGURES & POSTERS`}
+              <h2 className="text-[1.35rem] sm:text-3xl font-extrabold tracking-tight uppercase text-paper font-sans">
+                {isArabic ? "فيجرز وبوسترات" : "FIGURES & POSTERS"}
               </h2>
             </div>
             <Link
               href={`/shop?franchise=${encodeURIComponent(franchiseKey(series.title))}`}
-              className="text-xs font-mono tracking-widest text-text-muted hover:text-paper transition-colors"
+              className="shrink-0 pb-1 text-[10.5px] sm:text-xs font-mono tracking-widest text-text-muted hover:text-paper transition-colors whitespace-nowrap"
             >
-              {isArabic ? `كل منتجات ${series.title} ←` : `ALL ${series.title.toUpperCase()} PRODUCTS →`}
+              {isArabic ? "عرض الكل ←" : "VIEW ALL →"}
             </Link>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">

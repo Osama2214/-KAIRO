@@ -320,30 +320,32 @@ export function Footer() {
         </div>
 
         {/* Bottom Sub-bar */}
-        <div className="pt-8 border-t border-ink-border/60 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] font-mono">
+        {/* On phones: the two policy links side by side first, then the copyright, then the tagline. */}
+        <div className="pt-6 sm:pt-8 border-t border-ink-border/60 flex flex-col sm:flex-row items-center justify-between gap-3.5 sm:gap-4 text-[11px] font-mono">
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-[11px] font-mono tracking-wider text-text-muted font-sans text-center sm:text-left">
             <Copyright strokeWidth={1.6} className="w-3.5 h-3.5 text-gold shrink-0" />
             <span>{new Date().getFullYear()}</span>
             <span className="text-paper font-semibold">ANIMEVERSE.</span>
             <span className="text-text-muted/75">{locale === "ar" ? "جميع الحقوق محفوظة." : "ALL RIGHTS RESERVED."}</span>
           </div>
-          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-4 sm:gap-6 font-sans text-xs">
-            <span className="text-gold font-serif">物語と記憶のかたち</span>
+          <div className="order-first sm:order-none flex items-center justify-center sm:justify-end gap-3 sm:gap-6 font-sans text-xs">
+            <span className="hidden sm:inline text-gold font-serif">物語と記憶のかたち</span>
             <button
               type="button"
               onClick={() => openPolicy("privacy")}
-              className="text-text-muted hover:text-gold transition-colors cursor-pointer uppercase tracking-wider text-[11px]"
+              className="px-3 py-2 sm:p-0 rounded-xs border border-ink-border/70 sm:border-0 bg-ink-surface/50 sm:bg-transparent text-text-muted hover:text-gold hover:border-gold/50 transition-colors cursor-pointer uppercase tracking-wider text-[10.5px] sm:text-[11px] whitespace-nowrap"
             >
               {locale === "ar" ? "سياسة الخصوصية" : "PRIVACY PROTOCOL"}
             </button>
             <button
               type="button"
               onClick={() => openPolicy("terms")}
-              className="text-text-muted hover:text-gold transition-colors cursor-pointer uppercase tracking-wider text-[11px]"
+              className="px-3 py-2 sm:p-0 rounded-xs border border-ink-border/70 sm:border-0 bg-ink-surface/50 sm:bg-transparent text-text-muted hover:text-gold hover:border-gold/50 transition-colors cursor-pointer uppercase tracking-wider text-[10.5px] sm:text-[11px] whitespace-nowrap"
             >
               {locale === "ar" ? "شروط الشراء والاستبدال" : "TERMS OF SALE"}
             </button>
           </div>
+          <span className="sm:hidden text-gold font-serif text-xs">物語と記憶のかたち</span>
         </div>
       </div>
 

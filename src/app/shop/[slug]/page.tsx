@@ -131,9 +131,9 @@ function ShopProductView({ product }: { product: MangaVolume }) {
   };
 
   return (
-    <div className="min-h-screen bg-ink text-paper pt-20 sm:pt-28 pb-16 sm:pb-20 px-3.5 sm:px-6 md:px-12">
+    <div className="min-h-screen bg-ink text-paper pt-5 sm:pt-28 pb-16 sm:pb-20 px-3.5 sm:px-6 md:px-12">
       <div className="max-w-7xl mx-auto space-y-10 sm:space-y-16">
-        <div className="flex items-center gap-2 text-[11px] sm:text-xs font-mono text-text-muted overflow-x-auto no-scrollbar py-1 whitespace-nowrap">
+        <div className="mb-4 sm:mb-16 flex items-center gap-2 text-[11px] sm:text-xs font-mono text-text-muted overflow-x-auto no-scrollbar py-1 whitespace-nowrap">
           <Link href="/" className="hover:text-paper">{isArabic ? "الرئيسية" : "HOME"}</Link>
           <span>/</span>
           <Link href="/shop" className="hover:text-paper">{isArabic ? "المقتنيات" : "COLLECTIBLES"}</Link>
@@ -195,7 +195,7 @@ function ShopProductView({ product }: { product: MangaVolume }) {
           </div>
 
           {/* Purchase column */}
-          <div className="lg:col-span-6 space-y-6 sm:space-y-8">
+          <div className="lg:col-span-6 space-y-5 sm:space-y-8">
             <div className="space-y-2.5">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-mono tracking-[0.2em] text-gold uppercase truncate">{franchise}</span>
@@ -208,7 +208,7 @@ function ShopProductView({ product }: { product: MangaVolume }) {
                   <span className={copied ? "text-gold" : ""}>{copied ? (isArabic ? "تم النسخ" : "COPIED") : (isArabic ? "مشاركة" : "SHARE")}</span>
                 </button>
               </div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold uppercase tracking-tight font-sans leading-tight">
+              <h1 className="text-[1.4rem] sm:text-3xl lg:text-4xl font-extrabold uppercase tracking-tight font-sans leading-tight">
                 {product.title}
               </h1>
             </div>
@@ -235,7 +235,7 @@ function ShopProductView({ product }: { product: MangaVolume }) {
                           if (linked !== null) setImageIndex(linked);
                         }}
                         aria-pressed={active}
-                        className={`min-w-[4.5rem] px-3.5 py-2 rounded-xs border text-xs font-mono transition-colors cursor-pointer flex flex-col items-center gap-0.5 ${
+                        className={`min-w-[4.5rem] px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xs border text-[11px] sm:text-xs font-mono transition-colors cursor-pointer flex flex-col items-center gap-0.5 ${
                           active
                             ? "border-gold bg-gold/15 text-gold"
                             : "border-ink-border bg-ink-surface text-paper hover:border-gold/60"
@@ -270,13 +270,15 @@ function ShopProductView({ product }: { product: MangaVolume }) {
             </div>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <div className="flex items-center gap-3">
-                <div className={`flex items-center border border-ink-border bg-ink-surface rounded-sm h-12 flex-1 sm:flex-none ${soldOut ? "opacity-50 pointer-events-none" : ""}`}>
+              {/* Phones: stepper and wishlist share a row above the cart button.
+                  Wider: one row, with wishlist after the cart button. */}
+              <div className="flex items-center gap-3 sm:contents">
+                <div className={`flex items-center border border-ink-border bg-ink-surface rounded-sm h-11 sm:h-12 flex-1 sm:flex-none ${soldOut ? "opacity-50 pointer-events-none" : ""}`}>
                   <button
                     type="button"
                     disabled={soldOut || qty <= 1}
                     onClick={() => setQuantity(qty - 1)}
-                    className="p-3.5 text-text-muted hover:text-paper disabled:opacity-30 cursor-pointer"
+                    className="p-3 sm:p-3.5 text-text-muted hover:text-paper disabled:opacity-30 cursor-pointer"
                     aria-label="Decrease"
                   >
                     <Minus strokeWidth={1.4} className="w-4 h-4" />
@@ -286,7 +288,7 @@ function ShopProductView({ product }: { product: MangaVolume }) {
                     type="button"
                     disabled={soldOut || qty >= stock}
                     onClick={() => setQuantity(qty + 1)}
-                    className="p-3.5 text-text-muted hover:text-paper disabled:opacity-30 cursor-pointer"
+                    className="p-3 sm:p-3.5 text-text-muted hover:text-paper disabled:opacity-30 cursor-pointer"
                     aria-label="Increase"
                   >
                     <Plus strokeWidth={1.4} className="w-4 h-4" />
@@ -295,7 +297,7 @@ function ShopProductView({ product }: { product: MangaVolume }) {
                 <button
                   type="button"
                   onClick={() => toggleWishlist(product)}
-                  className={`h-12 w-12 border rounded-sm flex items-center justify-center shrink-0 cursor-pointer active:scale-95 ${
+                  className={`sm:order-3 h-11 w-11 sm:h-12 sm:w-12 border rounded-sm flex items-center justify-center shrink-0 cursor-pointer active:scale-95 ${
                     saved ? "border-vermilion bg-vermilion/15 text-vermilion" : "border-ink-border bg-ink-surface text-text-muted hover:text-paper"
                   }`}
                   aria-label={isArabic ? "المفضلة" : "Wishlist"}
@@ -307,7 +309,7 @@ function ShopProductView({ product }: { product: MangaVolume }) {
                 type="button"
                 disabled={soldOut || !chosen}
                 onClick={handleAdd}
-                className={`w-full sm:flex-1 h-12 px-6 font-extrabold text-xs tracking-[0.15em] uppercase rounded-sm shadow-xl flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] ${
+                className={`sm:order-2 w-full sm:flex-1 h-11 sm:h-12 px-4 sm:px-6 font-extrabold text-[11px] sm:text-xs tracking-[0.12em] sm:tracking-[0.15em] uppercase rounded-sm shadow-xl flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] ${
                   soldOut ? "bg-ink-surface/80 border border-ink-border text-text-muted/60 cursor-not-allowed" : "bg-paper text-ink hover:bg-vermilion hover:text-white"
                 }`}
               >
@@ -320,7 +322,7 @@ function ShopProductView({ product }: { product: MangaVolume }) {
               </button>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-[11px] font-mono text-text-muted">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-[10.5px] sm:text-[11px] font-mono text-text-muted">
               <div className="flex items-center gap-1.5">
                 <Truck strokeWidth={1.4} className="w-3.5 h-3.5 text-gold shrink-0" />
                 <span>{isArabic ? shippingArabicConfig?.dispatchBadgeText || "شحن فوري من 6 أكتوبر (لكافة محافظات مصر)" : shippingConfig.dispatchBadgeText || "Dispatched from 6th of October (All Egypt)"}</span>
@@ -359,13 +361,15 @@ function ShopProductView({ product }: { product: MangaVolume }) {
         </div>
 
         {related.length > 0 && (
-          <section className="pt-12 sm:pt-16 border-t border-ink-border/60">
-            <div className="mb-6 sm:mb-10 flex items-end justify-between">
-              <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight uppercase font-sans">
+          <section className="pt-8 sm:pt-16 border-t border-ink-border/60">
+            <div className="mb-5 sm:mb-10 flex items-center sm:items-end justify-between gap-3">
+              <h2 className="text-[1.15rem] sm:text-2xl font-extrabold tracking-tight uppercase font-sans whitespace-nowrap">
                 {isArabic ? "قد يعجبك أيضاً" : "YOU MAY ALSO LIKE"}
               </h2>
-              <Link href="/shop" className="h-9 px-4 rounded-sm bg-ink-surface border border-ink-border hover:border-gold text-paper hover:text-gold font-mono text-xs tracking-widest uppercase font-bold flex items-center">
-                {isArabic ? "تصفح المقتنيات" : "BROWSE COLLECTIBLES"}
+              <Link href="/shop" className="shrink-0 h-8 sm:h-9 px-3 sm:px-4 rounded-sm bg-ink-surface border border-ink-border hover:border-gold text-paper hover:text-gold font-mono text-[10px] sm:text-xs tracking-wider sm:tracking-widest uppercase font-bold flex items-center whitespace-nowrap">
+                {/* A short label on phones so it sits beside the heading. */}
+                <span className="sm:hidden">{isArabic ? "عرض الكل" : "VIEW ALL"}</span>
+                <span className="hidden sm:inline">{isArabic ? "تصفح المقتنيات" : "BROWSE COLLECTIBLES"}</span>
               </Link>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">

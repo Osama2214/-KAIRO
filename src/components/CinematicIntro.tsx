@@ -265,6 +265,8 @@ export function CinematicIntro() {
   const pathname = usePathname();
   const mounted = useMounted();
   const [visible, setVisible] = useState(false);
+  // Read once: the intro is client-only, so this is known on its first render.
+  const [reducedMotion] = useState(prefersReducedMotion);
   // Which composition to build: horizontal lockup, or stacked for phones.
   // Read through useSyncExternalStore rather than a setState-in-effect so the
   // first client render already has the right answer and React never has to
@@ -1119,7 +1121,12 @@ export function CinematicIntro() {
 
           {/* Reduced-motion fallback: the shipped static logo, nothing moving. */}
           <div ref={fallbackRef} className="absolute z-20 w-[70vw] max-w-[520px] opacity-0 pointer-events-none">
-            <Image src={fullLogo} alt="AnimeVerse" sizes="(max-width: 767px) 70vw, 520px" quality={90} priority className="w-full h-auto" />
+            {/* Only fetched for visitors who asked for reduced motion: for
+                everyone else this layer stays invisible, and loading it at
+                high priority cost ~100KB on every first visit. */}
+            {reducedMotion && (
+              <Image src={fullLogo} alt="AnimeVerse" sizes="(max-width: 767px) 70vw, 520px" quality={90} priority className="w-full h-auto" />
+            )}
           </div>
 
           {/* A quiet affordance rather than a progress bar racing the sequence. */}

@@ -255,17 +255,17 @@ function MangaCatalogContent() {
   };
 
   return (
-    <div className="min-h-screen bg-ink pt-28 pb-20 px-6 md:px-12 text-paper">
+    <div className="min-h-screen bg-ink pt-8 sm:pt-28 pb-20 px-6 md:px-12 text-paper">
       <div className="max-w-7xl mx-auto">
         {/* Page Header */}
-        <div className="mb-10 pb-6 border-b border-ink-border/70 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="mb-5 sm:mb-10 pb-5 sm:pb-6 border-b border-ink-border/70 flex flex-col md:flex-row md:items-end justify-between gap-3.5 sm:gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2 font-mono text-[11px] text-gold tracking-widest uppercase">
+            <div className="flex items-center gap-2 mb-1.5 sm:mb-2 font-mono text-[10px] sm:text-[11px] text-gold tracking-widest uppercase">
               <span>{isArabic ? "مستودع الأرشيف المعتمد" : "ARCHIVE REPOSITORY"}</span>
               <span>/</span>
               <span>{isArabic ? "الكتالوج" : "CATALOG"}</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight uppercase font-sans">
+            <h1 className="text-[1.7rem] sm:text-4xl lg:text-5xl font-extrabold tracking-tight uppercase font-sans">
               {isArabic ? "كتالوج المانجا" : "MANGA CATALOG"}
             </h1>
           </div>
@@ -274,7 +274,7 @@ function MangaCatalogContent() {
             {/* Mobile Filter Toggle */}
             <button
               onClick={() => setMobileFilterOpen(!mobileFilterOpen)}
-              className="md:hidden flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 h-[42px] bg-ink-surface border border-ink-border rounded-xs text-xs font-mono tracking-wider uppercase hover:border-gold/60 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+              className="md:hidden flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 h-[38px] sm:h-[42px] bg-ink-surface border border-ink-border rounded-xs text-[11px] sm:text-xs font-mono tracking-wider uppercase hover:border-gold/60 transition-colors cursor-pointer whitespace-nowrap shrink-0"
             >
               <Filter strokeWidth={1.4} className="w-3.5 h-3.5 text-gold shrink-0" />
               <span>{isArabic ? `الفلاتر (${activeFilterCount})` : `FILTERS (${activeFilterCount})`}</span>
@@ -295,7 +295,7 @@ function MangaCatalogContent() {
                 labelPrefix={isArabic ? "ترتيب:" : "SORT:"}
                 fullWidth={true}
                 className="w-full sm:w-56 md:w-64"
-                buttonClassName="h-[42px]"
+                buttonClassName="h-[38px] sm:h-[42px] max-sm:px-3! max-sm:gap-2! max-sm:text-[11px]!"
               />
             </div>
           </div>
@@ -303,7 +303,7 @@ function MangaCatalogContent() {
 
 
         {/* Catalogue Search */}
-        <div className="relative mb-6">
+        <div className="relative mb-5 sm:mb-6">
           <Search strokeWidth={1.5} className="w-4 h-4 text-gold absolute start-4 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
@@ -317,7 +317,7 @@ function MangaCatalogContent() {
                 ? "ابحث بالاسم، المؤلف، رقم المجلد، أو ISBN..."
                 : "Search by title, author, volume number, or ISBN..."
             }
-            className="w-full h-[46px] bg-ink-surface border border-ink-border rounded-xs ps-11 pe-11 text-sm text-paper placeholder:text-text-muted/70 focus:border-gold outline-none transition-colors"
+            className="w-full h-[40px] sm:h-[46px] bg-ink-surface border border-ink-border rounded-xs ps-10 sm:ps-11 pe-10 sm:pe-11 text-[13px] sm:text-sm text-paper placeholder:text-text-muted/70 focus:border-gold outline-none transition-colors"
           />
           {searchQuery && (
             <button

@@ -234,10 +234,10 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
   }, [relatedApi, relatedVolumes, isRTL]);
 
   return (
-    <div className="min-h-screen bg-ink text-paper pt-20 sm:pt-28 pb-16 sm:pb-20 px-3.5 sm:px-6 md:px-12">
+    <div className="min-h-screen bg-ink text-paper pt-5 sm:pt-28 pb-16 sm:pb-20 px-3.5 sm:px-6 md:px-12">
       <div className="max-w-7xl mx-auto space-y-8 sm:space-y-16">
-        {/* Breadcrumb Navigation */}
-        <div className="flex items-center gap-2 text-[11px] sm:text-xs font-mono text-text-muted overflow-x-auto no-scrollbar py-1 whitespace-nowrap">
+        {/* Breadcrumb Navigation (sits closer to the cover on phones) */}
+        <div className="mb-4 sm:mb-16 flex items-center gap-2 text-[11px] sm:text-xs font-mono text-text-muted overflow-x-auto no-scrollbar py-1 whitespace-nowrap">
           <Link href="/" className="hover:text-paper transition-colors">
             {isArabic ? "الرئيسية" : "HOME"}
           </Link>
@@ -301,9 +301,9 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
               <button
                 type="button"
                 onClick={() => openReader(volume)}
-                className="w-full py-2.5 sm:py-3 px-4 bg-ink-surface/90 hover:bg-gold hover:text-ink border border-ink-border hover:border-gold rounded-xs text-paper font-mono text-xs tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 group cursor-pointer shadow-sm active:scale-[0.99]"
+                className="w-full py-2.5 sm:py-3 px-3 sm:px-4 bg-ink-surface/90 hover:bg-gold hover:text-ink border border-ink-border hover:border-gold rounded-xs text-paper font-mono text-[10.5px] sm:text-xs tracking-wider sm:tracking-widest whitespace-nowrap uppercase transition-all duration-300 flex items-center justify-center gap-2 group cursor-pointer shadow-sm active:scale-[0.99]"
               >
-                <Eye strokeWidth={1.5} className="w-4 h-4 text-gold group-hover:text-ink transition-colors" />
+                <Eye strokeWidth={1.5} className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-gold group-hover:text-ink transition-colors" />
                 <span className="font-bold">{isArabic ? "قراءة عينة من الفصل (معاينة يابانية)" : "OPEN SAMPLE CHAPTER (RTL PREVIEW)"}</span>
               </button>
 
@@ -327,7 +327,7 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
           </div>
 
           {/* Right Column: Title, Specs, Price, and Cart Action */}
-          <div className="lg:col-span-6 space-y-6 sm:space-y-8">
+          <div className="lg:col-span-6 space-y-5 sm:space-y-8">
             <div className="space-y-2.5 sm:space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <Link
@@ -363,7 +363,7 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                 </div>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold uppercase tracking-tight font-sans leading-tight">
+              <h1 className="text-[1.4rem] sm:text-3xl lg:text-4xl font-extrabold uppercase tracking-tight font-sans leading-tight">
                 {volume.title}
               </h1>
               <p className="text-xs sm:text-sm font-serif text-text-muted italic">
@@ -383,7 +383,7 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
             {/* Price Tag & Real-Time Stock Status */}
             <div className="py-3.5 sm:py-4 border-y border-ink-border/70 flex items-center justify-between gap-3 font-mono flex-wrap">
               <div className="flex items-baseline gap-2.5">
-                <span className="text-2xl sm:text-3xl font-extrabold text-paper">
+                <span className="text-[1.4rem] sm:text-3xl font-extrabold text-paper">
                   {formatPrice(volume.price)}
                 </span>
                 {volume.originalPrice && (
@@ -439,11 +439,11 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                 {/* Mobile Row: Stepper + Wishlist Button */}
                 <div className="flex items-center gap-3">
                   {/* Stepper */}
-                  <div className={`flex items-center border border-ink-border bg-ink-surface rounded-sm h-12 flex-1 sm:flex-none ${((volume.stock ?? 0) <= 0) ? "opacity-50 pointer-events-none" : ""}`}>
+                  <div className={`flex items-center border border-ink-border bg-ink-surface rounded-sm h-11 sm:h-12 flex-1 sm:flex-none ${((volume.stock ?? 0) <= 0) ? "opacity-50 pointer-events-none" : ""}`}>
                     <button
                       disabled={(volume.stock ?? 0) <= 0 || quantity <= 1}
                       onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                      className="p-3.5 text-text-muted hover:text-paper transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                      className="p-3 sm:p-3.5 text-text-muted hover:text-paper transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                       aria-label="Decrease"
                     >
                       <Minus strokeWidth={1.4} className="w-4 h-4" />
@@ -454,7 +454,7 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                     <button
                       disabled={(volume.stock ?? 0) <= 0 || quantity >= (volume.stock ?? 9999)}
                       onClick={() => setQuantity((q) => Math.min((volume.stock ?? 9999), q + 1))}
-                      className="p-3.5 text-text-muted hover:text-paper transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                      className="p-3 sm:p-3.5 text-text-muted hover:text-paper transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                       aria-label="Increase"
                     >
                       <Plus strokeWidth={1.4} className="w-4 h-4" />
@@ -465,7 +465,7 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                   <button
                     type="button"
                     onClick={handleToggleWishlist}
-                    className={`h-12 w-12 sm:hidden border rounded-sm transition-all duration-300 flex items-center justify-center shrink-0 cursor-pointer active:scale-95 ${
+                    className={`h-11 w-11 sm:hidden border rounded-sm transition-all duration-300 flex items-center justify-center shrink-0 cursor-pointer active:scale-95 ${
                       isSavedInWishlist
                         ? "border-vermilion bg-vermilion/15 text-vermilion shadow-lg shadow-vermilion/10"
                         : "border-ink-border bg-ink-surface text-text-muted hover:text-paper"
@@ -489,7 +489,7 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                   type="button"
                   disabled={(volume.stock ?? 0) <= 0}
                   onClick={handleAddToCart}
-                  className={`w-full sm:flex-1 h-12 px-6 font-extrabold text-xs tracking-[0.15em] sm:tracking-[0.2em] uppercase rounded-sm transition-all duration-300 shadow-xl flex items-center justify-center gap-2 group cursor-pointer active:scale-[0.98] ${
+                  className={`w-full sm:flex-1 h-11 sm:h-12 px-4 sm:px-6 font-extrabold text-[11px] sm:text-xs tracking-[0.12em] sm:tracking-[0.2em] uppercase rounded-sm transition-all duration-300 shadow-xl flex items-center justify-center gap-2 group cursor-pointer active:scale-[0.98] ${
                     ((volume.stock ?? 0) <= 0)
                       ? "bg-ink-surface/80 border border-ink-border text-text-muted/60 cursor-not-allowed"
                       : "bg-paper text-ink hover:bg-vermilion hover:text-white"
@@ -528,7 +528,7 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                 </button>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-start gap-2 sm:gap-6 pt-2 text-[11px] font-mono text-text-muted">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-start gap-2 sm:gap-6 pt-1 sm:pt-2 text-[10.5px] sm:text-[11px] font-mono text-text-muted">
                 <div className="flex items-center gap-1.5 whitespace-nowrap">
                   <Truck strokeWidth={1.4} className="w-3.5 h-3.5 text-gold shrink-0" />
                   <span>

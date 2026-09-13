@@ -195,7 +195,7 @@ export function BoxSets() {
                       <AnimeVerseImage
                         src={volume.coverImage}
                         alt={volume.title}
-                        sizes="(max-width: 639px) 78vw, (max-width: 1023px) 42vw, 25vw"
+                        sizes="(max-width: 639px) 64vw, (max-width: 1023px) 42vw, 25vw"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out pointer-events-none"
                       />
 
