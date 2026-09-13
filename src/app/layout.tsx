@@ -6,7 +6,7 @@ import { StorefrontShell } from "@/components/StorefrontShell";
 import { getStorefrontSnapshot } from "@/lib/storefrontSnapshot";
 import { MangaReaderModal } from "@/components/MangaReaderModal";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
-import { SITE_URL, SITE_NAME, DEFAULT_OG_IMAGE } from "@/lib/seo";
+import { SITE_URL, SITE_NAME, DEFAULT_OG_IMAGE, getStoreProfile, jsonLdHtml } from "@/lib/seo";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -55,7 +55,7 @@ export const viewport: Viewport = {
 };
 
 const SITE_DESCRIPTION =
-  "Manga, light novels, and stories worth getting lost in. Premium editorial editions, authentic Japanese prints, and collector's boxsets.";
+  "Buy original English manga, complete box sets, anime figures and posters in Egypt — One Piece, Naruto, Bleach, Jujutsu Kaisen and more, with cash on delivery across Egypt.";
 
 export const metadata: Metadata = {
   // metadataBase makes the relative OG/Twitter image paths below resolve to
@@ -66,7 +66,12 @@ export const metadata: Metadata = {
     template: "%s | AnimeVerse",
   },
   description: SITE_DESCRIPTION,
-  keywords: ["Manga", "Light Novels", "AnimeVerse", "Japanese Books", "Jujutsu Kaisen", "One Piece", "Berserk"],
+  keywords: [
+    "manga Egypt", "buy manga Egypt", "English manga", "manga box set", "anime figures Egypt", "anime posters",
+    "One Piece manga", "Naruto manga", "Bleach manga", "Jujutsu Kaisen manga", "Berserk manga", "Demon Slayer manga",
+    "مانجا", "مانجا مصر", "شراء مانجا", "فيجرز انمي", "بوسترات انمي", "AnimeVerse",
+  ],
+  category: "shopping",
   applicationName: SITE_NAME,
   alternates: { canonical: "/" },
   openGraph: {
@@ -97,6 +102,46 @@ export default async function RootLayout({
   // what the shop sells, instead of the copy compiled into the bundle at build
   // time and corrected a fetch later.
   const catalog = await getStorefrontSnapshot();
+  const profile = await getStoreProfile();
+
+  // Who the store is, for search engines and AI assistants: the business, its
+  // contact details and social profiles, and the site it runs.
+  const storeJsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "OnlineStore",
+      "@id": `${SITE_URL}/#store`,
+      name: SITE_NAME,
+      url: SITE_URL,
+      logo: `${SITE_URL}/animeverse-logo.png`,
+      image: `${SITE_URL}${DEFAULT_OG_IMAGE}`,
+      description: SITE_DESCRIPTION,
+      areaServed: { "@type": "Country", name: "Egypt" },
+      currenciesAccepted: "EGP",
+      paymentAccepted: "Cash on delivery",
+      ...(profile.email || profile.phone
+        ? {
+            contactPoint: {
+              "@type": "ContactPoint",
+              contactType: "customer service",
+              availableLanguage: ["English", "Arabic"],
+              ...(profile.email ? { email: profile.email } : {}),
+              ...(profile.phone ? { telephone: profile.phone.replace(/\s+/g, "") } : {}),
+            },
+          }
+        : {}),
+      ...(profile.sameAs.length ? { sameAs: profile.sameAs } : {}),
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      name: SITE_NAME,
+      url: SITE_URL,
+      inLanguage: ["en", "ar"],
+      publisher: { "@id": `${SITE_URL}/#store` },
+    },
+  ];
 
   return (
     <html
@@ -105,6 +150,7 @@ export default async function RootLayout({
       className={`${manrope.variable} ${cinzel.variable} ${shippori.variable} ${jetbrains.variable} antialiased selection:bg-vermilion selection:text-white`}
     >
       <body suppressHydrationWarning className="min-h-screen bg-ink text-paper font-sans flex flex-col relative">
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(storeJsonLd) }} />
         {/*
           The locale is persisted client-side, so the server always renders
           lang="en". Applying the stored choice before first paint avoids an

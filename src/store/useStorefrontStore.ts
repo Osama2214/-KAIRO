@@ -151,8 +151,8 @@ export interface ShopShowcaseArabicConfig {
 export const DEFAULT_SHOP_SHOWCASE_CONFIG: ShopShowcaseConfig = {
   enabled: true,
   badgeText: "FIGURES & POSTERS",
-  headline: "THE SHOP",
-  viewAllText: "VIEW THE SHOP",
+  headline: "COLLECTIBLES",
+  viewAllText: "VIEW ALL COLLECTIBLES",
   productIds: [],
   maxCards: 8,
 };
@@ -201,8 +201,8 @@ export function resolveHomeExtras(stored: Partial<HomeExtrasConfig> | undefined 
 
 export const DEFAULT_SHOP_SHOWCASE_ARABIC_CONFIG: ShopShowcaseArabicConfig = {
   badgeText: "فيجرز وبوسترات",
-  headline: "المتجر",
-  viewAllText: "تصفح المتجر",
+  headline: "المقتنيات",
+  viewAllText: "تصفح كل المقتنيات",
 };
 
 export interface TrendingConfig {

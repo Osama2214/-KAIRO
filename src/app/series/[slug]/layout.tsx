@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getCatalog, absoluteImage, metaDescription, SITE_URL } from "@/lib/seo";
+import { getCatalog, absoluteImage, metaDescription, SITE_URL, breadcrumbJsonLd, jsonLdHtml } from "@/lib/seo";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -72,15 +72,17 @@ export default async function SeriesLayout({ params, children }: Props) {
     genre: entry.genres,
     numberOfItems: entry.totalVolumes,
   };
+  const breadcrumbs =
+    entry &&
+    breadcrumbJsonLd([
+      { name: "Home", path: "/" },
+      { name: "Series", path: "/series" },
+      { name: entry.title, path: `/series/${entry.slug}` },
+    ]);
 
   return (
     <>
-      {jsonLd && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\u003c") }}
-        />
-      )}
+      {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml([jsonLd, breadcrumbs]) }} />}
       {children}
     </>
   );

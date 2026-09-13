@@ -47,6 +47,50 @@ export const getCatalog = cache(async (): Promise<{ volumes: MangaVolume[]; seri
   }
 });
 
+export interface StoreProfile {
+  email: string;
+  phone: string;
+  sameAs: string[];
+}
+
+/** The store's public contact details and social profiles, as the curator set them. */
+export const getStoreProfile = cache(async (): Promise<StoreProfile> => {
+  try {
+    const { getStorefrontData } = await import("@/lib/storefrontDataStore");
+    const data = await getStorefrontData();
+    const editorial = (data?.editorialConfig || {}) as Record<string, unknown>;
+    const text = (key: string) => (typeof editorial[key] === "string" ? String(editorial[key]).trim() : "");
+    return {
+      email: text("contactEmail"),
+      phone: text("contactPhone"),
+      sameAs: ["instagramUrl", "facebookUrl", "tiktokUrl", "youtubeUrl", "xUrl"]
+        .map(text)
+        .filter((url) => /^https?:\/\/\S+$/i.test(url)),
+    };
+  } catch {
+    return { email: "", phone: "", sameAs: [] };
+  }
+});
+
+/** schema.org BreadcrumbList for a page's trail, root first. */
+export function breadcrumbJsonLd(trail: { name: string; path: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: trail.map((step, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: step.name,
+      item: `${SITE_URL}${step.path}`,
+    })),
+  };
+}
+
+/** Serialises structured data for a <script type="application/ld+json">. */
+export function jsonLdHtml(data: unknown): string {
+  return JSON.stringify(data).replace(/</g, "\\u003c");
+}
+
 /** Absolute URL for an image path that may already be absolute. */
 export function absoluteImage(src: string | undefined): string {
   if (!src) return `${SITE_URL}${DEFAULT_OG_IMAGE}`;

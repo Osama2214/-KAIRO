@@ -20,6 +20,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { StarRating } from "@/components/StarRating";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 import { CatalogPending } from "@/components/CatalogPending";
+import { ImageLightbox, ImagePreviewTrigger } from "@/components/ImageLightbox";
 
 interface MangaPageProps {
   params: Promise<{ slug: string }>;
@@ -59,6 +60,7 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
 
   const [quantity, setQuantity] = useState(1);
   const [copied, setCopied] = useState(false);
+  const [coverPreviewOpen, setCoverPreviewOpen] = useState(false);
 
   const addItem = useCartStore((state) => state.addItem);
   const applyCoupon = useCartStore((state) => state.applyCoupon);
@@ -267,6 +269,8 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
               />
 
+              <ImagePreviewTrigger onClick={() => setCoverPreviewOpen(true)} isArabic={isArabic} />
+
               {/* Live Edit Volume Button */}
               <LiveEditButton
                 target={{ type: "volume", volumeId: volume.id }}
@@ -276,10 +280,20 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
               />
 
               {/* Japanese Seal Floating Badge */}
-              <div className="absolute top-3 left-3 px-2.5 py-0.5 bg-ink/90 backdrop-blur-md rounded-xs border border-ink-border font-mono text-[9px] sm:text-[10px] text-gold">
+              <div className="absolute top-3 left-3 z-10 pointer-events-none px-2.5 py-0.5 bg-ink/90 backdrop-blur-md rounded-xs border border-ink-border font-mono text-[9px] sm:text-[10px] text-gold">
                 {volumeBadgeLabel(volume, isArabic)}
               </div>
             </div>
+            {coverPreviewOpen && (
+              <ImageLightbox
+                images={[volume.coverImage]}
+                index={0}
+                alt={volume.title}
+                isArabic={isArabic}
+                onIndexChange={() => {}}
+                onClose={() => setCoverPreviewOpen(false)}
+              />
+            )}
 
             {/* Quick Preview & Sample Reader Actions (Unobstructed Cover) */}
             {volume.previewPages.length > 0 && (

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { permanentRedirect } from "next/navigation";
-import { getCatalog, absoluteImage, metaDescription, SITE_URL } from "@/lib/seo";
+import { getCatalog, absoluteImage, metaDescription, SITE_URL, breadcrumbJsonLd, jsonLdHtml } from "@/lib/seo";
+import { effectivePrice } from "@/lib/pricing";
 import { isBook, isMerch } from "@/lib/variants";
 
 interface Props {
@@ -83,32 +84,31 @@ export default async function MangaVolumeLayout({ params, children }: Props) {
     ...(volume.isbn ? { gtin13: volume.isbn } : {}),
     brand: { "@type": "Brand", name: volume.seriesTitle },
     author: { "@type": "Person", name: volume.author },
-    ...(volume.reviewCount > 0
-      ? {
-          aggregateRating: {
-            "@type": "AggregateRating",
-            ratingValue: volume.rating,
-            reviewCount: volume.reviewCount,
-          },
-        }
-      : {}),
+    ...(volume.genre?.length ? { category: volume.genre.join(", ") } : {}),
+    // No aggregateRating: the star ratings are not collected from real
+    // customer reviews, and marking them up would break Google's review policy.
     offers: {
       "@type": "Offer",
       url: `${SITE_URL}/manga/${volume.id}`,
       priceCurrency: "EGP",
-      price: volume.price,
+      price: effectivePrice(volume),
+      itemCondition: "https://schema.org/NewCondition",
       availability: volume.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      seller: { "@id": `${SITE_URL}/#store` },
     },
   };
+  const breadcrumbs =
+    volume &&
+    breadcrumbJsonLd([
+      { name: "Home", path: "/" },
+      { name: "Manga", path: "/manga" },
+      ...(volume.seriesSlug ? [{ name: volume.seriesTitle, path: `/series/${volume.seriesSlug}` }] : []),
+      { name: volume.title, path: `/manga/${volume.id}` },
+    ]);
 
   return (
     <>
-      {jsonLd && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\u003c") }}
-        />
-      )}
+      {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml([jsonLd, breadcrumbs]) }} />}
       {children}
     </>
   );

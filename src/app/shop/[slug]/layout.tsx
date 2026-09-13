@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { permanentRedirect } from "next/navigation";
-import { getCatalog, absoluteImage, metaDescription, SITE_URL } from "@/lib/seo";
+import { getCatalog, absoluteImage, metaDescription, SITE_URL, breadcrumbJsonLd, jsonLdHtml } from "@/lib/seo";
 import { isBook, isMerch, variantRow, withVariantSummary } from "@/lib/variants";
 import { effectivePrice } from "@/lib/pricing";
 import type { MangaVolume } from "@/data/manga";
@@ -53,7 +53,9 @@ function offersFor(product: MangaVolume) {
       url: `${SITE_URL}/shop/${product.id}`,
       priceCurrency: "EGP",
       price: effectivePrice(row, now),
+      itemCondition: "https://schema.org/NewCondition",
       availability: row.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      seller: { "@id": `${SITE_URL}/#store` },
     };
   });
 }
@@ -80,9 +82,8 @@ export default async function ShopProductLayout({ params, children }: Props) {
     sku: product.id,
     category: product.productType === "figure" ? "Figures" : "Posters",
     ...(product.merch?.manufacturer ? { brand: { "@type": "Brand", name: product.merch.manufacturer } } : {}),
-    ...(product.reviewCount > 0
-      ? { aggregateRating: { "@type": "AggregateRating", ratingValue: product.rating, reviewCount: product.reviewCount } }
-      : {}),
+    // No aggregateRating: the star ratings are not collected from real
+    // customer reviews, and marking them up would break Google's review policy.
     offers:
       offers.length === 1
         ? offers[0]
@@ -96,14 +97,18 @@ export default async function ShopProductLayout({ params, children }: Props) {
           },
   };
 
+  const breadcrumbs =
+    product &&
+    breadcrumbJsonLd([
+      { name: "Home", path: "/" },
+      { name: "Collectibles", path: "/shop" },
+      { name: product.productType === "figure" ? "Figures" : "Posters", path: `/shop?type=${product.productType}` },
+      { name: product.title, path: `/shop/${product.id}` },
+    ]);
+
   return (
     <>
-      {jsonLd && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
-        />
-      )}
+      {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml([jsonLd, breadcrumbs]) }} />}
       {children}
     </>
   );

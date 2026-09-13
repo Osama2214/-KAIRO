@@ -473,7 +473,7 @@ function SeriesMerch({ volumes, series, isArabic }: { volumes: MangaVolume[]; se
           <div className="mb-10 sm:mb-12 pb-4 border-b border-ink-border/70 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
               <span className="text-[11px] font-mono tracking-[0.25em] text-gold uppercase block mb-1">
-                {isArabic ? "من المتجر" : "FROM THE SHOP"}
+                {isArabic ? "المقتنيات" : "COLLECTIBLES"}
               </span>
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight uppercase text-paper font-sans">
                 {isArabic ? `فيجرز وبوسترات ${series.title}` : `${series.title} FIGURES & POSTERS`}

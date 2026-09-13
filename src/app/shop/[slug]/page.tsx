@@ -16,6 +16,7 @@ import { CatalogPending } from "@/components/CatalogPending";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { PriceTag, PromoBadge } from "@/components/PriceTag";
 import { ShopProductCard } from "@/components/shop/ShopProductCard";
+import { ImageLightbox, ImagePreviewTrigger } from "@/components/ImageLightbox";
 import { isMerch, productTypeOf, variantRow, withVariantSummary } from "@/lib/variants";
 import { formatPrice, volumeBadgeLabel } from "@/lib/utils";
 import { effectivePrice } from "@/lib/pricing";
@@ -74,6 +75,7 @@ function ShopProductView({ product }: { product: MangaVolume }) {
   };
   const [imageIndex, setImageIndex] = useState(() => imageIndexFor(chosen) ?? 0);
   const [copied, setCopied] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const type = productTypeOf(product);
   const merch = product.merch || {};
@@ -134,7 +136,7 @@ function ShopProductView({ product }: { product: MangaVolume }) {
         <div className="flex items-center gap-2 text-[11px] sm:text-xs font-mono text-text-muted overflow-x-auto no-scrollbar py-1 whitespace-nowrap">
           <Link href="/" className="hover:text-paper">{isArabic ? "الرئيسية" : "HOME"}</Link>
           <span>/</span>
-          <Link href="/shop" className="hover:text-paper">{isArabic ? "المتجر" : "SHOP"}</Link>
+          <Link href="/shop" className="hover:text-paper">{isArabic ? "المقتنيات" : "COLLECTIBLES"}</Link>
           <span>/</span>
           <Link href={`/shop?type=${type}`} className="hover:text-gold text-gold uppercase">
             {type === "figure" ? (isArabic ? "فيجرز" : "FIGURES") : (isArabic ? "بوسترات" : "POSTERS")}
@@ -154,14 +156,25 @@ function ShopProductView({ product }: { product: MangaVolume }) {
                 preload
                 className="w-full h-full object-cover"
               />
+              <ImagePreviewTrigger onClick={() => setPreviewOpen(true)} isArabic={isArabic} />
               <LiveEditButton target={{ type: "volume", volumeId: product.id }} label="Edit Product" variant="card" size="sm" />
-              <div className="absolute top-3 start-3 flex flex-col gap-1">
+              <div className="absolute top-3 start-3 z-10 flex flex-col gap-1 pointer-events-none">
                 <span className="px-2.5 py-0.5 bg-ink/90 backdrop-blur-md rounded-xs border border-ink-border font-mono text-[10px] text-gold">
                   {volumeBadgeLabel(product, isArabic)}
                 </span>
                 <PromoBadge volume={row} isArabic={isArabic} />
               </div>
             </div>
+            {previewOpen && (
+              <ImageLightbox
+                images={images.length ? images : [product.coverImage]}
+                index={imageIndex}
+                alt={product.title}
+                isArabic={isArabic}
+                onIndexChange={setImageIndex}
+                onClose={() => setPreviewOpen(false)}
+              />
+            )}
             {images.length > 1 && (
               <div className="flex items-center justify-center gap-2 flex-wrap">
                 {images.map((src, index) => (
@@ -352,7 +365,7 @@ function ShopProductView({ product }: { product: MangaVolume }) {
                 {isArabic ? "قد يعجبك أيضاً" : "YOU MAY ALSO LIKE"}
               </h2>
               <Link href="/shop" className="h-9 px-4 rounded-sm bg-ink-surface border border-ink-border hover:border-gold text-paper hover:text-gold font-mono text-xs tracking-widest uppercase font-bold flex items-center">
-                {isArabic ? "تصفح المتجر" : "BROWSE SHOP"}
+                {isArabic ? "تصفح المقتنيات" : "BROWSE COLLECTIBLES"}
               </Link>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">

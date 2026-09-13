@@ -293,12 +293,10 @@ function ShopCatalogContent() {
         <div className="mb-10 pb-6 border-b border-ink-border/70 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2 font-mono text-[11px] text-gold tracking-widest uppercase">
-              <span>{isArabic ? "المتجر" : "THE SHOP"}</span>
-              <span>/</span>
               <span>{isArabic ? "فيجرز وبوسترات" : "FIGURES & POSTERS"}</span>
             </div>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight uppercase font-sans">
-              {isArabic ? "متجر المقتنيات" : "COLLECTIBLES SHOP"}
+              {isArabic ? "المقتنيات" : "COLLECTIBLES"}
             </h1>
           </div>
 
@@ -418,7 +416,7 @@ function ShopCatalogContent() {
             <div className="flex items-center justify-between pb-3 border-b border-ink-border/80">
               <span className="font-mono text-xs font-bold tracking-widest text-paper uppercase flex items-center gap-2">
                 <SlidersHorizontal strokeWidth={1.4} className="w-3.5 h-3.5 text-gold" />
-                {isArabic ? "تصفية المتجر" : "REFINE SHOP"}
+                {isArabic ? "تصفية" : "REFINE"}
               </span>
               {activeFilterCount > 0 && (
                 <button onClick={resetFilters} className="text-[10px] font-mono text-text-muted hover:text-vermilion cursor-pointer">
@@ -431,13 +429,13 @@ function ShopCatalogContent() {
 
           {/* Mobile filter sheet */}
           {mobileFilterOpen && mounted && typeof document !== "undefined" && createPortal(
-            <div role="dialog" aria-modal="true" aria-label={isArabic ? "تصفية المتجر" : "Refine Shop"} data-lenis-prevent className="fixed inset-0 z-[70] md:hidden flex">
+            <div role="dialog" aria-modal="true" aria-label={isArabic ? "تصفية" : "Refine"} data-lenis-prevent className="fixed inset-0 z-[70] md:hidden flex">
               <div onClick={() => setMobileFilterOpen(false)} className="fixed inset-0 bg-black/85 backdrop-blur-md animate-in fade-in duration-200" aria-hidden="true" />
               <div data-lenis-prevent className="relative z-10 w-[88%] max-w-[360px] bg-ink border-ink-border h-full flex flex-col shadow-2xl overflow-hidden animate-in duration-300 slide-in-from-right ms-auto border-s">
                 <div className="px-5 py-4 pt-[max(1rem,env(safe-area-inset-top))] border-b border-ink-border flex items-center justify-between bg-ink/95 backdrop-blur-sm shrink-0">
                   <span className="font-mono text-xs sm:text-sm font-bold tracking-widest text-paper uppercase flex items-center gap-2">
                     <SlidersHorizontal strokeWidth={1.5} className="w-4 h-4 text-gold shrink-0" />
-                    {isArabic ? "تصفية المتجر" : "REFINE SHOP"}
+                    {isArabic ? "تصفية" : "REFINE"}
                   </span>
                   <button
                     type="button"
@@ -490,7 +488,7 @@ function ShopCatalogContent() {
               <div className="p-16 border border-ink-border/80 rounded-sm bg-ink-surface/30 text-center space-y-4">
                 <p className="font-mono text-sm uppercase text-paper">
                   {products.length === 0
-                    ? (isArabic ? "لا توجد منتجات في المتجر بعد" : "No products in the shop yet")
+                    ? (isArabic ? "لا توجد مقتنيات بعد" : "No collectibles yet")
                     : (isArabic ? "لم نجد منتجات تطابق معايير التصفية" : "No products matched the refined criteria")}
                 </p>
                 {products.length > 0 && (
