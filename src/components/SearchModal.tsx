@@ -7,7 +7,8 @@ import { Search, X, Star, ArrowRight } from "lucide-react";
 import { useUIStore } from "@/store/useUIStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { ALL_VOLUMES, MangaVolume } from "@/data/manga";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, productHref, volumeBadgeLabel } from "@/lib/utils";
+import { isMerch } from "@/lib/variants";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { useTranslation } from "@/hooks/useTranslation";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
@@ -151,7 +152,7 @@ export function SearchModal() {
               {filteredVolumes.map((volume) => (
                 <Link
                   key={volume.id}
-                  href={`/manga/${volume.id}`}
+                  href={productHref(volume)}
                   onClick={closeSearch}
                   className="flex gap-3.5 p-3 rounded-sm bg-ink/60 border border-ink-border/60 hover:border-gold/50 hover:bg-ink-elevated transition-all duration-200 group"
                 >
@@ -166,18 +167,21 @@ export function SearchModal() {
                   <div className="flex-1 flex flex-col justify-between py-0.5 min-w-0">
                     <div>
                       <span className="text-[9px] font-mono tracking-widest text-gold uppercase block truncate">
-                        {volume.seriesTitle}
+                        {isMerch(volume)
+                          ? (isRTL && volume.merch?.franchiseAr) || volume.merch?.franchise || volumeBadgeLabel(volume, isRTL)
+                          : volume.seriesTitle}
                       </span>
                       <h4 className="text-xs font-bold text-paper truncate group-hover:text-gold transition-colors">
-                        Vol. {volume.volumeNumber}: {volume.title}
+                        {isMerch(volume) ? volume.title : `Vol. ${volume.volumeNumber}: ${volume.title}`}
                       </h4>
                       <p className="text-[10px] text-text-muted truncate mt-0.5">
-                        {t.search.byAuthor} {volume.author}
+                        {isMerch(volume) ? volumeBadgeLabel(volume, isRTL) : `${t.search.byAuthor} ${volume.author}`}
                       </p>
                     </div>
 
                     <div className="flex items-center justify-between text-xs font-mono pt-1">
                       <span className="text-gold font-bold">
+                        {isMerch(volume) && (volume.variants?.length || 0) > 1 ? `${isRTL ? "من" : "From"} ` : ""}
                         {formatPrice(volume.price)}
                       </span>
                       <span className="flex items-center gap-1 text-[11px] text-paper-muted">

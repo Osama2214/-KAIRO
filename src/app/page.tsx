@@ -4,6 +4,7 @@ import { TickerBar } from "@/components/TickerBar";
 import { TrendingCarousel } from "@/components/TrendingCarousel";
 import { NewReleases } from "@/components/NewReleases";
 import { BoxSets } from "@/components/BoxSets";
+import { ShopShowcase } from "@/components/ShopShowcase";
 import { GenreBento } from "@/components/GenreBento";
 import { FeaturedSeries } from "@/components/FeaturedSeries";
 import { MangaDiscovery } from "@/components/MangaDiscovery";
@@ -28,6 +29,9 @@ export default function HomePage() {
 
       {/* 07 — Complete Box Sets Carousel */}
       <BoxSets />
+
+      {/* 07b — Figures & Posters (hidden until the shop has products) */}
+      <ShopShowcase />
 
       {/* 08 — Browse by Genre Bento */}
       <GenreBento />

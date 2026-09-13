@@ -4,7 +4,7 @@
  */
 
 import { SavedOrder, SavedOrderItem, UserProfile } from "@/store/useAuthStore";
-import { formatPrice } from "@/lib/utils";
+import { describeLine, formatPrice } from "@/lib/utils";
 import { escapeHtml } from "@/lib/security";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 
@@ -60,7 +60,14 @@ export function printCustomerInvoice(order: SavedOrder, customer?: UserProfile |
       (item: SavedOrderItem) => `
       <tr>
         <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 11px;">
-          <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 12px; font-weight: 700; color: #0f172a;">
+          ${item.parentId
+            ? `<div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 12px; font-weight: 700; color: #0f172a;">
+            ${escapeHtml(describeLine(item).title)}
+          </div>
+          <div style="font-family: monospace; font-size: 9px; color: #64748b; margin-top: 3px; letter-spacing: 0.5px;">
+            TYPE: ${escapeHtml(describeLine(item).detail)}
+          </div>`
+            : `<div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 12px; font-weight: 700; color: #0f172a;">
             ${escapeHtml(item.seriesTitle || "Manga Archive")}
           </div>
           <div style="color: #475569; font-size: 11px; margin-top: 1px;">
@@ -68,7 +75,7 @@ export function printCustomerInvoice(order: SavedOrder, customer?: UserProfile |
           </div>
           <div style="font-family: monospace; font-size: 9px; color: #64748b; margin-top: 3px; letter-spacing: 0.5px;">
             FORMAT: ${escapeHtml(item.format || "Tankōbon / Japanese Import Edition")}
-          </div>
+          </div>`}
         </td>
         <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: center; font-size: 12px; font-family: monospace; font-weight: 600; color: #0f172a;">
           ${Number(item.quantity || 1)}

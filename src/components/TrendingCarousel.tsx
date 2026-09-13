@@ -11,6 +11,7 @@ import { useCartStore } from "@/store/useCartStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { volumeBadgeLabel } from "@/lib/utils";
+import { isBook } from "@/lib/variants";
 import { PriceTag, PromoBadge } from "@/components/PriceTag";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -25,7 +26,11 @@ export function TrendingCarousel() {
   const trendingConfig = useStorefrontStore((state) => state.trendingConfig);
   const trendingArabicConfig = useStorefrontStore((state) => state.trendingArabicConfig);
 
-  const activeVolumes = volumes && volumes.length > 0 ? volumes : ALL_VOLUMES;
+  // Books only; figures and posters have their own home section.
+  const activeVolumes = React.useMemo(
+    () => (volumes && volumes.length > 0 ? volumes : ALL_VOLUMES).filter(isBook),
+    [volumes]
+  );
   const autoplaySpeed = trendingConfig?.autoplaySpeed || 3800;
   const autoplayEnabled = trendingConfig?.autoplayEnabled ?? true;
 

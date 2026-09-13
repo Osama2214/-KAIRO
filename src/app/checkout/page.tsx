@@ -8,7 +8,7 @@ import { useCartStore } from "@/store/useCartStore";
 import { useAuthStore, SavedOrder } from "@/store/useAuthStore";
 import { useStorefrontStore, getActiveGovernorates } from "@/store/useStorefrontStore";
 import { useMounted } from "@/store/useWishlistStore";
-import { formatPrice } from "@/lib/utils";
+import { describeLine, formatPrice } from "@/lib/utils";
 import { CustomSelect } from "@/components/CustomSelect";
 import { useWelcomeOffer } from "@/hooks/useWelcomeOffer";
 import { EGYPT_GOVERNORATES, DEFAULT_GOVERNORATE_RATES } from "@/data/governorates";
@@ -171,6 +171,10 @@ export default function CheckoutPage() {
         quantity: Math.max(1, Math.floor(item.quantity)),
         volumeNumber: item.volumeNumber,
         format: item.format,
+        productType: item.productType,
+        parentId: item.parentId,
+        variantLabel: item.variantLabel,
+        variantLabelAr: item.variantLabelAr,
       })),
       subtotal,
       shippingCost,
@@ -625,10 +629,12 @@ export default function CheckoutPage() {
                   <div className="flex-1 flex flex-col justify-between">
                     <div>
                       <p className="font-bold text-paper line-clamp-1">
-                        {item.seriesTitle} — Vol. {item.volumeNumber}
+                        {item.productType && item.productType !== "book"
+                          ? describeLine(item, isArabic).title
+                          : `${item.seriesTitle} — Vol. ${item.volumeNumber}`}
                       </p>
                       <p className="text-[10px] font-mono text-text-muted">
-                        {isArabic ? `الكمية: ${item.quantity} • ${item.format}` : `Qty: ${item.quantity} • ${item.format}`}
+                        {isArabic ? `الكمية: ${item.quantity} • ${describeLine(item, isArabic).detail}` : `Qty: ${item.quantity} • ${describeLine(item, isArabic).detail}`}
                       </p>
                     </div>
                     <span className="font-mono text-paper font-semibold">

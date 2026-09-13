@@ -51,6 +51,8 @@ import {
 import { useMounted } from "@/store/useWishlistStore";
 import { useLanguageStore } from "@/store/useLanguageStore";
 import { VolumeFormModal } from "./VolumeFormModal";
+import { ShopShowcaseLiveEditModal } from "./ShopShowcaseLiveEditModal";
+import { isBook } from "@/lib/variants";
 import { SeriesFormModal } from "./SeriesFormModal";
 import { GenreFormModal } from "./GenreFormModal";
 import { GenreInfo, ALL_SERIES, Series, MangaVolume } from "@/data/manga";
@@ -119,6 +121,10 @@ export function LiveVisualEditor() {
     updatePolicyContentArabic,
     updateMangaDiscoveryConfig,
     updateMangaDiscoveryArabicConfig,
+    shopShowcaseConfig,
+    shopShowcaseArabicConfig,
+    updateShopShowcaseConfig,
+    updateShopShowcaseArabicConfig,
     logoutAdmin,
   } = useStorefrontStore();
 
@@ -390,8 +396,9 @@ export function LiveVisualEditor() {
       {/* Hero Card Selection Modal */}
       {activeLiveEditTarget?.type === "hero-card" && (
         <HeroCardLiveEditModal
-          currentVolumeId={heroContent.featuredVolumeId || volumes[0]?.id || ""}
-          volumes={volumes}
+          currentVolumeId={heroContent.featuredVolumeId || volumes.find(isBook)?.id || ""}
+          // The hero frames a book, so only books can be picked for it.
+          volumes={volumes.filter(isBook)}
           onClose={closeLiveEdit}
           onSave={(selectedVolumeId) => {
             updateHeroContent({ featuredVolumeId: selectedVolumeId });
@@ -502,6 +509,22 @@ export function LiveVisualEditor() {
           onSavePolicy={updatePolicyContent}
           onSavePolicyArabic={updatePolicyContentArabic}
           onOpenShippingRates={() => openLiveEdit({ type: "shipping" })}
+        />
+      )}
+
+      {/* Figures & Posters home section */}
+      {activeLiveEditTarget?.type === "shop-showcase" && (
+        <ShopShowcaseLiveEditModal
+          initialConfig={shopShowcaseConfig}
+          initialArabicConfig={shopShowcaseArabicConfig}
+          volumes={volumes}
+          onClose={closeLiveEdit}
+          onSave={(updated, arabic) => {
+            updateShopShowcaseConfig(updated);
+            updateShopShowcaseArabicConfig(arabic);
+            closeLiveEdit();
+            showToast("Figures & posters section updated and synced live!");
+          }}
         />
       )}
 

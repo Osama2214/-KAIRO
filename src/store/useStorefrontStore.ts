@@ -5,6 +5,7 @@ import { DEFAULT_GOVERNORATE_RATES, EgyptGovernorate, EGYPT_GOVERNORATES } from 
 import { withDerivedSeriesVolumes, withoutSeriesVolumes } from "@/lib/seriesVolumes";
 import { useCuratorSaveStore } from "@/store/useCuratorSaveStore";
 import { STOREFRONT_DATA_KEYS } from "@/lib/storefrontKeys";
+import { isMerch, variantRowId, withVariantSummary } from "@/lib/variants";
 
 export interface HeroContent {
   badgeText: string;
@@ -123,6 +124,38 @@ export interface BoxSetsArabicConfig {
   badgeText: string;
   headline: string;
 }
+
+/** The home-page section for figures and posters. */
+export interface ShopShowcaseConfig {
+  enabled: boolean;
+  badgeText: string;
+  headline: string;
+  viewAllText: string;
+  /** Curated product ids, shown first; the rest is topped up automatically. */
+  productIds: string[];
+  maxCards: number;
+}
+
+export interface ShopShowcaseArabicConfig {
+  badgeText: string;
+  headline: string;
+  viewAllText: string;
+}
+
+export const DEFAULT_SHOP_SHOWCASE_CONFIG: ShopShowcaseConfig = {
+  enabled: true,
+  badgeText: "FIGURES & POSTERS",
+  headline: "THE SHOP",
+  viewAllText: "VIEW THE SHOP",
+  productIds: [],
+  maxCards: 8,
+};
+
+export const DEFAULT_SHOP_SHOWCASE_ARABIC_CONFIG: ShopShowcaseArabicConfig = {
+  badgeText: "فيجرز وبوسترات",
+  headline: "المتجر",
+  viewAllText: "تصفح المتجر",
+};
 
 export interface TrendingConfig {
   badgeText: string;
@@ -635,6 +668,7 @@ export type LiveEditTarget =
   | { type: "footer" }
   | { type: "editorial"; tab?: "shipping" | "authenticity" | "privacy" | "terms" }
   | { type: "manga-discovery" }
+  | { type: "shop-showcase" }
   | { type: "genre-card"; genreId: string };
 
 export interface StorefrontState {
@@ -656,6 +690,8 @@ export interface StorefrontState {
   trendingConfig: TrendingConfig;
   newReleasesConfig: NewReleasesConfig;
   mangaDiscoveryConfig: MangaDiscoveryConfig;
+  shopShowcaseConfig: ShopShowcaseConfig;
+  shopShowcaseArabicConfig: ShopShowcaseArabicConfig;
 
   // Arabic CMS Content Overrides
   heroArabicContent: HeroArabicContent;
@@ -718,6 +754,8 @@ export interface StorefrontState {
   updateTrendingConfig: (updates: Partial<TrendingConfig>) => void;
   updateNewReleasesConfig: (updates: Partial<NewReleasesConfig>) => void;
   updateMangaDiscoveryConfig: (updates: Partial<MangaDiscoveryConfig>) => void;
+  updateShopShowcaseConfig: (updates: Partial<ShopShowcaseConfig>) => void;
+  updateShopShowcaseArabicConfig: (updates: Partial<ShopShowcaseArabicConfig>) => void;
 
   // Arabic CMS Content Actions
   updateHeroArabicContent: (updates: Partial<HeroArabicContent>) => void;
@@ -770,6 +808,8 @@ export const useStorefrontStore = create<StorefrontState>()(
       trendingConfig: DEFAULT_TRENDING_CONFIG,
       newReleasesConfig: DEFAULT_NEW_RELEASES_CONFIG,
       mangaDiscoveryConfig: DEFAULT_MANGA_DISCOVERY_CONFIG,
+      shopShowcaseConfig: DEFAULT_SHOP_SHOWCASE_CONFIG,
+      shopShowcaseArabicConfig: DEFAULT_SHOP_SHOWCASE_ARABIC_CONFIG,
       heroArabicContent: DEFAULT_HERO_ARABIC_CONTENT,
       announcementArabic: DEFAULT_ANNOUNCEMENT_ARABIC,
       shippingArabicConfig: DEFAULT_SHIPPING_ARABIC_CONFIG,
@@ -868,6 +908,15 @@ export const useStorefrontStore = create<StorefrontState>()(
           });
 
           const updatedVolumes = state.volumes.map((v) => {
+            // A figure or poster is sold per variant: its lines carry the
+            // variant row id, so the deduction lands on that variant.
+            if (isMerch(v)) {
+              const variants = (v.variants || []).map((variant) => {
+                const qty = qtyMap.get(variantRowId(v.id, variant.sku));
+                return qty ? { ...variant, stock: Math.max(0, (variant.stock || 0) - qty) } : variant;
+              });
+              return withVariantSummary({ ...v, variants });
+            }
             const deductQty = qtyMap.get(v.id);
             if (deductQty) {
               return { ...v, stock: Math.max(0, (v.stock || 0) - deductQty) };
@@ -977,6 +1026,18 @@ export const useStorefrontStore = create<StorefrontState>()(
       updateBoxSetsArabicConfig: (updates) => {
         set((state) => ({
           boxSetsArabicConfig: { ...state.boxSetsArabicConfig, ...updates },
+        }));
+      },
+
+      updateShopShowcaseConfig: (updates) => {
+        set((state) => ({
+          shopShowcaseConfig: { ...DEFAULT_SHOP_SHOWCASE_CONFIG, ...state.shopShowcaseConfig, ...updates },
+        }));
+      },
+
+      updateShopShowcaseArabicConfig: (updates) => {
+        set((state) => ({
+          shopShowcaseArabicConfig: { ...DEFAULT_SHOP_SHOWCASE_ARABIC_CONFIG, ...state.shopShowcaseArabicConfig, ...updates },
         }));
       },
 
@@ -1219,6 +1280,8 @@ export const useStorefrontStore = create<StorefrontState>()(
           trendingConfig: DEFAULT_TRENDING_CONFIG,
           newReleasesConfig: DEFAULT_NEW_RELEASES_CONFIG,
           mangaDiscoveryConfig: DEFAULT_MANGA_DISCOVERY_CONFIG,
+          shopShowcaseConfig: DEFAULT_SHOP_SHOWCASE_CONFIG,
+          shopShowcaseArabicConfig: DEFAULT_SHOP_SHOWCASE_ARABIC_CONFIG,
           heroArabicContent: DEFAULT_HERO_ARABIC_CONTENT,
           announcementArabic: DEFAULT_ANNOUNCEMENT_ARABIC,
           shippingArabicConfig: DEFAULT_SHIPPING_ARABIC_CONFIG,
@@ -1254,6 +1317,8 @@ export const useStorefrontStore = create<StorefrontState>()(
         trendingConfig: state.trendingConfig,
           newReleasesConfig: state.newReleasesConfig,
           mangaDiscoveryConfig: state.mangaDiscoveryConfig,
+          shopShowcaseConfig: state.shopShowcaseConfig,
+          shopShowcaseArabicConfig: state.shopShowcaseArabicConfig,
           heroArabicContent: state.heroArabicContent,
           announcementArabic: state.announcementArabic,
           shippingArabicConfig: state.shippingArabicConfig,
@@ -1308,6 +1373,8 @@ export const useStorefrontStore = create<StorefrontState>()(
             trendingConfig: { ...DEFAULT_TRENDING_CONFIG, ...(parsed.trendingConfig || {}) },
             newReleasesConfig: { ...DEFAULT_NEW_RELEASES_CONFIG, ...(parsed.newReleasesConfig || {}) },
             mangaDiscoveryConfig: { ...DEFAULT_MANGA_DISCOVERY_CONFIG, ...(parsed.mangaDiscoveryConfig || {}) },
+            shopShowcaseConfig: { ...DEFAULT_SHOP_SHOWCASE_CONFIG, ...(parsed.shopShowcaseConfig || {}) },
+            shopShowcaseArabicConfig: { ...DEFAULT_SHOP_SHOWCASE_ARABIC_CONFIG, ...(parsed.shopShowcaseArabicConfig || {}) },
             heroArabicContent: { ...DEFAULT_HERO_ARABIC_CONTENT, ...(parsed.heroArabicContent || {}) },
             announcementArabic: { ...DEFAULT_ANNOUNCEMENT_ARABIC, ...(parsed.announcementArabic || {}) },
             shippingArabicConfig: { ...DEFAULT_SHIPPING_ARABIC_CONFIG, ...(parsed.shippingArabicConfig || {}) },
@@ -1351,6 +1418,8 @@ export const useStorefrontStore = create<StorefrontState>()(
         trendingConfig: state.trendingConfig,
         newReleasesConfig: state.newReleasesConfig,
         mangaDiscoveryConfig: state.mangaDiscoveryConfig,
+        shopShowcaseConfig: state.shopShowcaseConfig,
+        shopShowcaseArabicConfig: state.shopShowcaseArabicConfig,
         heroArabicContent: state.heroArabicContent,
         announcementArabic: state.announcementArabic,
         shippingArabicConfig: state.shippingArabicConfig,

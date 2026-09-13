@@ -5,6 +5,7 @@ import { ALL_VOLUMES, MangaVolume } from "@/data/manga";
 import { effectivePrice } from "@/lib/pricing";
 import { applyBundleFacts, expandToPhysicalUnits, indexById, withBundleFacts, type VolumeLike } from "@/lib/bundle";
 import { withoutSeriesVolumes } from "@/lib/seriesVolumes";
+import { applyVariantStock, toCatalogRows } from "@/lib/variants";
 
 const databaseUrl = process.env.DATABASE_URL;
 const sql = databaseUrl ? neon(databaseUrl) : null;
@@ -37,13 +38,17 @@ async function ensureSchema(): Promise<void> {
   await schemaReady;
 }
 
+/**
+ * The purchasable rows in a payload: books as they are, and one row per
+ * variant of each figure or poster (see lib/variants.ts).
+ */
 function validVolumes(payload: Record<string, unknown> | null): MangaVolume[] {
   const source = payload?.volumes;
   if (!Array.isArray(source)) return ALL_VOLUMES;
-  return source.filter((item): item is MangaVolume =>
-    Boolean(item && typeof item === "object" && typeof (item as MangaVolume).id === "string" &&
-      typeof (item as MangaVolume).price === "number" && typeof (item as MangaVolume).stock === "number")
+  const products = source.filter((item): item is MangaVolume =>
+    Boolean(item && typeof item === "object" && typeof (item as MangaVolume).id === "string")
   );
+  return toCatalogRows(products).filter((row) => typeof row.price === "number" && typeof row.stock === "number");
 }
 
 async function syncCatalogItems(payload: Record<string, unknown> | null): Promise<void> {
@@ -96,8 +101,13 @@ export async function getStorefrontData(): Promise<Record<string, unknown> | nul
   const currentStocks = stockRows.length > 0 ? stockRows : await sql!`SELECT id, stock FROM kairo_catalog_items WHERE active = TRUE`;
   if (!data) return null;
   const stockById = new Map(currentStocks.map((row) => [String(row.id), Number(row.stock)]));
+  // Books take their stock from their own row; figures and posters from one
+  // row per variant, summed into the product for cards.
   const volumes = Array.isArray(data.volumes)
-    ? data.volumes.map((volume) => ({ ...(volume as Record<string, unknown>), stock: stockById.get(String((volume as Record<string, unknown>).id)) ?? (volume as Record<string, unknown>).stock }))
+    ? applyVariantStock(
+        data.volumes.map((volume) => ({ ...(volume as Record<string, unknown>), stock: stockById.get(String((volume as Record<string, unknown>).id)) ?? (volume as Record<string, unknown>).stock })) as unknown as MangaVolume[],
+        stockById
+      )
     : data.volumes;
   // A box set carries no stock of its own; what it can sell comes from the
   // volumes it is assembled from, worked out here so every surface that

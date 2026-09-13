@@ -48,6 +48,7 @@ import { MangaVolume, Series, GenreInfo } from "@/data/manga";
 import { formatPrice } from "@/lib/utils";
 import { AdminLoginOverlay } from "@/components/admin/AdminLoginOverlay";
 import { VolumeFormModal } from "@/components/admin/VolumeFormModal";
+import { isMerch, productTypeOf } from "@/lib/variants";
 import { SeriesFormModal } from "@/components/admin/SeriesFormModal";
 import { GenreFormModal } from "@/components/admin/GenreFormModal";
 import { OrderDetailsModal } from "@/components/admin/OrderDetailsModal";
@@ -110,6 +111,7 @@ export default function AdminPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [seriesFilter, setSeriesFilter] = useState("all");
   const [formatFilter, setFormatFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | "book" | "figure" | "poster">("all");
   const [volumePage, setVolumePage] = useState(1);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [serverOrders, setServerOrders] = useState<SavedOrder[]>([]);
@@ -711,8 +713,22 @@ export default function AdminPage() {
     return volumes.reduce((sum, v) => sum + (v.stock || 0), 0);
   }, [volumes]);
 
+  // Books alert on their own stock; a figure or poster alerts per variant, so a
+  // sold-out A2 shows up even while the A3 is plentiful.
   const lowStockVolumes = useMemo(() => {
-    return volumes.filter((v) => (v.stock || 0) <= 5);
+    const rows: { key: string; vol: MangaVolume; title: string; group: string; format: string; price: number; stock: number }[] = [];
+    for (const v of volumes) {
+      if (isMerch(v)) {
+        for (const variant of v.variants || []) {
+          if ((variant.stock || 0) <= 5) {
+            rows.push({ key: `${v.id}~${variant.sku}`, vol: v, title: `${v.title} — ${variant.label}`, group: v.merch?.franchise || "", format: v.format, price: variant.price, stock: variant.stock || 0 });
+          }
+        }
+      } else if ((v.stock || 0) <= 5) {
+        rows.push({ key: v.id, vol: v, title: v.title, group: v.seriesTitle, format: v.format, price: v.price, stock: v.stock || 0 });
+      }
+    }
+    return rows;
   }, [volumes]);
 
   /**
@@ -737,16 +753,20 @@ export default function AdminPage() {
   // Filtered Volumes List
   const filteredVolumes = useMemo(() => {
     return volumes.filter((v) => {
+      const q = searchQuery.toLowerCase();
       const matchesSearch =
-        v.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        v.seriesTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        v.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        v.title.toLowerCase().includes(q) ||
+        v.seriesTitle.toLowerCase().includes(q) ||
+        v.author.toLowerCase().includes(q) ||
+        (v.merch?.franchise || "").toLowerCase().includes(q) ||
+        (v.merch?.character || "").toLowerCase().includes(q) ||
         (v.isbn && v.isbn.includes(searchQuery));
       const matchesSeries = seriesFilter === "all" || v.seriesSlug === seriesFilter;
       const matchesFormat = formatFilter === "all" || v.format === formatFilter;
-      return matchesSearch && matchesSeries && matchesFormat;
+      const matchesType = typeFilter === "all" || productTypeOf(v) === typeFilter;
+      return matchesSearch && matchesSeries && matchesFormat && matchesType;
     });
-  }, [volumes, searchQuery, seriesFilter, formatFilter]);
+  }, [volumes, searchQuery, seriesFilter, formatFilter, typeFilter]);
 
   // Catalog pagination (mirrors the storefront manga catalog)
   const VOLUMES_PER_PAGE = 20;
@@ -1312,21 +1332,21 @@ export default function AdminPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-ink-border/50">
-                        {lowStockVolumes.slice(0, 5).map((vol) => (
-                          <tr key={vol.id} className="hover:bg-ink-elevated/40">
-                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 font-bold text-paper">{vol.title}</td>
-                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-text-muted">{vol.seriesTitle}</td>
-                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-text-muted">{vol.format}</td>
-                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-right text-gold font-bold">{formatPrice(vol.price)}</td>
+                        {lowStockVolumes.slice(0, 5).map((row) => (
+                          <tr key={row.key} className="hover:bg-ink-elevated/40">
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 font-bold text-paper">{row.title}</td>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-text-muted">{row.group}</td>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-text-muted">{row.format}</td>
+                            <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-right text-gold font-bold">{formatPrice(row.price)}</td>
                             <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center">
                               <span className="px-2 py-0.5 bg-vermilion/20 text-vermilion font-bold rounded-xs">
-                                {vol.stock} units
+                                {row.stock} units
                               </span>
                             </td>
                             <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-right">
                               <button
                                 onClick={() => {
-                                  setEditingVolume(vol);
+                                  setEditingVolume(row.vol);
                                   setIsVolumeModalOpen(true);
                                 }}
                                 className="text-gold hover:underline cursor-pointer"
@@ -1351,9 +1371,9 @@ export default function AdminPage() {
             <div className="space-y-4 sm:space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                 <div>
-                  <h1 className="font-cinzel text-xl sm:text-2xl font-bold text-paper">Books Catalog</h1>
+                  <h1 className="font-cinzel text-xl sm:text-2xl font-bold text-paper">Products Catalog</h1>
                   <p className="text-xs font-mono text-text-muted mt-0.5 sm:mt-1">
-                    Manage catalog pricing, inventory stock, and volume details.
+                    Manage books, figures and posters — pricing, stock and details.
                   </p>
                 </div>
                 <button
@@ -1364,19 +1384,34 @@ export default function AdminPage() {
                   className="flex items-center justify-center gap-2 px-4 py-2 sm:py-2.5 bg-gold hover:bg-gold-muted text-ink font-mono text-xs font-bold uppercase tracking-wider rounded-sm transition-all cursor-pointer shadow-lg shadow-gold/15 shrink-0"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Add Volume</span>
+                  <span>Add Product</span>
                 </button>
               </div>
 
               {/* Filters & Search Toolbar */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 sm:gap-3 font-mono text-xs">
-                <div className="md:col-span-6 relative">
+                <div className="md:col-span-3">
+                  <CustomSelect
+                    fullWidth
+                    value={typeFilter}
+                    onChange={(v) => { setTypeFilter(v as typeof typeFilter); setVolumePage(1); }}
+                    options={[
+                      { value: "all", label: "All Products" },
+                      { value: "book", label: "Books" },
+                      { value: "figure", label: "Figures" },
+                      { value: "poster", label: "Posters" },
+                    ]}
+                    buttonClassName="bg-ink-surface border-ink-border py-2 px-3 text-xs"
+                  />
+                </div>
+
+                <div className="md:col-span-3 relative">
                   <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => { setSearchQuery(e.target.value); setVolumePage(1); }}
-                    placeholder="Search title, series, or ISBN..."
+                    placeholder="Search title, series, franchise, ISBN..."
                     className="w-full bg-ink-surface border border-ink-border pl-9 pr-3 py-2 text-paper rounded-sm outline-none focus:border-gold"
                   />
                 </div>
@@ -1428,13 +1463,15 @@ export default function AdminPage() {
                         <div className="flex items-start justify-between gap-1">
                           <div className="min-w-0">
                             <h4 className="font-bold text-paper text-xs truncate">{vol.title}</h4>
-                            <span className="text-[10px] text-gold">Vol. {vol.volumeNumber}</span>
+                            <span className="text-[10px] text-gold">
+                              {isMerch(vol) ? `${vol.format} · ${(vol.variants || []).length} options` : `Vol. ${vol.volumeNumber}`}
+                            </span>
                           </div>
                           <span className="font-bold text-gold shrink-0">{formatPrice(vol.price)}</span>
                         </div>
 
                         <div className="flex items-center gap-1.5 flex-wrap text-[10px] text-text-muted">
-                          <span className="truncate max-w-[120px]">{vol.seriesTitle}</span>
+                          <span className="truncate max-w-[120px]">{isMerch(vol) ? vol.merch?.franchise || "—" : vol.seriesTitle}</span>
                           <span>•</span>
                           <span>{vol.format}</span>
                         </div>
@@ -1522,13 +1559,17 @@ export default function AdminPage() {
                             <div>
                               <div className="text-paper font-bold flex items-center gap-1.5">
                                 <span>{vol.title}</span>
-                                <span className="text-[10px] text-gold font-normal">Vol. {vol.volumeNumber}</span>
+                                {!isMerch(vol) && <span className="text-[10px] text-gold font-normal">Vol. {vol.volumeNumber}</span>}
                               </div>
-                              <div className="text-[11px] text-text-muted">{vol.japaneseTitle || vol.author}</div>
+                              <div className="text-[11px] text-text-muted">
+                                {isMerch(vol)
+                                  ? (vol.variants || []).map((variant) => `${variant.label}: ${variant.stock}`).join(" · ")
+                                  : vol.japaneseTitle || vol.author}
+                              </div>
                             </div>
                           </td>
 
-                          <td className="px-4 py-3 text-text-muted whitespace-nowrap">{vol.seriesTitle}</td>
+                          <td className="px-4 py-3 text-text-muted whitespace-nowrap">{isMerch(vol) ? vol.merch?.franchise || "—" : vol.seriesTitle}</td>
 
                           <td className="px-4 py-3 whitespace-nowrap">
                             <span
@@ -2613,7 +2654,8 @@ export default function AdminPage() {
                       fullWidth
                       value={heroForm.featuredVolumeId}
                       onChange={(val) => setHeroForm({ ...heroForm, featuredVolumeId: val })}
-                      options={volumes.map((v) => ({
+                      // The hero frames a book, so only books are offered.
+                      options={volumes.filter((v) => !isMerch(v)).map((v) => ({
                         value: v.id,
                         label: `${v.seriesTitle} — ${v.title}`,
                       }))}

@@ -99,7 +99,9 @@ export function StorefrontDataSync() {
     const describe = (status: number, body: { message?: string } | null): string => {
       if (status === 403) return "Your curator session expired. Sign in again to keep editing.";
       if (status === 413) return "This change is too large to store. Try removing some preview pages or artwork.";
-      if (status === 400) return "The server rejected this change as malformed.";
+      // The server explains what it rejected (a figure without variants, a box
+      // set containing a poster…); show that rather than a generic line.
+      if (status === 400) return body?.message || "The server rejected this change as malformed.";
       return body?.message || `The server refused the change (${status}).`;
     };
 

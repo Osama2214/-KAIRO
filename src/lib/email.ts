@@ -1,5 +1,9 @@
 import nodemailer from "nodemailer";
 import { ServerOrder } from "./orderStore";
+import { describeLine } from "./utils";
+
+const escapeEmailHtml = (value: string) =>
+  value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string);
 
 function appUrl(): string {
   const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
@@ -350,8 +354,11 @@ export async function sendAdminNewOrderNotification(order: ServerOrder): Promise
         (it) => `
         <tr style="border-bottom: 1px solid #222;">
           <td style="padding: 10px 8px; color: #f5f3ef; font-size: 13px;">
-            <strong>${it.title || "Volume"}</strong> ${it.volumeNumber ? `(Vol. ${it.volumeNumber})` : ""}
-            <div style="font-size: 11px; color: #888; font-family: monospace;">${it.format || "Tankōbon"}</div>
+            ${it.parentId
+              ? `<strong>${escapeEmailHtml(describeLine(it).title)}</strong>
+            <div style="font-size: 11px; color: #888; font-family: monospace;">${escapeEmailHtml(describeLine(it).detail)}</div>`
+              : `<strong>${it.title || "Volume"}</strong> ${it.volumeNumber ? `(Vol. ${it.volumeNumber})` : ""}
+            <div style="font-size: 11px; color: #888; font-family: monospace;">${it.format || "Tankōbon"}</div>`}
           </td>
           <td style="padding: 10px 8px; text-align: center; color: #d4af37; font-weight: bold; font-size: 13px;">
             ${it.quantity || 1}

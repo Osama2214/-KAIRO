@@ -4,6 +4,8 @@ import { curatorSession, isTrustedOrigin } from "@/lib/serverAuth";
 import { getStorefrontData, saveStorefrontData } from "@/lib/storefrontDataStore";
 import { STOREFRONT_CACHE_TAG } from "@/lib/storefrontSnapshot";
 import { STOREFRONT_DATA_KEYS } from "@/lib/storefrontKeys";
+import { validateCatalogue } from "@/lib/variants";
+import type { MangaVolume } from "@/data/manga";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +47,16 @@ export async function PUT(request: Request) {
       const incoming = data.volumes;
       if (!Array.isArray(incoming)) {
         return NextResponse.json({ success: false, message: "Catalogue payload is malformed." }, { status: 400 });
+      }
+      // Figures and posters are sold per variant, so a malformed variant list
+      // (duplicate codes, no price, fractional stock) would write broken
+      // catalogue rows. Refuse the save before any of it reaches the table.
+      const problems = validateCatalogue(incoming as MangaVolume[]);
+      if (problems.length > 0) {
+        return NextResponse.json(
+          { success: false, message: problems.slice(0, 5).join(" "), problems: problems.slice(0, 20) },
+          { status: 400 }
+        );
       }
       if (incoming.length === 0) {
         const current = await getStorefrontData().catch(() => null);

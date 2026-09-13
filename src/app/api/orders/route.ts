@@ -156,6 +156,16 @@ export async function POST(request: Request) {
       volumeNumber: catalogItem.volumeNumber,
       coverImage: catalogItem.coverImage,
       format: catalogItem.format,
+      // Figures and posters: which product and which option was bought, so the
+      // order, invoice and email can say "Poster — A3" instead of "Vol. 0".
+      ...(catalogItem.parentId
+        ? {
+            productType: catalogItem.productType,
+            parentId: catalogItem.parentId,
+            variantLabel: catalogItem.variantLabel,
+            variantLabelAr: catalogItem.variantLabelAr,
+          }
+        : {}),
       price: Number(catalogItem.price),
       quantity: Number(quantityById.get(catalogItem.id) || 1),
     }));

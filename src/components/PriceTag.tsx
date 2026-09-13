@@ -31,11 +31,14 @@ export function PriceTag({
   isArabic,
   size = "sm",
   className = "",
+  showTimer = true,
 }: {
   volume: Pick<MangaVolume, "price" | "originalPrice" | "promo">;
   isArabic: boolean;
   size?: "sm" | "lg";
   className?: string;
+  /** Off where the card shows the countdown elsewhere (see PromoTimer). */
+  showTimer?: boolean;
 }) {
   // Rendering from a clock would differ between server and client, so the first
   // paint uses no promo and the real evaluation lands once the browser takes over.
@@ -65,13 +68,35 @@ export function PriceTag({
         <span className={strikeClass}>{formatPrice(priced.listPrice)}</span>
       ) : null}
 
-      {live && priced.endsInMs !== null && (
+      {showTimer && live && priced.endsInMs !== null && (
         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs bg-vermilion/15 border border-vermilion/40 text-vermilion text-[9px] font-mono font-bold tracking-wider whitespace-nowrap">
           <Timer strokeWidth={2} className="w-2.5 h-2.5" />
           {formatRemaining(priced.endsInMs, isArabic)}
         </span>
       )}
     </div>
+  );
+}
+
+/** Just the countdown of a running offer, for placing on a card's image. */
+export function PromoTimer({
+  volume,
+  isArabic,
+  className = "",
+}: {
+  volume: Pick<MangaVolume, "price" | "originalPrice" | "promo">;
+  isArabic: boolean;
+  className?: string;
+}) {
+  const now = useNow();
+  if (now === null) return null;
+  const priced = priceVolume(volume, now);
+  if (!priced.activePromo || priced.endsInMs === null) return null;
+  return (
+    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs bg-ink/90 backdrop-blur-md border border-vermilion/50 text-vermilion text-[9px] font-mono font-bold tracking-wider whitespace-nowrap ${className}`}>
+      <Timer strokeWidth={2} className="w-2.5 h-2.5" />
+      {formatRemaining(priced.endsInMs, isArabic)}
+    </span>
   );
 }
 

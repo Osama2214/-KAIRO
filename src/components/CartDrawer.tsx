@@ -6,7 +6,7 @@ import { X, Plus, Minus, Trash2, ArrowRight, ShieldCheck, Truck, Tag } from "luc
 import { useCartStore } from "@/store/useCartStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useMounted } from "@/store/useWishlistStore";
-import { formatPrice } from "@/lib/utils";
+import { describeLine, formatPrice } from "@/lib/utils";
 import { useWelcomeOffer } from "@/hooks/useWelcomeOffer";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
@@ -179,14 +179,14 @@ export function CartDrawer() {
                   <div className="flex-1 flex flex-col justify-between">
                     <div>
                       <span className="text-[10px] font-mono tracking-widest text-gold uppercase block">
-                        {item.seriesTitle}
+                        {describeLine(item, locale === "ar").eyebrow}
                       </span>
                       <h4 className="text-xs font-bold text-paper tracking-wide line-clamp-1 mt-0.5">
-                        Vol. {item.volumeNumber} — {item.title}
+                        {describeLine(item, locale === "ar").title}
                       </h4>
                       <div className="flex items-center justify-between mt-0.5">
                         <span className="text-[10px] font-mono text-text-muted block">
-                          {item.format}
+                          {describeLine(item, locale === "ar").detail}
                         </span>
                         {typeof item.maxStock === "number" && item.quantity >= item.maxStock && (
                           <span className="text-[9px] font-mono text-vermilion font-semibold">

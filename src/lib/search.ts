@@ -158,7 +158,19 @@ export function buildSearchIndex<T extends Partial<MangaVolume>>(items: T[]): In
     (item.genre || []).forEach((g) => push("genre", g));
     ((item as { aliases?: string[] }).aliases || []).forEach((a) => push("aliases", a));
 
-    const volumeNumber = typeof item.volumeNumber === "number" ? item.volumeNumber : null;
+    // Figures and posters: the franchise ranks like a series, the character and
+    // maker like an author, and the Arabic spellings answer like aliases.
+    const merch = item.merch;
+    const isMerchItem = item.productType === "figure" || item.productType === "poster";
+    if (merch) {
+      push("seriesTitle", merch.franchise);
+      push("author", merch.character);
+      push("artist", merch.manufacturer);
+      [merch.franchiseAr, merch.characterAr].forEach((a) => push("aliases", a));
+    }
+
+    // A figure has no place in a numbered run, so "5" must not match it.
+    const volumeNumber = !isMerchItem && typeof item.volumeNumber === "number" ? item.volumeNumber : null;
 
     return { item, fields, volumeNumber };
   });

@@ -2,7 +2,8 @@
 
 import React, { useState, use } from "react";
 import Link from "next/link";
-import { notFound, useRouter } from "next/navigation";
+import { notFound, redirect, useRouter } from "next/navigation";
+import { isMerch } from "@/lib/variants";
 import { Plus, Minus, ShoppingBag, BookOpen, Share2, ShieldCheck, Truck, ArrowRight, ChevronLeft, ChevronRight, Eye, Check, Heart } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
@@ -40,6 +41,8 @@ export default function MangaDetailPage({ params }: MangaPageProps) {
     if (!catalogLoaded) return <CatalogPending />;
     notFound();
   }
+  // Figures and posters are shown by the shop's product page.
+  if (isMerch(volume)) redirect(`/shop/${volume.id}`);
   return <MangaDetailView volume={volume} />;
 }
 

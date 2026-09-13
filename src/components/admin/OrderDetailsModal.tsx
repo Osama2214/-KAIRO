@@ -17,7 +17,7 @@ import {
   Check,
 } from "lucide-react";
 import { SavedOrder, UserProfile } from "@/store/useAuthStore";
-import { formatPrice } from "@/lib/utils";
+import { describeLine, formatPrice } from "@/lib/utils";
 import { CustomSelect } from "@/components/CustomSelect";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { printCustomerInvoice } from "@/lib/invoicePrint";
@@ -444,11 +444,13 @@ function OrderDetailsDialog({
                           </div>
                         )}
                         <div>
-                          <div className="text-paper font-bold">{item.title || "Archival Volume"}</div>
-                          <div className="text-[10px] text-text-muted">{item.seriesTitle || ""}</div>
+                          <div className="text-paper font-bold">
+                            {item.parentId ? describeLine(item).title : item.title || "Archival Volume"}
+                          </div>
+                          <div className="text-[10px] text-text-muted">{item.parentId ? describeLine(item).eyebrow : item.seriesTitle || ""}</div>
                         </div>
                       </td>
-                      <td className="px-3 py-2.5 text-text-muted">{item.format || "Manga"}</td>
+                      <td className="px-3 py-2.5 text-text-muted">{item.parentId ? describeLine(item).detail : item.format || "Manga"}</td>
                       <td className="px-3 py-2.5 text-center text-paper font-bold">{item.quantity || 1}</td>
                       <td className="px-3 py-2.5 text-right text-gold font-bold">{formatPrice(item.price || 0)}</td>
                     </tr>

@@ -18,8 +18,75 @@ export interface VolumePromo {
   labelArabic?: string;
 }
 
+/**
+ * What kind of thing a catalogue record sells. Books predate the field, so a
+ * record without one is a book; figures and posters always carry it.
+ */
+export type ProductType = "book" | "figure" | "poster";
+
+/**
+ * One purchasable option of a figure or poster — a poster size, a figure
+ * edition. Each variant is its own row in `kairo_catalog_items` (see
+ * `lib/variants.ts`), so it has its own price and its own stock, and checkout
+ * reserves it exactly like a book.
+ */
+export interface ProductVariant {
+  /** Stable key within the product: lowercase letters, digits, dashes. */
+  sku: string;
+  label: string;
+  labelAr?: string;
+  price: number;
+  originalPrice?: number;
+  stock: number;
+}
+
+/** A free-form spec row, for anything the fixed fields do not cover. */
+export interface ProductSpec {
+  label: string;
+  labelAr?: string;
+  value: string;
+  valueAr?: string;
+}
+
+export interface MerchDetails {
+  /** Franchise the item belongs to, as free text ("Naruto"). */
+  franchise?: string;
+  franchiseAr?: string;
+  // Figures
+  manufacturer?: string;
+  character?: string;
+  characterAr?: string;
+  heightCm?: number;
+  material?: string;
+  materialAr?: string;
+  scale?: string;
+  // Posters
+  paperType?: string;
+  paperTypeAr?: string;
+  finish?: string;
+  finishAr?: string;
+  /** Anything else, shown after the fixed fields. */
+  specs?: ProductSpec[];
+}
+
 export interface MangaVolume {
   id: string;
+  /** Absent on books; see ProductType. */
+  productType?: ProductType;
+  /** Figures and posters: the options a shopper picks between. */
+  variants?: ProductVariant[];
+  /** Figures and posters: specs shown on the product page. */
+  merch?: MerchDetails;
+  /** Extra product photos, after `coverImage`. */
+  gallery?: string[];
+  /**
+   * Set only on the per-variant catalogue rows derived by `lib/variants.ts`:
+   * the product the row belongs to, and which variant it is.
+   */
+  parentId?: string;
+  variantSku?: string;
+  variantLabel?: string;
+  variantLabelAr?: string;
   volumeNumber: number;
   title: string;
   seriesSlug: string;
@@ -41,7 +108,7 @@ export interface MangaVolume {
    * to the English text rather than showing nothing.
    */
   synopsisAr?: string;
-  format: "Manga" | "Light Novel" | "Box Set" | "Deluxe Edition";
+  format: "Manga" | "Light Novel" | "Box Set" | "Deluxe Edition" | "Figure" | "Poster";
   pages: number;
   publishDate: string;
   isbn: string;

@@ -23,6 +23,7 @@ import { useUIStore } from "@/store/useUIStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { useCatalogSearch } from "@/hooks/useCatalogSearch";
 import { formatPrice, volumeBadgeLabel } from "@/lib/utils";
+import { isBook } from "@/lib/variants";
 import { createPortal } from "react-dom";
 import { CustomSelect } from "@/components/CustomSelect";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
@@ -46,7 +47,11 @@ function MangaCatalogContent() {
   const storeGenres = useStorefrontStore((state) => state.genres);
   const storeFormats = useStorefrontStore((state) => state.formats);
 
-  const activeVolumes = storeVolumes && storeVolumes.length > 0 ? storeVolumes : ALL_VOLUMES;
+  // The manga catalogue lists books only; figures and posters live in /shop.
+  const activeVolumes = useMemo(
+    () => (storeVolumes && storeVolumes.length > 0 ? storeVolumes : ALL_VOLUMES).filter(isBook),
+    [storeVolumes]
+  );
   // The genre list follows the CMS and also picks up any genre a volume
   // carries that the curator has not added to the directory yet, so new
   // genres never leave their books unfilterable.

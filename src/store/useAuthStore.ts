@@ -18,6 +18,11 @@ export interface SavedOrderItem {
   volumeNumber?: number | string;
   coverImage?: string;
   format?: string;
+  /** Figures and posters only; see lib/variants.ts. */
+  productType?: "book" | "figure" | "poster";
+  parentId?: string;
+  variantLabel?: string;
+  variantLabelAr?: string;
   price?: number;
   quantity?: number;
   [key: string]: unknown;

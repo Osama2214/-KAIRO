@@ -123,6 +123,16 @@ export function Footer() {
                   {locale === "ar" ? "تصفح حسب التصنيف" : "Explore by Genre"}
                 </Link>
               </li>
+              <li>
+                <Link href="/shop?type=figure" className="hover:text-paper transition-colors">
+                  {locale === "ar" ? "فيجرز" : "Figures"}
+                </Link>
+              </li>
+              <li>
+                <Link href="/shop?type=poster" className="hover:text-paper transition-colors">
+                  {locale === "ar" ? "بوسترات" : "Posters"}
+                </Link>
+              </li>
             </ul>
           </div>
 

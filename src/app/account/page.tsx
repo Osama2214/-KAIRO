@@ -45,7 +45,8 @@ import { useUIStore } from "@/store/useUIStore";
 import { fetchGuestOrders, readGuestOrderRefs } from "@/lib/guestOrders";
 import { useAuthStore, SavedOrder, SavedOrderItem } from "@/store/useAuthStore";
 import { useReaderStore } from "@/store/useReaderStore";
-import { formatPrice } from "@/lib/utils";
+import { describeLine, formatPrice, lineHref, productHref, volumeBadgeLabel } from "@/lib/utils";
+import { isMerch } from "@/lib/variants";
 import { escapeHtml, validateEmail, validatePassword, validateEgyptianPhone, verifyEmailAddress, sendOtpEmail, verifyOtpCode } from "@/lib/security";
 import { CustomSelect } from "@/components/CustomSelect";
 import { WelcomeOfferBanner } from "@/components/WelcomeOfferBanner";
@@ -113,6 +114,10 @@ function GoogleIcon({ className = "w-4 h-4" }: { className?: string }) {
 // Helper to resolve canonical manga volume by any identifier
 function getCanonicalVolume(item: (SavedOrderItem & { volumeId?: string }) | Partial<MangaVolume> | undefined): MangaVolume | undefined {
   if (!item) return undefined;
+  // Figures and posters are not in the bundled book list, and matching one by
+  // title could borrow a book's cover and format. Their order line is complete.
+  if ("parentId" in item && item.parentId) return undefined;
+  if (item.productType === "figure" || item.productType === "poster") return undefined;
   const targetVolId = "volumeId" in item && typeof item.volumeId === "string" ? item.volumeId : undefined;
   return ALL_VOLUMES.find(
     (v) =>
@@ -679,9 +684,12 @@ function AccountContent() {
         (item: SavedOrderItem) => `
         <tr>
           <td style="padding: 8px 10px; border-bottom: 1px solid #e5e5e5; font-size: 11px;">
-            <strong style="font-family: sans-serif; font-size: 12px;">${escapeHtml(item.seriesTitle || "Manga")}</strong>
+            ${item.parentId || item.productType === "figure" || item.productType === "poster"
+              ? `<strong style="font-family: sans-serif; font-size: 12px;">${escapeHtml(describeLine(item).title)}</strong>
+            <div style="font-family: monospace; font-size: 9px; color: #888; margin-top: 2px;">TYPE: ${escapeHtml(describeLine(item).detail)}</div>`
+              : `<strong style="font-family: sans-serif; font-size: 12px;">${escapeHtml(item.seriesTitle || "Manga")}</strong>
             <span style="color: #666; font-size: 11px;"> — ${escapeHtml(item.title || "Collector Edition")}</span>
-            <div style="font-family: monospace; font-size: 9px; color: #888; margin-top: 2px;">FORMAT: ${escapeHtml(item.format || "Tankōbon Edition")}</div>
+            <div style="font-family: monospace; font-size: 9px; color: #888; margin-top: 2px;">FORMAT: ${escapeHtml(item.format || "Tankōbon Edition")}</div>`}
           </td>
           <td style="padding: 8px 10px; border-bottom: 1px solid #e5e5e5; text-align: center; font-size: 11px; font-family: monospace;">
             ${Number(item.quantity || 1)}
@@ -1151,6 +1159,14 @@ function AccountContent() {
 
   const handleReorder = (order: SavedOrder) => {
     order.items.forEach((item) => {
+      // A figure or poster is re-added as the same variant, from the live
+      // catalogue, if it is still sold.
+      const rowId = String(item.volumeId || item.id || "");
+      if (item.parentId || rowId.includes("~")) {
+        const parent = useStorefrontStore.getState().volumes.find((v) => v.id === (item.parentId || rowId.split("~")[0]));
+        if (parent) addItem(parent, item.quantity || 1, rowId.split("~")[1]);
+        return;
+      }
       const canonical = getCanonicalVolume(item);
       if (canonical) {
         addItem(canonical, item.quantity || 1);
@@ -2282,6 +2298,7 @@ function AccountContent() {
                           const canonical = getCanonicalVolume(item);
                           const cover = canonical?.coverImage || item.coverImage || PLACEHOLDER_COVER;
                           const targetVolumeId = canonical?.id || item.volumeId || item.id;
+                          const isMerchLine = Boolean(item.parentId) || item.productType === "figure" || item.productType === "poster";
 
                           return (
                             <div
@@ -2314,20 +2331,20 @@ function AccountContent() {
                                 <div>
                                   <div className="flex items-center gap-1.5">
                                     <span className="text-[8px] sm:text-[9px] font-mono text-gold uppercase tracking-wider truncate">
-                                      {item.seriesTitle}
+                                      {isMerchLine ? describeLine(item, isArabic).eyebrow : item.seriesTitle}
                                     </span>
                                     <span className="px-1 py-0.2 rounded-xs bg-ink text-[8px] font-mono text-text-muted border border-ink-border shrink-0">
-                                      {item.format || "Tankōbon"}
+                                      {isMerchLine ? describeLine(item, isArabic).detail : item.format || "Tankōbon"}
                                     </span>
                                   </div>
                                   <Link
-                                    href={`/manga/${targetVolumeId}`}
+                                    href={isMerchLine ? lineHref(item) : `/manga/${targetVolumeId}`}
                                     className="font-bold text-paper hover:text-gold transition-colors text-xs sm:text-sm line-clamp-1 block mt-0.5"
                                   >
-                                    {item.title}
+                                    {isMerchLine ? describeLine(item, isArabic).title : item.title}
                                   </Link>
                                   <p className="text-[9px] sm:text-[10px] font-mono text-text-muted">
-                                    Vol. {item.volumeNumber} • Qty: {item.quantity || 1}
+                                    {isMerchLine ? `Qty: ${item.quantity || 1}` : `Vol. ${item.volumeNumber} • Qty: ${item.quantity || 1}`}
                                   </p>
                                 </div>
 
@@ -2671,7 +2688,7 @@ function AccountContent() {
                   >
                     {/* Cover Media Container */}
                     <div className="relative aspect-[3/4] overflow-hidden bg-ink">
-                      <Link href={`/manga/${volume.id}`} className="block w-full h-full">
+                      <Link href={productHref(volume)} className="block w-full h-full">
                         <AnimeVerseImage
                           src={volume.coverImage}
                           alt={volume.title}
@@ -2683,7 +2700,9 @@ function AccountContent() {
                       {/* Badges Overlay */}
                       <div className="absolute top-2 left-2 flex flex-col gap-1 pointer-events-none z-10">
                         <span className="px-1.5 sm:px-2 py-0.5 rounded-xs bg-ink/90 backdrop-blur-md text-[8px] sm:text-[9px] font-mono tracking-wider text-gold border border-ink-border">
-                          VOL. {volume.volumeNumber < 10 ? `0${volume.volumeNumber}` : volume.volumeNumber}
+                          {isMerch(volume)
+                            ? volumeBadgeLabel(volume, isArabic)
+                            : `VOL. ${volume.volumeNumber < 10 ? `0${volume.volumeNumber}` : volume.volumeNumber}`}
                         </span>
                         {volume.format === "Deluxe Edition" && (
                           <span className="px-1.5 sm:px-2 py-0.5 rounded-xs bg-gold/90 text-[7px] sm:text-[8px] font-mono tracking-wider text-ink font-bold">
@@ -2709,6 +2728,7 @@ function AccountContent() {
                           <Trash2 strokeWidth={1.4} className="w-3.5 h-3.5" />
                         </button>
 
+                        {!isMerch(volume) && (
                         <button
                           type="button"
                           onClick={() => openReader(volume)}
@@ -2717,6 +2737,7 @@ function AccountContent() {
                         >
                           <Eye strokeWidth={1.4} className="w-3.5 h-3.5" />
                         </button>
+                        )}
                       </div>
                     </div>
 
@@ -2724,16 +2745,16 @@ function AccountContent() {
                     <div className="p-3 sm:p-4 flex flex-col justify-between flex-1">
                       <div>
                         <span className="text-[8px] sm:text-[9px] font-mono tracking-widest text-gold uppercase block truncate">
-                          {volume.seriesTitle}
+                          {isMerch(volume) ? (isArabic && volume.merch?.franchiseAr) || volume.merch?.franchise || "" : volume.seriesTitle}
                         </span>
                         <Link
-                          href={`/manga/${volume.id}`}
+                          href={productHref(volume)}
                           className="text-xs sm:text-sm font-bold text-paper tracking-wide group-hover:text-gold transition-colors line-clamp-1 mt-0.5 block"
                         >
                           {volume.title}
                         </Link>
                         <p className="text-[9px] sm:text-[10px] text-text-muted mt-0.5 line-clamp-1">
-                          By {volume.author}
+                          {isMerch(volume) ? volumeBadgeLabel(volume, isArabic) : `By ${volume.author}`}
                         </p>
 
                         {/* Rating & Stock */}
@@ -2761,6 +2782,15 @@ function AccountContent() {
                           )}
                         </div>
 
+                        {isMerch(volume) ? (
+                          // A figure or poster needs a variant chosen first.
+                          <Link
+                            href={productHref(volume)}
+                            className="h-7 sm:h-8 px-2 sm:px-3 bg-paper text-ink hover:bg-vermilion hover:text-white font-bold text-[10px] uppercase transition-colors rounded-xs flex items-center gap-1 z-10 active:scale-95 shrink-0 cursor-pointer shadow-xs"
+                          >
+                            {isArabic ? "اختر" : "CHOOSE"}
+                          </Link>
+                        ) : (
                         <button
                           type="button"
                           onClick={() => {
@@ -2772,6 +2802,7 @@ function AccountContent() {
                           <span>+</span>
                           <span className="hidden xs:inline">ADD</span>
                         </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -3147,7 +3178,9 @@ function AccountContent() {
                   {selectedInvoiceOrder.items.map((item, i) => (
                     <div key={i} className="grid grid-cols-12 p-2 sm:p-2.5 text-[10px] sm:text-[11px] text-paper print:text-black">
                       <div className="col-span-7 line-clamp-1 print:line-clamp-none">
-                        {item.seriesTitle} — {item.title}
+                        {item.parentId || item.productType === "figure" || item.productType === "poster"
+                          ? describeLine(item, isArabic).title
+                          : `${item.seriesTitle} — ${item.title}`}
                       </div>
                       <div className="col-span-2 text-center text-text-muted print:text-neutral-700">
                         {item.quantity || 1}

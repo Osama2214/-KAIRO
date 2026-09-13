@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { MangaVolume } from "@/data/manga";
+import { indexCatalogRows, isMerch, variantRow } from "@/lib/variants";
 
 export interface CartItem {
   id: string;
@@ -13,6 +14,27 @@ export interface CartItem {
   format: string;
   quantity: number;
   maxStock?: number;
+  /** Figures and posters: the product and the chosen variant (see lib/variants.ts). */
+  productType?: MangaVolume["productType"];
+  parentId?: string;
+  variantLabel?: string;
+  variantLabelAr?: string;
+}
+
+/** The display fields a cart line copies from its catalogue row. */
+function lineFields(row: MangaVolume) {
+  return {
+    title: row.title,
+    seriesTitle: row.seriesTitle,
+    volumeNumber: row.volumeNumber,
+    price: row.price,
+    coverImage: row.coverImage,
+    format: row.format,
+    productType: row.productType,
+    parentId: row.parentId,
+    variantLabel: row.variantLabel,
+    variantLabelAr: row.variantLabelAr,
+  };
 }
 
 interface CartState {
@@ -23,7 +45,8 @@ interface CartState {
   /** Fixed amount off in EGP, alongside or instead of a percentage. */
   discountAmountOff: number;
   freeShippingGranted: boolean;
-  addItem: (volume: MangaVolume, quantity?: number) => void;
+  /** Figures and posters need `variantSku`; without it nothing is added. */
+  addItem: (volume: MangaVolume, quantity?: number, variantSku?: string) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
@@ -44,7 +67,16 @@ export const useCartStore = create<CartState>()(
       discountPercent: 0,
       discountAmountOff: 0,
       freeShippingGranted: false,
-      addItem: (volume: MangaVolume, quantity = 1) => {
+      addItem: (product: MangaVolume, quantity = 1, variantSku?: string) => {
+        // A figure or poster is bought one variant at a time: the cart line is
+        // that variant's own catalogue row, so its id, price and stock are the
+        // ones checkout reserves. Without a valid variant nothing is added.
+        let volume = product;
+        if (isMerch(product)) {
+          const variant = (product.variants || []).find((v) => v.sku === variantSku);
+          if (!variant) return;
+          volume = variantRow(product, variant);
+        }
         const availableStock = typeof volume.stock === "number" ? volume.stock : 9999;
         if (availableStock <= 0) {
           return;
@@ -69,12 +101,7 @@ export const useCartStore = create<CartState>()(
           const newItem: CartItem = {
             id: `${volume.id}-${Date.now()}`,
             volumeId: volume.id,
-            title: volume.title,
-            seriesTitle: volume.seriesTitle,
-            volumeNumber: volume.volumeNumber,
-            price: volume.price,
-            coverImage: volume.coverImage,
-            format: volume.format,
+            ...lineFields(volume),
             quantity: initialQty,
             maxStock: availableStock,
           };
@@ -109,7 +136,9 @@ export const useCartStore = create<CartState>()(
        */
       hydrateFromCatalog: (volumes: MangaVolume[]) => {
         if (!Array.isArray(volumes) || volumes.length === 0) return;
-        const byId = new Map(volumes.map((volume) => [volume.id, volume]));
+        // Books and every variant row, so a figure or poster line resolves to
+        // the variant it was added as.
+        const byId = indexCatalogRows(volumes);
         set({
           items: get().items.flatMap((item) => {
             const volume = byId.get(item.volumeId);
@@ -118,12 +147,7 @@ export const useCartStore = create<CartState>()(
             const availableStock = typeof volume.stock === "number" ? volume.stock : 9999;
             return [{
               ...item,
-              title: volume.title,
-              seriesTitle: volume.seriesTitle,
-              volumeNumber: volume.volumeNumber,
-              price: volume.price,
-              coverImage: volume.coverImage,
-              format: volume.format,
+              ...lineFields(volume),
               maxStock: availableStock,
               quantity: Math.max(1, Math.min(item.quantity, availableStock)),
             }];

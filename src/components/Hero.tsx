@@ -6,6 +6,7 @@ import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 
 import { useStorefrontStore } from "@/store/useStorefrontStore";
+import { isBook } from "@/lib/variants";
 import { useMounted } from "@/store/useWishlistStore";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -60,10 +61,13 @@ export function Hero() {
   const volumes = useStorefrontStore((state) => state.volumes);
   const shippingConfig = useStorefrontStore((state) => state.shippingConfig);
 
+  // The hero frames a book ("Series — VOL. N"), so a figure or poster is never
+  // picked here, even if one is marked featured.
+  const heroBooks = volumes.filter(isBook);
   const featuredVolume =
-    volumes.find((v) => v.id === heroContent.featuredVolumeId) ||
-    volumes.find((v) => v.isFeatured) ||
-    volumes[0];
+    heroBooks.find((v) => v.id === heroContent.featuredVolumeId) ||
+    heroBooks.find((v) => v.isFeatured) ||
+    heroBooks[0];
 
   const featuredCover = useImageRetry(featuredVolume?.coverImage || PLACEHOLDER_COVER);
 

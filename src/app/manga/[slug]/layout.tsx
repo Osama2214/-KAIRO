@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { permanentRedirect } from "next/navigation";
 import { getCatalog, absoluteImage, metaDescription, SITE_URL } from "@/lib/seo";
+import { isBook, isMerch } from "@/lib/variants";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -26,7 +28,7 @@ export const dynamicParams = true;
 
 export async function generateStaticParams(): Promise<{ slug: string }[]> {
   const { volumes } = await getCatalog();
-  return volumes.map((volume) => ({ slug: volume.id }));
+  return volumes.filter(isBook).map((volume) => ({ slug: volume.id }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -64,6 +66,10 @@ export default async function MangaVolumeLayout({ params, children }: Props) {
   const { slug } = await params;
   const { volumes } = await getCatalog();
   const volume = volumes.find((item) => item.id === slug);
+
+  // Figures and posters have their own product page; an old or hand-typed
+  // /manga link to one is sent there instead of rendering as a book.
+  if (volume && isMerch(volume)) permanentRedirect(`/shop/${volume.id}`);
 
   // Product structured data, rendered on the server so crawlers can read price
   // and availability without executing the storefront's JavaScript.

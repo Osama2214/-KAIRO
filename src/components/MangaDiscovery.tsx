@@ -7,7 +7,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search, ArrowRight, Heart } from "lucide-react";
 import { MangaVolume } from "@/data/manga";
-import { formatPrice, volumeBadgeLabel } from "@/lib/utils";
+import { formatPrice, productHref, volumeBadgeLabel } from "@/lib/utils";
+import { isBook, isMerch, withVariantSummary } from "@/lib/variants";
 import { useCartStore } from "@/store/useCartStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
@@ -49,20 +50,20 @@ export function MangaDiscovery() {
     : (mounted && mangaDiscoveryConfig?.catalogLinkText ? mangaDiscoveryConfig.catalogLinkText : "GO TO COMPLETE MANGA CATALOG");
   const displayCount = mangaDiscoveryConfig?.displayCount || 4;
 
-  const handleCardClick = (volumeId: string) => {
-    router.push(`/manga/${volumeId}`);
-  };
 
   // Tab filtering and text search are separate steps: the tab result is what
   // the search index is built from, and it only changes when a tab does.
   const tabFiltered = useMemo(() => {
-    let list: MangaVolume[] = [...storeVolumes];
+    // Everything the site sells: books, figures and posters (with their
+    // "from" price and total stock).
+    let list: MangaVolume[] = storeVolumes.map(withVariantSummary);
 
     // A typed query searches the whole shop; the tab only narrows browsing.
     if (searchTerm.trim()) return list;
 
     if (activeTab === "POPULAR") {
-      list = list.filter((v) => v.isTrending);
+      // Figures and posters have no trending flag; featured ones count.
+      list = list.filter((v) => v.isTrending || (isMerch(v) && v.isFeatured));
     } else if (activeTab === "TOP_RATED") {
       list = list.filter((v) => v.rating >= 4.9);
     } else if (activeTab === "BEST_SELLERS") {
@@ -70,7 +71,7 @@ export function MangaDiscovery() {
       // far better proxy than shelf stock, which measures the opposite.
       list = [...list].sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0));
     } else if (activeTab === "RECENTLY_ADDED") {
-      list = list.filter((v) => v.isNewRelease || v.volumeNumber === 1);
+      list = list.filter((v) => v.isNewRelease || (isBook(v) && v.volumeNumber === 1));
     }
 
       return list;
@@ -126,7 +127,9 @@ export function MangaDiscovery() {
         </div>
 
         {/* Tabs Below Search */}
-        <div className="flex justify-center items-center gap-1.5 sm:gap-3 flex-wrap mb-8 sm:mb-12">
+        {/* One row on every screen: on a narrow phone the tabs tighten up and,
+            if still too wide, scroll sideways instead of wrapping. */}
+        <div className="flex justify-start min-[380px]:justify-center items-center gap-1 sm:gap-3 flex-nowrap overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 mb-8 sm:mb-12">
           {[
             { id: "POPULAR" as const, label: isArabic ? "الأكثر شعبية" : "POPULAR" },
             { id: "TOP_RATED" as const, label: isArabic ? "الأعلى تقييماً" : "TOP RATED" },
@@ -136,7 +139,7 @@ export function MangaDiscovery() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-sm text-[10px] sm:text-xs font-mono tracking-wider sm:tracking-widest uppercase transition-all ${
+              className={`shrink-0 whitespace-nowrap px-2 sm:px-4 py-1.5 sm:py-2 rounded-sm text-[9px] sm:text-xs font-mono tracking-wide sm:tracking-widest uppercase transition-all ${
                 activeTab === tab.id
                   ? "bg-paper text-ink font-bold shadow-md"
                   : "bg-ink-surface text-text-muted hover:text-paper border border-ink-border"
@@ -152,13 +155,13 @@ export function MangaDiscovery() {
           {filteredItems.map((volume) => (
             <div
               key={volume.id}
-              onClick={() => handleCardClick(volume.id)}
+              onClick={() => router.push(productHref(volume))}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  handleCardClick(volume.id);
+                  router.push(productHref(volume));
                 }
               }}
               className="group bg-ink-surface/40 border border-ink-border/70 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:shadow-xl hover:shadow-black/50 select-none"
@@ -215,27 +218,46 @@ export function MangaDiscovery() {
               <div className="p-3 sm:p-4 pb-3.5 sm:pb-4 flex flex-col justify-between flex-1">
                 <div>
                   <span className="text-[9px] sm:text-[10px] font-mono tracking-widest text-gold uppercase block truncate">
-                    {volume.seriesTitle}
+                    {isMerch(volume) ? (isArabic && volume.merch?.franchiseAr) || volume.merch?.franchise || "" : volume.seriesTitle}
                   </span>
                   <h3 className="text-[11px] sm:text-xs font-bold text-paper tracking-wide group-hover:text-gold transition-colors line-clamp-1 mt-0.5 sm:mt-1 block">
                     {volume.title}
                   </h3>
-                  <p className="text-[9px] sm:text-[10px] text-text-muted mt-0.5 truncate">{isArabic ? "تأليف" : "By"} {volume.author}</p>
+                  <p className="text-[9px] sm:text-[10px] text-text-muted mt-0.5 truncate">
+                    {isMerch(volume)
+                      ? (volume.variants || []).map((v) => (isArabic && v.labelAr) || v.label).join(" · ")
+                      : `${isArabic ? "تأليف" : "By"} ${volume.author}`}
+                  </p>
                 </div>
 
                 <div className="mt-3 sm:mt-4 pt-2.5 sm:pt-3 pb-0.5 border-t border-ink-border/50 flex items-center justify-between font-mono text-[11px] sm:text-xs">
-                  <span className="text-paper font-bold">{formatPrice(volume.price)}</span>
+                  <span className="text-paper font-bold">
+                    {isMerch(volume) && (volume.variants?.length || 0) > 1 && (
+                      <span className="text-[9px] text-text-muted font-normal me-1">{isArabic ? "من" : "FROM"}</span>
+                    )}
+                    {formatPrice(volume.price)}
+                  </span>
                   {volume.stock <= 0 ? (
                     <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-ink-surface/80 border border-ink-border text-text-muted text-[8px] sm:text-[9px] font-mono uppercase rounded-xs">
                       {isArabic ? "نفد" : "OUT OF STOCK"}
                     </span>
+                  ) : isMerch(volume) && (volume.variants?.length || 0) !== 1 ? (
+                    // Several sizes or editions: choose on the product page.
+                    <Link
+                      href={productHref(volume)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="px-2.5 sm:px-3 py-1 bg-ink border border-ink-border hover:border-gold hover:text-gold text-[9px] sm:text-[10px] font-bold uppercase transition-colors rounded-xs z-10 active:scale-95"
+                    >
+                      {isArabic ? "اختر" : "CHOOSE"}
+                    </Link>
                   ) : (
                     <button
                       type="button"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        addItem(volume, 1);
+                        // A single-option figure or poster is added as that option.
+                        addItem(volume, 1, isMerch(volume) ? volume.variants?.[0]?.sku : undefined);
                         openCart();
                       }}
                       className="px-2.5 sm:px-3 py-1 bg-ink border border-ink-border hover:border-vermilion hover:bg-vermilion hover:text-white text-[9px] sm:text-[10px] font-bold uppercase transition-colors rounded-xs z-10 active:scale-95"

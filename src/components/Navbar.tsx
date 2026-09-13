@@ -76,6 +76,7 @@ export function Navbar() {
     { label: t.nav.series, href: "/series", kanji: "連載" },
     { label: t.nav.genres, href: "/#genres", kanji: "分類" },
     { label: t.nav.newReleases, href: "/#new-releases", kanji: "新刊" },
+    { label: t.nav.shop, href: "/shop", kanji: "グッズ" },
     { label: t.nav.sale, href: "/manga?sort=sale", kanji: "特選" },
   ];
 
@@ -146,6 +147,9 @@ export function Navbar() {
   const isLinkActive = (href: string) => {
     if (href === "/series") {
       return pathname.startsWith("/series");
+    }
+    if (href === "/shop") {
+      return pathname.startsWith("/shop");
     }
     if (href === "/manga?sort=sale") {
       return (

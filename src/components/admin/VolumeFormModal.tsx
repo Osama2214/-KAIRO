@@ -2,7 +2,9 @@
 
 import React, { useState, useMemo } from "react";
 import { X, Save, Plus, Check, Upload, Loader2, Timer, Package, AlertTriangle } from "lucide-react";
-import { MangaVolume, Series, GenreInfo } from "@/data/manga";
+import { MangaVolume, Series, GenreInfo, type ProductType } from "@/data/manga";
+import { isBook, isMerch } from "@/lib/variants";
+import { MerchFormModal } from "@/components/admin/MerchFormModal";
 import { priceVolume } from "@/lib/pricing";
 import { describeBundle, findBundleCycle, indexById, type VolumeLike } from "@/lib/bundle";
 import { CustomSelect } from "@/components/CustomSelect";
@@ -349,6 +351,8 @@ function VolumeFormDialog({
         (v) =>
           v.id !== formData.id &&
           v.format !== "Box Set" &&
+          // A box set is made of books; figures and posters never belong in one.
+          isBook(v) &&
           (v.seriesSlug === formData.seriesSlug || memberIds.includes(v.id))
       ),
     [allVolumes, formData.id, formData.seriesSlug, memberIds]
@@ -1283,6 +1287,54 @@ function VolumeFormDialog({
   );
 }
 
+/**
+ * A new product starts by choosing what it is; the book form and the figure /
+ * poster form share nothing but the save handler.
+ */
+function NewProductDialog({ seriesList, onClose, onSave }: Omit<VolumeFormModalProps, "isOpen" | "initialVolume">) {
+  const [choice, setChoice] = useState<ProductType | null>(null);
+  useModalScrollLock(choice === null);
+
+  if (choice === "book") {
+    return <VolumeFormDialog key="new" initialVolume={null} seriesList={seriesList} onClose={onClose} onSave={onSave} />;
+  }
+  if (choice === "figure" || choice === "poster") {
+    return <MerchFormModal isOpen initialType={choice} onClose={onClose} onSave={onSave} />;
+  }
+
+  const options: { id: ProductType; title: string; hint: string }[] = [
+    { id: "book", title: "Manga / Book", hint: "A volume, deluxe edition, light novel or box set" },
+    { id: "figure", title: "Figure", hint: "Sold in one or more editions, each with its own stock" },
+    { id: "poster", title: "Poster", hint: "Sold in one or more sizes, each with its own stock" },
+  ];
+
+  return (
+    <div data-lenis-prevent role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+      <div className="relative w-full max-w-xl bg-ink-surface border border-ink-border rounded-sm shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-border bg-ink">
+          <h2 className="font-cinzel text-lg font-bold text-paper">What are you adding?</h2>
+          <button onClick={onClose} className="p-1.5 text-text-muted hover:text-paper hover:bg-ink-elevated rounded-sm transition-colors cursor-pointer" aria-label="Close">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-6 grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono">
+          {options.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => setChoice(option.id)}
+              className="p-4 text-start bg-ink border border-ink-border hover:border-gold rounded-sm transition-colors cursor-pointer space-y-1.5"
+            >
+              <span className="block text-sm font-bold text-paper uppercase tracking-wider">{option.title}</span>
+              <span className="block text-[10px] text-text-muted leading-relaxed">{option.hint}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function VolumeFormModal({
   isOpen,
   onClose,
@@ -1291,6 +1343,14 @@ export function VolumeFormModal({
   seriesList,
 }: VolumeFormModalProps) {
   if (!isOpen) return null;
+
+  // Figures and posters have their own form.
+  if (initialVolume && isMerch(initialVolume)) {
+    return <MerchFormModal isOpen initialProduct={initialVolume} onClose={onClose} onSave={onSave} />;
+  }
+  if (!initialVolume) {
+    return <NewProductDialog seriesList={seriesList} onClose={onClose} onSave={onSave} />;
+  }
 
   return (
     <VolumeFormDialog

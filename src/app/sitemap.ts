@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getCatalog, SITE_URL } from "@/lib/seo";
+import { productHref } from "@/lib/utils";
 
 export const revalidate = 3600;
 
@@ -9,6 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/`, lastModified: now, changeFrequency: "daily", priority: 1 },
     { url: `${SITE_URL}/manga`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
     { url: `${SITE_URL}/series`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${SITE_URL}/shop`, lastModified: now, changeFrequency: "daily", priority: 0.8 },
   ];
 
   try {
@@ -22,7 +24,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.7,
       })),
       ...volumes.map((volume) => ({
-        url: `${SITE_URL}/manga/${volume.id}`,
+        url: `${SITE_URL}${productHref(volume)}`,
         lastModified: now,
         changeFrequency: "weekly" as const,
         priority: 0.6,
