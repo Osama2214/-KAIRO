@@ -1,6 +1,7 @@
 "use client";
 
-import React, { use, useMemo, useState } from "react";
+import React, { use, useEffect, useMemo, useState } from "react";
+import { useBrowsingHistoryStore } from "@/store/useBrowsingHistoryStore";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Check, Heart, Minus, Plus, Share2, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
@@ -46,6 +47,11 @@ function ShopProductView({ product }: { product: MangaVolume }) {
   const { toggleWishlist, isInWishlist } = useWishlistStore();
   const mounted = useMounted();
 
+  const recordView = useBrowsingHistoryStore((state) => state.recordView);
+  useEffect(() => {
+    recordView(product.id);
+  }, [product.id, recordView]);
+
   const variants = useMemo(() => product.variants || [], [product.variants]);
   // Preselect the first variant that can be bought.
   const [chosenSku, setChosenSku] = useState<string>(
@@ -61,7 +67,12 @@ function ShopProductView({ product }: { product: MangaVolume }) {
     () => [product.coverImage, ...(product.gallery || [])].filter(Boolean),
     [product.coverImage, product.gallery]
   );
-  const [imageIndex, setImageIndex] = useState(0);
+  // A variant linked to a photo brings that photo up when it is picked.
+  const imageIndexFor = (variant: ProductVariant | undefined) => {
+    const at = variant?.image ? images.indexOf(variant.image) : -1;
+    return at >= 0 ? at : null;
+  };
+  const [imageIndex, setImageIndex] = useState(() => imageIndexFor(chosen) ?? 0);
   const [copied, setCopied] = useState(false);
 
   const type = productTypeOf(product);
@@ -207,6 +218,8 @@ function ShopProductView({ product }: { product: MangaVolume }) {
                         onClick={() => {
                           setChosenSku(variant.sku);
                           setQuantity(1);
+                          const linked = imageIndexFor(variant);
+                          if (linked !== null) setImageIndex(linked);
                         }}
                         aria-pressed={active}
                         className={`min-w-[4.5rem] px-3.5 py-2 rounded-xs border text-xs font-mono transition-colors cursor-pointer flex flex-col items-center gap-0.5 ${

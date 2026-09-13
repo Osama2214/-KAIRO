@@ -220,7 +220,9 @@ export function Navbar() {
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-4 xl:gap-8 2xl:gap-10">
+          {/* Six links since SHOP was added: the tight gap is kept only for the
+              narrowest desktop widths, where wider spacing runs into the logo. */}
+          <nav className="hidden lg:flex items-center gap-4 min-[1150px]:gap-7 xl:gap-9 2xl:gap-11">
             {navLinks.map((link) => {
               const active = isLinkActive(link.href);
               return (

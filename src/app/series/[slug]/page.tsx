@@ -15,6 +15,9 @@ import { StarRating } from "@/components/StarRating";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 import { CatalogPending } from "@/components/CatalogPending";
 import { usePaginatedImagePrefetch } from "@/hooks/useImagePrefetch";
+import Link from "next/link";
+import { ShopProductCard } from "@/components/shop/ShopProductCard";
+import { franchiseKey, merchForSeries } from "@/lib/franchise";
 
 interface SeriesPageProps {
   params: Promise<{ slug: string }>;
@@ -454,6 +457,40 @@ function SeriesView({ series }: { series: Series }) {
           </div>
         )}
       </section>
+
+      {/* Figures & posters of the same franchise */}
+      <SeriesMerch volumes={activeVolumes} series={series} isArabic={isArabic} />
     </div>
+  );
+}
+
+/** Figures and posters whose franchise is this series. */
+function SeriesMerch({ volumes, series, isArabic }: { volumes: MangaVolume[]; series: Series; isArabic: boolean }) {
+  const seriesMerch = merchForSeries(volumes, series);
+  if (seriesMerch.length === 0) return null;
+  return (
+        <section id="shop" className="pb-16 sm:pb-24 px-4 sm:px-6 md:px-12 max-w-7xl mx-auto">
+          <div className="mb-10 sm:mb-12 pb-4 border-b border-ink-border/70 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+              <span className="text-[11px] font-mono tracking-[0.25em] text-gold uppercase block mb-1">
+                {isArabic ? "من المتجر" : "FROM THE SHOP"}
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight uppercase text-paper font-sans">
+                {isArabic ? `فيجرز وبوسترات ${series.title}` : `${series.title} FIGURES & POSTERS`}
+              </h2>
+            </div>
+            <Link
+              href={`/shop?franchise=${encodeURIComponent(franchiseKey(series.title))}`}
+              className="text-xs font-mono tracking-widest text-text-muted hover:text-paper transition-colors"
+            >
+              {isArabic ? `كل منتجات ${series.title} ←` : `ALL ${series.title.toUpperCase()} PRODUCTS →`}
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+            {seriesMerch.slice(0, 8).map((product) => (
+              <ShopProductCard key={product.id} product={product} isArabic={isArabic} layout="home" />
+            ))}
+          </div>
+        </section>
   );
 }

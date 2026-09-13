@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, use } from "react";
+import React, { useEffect, useState, use } from "react";
+import { useBrowsingHistoryStore } from "@/store/useBrowsingHistoryStore";
 import Link from "next/link";
 import { notFound, redirect, useRouter } from "next/navigation";
 import { isMerch } from "@/lib/variants";
@@ -68,6 +69,11 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
   const { hasOffer: hasWelcomeOffer, voucherCode: welcomeCode } = useWelcomeOffer();
 
   const isSavedInWishlist = mounted && isInWishlist(volume.id);
+
+  const recordView = useBrowsingHistoryStore((state) => state.recordView);
+  useEffect(() => {
+    recordView(volume.id);
+  }, [volume.id, recordView]);
 
   const handleToggleWishlist = () => {
     toggleWishlist(volume);

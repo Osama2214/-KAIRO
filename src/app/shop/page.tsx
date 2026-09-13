@@ -17,6 +17,7 @@ import { ShopProductCard } from "@/components/shop/ShopProductCard";
 import { isMerch, productTypeOf, withVariantSummary } from "@/lib/variants";
 import { priceVolume } from "@/lib/pricing";
 import { formatPrice } from "@/lib/utils";
+import { franchiseKey } from "@/lib/franchise";
 
 type MerchType = Exclude<ProductType, "book">;
 type SortKey = "FEATURED" | "NEWEST" | "PRICE_ASC" | "PRICE_DESC" | "RATING";
@@ -65,7 +66,10 @@ function ShopCatalogContent() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<MerchType[]>(readTypeParam);
-  const [selectedFranchises, setSelectedFranchises] = useState<string[]>([]);
+  const [selectedFranchises, setSelectedFranchises] = useState<string[]>(() => {
+    const franchise = franchiseKey(searchParams.get("franchise"));
+    return franchise ? [franchise] : [];
+  });
   const [inStockOnly, setInStockOnly] = useState(false);
   const [onSaleOnly, setOnSaleOnly] = useState(searchParams.get("sort") === "sale");
   const [priceMax, setPriceMax] = useState<number | null>(null);
@@ -74,11 +78,13 @@ function ShopCatalogContent() {
   const [currentPage, setCurrentPage] = useState(1);
   useModalScrollLock(mobileFilterOpen);
 
-  // Footer and card links arrive as /shop?type=figure.
+  // Footer and card links arrive as /shop?type=figure or ?franchise=naruto.
   useEffect(() => {
     const type = searchParams.get("type");
+    const franchise = franchiseKey(searchParams.get("franchise"));
     const raf = requestAnimationFrame(() => {
       setSelectedTypes(type === "figure" || type === "poster" ? [type] : []);
+      setSelectedFranchises(franchise ? [franchise] : []);
       setCurrentPage(1);
     });
     return () => cancelAnimationFrame(raf);
@@ -97,7 +103,7 @@ function ShopCatalogContent() {
     for (const p of products) {
       const name = p.merch?.franchise?.trim();
       if (!name) continue;
-      const key = name.toLowerCase();
+      const key = franchiseKey(name);
       const entry = names.get(key);
       if (entry) entry.count += 1;
       else names.set(key, { label: (isArabic && p.merch?.franchiseAr) || name, count: 1 });
@@ -137,7 +143,7 @@ function ShopCatalogContent() {
     return products
       .filter((p) => {
         if (selectedTypes.length > 0 && !selectedTypes.includes(productTypeOf(p) as MerchType)) return false;
-        if (selectedFranchises.length > 0 && !selectedFranchises.includes((p.merch?.franchise || "").trim().toLowerCase())) return false;
+        if (selectedFranchises.length > 0 && !selectedFranchises.includes(franchiseKey(p.merch?.franchise))) return false;
         if (inStockOnly && p.stock <= 0) return false;
         if (onSaleOnly) {
           const priced = priceVolume(p, now ?? 0);

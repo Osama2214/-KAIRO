@@ -13,10 +13,10 @@ import { useCartStore } from "@/store/useCartStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
 import { productHref, volumeBadgeLabel } from "@/lib/utils";
-import { withVariantSummary } from "@/lib/variants";
+import { isBook, withVariantSummary } from "@/lib/variants";
 
 /**
- * A figure or poster in a grid. Mirrors the manga card, but a product with
+ * A product in a grid — mainly figures and posters. Mirrors the manga card, but a product with
  * several variants sends the shopper to its page to choose one; a single
  * variant can be added straight from the card.
  */
@@ -40,9 +40,13 @@ export function ShopProductCard({
   const { toggleWishlist, isInWishlist } = useWishlistStore();
   const mounted = useMounted();
   const saved = mounted && isInWishlist(item.id);
-  const franchise = (isArabic && item.merch?.franchiseAr) || item.merch?.franchise || "";
+  // Books use this card too (in mixed rows like deals and "picked for you"):
+  // they are always added straight to the cart and are labelled by series.
+  const book = isBook(item);
+  const franchise = book ? item.seriesTitle : (isArabic && item.merch?.franchiseAr) || item.merch?.franchise || "";
   const soldOut = item.stock <= 0;
   const single = variants.length === 1 ? variants[0] : null;
+  const directAdd = book || Boolean(single);
 
   return (
     <div
@@ -65,9 +69,14 @@ export function ShopProductCard({
           className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${home ? "ease-out " : ""}pointer-events-none`}
         />
         <LiveEditButton target={{ type: "volume", volumeId: item.id }} label="Edit" variant="card" size="xs" />
-        <div className="absolute top-2.5 start-2.5 flex flex-col gap-1 pointer-events-none z-10">
+        {/* On a phone the card is too narrow for the countdown to sit under
+            the heart beside the badges, so it moves to the image's bottom corner. */}
+        <div className="sm:hidden absolute bottom-2 end-2 flex pointer-events-none z-10">
+          <PromoTimer volume={item} isArabic={isArabic} />
+        </div>
+        <div className="absolute top-2 sm:top-2.5 start-2 sm:start-2.5 flex flex-col items-start gap-1 pointer-events-none z-10 max-w-[70%]">
           {home && <PromoBadge volume={item} isArabic={isArabic} />}
-          <span className="px-2 py-0.5 rounded-xs bg-ink/90 backdrop-blur-md text-[9px] font-mono tracking-wider text-gold border border-ink-border">
+          <span className="px-2 py-0.5 rounded-xs bg-ink/90 backdrop-blur-md text-[9px] font-mono tracking-wider text-gold border border-ink-border truncate max-w-full">
             {volumeBadgeLabel(item, isArabic)}
           </span>
           {!home && <PromoBadge volume={item} isArabic={isArabic} />}
@@ -105,7 +114,9 @@ export function ShopProductCard({
           >
             <Heart strokeWidth={home ? 1.4 : 1.5} className={`w-3.5 h-3.5 transition-transform ${saved ? "fill-vermilion text-vermilion scale-110" : ""}`} />
           </button>
-          <PromoTimer volume={item} isArabic={isArabic} />
+          <span className="hidden sm:flex">
+            <PromoTimer volume={item} isArabic={isArabic} />
+          </span>
         </div>
       </div>
 
@@ -133,9 +144,9 @@ export function ShopProductCard({
         </div>
 
         <div className={`${home ? "mt-5 pt-3" : "mt-3 sm:mt-4 pt-2.5 sm:pt-3"} border-t border-ink-border/50 flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5`}>
-          <div className="flex items-baseline gap-1.5">
+          <div className="flex flex-wrap items-baseline gap-x-1.5 min-w-0">
             {variants.length > 1 && (
-              <span className="text-[10px] font-mono text-text-muted uppercase">{isArabic ? "يبدأ من" : "From"}</span>
+              <span className="text-[9px] sm:text-[10px] font-mono text-text-muted uppercase w-full sm:w-auto">{isArabic ? "يبدأ من" : "From"}</span>
             )}
             <PriceTag volume={item} isArabic={isArabic} showTimer={false} />
           </div>
@@ -147,13 +158,13 @@ export function ShopProductCard({
             >
               {isArabic ? "نفد من المخزن" : "OUT OF STOCK"}
             </button>
-          ) : single ? (
+          ) : directAdd ? (
             <button
               type="button"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                addItem(item, 1, single.sku);
+                addItem(item, 1, single?.sku);
                 openCart();
               }}
               className="grow basis-auto px-3 py-2 bg-ink-elevated border border-ink-border hover:border-vermilion hover:bg-vermilion hover:text-white text-paper text-[10px] font-mono font-bold tracking-wider uppercase transition-all rounded-sm flex items-center justify-center gap-1.5 shadow-sm active:scale-95 z-10 whitespace-nowrap"

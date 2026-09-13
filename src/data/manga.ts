@@ -38,6 +38,11 @@ export interface ProductVariant {
   price: number;
   originalPrice?: number;
   stock: number;
+  /**
+   * One of the product's own photos (the main photo or a gallery photo) shown
+   * when this variant is picked, and used for its cart and order line.
+   */
+  image?: string;
 }
 
 /** A free-form spec row, for anything the fixed fields do not cover. */

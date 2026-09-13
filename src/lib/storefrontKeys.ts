@@ -26,6 +26,7 @@ export const STOREFRONT_DATA_KEYS = [
   "mangaDiscoveryConfig",
   "shopShowcaseConfig",
   "shopShowcaseArabicConfig",
+  "homeExtrasConfig",
   "heroArabicContent",
   "announcementArabic",
   "shippingArabicConfig",

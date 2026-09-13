@@ -156,6 +156,9 @@ function MerchFormDialog({
       return next;
     });
 
+  // The photos an option can be linked to: the main photo, then the extras.
+  const photos = [coverImage, ...gallery].map((src) => (src || "").trim()).filter(Boolean);
+
   const specs = merch.specs || [];
   const updateSpec = (index: number, patch: Partial<ProductSpec>) =>
     setMerchField("specs", specs.map((s, i) => (i === index ? { ...s, ...patch } : s)));
@@ -195,6 +198,8 @@ function MerchFormDialog({
       price: Number(v.price),
       originalPrice: v.originalPrice ? Number(v.originalPrice) : undefined,
       stock: Number(v.stock),
+      // Only keep a link to a photo that is still on the product.
+      image: v.image && photos.includes(v.image) ? v.image : undefined,
     }));
 
     const product: MangaVolume = withVariantSummary({
@@ -429,6 +434,32 @@ function MerchFormDialog({
                       />
                     )}
                   </label>
+                  {/* Link this option to one of the product's photos. */}
+                  <div className="col-span-2 md:col-span-12 flex flex-wrap items-center gap-1.5 px-1 pb-1">
+                    <span className="text-[10px] text-text-muted/70 me-1">photo:</span>
+                    <button
+                      type="button"
+                      onClick={() => setVariants((prev) => prev.map((v, i) => (i === index ? { ...v, image: undefined } : v)))}
+                      className={`h-9 px-2 rounded-xs border text-[10px] cursor-pointer ${!variant.image ? "border-gold text-gold" : "border-ink-border text-text-muted hover:text-paper"}`}
+                    >
+                      Default
+                    </button>
+                    {photos.map((src, photoIndex) => (
+                      <button
+                        key={`${src}-${photoIndex}`}
+                        type="button"
+                        onClick={() => setVariants((prev) => prev.map((v, i) => (i === index ? { ...v, image: src } : v)))}
+                        className={`w-9 h-9 rounded-xs overflow-hidden border-2 cursor-pointer ${variant.image === src ? "border-gold" : "border-ink-border opacity-70 hover:opacity-100"}`}
+                        title={photoIndex === 0 ? "Main photo" : `Extra photo ${photoIndex}`}
+                        aria-label={photoIndex === 0 ? "Main photo" : `Extra photo ${photoIndex}`}
+                      >
+                        <img src={src} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                    {photos.length <= 1 && (
+                      <span className="text-[10px] text-text-muted/60">Add extra photos below to link one here.</span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

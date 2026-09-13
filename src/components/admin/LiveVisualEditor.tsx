@@ -52,6 +52,8 @@ import { useMounted } from "@/store/useWishlistStore";
 import { useLanguageStore } from "@/store/useLanguageStore";
 import { VolumeFormModal } from "./VolumeFormModal";
 import { ShopShowcaseLiveEditModal } from "./ShopShowcaseLiveEditModal";
+import { HomeExtrasLiveEditModal } from "./HomeExtrasLiveEditModal";
+import { resolveHomeExtras } from "@/store/useStorefrontStore";
 import { isBook } from "@/lib/variants";
 import { SeriesFormModal } from "./SeriesFormModal";
 import { GenreFormModal } from "./GenreFormModal";
@@ -125,6 +127,8 @@ export function LiveVisualEditor() {
     shopShowcaseArabicConfig,
     updateShopShowcaseConfig,
     updateShopShowcaseArabicConfig,
+    homeExtrasConfig,
+    updateHomeExtrasConfig,
     logoutAdmin,
   } = useStorefrontStore();
 
@@ -524,6 +528,21 @@ export function LiveVisualEditor() {
             updateShopShowcaseArabicConfig(arabic);
             closeLiveEdit();
             showToast("Figures & posters section updated and synced live!");
+          }}
+        />
+      )}
+
+      {/* Deals / Shop by franchise / Picked for you home sections */}
+      {activeLiveEditTarget?.type === "home-extras" && (
+        <HomeExtrasLiveEditModal
+          key={activeLiveEditTarget.section}
+          section={activeLiveEditTarget.section}
+          initial={resolveHomeExtras(homeExtrasConfig)[activeLiveEditTarget.section]}
+          onClose={closeLiveEdit}
+          onSave={(settings) => {
+            updateHomeExtrasConfig(activeLiveEditTarget.section, settings);
+            closeLiveEdit();
+            showToast("Home section updated and synced live!");
           }}
         />
       )}

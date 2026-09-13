@@ -58,6 +58,9 @@ export function variantRow(product: MangaVolume, variant: ProductVariant): Manga
     price: Number(variant.price) || 0,
     originalPrice: variant.originalPrice ? Number(variant.originalPrice) : undefined,
     stock: Math.max(0, Math.floor(Number(variant.stock) || 0)),
+    // The variant's own photo, when the curator linked one, is what its cart
+    // line and order show.
+    coverImage: variant.image || product.coverImage,
     // A bundle is a book concept; a variant row never carries one.
     bundleOf: undefined,
   };
@@ -155,6 +158,7 @@ export function validateProduct(item: MangaVolume): string[] {
     }
     const stock = Number(variant?.stock);
     if (!Number.isInteger(stock) || stock < 0) errors.push(`${name}: "${label}" needs a whole-number stock of zero or more.`);
+    if (variant?.image !== undefined && typeof variant.image !== "string") errors.push(`${name}: "${label}" has an invalid photo.`);
   }
   return errors;
 }

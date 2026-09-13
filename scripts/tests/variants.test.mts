@@ -73,3 +73,12 @@ test("reservation expansion works on variant rows", () => {
   assert.equal(units.get("poster-naruto~a3"), 2); assert.equal(units.get("nr-001"), 2); assert.equal(units.has("poster-naruto"), false);
   assert.deepEqual(expandToPhysicalUnits([{ id: "poster-naruto", quantity: 1 }], byId).unknown, ["poster-naruto"], "parent is not purchasable");
 });
+
+test("a variant's linked photo becomes its row's cover", () => {
+  const withPhoto = { ...poster, coverImage: "main.webp", variants: [{ ...poster.variants[0], image: "a3.webp" }, poster.variants[1]] };
+  const [a3, a2] = toCatalogRows([withPhoto]);
+  assert.equal(a3.coverImage, "a3.webp");
+  assert.equal(a2.coverImage, "main.webp", "no link keeps the main photo");
+  assert.deepEqual(validateProduct(withPhoto), []);
+  assert.ok(validateProduct({ ...withPhoto, variants: [{ ...poster.variants[0], image: 5 }] }).length);
+});

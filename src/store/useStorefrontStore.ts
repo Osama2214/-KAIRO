@@ -151,6 +151,48 @@ export const DEFAULT_SHOP_SHOWCASE_CONFIG: ShopShowcaseConfig = {
   maxCards: 8,
 };
 
+/** One home-page section's switch, headings and size. */
+export interface HomeSectionSettings {
+  enabled: boolean;
+  badgeText: string;
+  badgeTextAr: string;
+  headline: string;
+  headlineAr: string;
+  maxCards: number;
+  /**
+   * Shop by franchise only: card artwork per franchise key, over the series
+   * banner. A list of `{ key, image }` so the server's image tracking sees the
+   * URLs and removes a replaced file from storage.
+   */
+  cardImages?: { key: string; image: string }[];
+}
+
+/**
+ * The home sections added with the shop: limited-time deals, shop by
+ * franchise, and the personal "picked for you" row. Kept as one stored key.
+ */
+export interface HomeExtrasConfig {
+  deals: HomeSectionSettings;
+  franchises: HomeSectionSettings;
+  forYou: HomeSectionSettings;
+}
+
+export const DEFAULT_HOME_EXTRAS_CONFIG: HomeExtrasConfig = {
+  deals: { enabled: true, badgeText: "LIMITED TIME", badgeTextAr: "لفترة محدودة", headline: "DEALS ENDING SOON", headlineAr: "عروض قاربت على الانتهاء", maxCards: 8 },
+  franchises: { enabled: true, badgeText: "BROWSE BY ANIME", badgeTextAr: "تسوق حسب الأنمي", headline: "SHOP BY FRANCHISE", headlineAr: "عالم الأنمي المفضل لديك", maxCards: 8 },
+  forYou: { enabled: true, badgeText: "BASED ON YOUR BROWSING", badgeTextAr: "بناءً على تصفحك", headline: "PICKED FOR YOU", headlineAr: "مختارات لك", maxCards: 8 },
+};
+
+/** Stored settings laid over the defaults, so a newly added field is never missing. */
+export function resolveHomeExtras(stored: Partial<HomeExtrasConfig> | undefined | null): HomeExtrasConfig {
+  const s = stored || {};
+  return {
+    deals: { ...DEFAULT_HOME_EXTRAS_CONFIG.deals, ...(s.deals || {}) },
+    franchises: { ...DEFAULT_HOME_EXTRAS_CONFIG.franchises, ...(s.franchises || {}) },
+    forYou: { ...DEFAULT_HOME_EXTRAS_CONFIG.forYou, ...(s.forYou || {}) },
+  };
+}
+
 export const DEFAULT_SHOP_SHOWCASE_ARABIC_CONFIG: ShopShowcaseArabicConfig = {
   badgeText: "فيجرز وبوسترات",
   headline: "المتجر",
@@ -669,6 +711,7 @@ export type LiveEditTarget =
   | { type: "editorial"; tab?: "shipping" | "authenticity" | "privacy" | "terms" }
   | { type: "manga-discovery" }
   | { type: "shop-showcase" }
+  | { type: "home-extras"; section: "deals" | "franchises" | "forYou" }
   | { type: "genre-card"; genreId: string };
 
 export interface StorefrontState {
@@ -692,6 +735,7 @@ export interface StorefrontState {
   mangaDiscoveryConfig: MangaDiscoveryConfig;
   shopShowcaseConfig: ShopShowcaseConfig;
   shopShowcaseArabicConfig: ShopShowcaseArabicConfig;
+  homeExtrasConfig: HomeExtrasConfig;
 
   // Arabic CMS Content Overrides
   heroArabicContent: HeroArabicContent;
@@ -756,6 +800,7 @@ export interface StorefrontState {
   updateMangaDiscoveryConfig: (updates: Partial<MangaDiscoveryConfig>) => void;
   updateShopShowcaseConfig: (updates: Partial<ShopShowcaseConfig>) => void;
   updateShopShowcaseArabicConfig: (updates: Partial<ShopShowcaseArabicConfig>) => void;
+  updateHomeExtrasConfig: (section: keyof HomeExtrasConfig, updates: Partial<HomeSectionSettings>) => void;
 
   // Arabic CMS Content Actions
   updateHeroArabicContent: (updates: Partial<HeroArabicContent>) => void;
@@ -810,6 +855,7 @@ export const useStorefrontStore = create<StorefrontState>()(
       mangaDiscoveryConfig: DEFAULT_MANGA_DISCOVERY_CONFIG,
       shopShowcaseConfig: DEFAULT_SHOP_SHOWCASE_CONFIG,
       shopShowcaseArabicConfig: DEFAULT_SHOP_SHOWCASE_ARABIC_CONFIG,
+      homeExtrasConfig: DEFAULT_HOME_EXTRAS_CONFIG,
       heroArabicContent: DEFAULT_HERO_ARABIC_CONTENT,
       announcementArabic: DEFAULT_ANNOUNCEMENT_ARABIC,
       shippingArabicConfig: DEFAULT_SHIPPING_ARABIC_CONFIG,
@@ -1033,6 +1079,13 @@ export const useStorefrontStore = create<StorefrontState>()(
         set((state) => ({
           shopShowcaseConfig: { ...DEFAULT_SHOP_SHOWCASE_CONFIG, ...state.shopShowcaseConfig, ...updates },
         }));
+      },
+
+      updateHomeExtrasConfig: (section, updates) => {
+        set((state) => {
+          const current = resolveHomeExtras(state.homeExtrasConfig);
+          return { homeExtrasConfig: { ...current, [section]: { ...current[section], ...updates } } };
+        });
       },
 
       updateShopShowcaseArabicConfig: (updates) => {
@@ -1282,6 +1335,7 @@ export const useStorefrontStore = create<StorefrontState>()(
           mangaDiscoveryConfig: DEFAULT_MANGA_DISCOVERY_CONFIG,
           shopShowcaseConfig: DEFAULT_SHOP_SHOWCASE_CONFIG,
           shopShowcaseArabicConfig: DEFAULT_SHOP_SHOWCASE_ARABIC_CONFIG,
+          homeExtrasConfig: DEFAULT_HOME_EXTRAS_CONFIG,
           heroArabicContent: DEFAULT_HERO_ARABIC_CONTENT,
           announcementArabic: DEFAULT_ANNOUNCEMENT_ARABIC,
           shippingArabicConfig: DEFAULT_SHIPPING_ARABIC_CONFIG,
@@ -1319,6 +1373,7 @@ export const useStorefrontStore = create<StorefrontState>()(
           mangaDiscoveryConfig: state.mangaDiscoveryConfig,
           shopShowcaseConfig: state.shopShowcaseConfig,
           shopShowcaseArabicConfig: state.shopShowcaseArabicConfig,
+          homeExtrasConfig: state.homeExtrasConfig,
           heroArabicContent: state.heroArabicContent,
           announcementArabic: state.announcementArabic,
           shippingArabicConfig: state.shippingArabicConfig,
@@ -1375,6 +1430,7 @@ export const useStorefrontStore = create<StorefrontState>()(
             mangaDiscoveryConfig: { ...DEFAULT_MANGA_DISCOVERY_CONFIG, ...(parsed.mangaDiscoveryConfig || {}) },
             shopShowcaseConfig: { ...DEFAULT_SHOP_SHOWCASE_CONFIG, ...(parsed.shopShowcaseConfig || {}) },
             shopShowcaseArabicConfig: { ...DEFAULT_SHOP_SHOWCASE_ARABIC_CONFIG, ...(parsed.shopShowcaseArabicConfig || {}) },
+            homeExtrasConfig: resolveHomeExtras(parsed.homeExtrasConfig),
             heroArabicContent: { ...DEFAULT_HERO_ARABIC_CONTENT, ...(parsed.heroArabicContent || {}) },
             announcementArabic: { ...DEFAULT_ANNOUNCEMENT_ARABIC, ...(parsed.announcementArabic || {}) },
             shippingArabicConfig: { ...DEFAULT_SHIPPING_ARABIC_CONFIG, ...(parsed.shippingArabicConfig || {}) },
@@ -1420,6 +1476,7 @@ export const useStorefrontStore = create<StorefrontState>()(
         mangaDiscoveryConfig: state.mangaDiscoveryConfig,
         shopShowcaseConfig: state.shopShowcaseConfig,
         shopShowcaseArabicConfig: state.shopShowcaseArabicConfig,
+        homeExtrasConfig: state.homeExtrasConfig,
         heroArabicContent: state.heroArabicContent,
         announcementArabic: state.announcementArabic,
         shippingArabicConfig: state.shippingArabicConfig,
