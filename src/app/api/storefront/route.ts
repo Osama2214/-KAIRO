@@ -6,6 +6,7 @@ import { STOREFRONT_CACHE_TAG } from "@/lib/storefrontSnapshot";
 import { STOREFRONT_DATA_KEYS } from "@/lib/storefrontKeys";
 import { validateCatalogue } from "@/lib/variants";
 import type { MangaVolume } from "@/data/manga";
+import { hasOmittedDetails, restoreOmittedDetails } from "@/lib/catalogDetails";
 
 export const dynamic = "force-dynamic";
 
@@ -44,9 +45,18 @@ export async function PUT(request: Request) {
     // (a failed hydration, a bug) would blank the shop in one request. The
     // client guards against it; the server refuses it outright.
     if ("volumes" in data) {
-      const incoming = data.volumes;
-      if (!Array.isArray(incoming)) {
+      if (!Array.isArray(data.volumes)) {
         return NextResponse.json({ success: false, message: "Catalogue payload is malformed." }, { status: 400 });
+      }
+      let incoming: unknown[] = data.volumes;
+      // Pages load products without their long text (lib/catalogDetails.ts).
+      // A product saved in that state keeps the text already stored, so a
+      // console that had not loaded it can never write blanks over it.
+      if (incoming.some(hasOmittedDetails)) {
+        const current = await getStorefrontData();
+        const stored = Array.isArray(current?.volumes) ? (current!.volumes as unknown[]) : [];
+        incoming = restoreOmittedDetails(incoming, stored);
+        data.volumes = incoming;
       }
       // Figures and posters are sold per variant, so a malformed variant list
       // (duplicate codes, no price, fractional stock) would write broken

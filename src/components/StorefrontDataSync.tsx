@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-import { useStorefrontStore, wasSeededFromServer } from "@/store/useStorefrontStore";
+import {
+  ensureCatalogDetails,
+  isMergingCatalogDetails,
+  useStorefrontStore,
+  wasSeededFromServer,
+} from "@/store/useStorefrontStore";
 
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCartStore } from "@/store/useCartStore";
@@ -150,10 +155,24 @@ export function StorefrontDataSync() {
       void push();
     });
 
+    // The curator console edits and saves whole products, so it needs their
+    // long text, which pages otherwise load without (lib/catalogDetails.ts).
+    const loadDetailsForCurator = () => {
+      if (useStorefrontStore.getState().isAdminAuthenticated) void ensureCatalogDetails().catch(() => {});
+    };
+    loadDetailsForCurator();
+
     const unsubscribe = useStorefrontStore.subscribe((state) => {
+      if (state.isAdminAuthenticated) loadDetailsForCurator();
       if (!hydrated || !state.isAdminAuthenticated) return;
       const data = snapshot(state as unknown as Record<string, unknown>);
       const next = JSON.stringify(data);
+      // Details arriving from the server are not an edit: take them as the new
+      // baseline instead of saving the catalogue back.
+      if (isMergingCatalogDetails()) {
+        previous = next;
+        return;
+      }
       if (next === previous) return;
       previous = next;
       queued = JSON.stringify({ data });

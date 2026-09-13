@@ -6,6 +6,7 @@ import { withDerivedSeriesVolumes, withoutSeriesVolumes } from "@/lib/seriesVolu
 import { useCuratorSaveStore } from "@/store/useCuratorSaveStore";
 import { STOREFRONT_DATA_KEYS } from "@/lib/storefrontKeys";
 import { isMerch, variantRowId, withVariantSummary } from "@/lib/variants";
+import { detailsOf, hasOmittedDetails, mergeDetails, type VolumeDetails } from "@/lib/catalogDetails";
 
 export interface HeroContent {
   badgeText: string;
@@ -1711,4 +1712,66 @@ export function seedStorefrontFromServer(data: Record<string, unknown> | null | 
 /** True once the server handed us a catalogue, so the client can skip its own fetch. */
 export function wasSeededFromServer(): boolean {
   return seededInBrowser;
+}
+
+/**
+ * Hands a product page its own long text (synopses, sample pages), which the
+ * page-wide catalogue leaves out. Called during render, before the page reads
+ * the store, for the same reason `seedStorefrontFromServer` is: the server
+ * render and the hydrating client see the same values on their first pass.
+ */
+export function seedCatalogDetails(details: VolumeDetails[]): void {
+  if (!details.length) return;
+  const apply = (target: StorefrontState) => {
+    const merged = mergeDetails(target.volumes, details);
+    if (merged !== target.volumes) target.volumes = merged;
+  };
+  apply(useStorefrontStore.getInitialState());
+  apply(useStorefrontStore.getState());
+}
+
+let detailsRequest: Promise<void> | null = null;
+let mergingDetails = false;
+
+/**
+ * True only while loaded details are being written into the store. The
+ * console's auto-save watches the store for edits; filling in text that was
+ * already on the server is not an edit and must not send the whole catalogue.
+ */
+export function isMergingCatalogDetails(): boolean {
+  return mergingDetails;
+}
+
+/**
+ * Loads every product's long text once, for the few places that need all of it
+ * — the sample reader opened from a card, and the curator console, whose saves
+ * must never send products without their text.
+ */
+export function ensureCatalogDetails(): Promise<void> {
+  if (!useStorefrontStore.getState().volumes.some(hasOmittedDetails)) return Promise.resolve();
+  if (!detailsRequest) {
+    detailsRequest = fetch("/api/storefront")
+      .then((response) => response.json())
+      .then((payload) => {
+        const full = payload?.data?.volumes;
+        if (!Array.isArray(full)) throw new Error("catalogue details unavailable");
+        const details = (full as MangaVolume[]).map(detailsOf);
+        const state = useStorefrontStore.getState();
+        const volumes = mergeDetails(state.volumes, details);
+        if (volumes !== state.volumes) {
+          mergingDetails = true;
+          try {
+            useStorefrontStore.setState({ volumes, series: withDerivedSeriesVolumes(state.series, volumes) });
+          } finally {
+            mergingDetails = false;
+          }
+        }
+      })
+      .catch((error) => {
+        // Let a later call try again rather than caching the failure.
+        detailsRequest = null;
+        throw error;
+      });
+  }
+  return detailsRequest;
 }

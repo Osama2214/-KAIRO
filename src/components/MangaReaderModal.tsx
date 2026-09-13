@@ -16,6 +16,8 @@ import {
 import { useUIStore } from "@/store/useUIStore";
 import { useCartStore } from "@/store/useCartStore";
 import { useReaderStore } from "@/store/useReaderStore";
+import { ensureCatalogDetails, useStorefrontStore } from "@/store/useStorefrontStore";
+import { hasOmittedDetails } from "@/lib/catalogDetails";
 import { useAuthStore, SavedOrder, SavedOrderItem } from "@/store/useAuthStore";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -109,10 +111,23 @@ export function MangaReaderModal() {
     });
   }, [activeReaderVolume, currentUser]);
 
+  // A reader opened from a card holds the page-wide copy of the product, which
+  // comes without its sample pages; read them from the store once they load.
+  const activeId = activeReaderVolume?.id;
+  const needsDetails = hasOmittedDetails(activeReaderVolume);
+  const loadedPages = useStorefrontStore((state) =>
+    activeId ? state.volumes.find((v) => v.id === activeId && !hasOmittedDetails(v))?.previewPages : undefined
+  );
+  useEffect(() => {
+    if (isReaderOpen && needsDetails) void ensureCatalogDetails().catch(() => {});
+  }, [isReaderOpen, needsDetails]);
+  const previewPages = (needsDetails ? loadedPages : activeReaderVolume?.previewPages) || [];
+  const previewPageCount = previewPages.length;
+
   // Pages array
   const pages = activeReaderVolume
-    ? activeReaderVolume.previewPages.length > 0
-      ? activeReaderVolume.previewPages
+    ? previewPages.length > 0
+      ? previewPages
       : [activeReaderVolume.coverImage]
     : [];
 
@@ -144,9 +159,7 @@ export function MangaReaderModal() {
   // Restore bookmarked page or start fresh
   useEffect(() => {
     if (activeReaderVolume) {
-      const pagesCount = activeReaderVolume.previewPages.length > 0
-        ? activeReaderVolume.previewPages.length
-        : 1;
+      const pagesCount = previewPageCount > 0 ? previewPageCount : 1;
       const saved = getProgress(activeReaderVolume.id);
 
       const target = (saved && !saved.isCompleted && saved.currentPage > 0 && saved.currentPage < pagesCount)
@@ -162,7 +175,7 @@ export function MangaReaderModal() {
       });
       return () => cancelAnimationFrame(raf);
     }
-  }, [activeReaderVolume, getProgress, saveProgress]);
+  }, [activeReaderVolume, previewPageCount, getProgress, saveProgress]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

@@ -23,10 +23,16 @@ const LiveVisualEditor = dynamic(
 // largest chunk in the build. Mounting it unconditionally made every visitor
 // download that animation engine, including the returning ones who never see
 // the sequence. It is now fetched only when it is actually going to run.
-const CinematicIntro = dynamic(
-  () => import("@/components/CinematicIntro").then((m) => m.CinematicIntro),
-  { ssr: false }
-);
+const loadIntro = () => import("@/components/CinematicIntro").then((m) => m.CinematicIntro);
+const CinematicIntro = dynamic(loadIntro, { ssr: false });
+
+// When the page opened with the intro armed (the inline script in the layout
+// sets `intro-pending`), start downloading it as soon as this module runs,
+// alongside the rest of the app, instead of after the app has finished
+// starting up. Returning visitors are not armed and fetch nothing.
+if (typeof document !== "undefined" && document.documentElement.classList.contains("intro-pending")) {
+  void loadIntro().catch(() => {});
+}
 
 /** Client-only flag source: nothing ever changes, so it never notifies. */
 const subscribeNever = () => () => {};

@@ -78,12 +78,11 @@ export function Hero() {
     let currentX = 0;
     let currentY = 0;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const { clientWidth, clientHeight } = document.documentElement;
-      targetX = (e.clientX / clientWidth - 0.5) * 18;
-      targetY = (e.clientY / clientHeight - 0.5) * 18;
-    };
+    let running = false;
 
+    // The tilt eases toward the pointer and stops once it has caught up. It used
+    // to run every frame for as long as the page was open, including on phones,
+    // where there is no pointer and the card is not even shown.
     const animate = () => {
       currentX += (targetX - currentX) * 0.08;
       currentY += (targetY - currentY) * 0.08;
@@ -91,11 +90,24 @@ export function Hero() {
       if (cardRef.current) {
         cardRef.current.style.transform = `perspective(1000px) rotateY(${currentX * 0.5}deg) rotateX(${-currentY * 0.5}deg)`;
       }
+      if (Math.abs(targetX - currentX) < 0.01 && Math.abs(targetY - currentY) < 0.01) {
+        running = false;
+        return;
+      }
       rafId = requestAnimationFrame(animate);
     };
 
+    const handleMouseMove = (e: MouseEvent) => {
+      const { clientWidth, clientHeight } = document.documentElement;
+      targetX = (e.clientX / clientWidth - 0.5) * 18;
+      targetY = (e.clientY / clientHeight - 0.5) * 18;
+      if (!running) {
+        running = true;
+        rafId = requestAnimationFrame(animate);
+      }
+    };
+
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
-    rafId = requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
@@ -111,6 +123,20 @@ export function Hero() {
     }, 8000);
     return () => clearInterval(timer);
   }, [mobileHeroImages.length]);
+
+  // Frames already shown, and the next one, fetched a few seconds ahead so it
+  // is ready by its turn.
+  const [shownBg, setShownBg] = useState<number[]>([0]);
+  const [upcomingBg, setUpcomingBg] = useState<number | null>(null);
+  useEffect(() => {
+    if (mobileHeroImages.length < 2) return;
+    const raf = requestAnimationFrame(() => setShownBg((list) => (list.includes(bgIndex) ? list : [...list, bgIndex])));
+    const ahead = setTimeout(() => setUpcomingBg((bgIndex + 1) % mobileHeroImages.length), 5000);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(ahead);
+    };
+  }, [bgIndex, mobileHeroImages.length]);
 
   const isAr = locale === "ar";
   const headlineLine1 = mounted
@@ -161,15 +187,20 @@ export function Hero() {
 
       {/* Mobile & iPad Cinematic Cover Backdrop (< lg screens): Automatic smooth crossfade between images */}
       <div className="lg:hidden absolute inset-0 z-0 overflow-hidden select-none">
-        {mobileHeroImages.map((src, idx) => (
-          <HeroBackdropFrame
-            key={src}
-            src={src}
-            alt={featuredVolume?.title || "ANIMEVERSE Manga Hero"}
-            first={idx === 0}
-            active={idx === bgIndex}
-          />
-        ))}
+        {mobileHeroImages.map((src, idx) =>
+          // A frame joins the page when it is about to show, and stays once it
+          // has (the crossfade needs the outgoing one). All five used to load
+          // at once on a phone, only for four to wait unseen for up to 32s.
+          idx === bgIndex || idx === upcomingBg || shownBg.includes(idx) ? (
+            <HeroBackdropFrame
+              key={src}
+              src={src}
+              alt={featuredVolume?.title || "ANIMEVERSE Manga Hero"}
+              first={idx === 0}
+              active={idx === bgIndex}
+            />
+          ) : null
+        )}
         {/* Soft Top Vignette for Navbar Legibility */}
         <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-ink/60 via-ink/15 to-transparent pointer-events-none" />
         {/* Soft Left Vignette for Text Contrast leaving Artwork Vibrant */}

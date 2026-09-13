@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { permanentRedirect } from "next/navigation";
 import { getCatalog, absoluteImage, metaDescription, SITE_URL, breadcrumbJsonLd, jsonLdHtml } from "@/lib/seo";
 import { effectivePrice } from "@/lib/pricing";
+import { detailsOf } from "@/lib/catalogDetails";
+import { CatalogDetailsSeed } from "@/components/CatalogDetailsSeed";
 import { isBook, isMerch } from "@/lib/variants";
 
 interface Props {
@@ -109,6 +111,7 @@ export default async function MangaVolumeLayout({ params, children }: Props) {
   return (
     <>
       {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml([jsonLd, breadcrumbs]) }} />}
+      {volume && <CatalogDetailsSeed details={[detailsOf(volume)]} />}
       {children}
     </>
   );

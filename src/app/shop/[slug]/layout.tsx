@@ -4,6 +4,8 @@ import { getCatalog, absoluteImage, metaDescription, SITE_URL, breadcrumbJsonLd,
 import { isBook, isMerch, variantRow, withVariantSummary } from "@/lib/variants";
 import { effectivePrice } from "@/lib/pricing";
 import type { MangaVolume } from "@/data/manga";
+import { detailsOf } from "@/lib/catalogDetails";
+import { CatalogDetailsSeed } from "@/components/CatalogDetailsSeed";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -109,6 +111,7 @@ export default async function ShopProductLayout({ params, children }: Props) {
   return (
     <>
       {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml([jsonLd, breadcrumbs]) }} />}
+      {item && <CatalogDetailsSeed details={[detailsOf(item)]} />}
       {children}
     </>
   );

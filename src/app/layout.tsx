@@ -1,12 +1,18 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, JetBrains_Mono, Cinzel } from "next/font/google";
 import localFont from "next/font/local";
+import { getImageProps } from "next/image";
+import introCharacter from "../../public/animat/animeverse-character.png";
+import introEmblem from "../../public/animat/animeverse-background-emblem.png";
+import introWordmark from "../../public/animat/animeverse-wordmark.png";
 import "./globals.css";
 import { StorefrontShell } from "@/components/StorefrontShell";
 import { getStorefrontSnapshot } from "@/lib/storefrontSnapshot";
 import { MangaReaderModal } from "@/components/MangaReaderModal";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
 import { SITE_URL, SITE_NAME, DEFAULT_OG_IMAGE, getStoreProfile, jsonLdHtml } from "@/lib/seo";
+import { slimVolume } from "@/lib/catalogDetails";
+import type { MangaVolume } from "@/data/manga";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -35,6 +41,9 @@ const shippori = localFont({
   ],
   variable: "--font-shippori",
   display: "swap",
+  // Decorative only (watermarks, seals, kanji accents), so it is not worth
+  // holding up the first paint for: it arrives when first used.
+  preload: false,
   // Any character outside the subset lands here rather than on a blank box.
   fallback: ["Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", "serif"],
 });
@@ -44,6 +53,19 @@ const jetbrains = JetBrains_Mono({
   variable: "--font-mono",
   weight: ["400", "500"],
   display: "swap",
+  // Small labels and prices, none of them the largest paint: not preloaded.
+  preload: false,
+});
+
+// The three layers of the opening animation, with the exact sizes and quality
+// CinematicIntro renders them at, so the preloaded files are the ones it uses.
+const INTRO_IMAGE_PRELOADS = [
+  { src: introCharacter, sizes: "(max-width: 767px) 62vw, 420px" },
+  { src: introEmblem, sizes: "(max-width: 767px) 70vw, 460px" },
+  { src: introWordmark, sizes: "(max-width: 767px) 74vw, 520px" },
+].map(({ src, sizes }) => {
+  const { props } = getImageProps({ src, alt: "", sizes, quality: 90 });
+  return { srcSet: props.srcSet || props.src, sizes };
 });
 
 export const viewport: Viewport = {
@@ -101,7 +123,13 @@ export default async function RootLayout({
   // Read the catalogue here so the markup that leaves the server already shows
   // what the shop sells, instead of the copy compiled into the bundle at build
   // time and corrected a fetch later.
-  const catalog = await getStorefrontSnapshot();
+  const snapshot = await getStorefrontSnapshot();
+  // Without the long per-product text: a product page adds its own back (see
+  // lib/catalogDetails.ts), and no other page shows it.
+  const catalog =
+    snapshot && Array.isArray(snapshot.volumes)
+      ? { ...snapshot, volumes: (snapshot.volumes as MangaVolume[]).map(slimVolume) }
+      : snapshot;
   const profile = await getStoreProfile();
 
   // Who the store is, for search engines and AI assistants: the business, its
@@ -179,6 +207,14 @@ export default async function RootLayout({
               'if((p==="/"||p==="")&&sessionStorage.getItem("kairo_intro_seen")!=="true"){' +
               'document.documentElement.classList.add("intro-pending");' +
               'setTimeout(function(){document.documentElement.classList.remove("intro-pending");},6000);' +
+              // Start fetching the intro artwork now. The intro itself mounts
+              // only once the app has loaded, and until then the browser had no
+              // idea these images were needed — on a phone that left the
+              // character art (the page's largest paint) waiting ~8s to start.
+              "var imgs=" + JSON.stringify(INTRO_IMAGE_PRELOADS) + ";" +
+              'imgs.forEach(function(i){var k=document.createElement("link");k.rel="preload";k.as="image";' +
+              'k.setAttribute("imagesrcset",i.srcSet);k.setAttribute("imagesizes",i.sizes);k.setAttribute("fetchpriority","high");' +
+              "document.head.appendChild(k);});" +
               '}}catch(e){}',
           }}
         />
