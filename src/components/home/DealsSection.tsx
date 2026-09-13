@@ -6,6 +6,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { useNow } from "@/hooks/useNow";
 import { priceVolume } from "@/lib/pricing";
 import { withVariantSummary } from "@/lib/variants";
+import type { MangaVolume } from "@/data/manga";
 import { ShopProductCard } from "@/components/shop/ShopProductCard";
 import { HomeSectionFrame, fullRows } from "@/components/home/HomeSectionFrame";
 
@@ -23,12 +24,21 @@ export function DealsSection() {
   const minute = now === null ? null : Math.floor(now / 60_000);
 
   const deals = useMemo(() => {
-    if (minute === null) return [];
+    const products = volumes.map(withVariantSummary).filter((item) => item.stock > 0);
+    // No clock on the server (or during hydration): render every product that
+    // carries an offer, ordered by its end date, so the section is part of the
+    // first HTML instead of appearing after load and pushing the page down.
+    // Once the clock is known, offers that are not running are dropped.
+    if (minute === null) {
+      const endsAt = (item: MangaVolume) => Date.parse(item.promo?.endsAt || "") || Infinity;
+      return products
+        .filter((item) => Number(item.promo?.percent) > 0 && Number.isFinite(endsAt(item)))
+        .sort((a, b) => endsAt(a) - endsAt(b));
+    }
     const at = minute * 60_000;
-    return volumes
-      .map(withVariantSummary)
+    return products
       .map((item) => ({ item, priced: priceVolume(item, at) }))
-      .filter(({ item, priced }) => priced.activePromo && priced.endsInMs !== null && item.stock > 0)
+      .filter(({ priced }) => priced.activePromo && priced.endsInMs !== null)
       .sort((a, b) => a.priced.endsInMs! - b.priced.endsInMs! || b.priced.savedPercent - a.priced.savedPercent)
       .map(({ item }) => item);
   }, [volumes, minute]);

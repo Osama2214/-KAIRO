@@ -9,7 +9,6 @@ import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { resolveHomeExtras, useStorefrontStore } from "@/store/useStorefrontStore";
 import { useTranslation } from "@/hooks/useTranslation";
-import { useMounted } from "@/store/useWishlistStore";
 import { buildFranchises } from "@/lib/franchise";
 
 /**
@@ -23,7 +22,6 @@ export function FranchiseShowcase() {
   const router = useRouter();
   const { locale, isRTL } = useTranslation();
   const isArabic = locale === "ar";
-  const mounted = useMounted();
   const volumes = useStorefrontStore((state) => state.volumes);
   const series = useStorefrontStore((state) => state.series);
   const trendingConfig = useStorefrontStore((state) => state.trendingConfig);
@@ -71,7 +69,8 @@ export function FranchiseShowcase() {
     router.push(href);
   };
 
-  if (!mounted || !settings.enabled || franchises.length === 0) return null;
+  // Rendered on the server too, so the page does not grow after load.
+  if (!settings.enabled || franchises.length === 0) return null;
 
   return (
     <section id="franchises" className="py-20 px-6 md:px-12 bg-ink border-t border-ink-border/60 relative overflow-hidden">

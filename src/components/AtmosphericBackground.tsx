@@ -110,12 +110,17 @@ export function AtmosphericBackground() {
   return (
     <div
       aria-hidden="true"
-      className="absolute inset-0 min-h-full pointer-events-none z-0 overflow-hidden select-none"
+      className="absolute inset-0 min-h-full pointer-events-none z-0 overflow-hidden select-none [container-type:size]"
     >
       {/* 1. Slow-Drifting Ambient Glowing Orbs */}
+      {/* Vertical placement uses `translate` against the page height (cqh) rather
+          than top/bottom percentages: the page grows while it loads, and moving
+          a percentage-placed glow or kanji with it counted as a layout shift
+          (over 1.0 CLS on a slow phone). A translate lands in the same place
+          but is not a layout move. */}
       {/* Orb 1: Archival Gold Glowing Nebula (Top Left to Center) */}
       <div
-        className="absolute -top-[10%] -left-[10%] w-[600px] h-[600px] rounded-full opacity-35 blur-[130px] animate-orb-drift-1 pointer-events-none"
+        className="absolute top-0 [translate:0_-10cqh] -left-[10%] w-[600px] h-[600px] rounded-full opacity-35 blur-[130px] animate-orb-drift-1 pointer-events-none"
         style={{
           background: "radial-gradient(circle, rgba(199, 167, 108, 0.20) 0%, rgba(199, 167, 108, 0.04) 55%, transparent 75%)",
         }}
@@ -123,7 +128,7 @@ export function AtmosphericBackground() {
 
       {/* Orb 2: Japanese Vermilion Deep Glowing Nebula (Bottom Right to Center) */}
       <div
-        className="absolute bottom-[5%] -right-[10%] w-[650px] h-[650px] rounded-full opacity-30 blur-[140px] animate-orb-drift-2 pointer-events-none"
+        className="absolute top-0 [translate:0_calc(95cqh_-_100%)] -right-[10%] w-[650px] h-[650px] rounded-full opacity-30 blur-[140px] animate-orb-drift-2 pointer-events-none"
         style={{
           background: "radial-gradient(circle, rgba(217, 74, 58, 0.18) 0%, rgba(217, 74, 58, 0.03) 55%, transparent 80%)",
         }}
@@ -131,7 +136,7 @@ export function AtmosphericBackground() {
 
       {/* Orb 3: Central Deep Amber Warmth Breathing Pulsar */}
       <div
-        className="absolute top-[40%] left-[30%] w-[450px] h-[450px] rounded-full opacity-25 blur-[120px] animate-orb-drift-3 pointer-events-none"
+        className="absolute top-0 [translate:0_40cqh] left-[30%] w-[450px] h-[450px] rounded-full opacity-25 blur-[120px] animate-orb-drift-3 pointer-events-none"
         style={{
           background: "radial-gradient(circle, rgba(199, 167, 108, 0.14) 0%, rgba(217, 74, 58, 0.05) 50%, transparent 75%)",
         }}
@@ -144,10 +149,10 @@ export function AtmosphericBackground() {
       />
 
       {/* 3. Giant Subtle Japanese Calligraphy Watermarks (Moving with the page) */}
-      <div className="absolute top-[12%] right-[5%] font-serif text-[180px] sm:text-[240px] font-bold text-white/[0.02] animate-kanji-float pointer-events-none leading-none select-none">
+      <div className="absolute top-0 [translate:0_12cqh] right-[5%] font-serif text-[180px] sm:text-[240px] font-bold text-white/[0.02] animate-kanji-float pointer-events-none leading-none select-none">
         蒐集
       </div>
-      <div className="absolute bottom-[20%] left-[4%] font-serif text-[140px] sm:text-[190px] font-bold text-white/[0.015] animate-kanji-float-reverse pointer-events-none leading-none select-none">
+      <div className="absolute top-0 [translate:0_calc(80cqh_-_100%)] left-[4%] font-serif text-[140px] sm:text-[190px] font-bold text-white/[0.015] animate-kanji-float-reverse pointer-events-none leading-none select-none">
         幽玄
       </div>
 

@@ -41,9 +41,9 @@ const shippori = localFont({
   ],
   variable: "--font-shippori",
   display: "swap",
-  // Decorative only (watermarks, seals, kanji accents), so it is not worth
-  // holding up the first paint for: it arrives when first used.
-  preload: false,
+  // Kept preloaded: the giant background kanji are set in this face, and when
+  // it arrived late they reflowed as it swapped in, which Lighthouse measured
+  // as a layout shift of over 1.0 on a throttled phone.
   // Any character outside the subset lands here rather than on a blank box.
   fallback: ["Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", "serif"],
 });
@@ -53,8 +53,6 @@ const jetbrains = JetBrains_Mono({
   variable: "--font-mono",
   weight: ["400", "500"],
   display: "swap",
-  // Small labels and prices, none of them the largest paint: not preloaded.
-  preload: false,
 });
 
 // The three layers of the opening animation, with the exact sizes and quality

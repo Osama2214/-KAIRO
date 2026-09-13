@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import storeMark from "../../public/animeverse-mark.png";
@@ -59,10 +59,13 @@ export function Navbar() {
     return () => window.removeEventListener("hashchange", updateHash);
   }, [pathname]);
 
-  // Keyboard shortcut listener for Command/Ctrl + K
+  // Ctrl+K (⌘K on a Mac) opens search from anywhere on the site. Matched on the
+  // physical key rather than the character it types: with an Arabic layout
+  // active the K key produces "ن", and with Caps Lock it produces "K", so a
+  // check for "k" silently did nothing for a large share of visitors.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && (e.code === "KeyK" || e.key.toLowerCase() === "k")) {
         e.preventDefault();
         openSearch();
       }
@@ -70,6 +73,14 @@ export function Navbar() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [openSearch]);
+
+  // The hint shows the shortcut this visitor actually has.
+  const isMac = useSyncExternalStore(
+    () => () => {},
+    () => /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent),
+    () => false
+  );
+  const shortcutLabel = isMac ? "⌘K" : "Ctrl K";
 
   const navLinks = [
     { label: t.nav.manga, href: "/manga", kanji: "漫画" },
@@ -265,12 +276,13 @@ export function Navbar() {
             <button
               onClick={openSearch}
               className="h-8 w-8 sm:h-9 sm:w-auto sm:px-2.5 flex items-center justify-center gap-2 text-paper-muted/80 hover:text-gold transition-all rounded-sm hover:bg-ink-surface/80 border border-transparent hover:border-ink-border/60 focus:outline-none cursor-pointer"
-              title="Search (⌘K)"
+              title={`${locale === "ar" ? "بحث" : "Search"} (${shortcutLabel})`}
               aria-label="Search manga catalog"
+              aria-keyshortcuts={isMac ? "Meta+K" : "Control+K"}
             >
               <Search strokeWidth={1.5} className="w-[17px] h-[17px] sm:w-[18px] sm:h-[18px]" />
-              <span className="hidden 2xl:inline-flex items-center px-1.5 py-0.5 rounded-xs bg-ink-surface border border-ink-border/80 text-[10px] font-mono tracking-wider text-text-muted">
-                ⌘K
+              <span className="hidden 2xl:inline-flex items-center px-1.5 py-0.5 rounded-xs bg-ink-surface border border-ink-border/80 text-[10px] font-mono tracking-wider text-text-muted" dir="ltr">
+                {shortcutLabel}
               </span>
             </button>
 

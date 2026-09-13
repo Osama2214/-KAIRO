@@ -9,7 +9,6 @@ import {
   useStorefrontStore,
 } from "@/store/useStorefrontStore";
 import { useTranslation } from "@/hooks/useTranslation";
-import { useMounted } from "@/store/useWishlistStore";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { ShopProductCard } from "@/components/shop/ShopProductCard";
 import { isMerch, withVariantSummary } from "@/lib/variants";
@@ -22,7 +21,6 @@ import { isMerch, withVariantSummary } from "@/lib/variants";
 export function ShopShowcase() {
   const { locale, isRTL } = useTranslation();
   const isArabic = locale === "ar";
-  const mounted = useMounted();
   const volumes = useStorefrontStore((state) => state.volumes);
   const config = { ...DEFAULT_SHOP_SHOWCASE_CONFIG, ...useStorefrontStore((state) => state.shopShowcaseConfig) };
   const arabic = { ...DEFAULT_SHOP_SHOWCASE_ARABIC_CONFIG, ...useStorefrontStore((state) => state.shopShowcaseArabicConfig) };
@@ -43,7 +41,9 @@ export function ShopShowcase() {
     return all.length >= 4 ? all.slice(0, all.length - (all.length % 4)) : all;
   }, [volumes, productIds, maxCards]);
 
-  if (!mounted || !config.enabled || items.length === 0) return null;
+  // Rendered on the server too: mounting it only in the browser made the page
+  // grow after load, which moved everything positioned against its height.
+  if (!config.enabled || items.length === 0) return null;
 
   const badge = isArabic ? arabic.badgeText : config.badgeText;
   const headline = isArabic ? arabic.headline : config.headline;
