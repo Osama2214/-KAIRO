@@ -113,6 +113,7 @@ function MerchFormDialog({
   const [synopsisAr, setSynopsisAr] = useState(initialProduct?.synopsisAr || "");
   const [promo, setPromo] = useState(initialProduct?.promo);
   const [isFeatured, setIsFeatured] = useState(Boolean(initialProduct?.isFeatured));
+  const [comingSoon, setComingSoon] = useState(Boolean(initialProduct?.comingSoon));
   const [rating, setRating] = useState<number>(initialProduct?.rating ?? 0);
   const [reviewCount, setReviewCount] = useState<number>(initialProduct?.reviewCount ?? 0);
   const [errors, setErrors] = useState<string[]>([]);
@@ -264,6 +265,7 @@ function MerchFormDialog({
       synopsisAr: synopsisAr.trim(),
       promo: promo?.percent && promo?.endsAt ? { ...promo, percent: Number(promo.percent) } : undefined,
       isFeatured,
+      comingSoon,
       isTrending: false,
       isNewRelease: false,
       rating: Math.max(0, Math.min(5, Number(rating) || 0)),
@@ -647,6 +649,10 @@ function MerchFormDialog({
 
           <Section index="07" title="Visibility & Rating">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <label className="flex items-center gap-2.5 p-3 border border-gold/30 rounded-sm bg-gold/5 cursor-pointer hover:border-gold/60 md:col-span-1">
+                <input type="checkbox" checked={comingSoon} onChange={(e) => setComingSoon(e.target.checked)} className="accent-gold w-4 h-4 cursor-pointer" />
+                <span className="text-paper">Coming soon — visible, wishlist only</span>
+              </label>
               <label className="flex items-center gap-2.5 p-3 border border-ink-border rounded-sm bg-ink cursor-pointer hover:border-gold/50 md:col-span-1">
                 <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} className="accent-gold w-4 h-4 cursor-pointer" />
                 <span className="text-paper">Featured (shown first)</span>

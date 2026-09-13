@@ -236,6 +236,9 @@ export async function reserveCatalogItems(rawItems: Array<{ id: string; quantity
   if (unknownRequested.length > 0) {
     throw new CatalogReservationError("One or more items are no longer available.");
   }
+  if (requestedIds.some((id) => Boolean((byId.get(id) as unknown as MangaVolume).comingSoon))) {
+    throw new CatalogReservationError("One or more items are coming soon and cannot be ordered yet.");
+  }
 
   const { units, unknown } = expandToPhysicalUnits(
     requestedIds.map((id) => ({ id, quantity: requestedMap.get(id) as number })),
@@ -261,7 +264,9 @@ export async function reserveCatalogItems(rawItems: Array<{ id: string; quantity
       SELECT catalog.id
       FROM kairo_catalog_items AS catalog
       JOIN requested ON requested.id = catalog.id
-      WHERE catalog.active = TRUE AND catalog.stock >= requested.quantity
+      WHERE catalog.active = TRUE
+        AND catalog.stock >= requested.quantity
+        AND catalog.payload->>'comingSoon' IS DISTINCT FROM 'true'
     ), updated AS (
       UPDATE kairo_catalog_items AS catalog
       SET stock = catalog.stock - requested.quantity, updated_at = NOW()

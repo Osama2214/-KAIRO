@@ -83,7 +83,7 @@ export function HomeExtrasLiveEditModal({
           {section === "franchises" && (
             <div className="space-y-3">
               <span className="text-gold uppercase tracking-wider">Card artwork per franchise</span>
-              <p className="text-[10px] text-text-muted">Leave empty to use the series banner. Portrait images (4:5) look best.</p>
+              <p className="text-[10px] text-text-muted">Optional home-page override. Leave empty to use the series&apos; Shop by Franchise image, then its banner. Portrait images (4:5) look best.</p>
               {franchises.map((f) => (
                 <ImageUploadInput
                   key={f.key}

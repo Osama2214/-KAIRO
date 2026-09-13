@@ -833,7 +833,11 @@ function MangaCatalogContent() {
                             DELUXE
                           </span>
                         )}
-                        {volume.stock <= 0 && (
+                        {volume.comingSoon ? (
+                          <span className="px-2 py-0.5 rounded-xs bg-gold/15 border border-gold/60 text-[8px] font-mono font-bold tracking-wider text-gold uppercase">
+                            {isArabic ? "قريبًا" : "COMING SOON"}
+                          </span>
+                        ) : volume.stock <= 0 && (
                           <span className="px-2 py-0.5 rounded-xs bg-red-950/90 border border-red-800/80 text-[8px] font-mono font-bold tracking-wider text-red-400 uppercase">
                             {isArabic ? "نفد من المخزن" : "OUT OF STOCK"}
                           </span>
@@ -917,7 +921,11 @@ function MangaCatalogContent() {
                             </span>
                           )}
                         </div>
-                        {volume.stock <= 0 ? (
+                        {volume.comingSoon ? (
+                          <button type="button" disabled className="grow basis-auto px-3 py-2 bg-gold/10 border border-gold/40 text-gold text-[9px] font-mono font-bold tracking-widest uppercase rounded-sm cursor-not-allowed whitespace-nowrap">
+                            {isArabic ? "أضف للمفضلة" : "SAVE TO WISHLIST"}
+                          </button>
+                        ) : volume.stock <= 0 ? (
                           <button
                             type="button"
                             disabled

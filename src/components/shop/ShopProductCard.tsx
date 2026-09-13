@@ -45,6 +45,7 @@ export function ShopProductCard({
   const book = isBook(item);
   const franchise = book ? item.seriesTitle : (isArabic && item.merch?.franchiseAr) || item.merch?.franchise || "";
   const soldOut = item.stock <= 0;
+  const comingSoon = Boolean(item.comingSoon);
   const single = variants.length === 1 ? variants[0] : null;
   const directAdd = book || Boolean(single);
 
@@ -80,7 +81,11 @@ export function ShopProductCard({
             {volumeBadgeLabel(item, isArabic)}
           </span>
           {!home && <PromoBadge volume={item} isArabic={isArabic} />}
-          {soldOut && (
+          {comingSoon ? (
+            <span className="px-2 py-0.5 rounded-xs bg-gold/15 border border-gold/60 text-[8px] font-mono font-bold tracking-wider text-gold uppercase">
+              {isArabic ? "قريبًا" : "COMING SOON"}
+            </span>
+          ) : soldOut && (
             <span className="px-2 py-0.5 rounded-xs bg-red-950/90 border border-red-800/80 text-[8px] font-mono font-bold tracking-wider text-red-400 uppercase">
               {isArabic ? "نفد من المخزن" : "OUT OF STOCK"}
             </span>
@@ -150,7 +155,11 @@ export function ShopProductCard({
             )}
             <PriceTag volume={item} isArabic={isArabic} showTimer={false} />
           </div>
-          {soldOut ? (
+          {comingSoon ? (
+            <button type="button" disabled className="grow basis-auto px-3 py-2 bg-gold/10 border border-gold/40 text-gold text-[9px] font-mono font-bold tracking-widest uppercase rounded-sm cursor-not-allowed whitespace-nowrap">
+              {isArabic ? "أضف للمفضلة" : "WISHLIST IT"}
+            </button>
+          ) : soldOut ? (
             <button
               type="button"
               disabled

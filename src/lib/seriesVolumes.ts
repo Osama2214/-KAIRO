@@ -17,8 +17,27 @@
  * it on arrival, which costs one pass over the catalogue and cannot go stale.
  */
 
-type VolumeRecord = { id?: unknown; seriesSlug?: unknown };
+type VolumeRecord = { id?: unknown; seriesSlug?: unknown; volumeNumber?: unknown };
 type SeriesRecord = { slug?: unknown; volumes?: unknown };
+
+/**
+ * Returns a new list in reading order without changing the catalogue array.
+ *
+ * Catalogue rows can be entered or imported in any order.  A series archive
+ * must always begin with a possible Volume 0, then continue numerically to
+ * the final volume.  Entries with no usable number are retained at the end
+ * instead of being silently hidden.
+ */
+export function sortVolumesByNumber<V extends VolumeRecord>(volumes: readonly V[]): V[] {
+  const numberOf = (volume: V) => {
+    const number = typeof volume.volumeNumber === "number"
+      ? volume.volumeNumber
+      : Number(volume.volumeNumber);
+    return Number.isFinite(number) ? number : Number.POSITIVE_INFINITY;
+  };
+
+  return [...volumes].sort((a, b) => numberOf(a) - numberOf(b));
+}
 
 /**
  * Drops the nested copies before a payload is stored or sent. Anything reading

@@ -18,6 +18,7 @@ import { usePaginatedImagePrefetch } from "@/hooks/useImagePrefetch";
 import Link from "next/link";
 import { ShopProductCard } from "@/components/shop/ShopProductCard";
 import { franchiseKey, merchForSeries } from "@/lib/franchise";
+import { sortVolumesByNumber } from "@/lib/seriesVolumes";
 
 interface SeriesPageProps {
   params: Promise<{ slug: string }>;
@@ -52,7 +53,11 @@ function SeriesView({ series }: { series: Series }) {
   const seriesEntries = activeVolumes.filter((v) => v.seriesSlug === series.slug);
   // A box set is a way to buy the books, not a book — it does not belong in the
   // volume grid, the volume count, or the average rating.
-  const seriesVolumes = seriesEntries.filter((v) => v.format !== "Box Set");
+  // Catalogue imports and curator edits are not guaranteed to arrive in
+  // reading order. Keep the archive chronological from Volume 0 onward.
+  const seriesVolumes = sortVolumesByNumber(
+    seriesEntries.filter((v) => v.format !== "Box Set")
+  );
   const seriesBoxes = seriesEntries.filter((v) => v.format === "Box Set");
 
   // The star row used to read a hard-coded 4.9 regardless of the catalogue.
@@ -191,7 +196,7 @@ function SeriesView({ series }: { series: Series }) {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 sm:gap-3">
               <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-xs bg-vermilion/90 text-white font-mono text-[9px] sm:text-[10px] tracking-widest uppercase">
-                {isArabic ? (series.status === "Ongoing" ? "مستمرة" : "مكتملة") : series.status}
+                {series.comingSoon ? (isArabic ? "قريبًا" : "COMING SOON") : isArabic ? (series.status === "Ongoing" ? "مستمرة" : "مكتملة") : series.status}
               </span>
               <span className="text-xs font-serif text-gold tracking-widest">
                 {series.japaneseTitle}
@@ -309,7 +314,11 @@ function SeriesView({ series }: { series: Series }) {
                   <span className="px-1.5 sm:px-2 py-0.5 rounded-xs bg-ink/90 backdrop-blur-md text-[8px] sm:text-[9px] font-mono tracking-wider text-gold border border-ink-border">
                     {isArabic ? "المجلد" : "VOL."} {volume.volumeNumber < 10 ? `0${volume.volumeNumber}` : volume.volumeNumber}
                   </span>
-                  {volume.stock <= 0 && (
+                  {volume.comingSoon ? (
+                    <span className="px-1.5 py-0.5 rounded-xs bg-gold/15 border border-gold/60 text-[7px] sm:text-[8px] font-mono font-bold tracking-wider text-gold uppercase">
+                      {isArabic ? "قريبًا" : "COMING SOON"}
+                    </span>
+                  ) : volume.stock <= 0 && (
                     <span className="px-1.5 py-0.5 rounded-xs bg-red-950/90 border border-red-800/80 text-[7px] sm:text-[8px] font-mono font-bold tracking-wider text-red-400 uppercase">
                       {isArabic ? "نفد" : "OUT OF STOCK"}
                     </span>
@@ -376,7 +385,11 @@ function SeriesView({ series }: { series: Series }) {
                       </span>
                     )}
                   </span>
-                  {volume.stock <= 0 ? (
+                  {volume.comingSoon ? (
+                    <span className="px-2 py-0.5 bg-gold/10 border border-gold/40 text-gold text-[8px] sm:text-[9px] font-mono font-bold uppercase rounded-xs">
+                      {isArabic ? "قريبًا" : "COMING SOON"}
+                    </span>
+                  ) : volume.stock <= 0 ? (
                     <span className="px-2 py-0.5 bg-ink-surface/90 border border-ink-border text-text-muted text-[8px] sm:text-[9px] font-mono font-bold uppercase rounded-xs cursor-not-allowed opacity-80">
                       {isArabic ? "نفد" : "OUT"}
                     </span>

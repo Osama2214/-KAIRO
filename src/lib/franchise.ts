@@ -51,7 +51,9 @@ export function buildFranchises(volumes: MangaVolume[], seriesList: Series[]): F
     byKey.set(key, {
       key,
       name: series.title,
-      image: series.bannerImage || series.featuredImage,
+      // The home card has its own portrait artwork when the curator provides
+      // one. Older series keep their existing banner fallback unchanged.
+      image: series.franchiseImage?.trim() || series.bannerImage || series.featuredImage,
       seriesSlug: series.slug,
       bookCount,
       merchCount: 0,

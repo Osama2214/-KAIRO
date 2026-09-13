@@ -49,6 +49,8 @@ function SeriesFormDialog({
       quote: "",
       bannerImage: PLACEHOLDER_BANNER,
       featuredImage: PLACEHOLDER_COVER,
+      franchiseImage: "",
+      comingSoon: false,
       status: "Ongoing",
       totalVolumes: 1,
       volumes: [],
@@ -138,6 +140,8 @@ function SeriesFormDialog({
       quote: formData.quote || "",
       bannerImage: formData.bannerImage || "",
       featuredImage: formData.featuredImage || "",
+      franchiseImage: formData.franchiseImage?.trim() || "",
+      comingSoon: Boolean(formData.comingSoon),
       status: (formData.status as Series["status"]) || "Ongoing",
       totalVolumes: Number(formData.totalVolumes) || 1,
       volumes: initialSeries?.volumes || [],
@@ -482,6 +486,21 @@ function SeriesFormDialog({
               recommendedDimensions="800 × 1200 px (3:4 or 2:3 Poster)"
               helpText="Vertical poster for catalog cards"
             />
+
+            <ImageUploadInput
+              label="Shop by Franchise Card Artwork"
+              value={formData.franchiseImage || ""}
+              onChange={(url) => setFormData({ ...formData, franchiseImage: url })}
+              placeholder="Optional — uses the banner artwork when empty (Rec: 1000 × 1250 px)"
+              aspectRatio="cover"
+              recommendedDimensions="1000 × 1250 px (4:5)"
+              helpText="Portrait image shown on the home page's Shop by Franchise card. Leave empty to keep the series banner."
+            />
+
+            <label className="flex items-center gap-2.5 p-3 border border-gold/30 rounded-sm bg-gold/5 cursor-pointer hover:border-gold/60">
+              <input type="checkbox" checked={formData.comingSoon || false} onChange={(e) => setFormData({ ...formData, comingSoon: e.target.checked })} className="accent-gold w-4 h-4 cursor-pointer" />
+              <span className="text-paper">Coming soon — show this series as an upcoming release</span>
+            </label>
             </div>
           </div>
 

@@ -16,7 +16,8 @@ import { buildFranchises } from "@/lib/franchise";
  * in a single sliding row that works like Trending Now. A series card opens
  * the series page (which lists its merchandise too); a franchise with only
  * merchandise opens the shop filtered to it. The curator can give each
- * franchise its own card artwork; otherwise the series banner is used.
+ * franchise its own card artwork; otherwise the series' card image, then its
+ * banner, is used.
  */
 export function FranchiseShowcase() {
   const router = useRouter();

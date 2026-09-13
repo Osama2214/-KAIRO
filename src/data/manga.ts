@@ -122,6 +122,8 @@ export interface MangaVolume {
   isTrending?: boolean;
   isNewRelease?: boolean;
   isFeatured?: boolean;
+  /** Announced item: visible and wish-listable, but not available for checkout yet. */
+  comingSoon?: boolean;
   /**
    * Extra spellings the search should answer to — an Arabic
    * transliteration, a nickname, a common misspelling. Never displayed.
@@ -153,6 +155,10 @@ export interface Series {
   quote: string;
   bannerImage: string;
   featuredImage: string;
+  /** Portrait artwork for the home page's Shop by Franchise card. Falls back to the banner. */
+  franchiseImage?: string;
+  /** Shows the series as an upcoming release. */
+  comingSoon?: boolean;
   status: "Ongoing" | "Completed";
   totalVolumes: number;
   volumes: MangaVolume[];

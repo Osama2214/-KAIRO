@@ -88,6 +88,7 @@ function VolumeFormDialog({
       isTrending: false,
       isNewRelease: true,
       isFeatured: false,
+      comingSoon: false,
       previewPages: [],
     };
   });
@@ -445,6 +446,7 @@ function VolumeFormDialog({
       isTrending: Boolean(formData.isTrending),
       isNewRelease: Boolean(formData.isNewRelease),
       isFeatured: Boolean(formData.isFeatured),
+      comingSoon: Boolean(formData.comingSoon),
       previewPages: parsedPreviews,
     };
 
@@ -1232,6 +1234,10 @@ function VolumeFormDialog({
               <span><span className="text-gold/70">05.</span> Merchandising Flags</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <label className="flex items-center gap-2.5 p-3 border border-gold/30 rounded-sm bg-gold/5 cursor-pointer hover:border-gold/60">
+                <input type="checkbox" checked={formData.comingSoon || false} onChange={(e) => setFormData({ ...formData, comingSoon: e.target.checked })} className="accent-gold w-4 h-4 cursor-pointer" />
+                <span className="text-paper">Coming soon — visible, wishlist only</span>
+              </label>
               <label className="flex items-center gap-2.5 p-3 border border-ink-border rounded-sm bg-ink cursor-pointer hover:border-gold/50">
                 <input
                   type="checkbox"
