@@ -1,16 +1,18 @@
 import React from "react";
+import dynamic from "next/dynamic";
 import { Hero } from "@/components/Hero";
 import { TickerBar } from "@/components/TickerBar";
 import { TrendingCarousel } from "@/components/TrendingCarousel";
 import { NewReleases } from "@/components/NewReleases";
-import { BoxSets } from "@/components/BoxSets";
-import { ShopShowcase } from "@/components/ShopShowcase";
-import { GenreBento } from "@/components/GenreBento";
-import { FeaturedSeries } from "@/components/FeaturedSeries";
-import { MangaDiscovery } from "@/components/MangaDiscovery";
 import { DealsSection } from "@/components/home/DealsSection";
-import { FranchiseShowcase } from "@/components/home/FranchiseShowcase";
 import { ForYouSection } from "@/components/home/ForYouSection";
+
+const BoxSets = dynamic(() => import("@/components/BoxSets").then((m) => m.BoxSets));
+const ShopShowcase = dynamic(() => import("@/components/ShopShowcase").then((m) => m.ShopShowcase));
+const FranchiseShowcase = dynamic(() => import("@/components/home/FranchiseShowcase").then((m) => m.FranchiseShowcase));
+const GenreBento = dynamic(() => import("@/components/GenreBento").then((m) => m.GenreBento));
+const FeaturedSeries = dynamic(() => import("@/components/FeaturedSeries").then((m) => m.FeaturedSeries));
+const MangaDiscovery = dynamic(() => import("@/components/MangaDiscovery").then((m) => m.MangaDiscovery));
 
 export default function HomePage() {
   return (

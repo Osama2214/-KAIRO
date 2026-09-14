@@ -10,8 +10,9 @@ import { StorefrontShell } from "@/components/StorefrontShell";
 import { getStorefrontSnapshot } from "@/lib/storefrontSnapshot";
 import { MangaReaderModal } from "@/components/MangaReaderModal";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
-import { SITE_URL, SITE_NAME, DEFAULT_OG_IMAGE, getStoreProfile, jsonLdHtml } from "@/lib/seo";
+import { SITE_URL, SITE_NAME, DEFAULT_OG_IMAGE, jsonLdHtml, storeProfileFromSnapshot } from "@/lib/seo";
 import { slimVolume } from "@/lib/catalogDetails";
+import { extractEssentialVolumes } from "@/lib/essentialVolumes";
 import type { MangaVolume } from "@/data/manga";
 
 const manrope = Manrope({
@@ -125,13 +126,19 @@ export default async function RootLayout({
   // what the shop sells, instead of the copy compiled into the bundle at build
   // time and corrected a fetch later.
   const snapshot = await getStorefrontSnapshot();
-  // Without the long per-product text: a product page adds its own back (see
-  // lib/catalogDetails.ts), and no other page shows it.
-  const catalog =
+  // Instead of sending the full ~500-product archive in every page's initial HTML payload,
+  // we extract and slim only the essential home products (~35-45 items).
+  // The full catalogue is hydrated on-demand in the background by StorefrontDataSync via /api/storefront.
+  const essentialVolumes =
     snapshot && Array.isArray(snapshot.volumes)
-      ? { ...snapshot, volumes: (snapshot.volumes as MangaVolume[]).map(slimVolume) }
-      : snapshot;
-  const profile = await getStoreProfile();
+      ? extractEssentialVolumes(snapshot.volumes as MangaVolume[], snapshot).map(slimVolume)
+      : [];
+  const catalog = snapshot
+    ? { ...snapshot, volumes: essentialVolumes }
+    : snapshot;
+  // The profile is inside the snapshot already used to seed the storefront.
+  // Derive it locally so a cold request never needs a second catalogue lookup.
+  const profile = storeProfileFromSnapshot(snapshot);
 
   // Who the store is, for search engines and AI assistants: the business, its
   // contact details and social profiles, and the site it runs.

@@ -3,7 +3,7 @@
 import { PriceTag, PromoBadge } from "@/components/PriceTag";
 import React, { useCallback } from "react";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { ChevronLeft, ChevronRight, ShoppingBag, Layers } from "lucide-react";
@@ -24,7 +24,6 @@ import { StarRating } from "@/components/StarRating";
  * point of the card: every tile leads with the discount rather than burying it.
  */
 export function BoxSets() {
-  const router = useRouter();
   const { locale, isRTL } = useTranslation();
   const isArabic = locale === "ar";
   const addItem = useCartStore((state) => state.addItem);
@@ -86,14 +85,15 @@ export function BoxSets() {
     pointerStartPos.current = { x: e.clientX, y: e.clientY };
   };
 
-  // Navigate only if the interaction was a clean click, not a swipe or drag
-  const handleCardClick = (e: React.MouseEvent, volumeId: string) => {
+  // Prevent link navigation if the interaction was a swipe or drag
+  const handleCardLinkClick = (e: React.MouseEvent) => {
     if (pointerStartPos.current) {
       const dx = Math.abs(e.clientX - pointerStartPos.current.x);
       const dy = Math.abs(e.clientY - pointerStartPos.current.y);
-      if (dx > 8 || dy > 8) return;
+      if (dx > 8 || dy > 8) {
+        e.preventDefault();
+      }
     }
-    router.push(`/manga/${volumeId}`);
   };
 
   const handleQuickAdd = (e: React.MouseEvent, volume: MangaVolume) => {
@@ -179,17 +179,15 @@ export function BoxSets() {
                 >
                   <div
                     onPointerDown={handlePointerDown}
-                    onClick={(e) => handleCardClick(e, volume.id)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        router.push(`/manga/${volume.id}`);
-                      }
-                    }}
-                    className="group relative bg-ink-surface/50 border border-ink-border/80 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between h-full cursor-pointer hover:shadow-2xl hover:shadow-black/70"
+                    className="group relative bg-ink-surface/50 border border-ink-border/80 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between h-full hover:shadow-2xl hover:shadow-black/70 select-none"
                   >
+                    <Link
+                      href={`/manga/${volume.id}`}
+                      prefetch={true}
+                      className="absolute inset-0 z-0 focus:outline-none"
+                      aria-label={volume.title}
+                      onClick={handleCardLinkClick}
+                    />
                     {/* Cover Image Container */}
                     <div className="relative aspect-[3/4] overflow-hidden bg-ink">
                       <AnimeVerseImage

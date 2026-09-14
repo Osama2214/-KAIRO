@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Filter,
   SlidersHorizontal,
@@ -793,17 +794,14 @@ function MangaCatalogContent() {
                 {paginatedVolumes.map((volume) => (
                   <div
                     key={volume.id}
-                    onClick={() => handleCardClick(volume.id)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        handleCardClick(volume.id);
-                      }
-                    }}
-                    className="group bg-ink-surface/40 border border-ink-border/70 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:shadow-xl hover:shadow-black/50 select-none"
+                    className="group relative bg-ink-surface/40 border border-ink-border/70 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between hover:shadow-xl hover:shadow-black/50 select-none"
                   >
+                    <Link
+                      href={`/manga/${volume.id}`}
+                      prefetch={true}
+                      className="absolute inset-0 z-0 focus:outline-none"
+                      aria-label={volume.title}
+                    />
                     {/* Media */}
                     <div className="relative aspect-[3/4] overflow-hidden bg-ink">
                       <AnimeVerseImage

@@ -276,6 +276,16 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    // Native touch scrolling is faster and more battery-friendly than a
+    // perpetual JavaScript animation loop. Keep Lenis for pointer devices,
+    // where smooth wheel scrolling is the feature it is meant to provide.
+    if (
+      window.matchMedia?.("(pointer: coarse)").matches ||
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
+
     // Disable default browser scroll jumping to allow Lenis restoration
     try {
       if ("scrollRestoration" in window.history) {
@@ -300,7 +310,50 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
       typeof window !== "undefined" &&
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-    // Initialize Lenis with fast, snappy, responsive velocity settings
+    // On touch devices and mobile screens, mobile OS momentum scrolling is hardware-
+    // accelerated at 120Hz. Running Lenis, rAF loops, MutationObservers and ResizeObservers
+    // on mobile adds unnecessary CPU load, causes scroll lag, and drains battery.
+    const isTouchOrMobile =
+      typeof window !== "undefined" &&
+      (window.matchMedia?.("(pointer: coarse)").matches ||
+       window.innerWidth < 768 ||
+       "ontouchstart" in window);
+
+    if (prefersReducedMotion || isTouchOrMobile) {
+      const handleNativeScroll = () => {
+        if (isRestoringRef.current) return;
+        const currentY = Math.round(window.scrollY);
+        if (currentY <= 15 && !userIsScrollingRef.current) return;
+        const now = Date.now();
+        if (now - lastSavedTime.current > 75) {
+          lastSavedTime.current = now;
+          saveAnimeVerseScroll(pathnameRef.current, currentY);
+        }
+      };
+      window.addEventListener("scroll", handleNativeScroll, { passive: true });
+
+      const handleInteractiveClick = (e: MouseEvent) => {
+        const interactive = (e.target as HTMLElement).closest("a, button, [role='button']");
+        if (interactive) saveCurrentScroll();
+      };
+      document.addEventListener("click", handleInteractiveClick, { capture: true });
+      window.addEventListener("pagehide", saveCurrentScroll);
+      window.addEventListener("beforeunload", saveCurrentScroll);
+
+      const initialSavedY = getAnimeVerseSavedScroll(pathnameRef.current);
+      if (initialSavedY > 30) {
+        window.scrollTo({ top: initialSavedY, left: 0, behavior: "instant" as ScrollBehavior });
+      }
+
+      return () => {
+        window.removeEventListener("scroll", handleNativeScroll);
+        document.removeEventListener("click", handleInteractiveClick, { capture: true });
+        window.removeEventListener("pagehide", saveCurrentScroll);
+        window.removeEventListener("beforeunload", saveCurrentScroll);
+      };
+    }
+
+    // Initialize Lenis with fast, snappy, responsive velocity settings (Desktop only)
     const lenis = new Lenis({
       duration: prefersReducedMotion ? 0 : 0.55,
       smoothWheel: !prefersReducedMotion,

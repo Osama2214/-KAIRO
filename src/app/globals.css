@@ -409,6 +409,15 @@ input[type="number"] {
   animation: kanjiFloatReverse 20s ease-in-out infinite;
 }
 
+/* Decorative motion costs battery and compositing time on phones. The static
+   ink texture remains, but mobile and reduced-motion visitors do no continuous
+   canvas work or large blurred-layer animation. */
+@media (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .atmo-motion {
+    display: none;
+  }
+}
+
 
 /* ========================================================= */
 /* PRINT STYLESHEET: Clean 1-Page Invoice Printing           */

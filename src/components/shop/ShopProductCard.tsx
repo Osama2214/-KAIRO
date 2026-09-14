@@ -2,7 +2,6 @@
 
 import React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Heart, ShoppingBag } from "lucide-react";
 import type { MangaVolume } from "@/data/manga";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
@@ -32,7 +31,6 @@ export function ShopProductCard({
   layout?: "catalog" | "home";
 }) {
   const home = layout === "home";
-  const router = useRouter();
   const item = withVariantSummary(product);
   const variants = item.variants || [];
   const href = productHref(item);
@@ -52,17 +50,14 @@ export function ShopProductCard({
 
   return (
     <div
-      onClick={() => router.push(href)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          router.push(href);
-        }
-      }}
-      className={`group ${home ? "bg-ink-surface/30" : "bg-ink-surface/40"} border border-ink-border/70 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:shadow-xl hover:shadow-black/50 select-none`}
+      className={`group relative ${home ? "bg-ink-surface/30" : "bg-ink-surface/40"} border border-ink-border/70 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between hover:shadow-xl hover:shadow-black/50 select-none`}
     >
+      <Link
+        href={href}
+        prefetch={true}
+        className="absolute inset-0 z-0 focus:outline-none"
+        aria-label={item.title}
+      />
       <div className="relative aspect-[3/4] overflow-hidden bg-ink">
         <AnimeVerseImage
           src={item.coverImage}
@@ -125,11 +120,11 @@ export function ShopProductCard({
 
       <div className={`${home ? "p-4" : "p-3 sm:p-4"} flex flex-col justify-between flex-1`}>
         <div>
-          <span className={`${home ? "text-[10px]" : "text-[9px]"} font-mono tracking-widest text-gold uppercase block truncate`}>
+          <span className={`${home ? "text-[10px]" : "text-[9px]"} font-mono tracking-widest text-gold uppercase block truncate pointer-events-none`}>
             {franchise || volumeBadgeLabel(item, isArabic)}
           </span>
-          <h3 className={`text-xs sm:text-sm font-bold text-paper tracking-wide group-hover:text-gold transition-colors line-clamp-1 ${home ? "mt-1" : "mt-0.5"}`}>
-            <Link href={href} onClick={(e) => e.stopPropagation()}>{item.title}</Link>
+          <h3 className={`text-xs sm:text-sm font-bold text-paper tracking-wide group-hover:text-gold transition-colors line-clamp-1 pointer-events-none ${home ? "mt-1" : "mt-0.5"}`}>
+            {item.title}
           </h3>
           {home ? (
             // Same row as New Releases: stars and score.
@@ -188,13 +183,11 @@ export function ShopProductCard({
               {isArabic ? "أضف للسلة" : "ADD TO CART"}
             </button>
           ) : (
-            <Link
-              href={href}
-              onClick={(e) => e.stopPropagation()}
-              className="grow basis-auto px-3 py-2 bg-ink-elevated border border-ink-border hover:border-gold hover:text-gold text-paper text-[10px] font-mono font-bold tracking-wider uppercase transition-all rounded-sm flex items-center justify-center gap-1.5 shadow-sm active:scale-95 z-10 whitespace-nowrap"
+            <span
+              className="grow basis-auto px-3 py-2 bg-ink-elevated border border-ink-border hover:border-gold hover:text-gold text-paper text-[10px] font-mono font-bold tracking-wider uppercase transition-all rounded-sm flex items-center justify-center gap-1.5 shadow-sm active:scale-95 z-10 whitespace-nowrap pointer-events-none"
             >
               {isArabic ? "اختر" : "CHOOSE OPTION"}
-            </Link>
+            </span>
           )}
         </div>
       </div>

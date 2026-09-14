@@ -3,7 +3,6 @@
 import { useCatalogSearch } from "@/hooks/useCatalogSearch";
 import React, { useState, useMemo } from "react";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search, ArrowRight, Heart } from "lucide-react";
 import { MangaVolume } from "@/data/manga";
@@ -17,7 +16,6 @@ import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
 
 export function MangaDiscovery() {
-  const router = useRouter();
   const { locale, isRTL } = useTranslation();
   const isArabic = locale === "ar";
   const mangaDiscoveryConfig = useStorefrontStore((state) => state.mangaDiscoveryConfig);
@@ -155,17 +153,14 @@ export function MangaDiscovery() {
           {filteredItems.map((volume) => (
             <div
               key={volume.id}
-              onClick={() => router.push(productHref(volume))}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  router.push(productHref(volume));
-                }
-              }}
-              className="group bg-ink-surface/40 border border-ink-border/70 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:shadow-xl hover:shadow-black/50 select-none"
+              className="group relative bg-ink-surface/40 border border-ink-border/70 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between hover:shadow-xl hover:shadow-black/50 select-none"
             >
+              <Link
+                href={productHref(volume)}
+                prefetch={true}
+                className="absolute inset-0 z-0 focus:outline-none"
+                aria-label={volume.title}
+              />
               <div className="relative aspect-[3/4] overflow-hidden bg-ink">
                 <AnimeVerseImage
                   src={volume.coverImage}
@@ -243,13 +238,11 @@ export function MangaDiscovery() {
                     </span>
                   ) : isMerch(volume) && (volume.variants?.length || 0) !== 1 ? (
                     // Several sizes or editions: choose on the product page.
-                    <Link
-                      href={productHref(volume)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="px-2.5 sm:px-3 py-1 bg-ink border border-ink-border hover:border-gold hover:text-gold text-[9px] sm:text-[10px] font-bold uppercase transition-colors rounded-xs z-10 active:scale-95"
+                    <span
+                      className="px-2.5 sm:px-3 py-1 bg-ink border border-ink-border hover:border-gold hover:text-gold text-[9px] sm:text-[10px] font-bold uppercase transition-colors rounded-xs z-10 active:scale-95 pointer-events-none"
                     >
                       {isArabic ? "اختر" : "CHOOSE"}
-                    </Link>
+                    </span>
                   ) : (
                     <button
                       type="button"

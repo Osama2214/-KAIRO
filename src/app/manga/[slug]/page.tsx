@@ -98,10 +98,6 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
     }
   };
 
-  const handleCardClick = (volumeId: string) => {
-    router.push(`/manga/${volumeId}`);
-  };
-
   // Eight recommendations against four visible slots is twice the viewport,
   // which is what Embla needs before it will wrap instead of stopping at the
   // last card. Autoplay matches the rails on the home page, and pauses the
@@ -135,13 +131,12 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
   const handleRelatedPointerDown = (e: React.PointerEvent) => {
     dragStart.current = { x: e.clientX, y: e.clientY };
   };
-  const handleRelatedClick = (e: React.MouseEvent, volumeId: string) => {
+  const handleRelatedLinkClick = (e: React.MouseEvent) => {
     if (dragStart.current) {
       const dx = Math.abs(e.clientX - dragStart.current.x);
       const dy = Math.abs(e.clientY - dragStart.current.y);
-      if (dx > 8 || dy > 8) return;
+      if (dx > 8 || dy > 8) e.preventDefault();
     }
-    handleCardClick(volumeId);
   };
 
   /**
@@ -270,6 +265,7 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
                 alt={volume.title}
                 sizes="(max-width: 639px) 90vw, 448px"
                 preload
+                quality={90}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
               />
               {comingSoon && <ComingSoonRibbon isArabic={isArabic} />}
@@ -662,18 +658,16 @@ function MangaDetailView({ volume }: { volume: MangaVolume }) {
               <div
                 key={item.id}
                 onPointerDown={handleRelatedPointerDown}
-                onClick={(e) => handleRelatedClick(e, item.id)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    handleCardClick(item.id);
-                  }
-                }}
-                className={`flex-[0_0_50%] sm:flex-[0_0_33.333%] lg:flex-[0_0_25%] min-w-0 ${isRTL ? "pr-3 sm:pr-6" : "pl-3 sm:pl-6"} group bg-transparent cursor-pointer select-none`}
+                className={`flex-[0_0_50%] sm:flex-[0_0_33.333%] lg:flex-[0_0_25%] min-w-0 ${isRTL ? "pr-3 sm:pr-6" : "pl-3 sm:pl-6"} group bg-transparent select-none`}
               >
-              <div className="bg-ink-surface/40 border border-ink-border/70 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between h-full hover:shadow-xl hover:shadow-black/50">
+              <div className="relative bg-ink-surface/40 border border-ink-border/70 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between h-full hover:shadow-xl hover:shadow-black/50">
+                <Link
+                  href={`/manga/${item.id}`}
+                  prefetch={true}
+                  className="absolute inset-0 z-0 focus:outline-none"
+                  aria-label={item.title}
+                  onClick={handleRelatedLinkClick}
+                />
                 <div className="relative aspect-[3/4] overflow-hidden bg-ink">
                   <AnimeVerseImage
                     src={item.coverImage}

@@ -25,6 +25,7 @@ const MAX_PREFETCH = 24;
 type Connection = {
   saveData?: boolean;
   effectiveType?: string;
+  type?: string;
 };
 
 function connectionAllowsPrefetch(): boolean {
@@ -32,7 +33,12 @@ function connectionAllowsPrefetch(): boolean {
   const connection = (navigator as Navigator & { connection?: Connection }).connection;
   if (!connection) return true;
   if (connection.saveData) return false;
-  return !/(^|-)(slow-)?2g$/.test(connection.effectiveType || "");
+  // A next-page warmup is a convenience, never content the shopper asked
+  // for. The Network Information API is mainly exposed by mobile Chromium;
+  // unless it positively identifies Wi-Fi/Ethernet, save the bytes for the
+  // product the shopper actually opens. Browsers without this API retain the
+  // existing, best-effort desktop behaviour.
+  return connection.type === "wifi" || connection.type === "ethernet";
 }
 
 /**

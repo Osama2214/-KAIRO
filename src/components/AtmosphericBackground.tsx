@@ -22,6 +22,16 @@ export function AtmosphericBackground() {
   // Floating Golden Dust Motes / Particles Canvas
   useEffect(() => {
     if (!isClient) return;
+    // The canvas is decorative. On touch devices (and when the user has asked
+    // the browser to conserve data or motion) it needlessly keeps the CPU/GPU
+    // awake for the whole visit, so the static background is kept instead.
+    const connection = (navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string };
+    }).connection;
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const touchDevice = window.matchMedia?.("(pointer: coarse)").matches || window.innerWidth < 768;
+    if (reduceMotion || touchDevice || connection?.saveData || /(^|-)(slow-)?2g$/.test(connection?.effectiveType || "")) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -134,7 +144,7 @@ export function AtmosphericBackground() {
       {/* Vertical placement: see .atmo-layer in globals.css. */}
       {/* Orb 1: Archival Gold Glowing Nebula (Top Left to Center) */}
       <div
-        className="absolute atmo-orb-1 -left-[10%] w-[600px] h-[600px] rounded-full opacity-35 blur-[130px] animate-orb-drift-1 pointer-events-none"
+        className="atmo-motion absolute atmo-orb-1 -left-[10%] w-[600px] h-[600px] rounded-full opacity-35 blur-[130px] animate-orb-drift-1 pointer-events-none"
         style={{
           background: "radial-gradient(circle, rgba(199, 167, 108, 0.20) 0%, rgba(199, 167, 108, 0.04) 55%, transparent 75%)",
         }}
@@ -142,7 +152,7 @@ export function AtmosphericBackground() {
 
       {/* Orb 2: Japanese Vermilion Deep Glowing Nebula (Bottom Right to Center) */}
       <div
-        className="absolute atmo-orb-2 -right-[10%] w-[650px] h-[650px] rounded-full opacity-30 blur-[140px] animate-orb-drift-2 pointer-events-none"
+        className="atmo-motion absolute atmo-orb-2 -right-[10%] w-[650px] h-[650px] rounded-full opacity-30 blur-[140px] animate-orb-drift-2 pointer-events-none"
         style={{
           background: "radial-gradient(circle, rgba(217, 74, 58, 0.18) 0%, rgba(217, 74, 58, 0.03) 55%, transparent 80%)",
         }}
@@ -150,7 +160,7 @@ export function AtmosphericBackground() {
 
       {/* Orb 3: Central Deep Amber Warmth Breathing Pulsar */}
       <div
-        className="absolute atmo-orb-3 left-[30%] w-[450px] h-[450px] rounded-full opacity-25 blur-[120px] animate-orb-drift-3 pointer-events-none"
+        className="atmo-motion absolute atmo-orb-3 left-[30%] w-[450px] h-[450px] rounded-full opacity-25 blur-[120px] animate-orb-drift-3 pointer-events-none"
         style={{
           background: "radial-gradient(circle, rgba(199, 167, 108, 0.14) 0%, rgba(217, 74, 58, 0.05) 50%, transparent 75%)",
         }}
@@ -159,14 +169,14 @@ export function AtmosphericBackground() {
       {/* 2. Floating Golden Dust Motes / Particles Canvas */}
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 w-full h-full pointer-events-none opacity-80"
+        className="atmo-motion absolute inset-0 w-full h-full pointer-events-none opacity-80"
       />
 
       {/* 3. Giant Subtle Japanese Calligraphy Watermarks (Moving with the page) */}
-      <div className="absolute atmo-kanji-1 right-[5%] font-serif text-[180px] sm:text-[240px] font-bold text-white/[0.02] animate-kanji-float pointer-events-none leading-none select-none">
+      <div className="atmo-motion absolute atmo-kanji-1 right-[5%] font-serif text-[180px] sm:text-[240px] font-bold text-white/[0.02] animate-kanji-float pointer-events-none leading-none select-none">
         蒐集
       </div>
-      <div className="absolute atmo-kanji-2 left-[4%] font-serif text-[140px] sm:text-[190px] font-bold text-white/[0.015] animate-kanji-float-reverse pointer-events-none leading-none select-none">
+      <div className="atmo-motion absolute atmo-kanji-2 left-[4%] font-serif text-[140px] sm:text-[190px] font-bold text-white/[0.015] animate-kanji-float-reverse pointer-events-none leading-none select-none">
         幽玄
       </div>
 

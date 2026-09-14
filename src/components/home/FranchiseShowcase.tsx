@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -21,7 +21,6 @@ import { buildFranchises } from "@/lib/franchise";
  * banner, is used.
  */
 export function FranchiseShowcase() {
-  const router = useRouter();
   const { locale, isRTL } = useTranslation();
   const isArabic = locale === "ar";
   const volumes = useStorefrontStore((state) => state.volumes);
@@ -60,15 +59,14 @@ export function FranchiseShowcase() {
     emblaApi.plugins()?.autoplay?.reset();
   }, [emblaApi]);
 
-  // Navigate only on a clean click, not at the end of a swipe.
+  // Prevent navigation if the user was dragging/swiping
   const pointerStart = useRef<{ x: number; y: number } | null>(null);
-  const open = (e: React.MouseEvent, href: string) => {
+  const handleLinkClick = (e: React.MouseEvent) => {
     if (pointerStart.current) {
       const dx = Math.abs(e.clientX - pointerStart.current.x);
       const dy = Math.abs(e.clientY - pointerStart.current.y);
-      if (dx > 8 || dy > 8) return;
+      if (dx > 8 || dy > 8) e.preventDefault();
     }
-    router.push(href);
   };
 
   // Rendered on the server too, so the page does not grow after load.
@@ -132,17 +130,11 @@ export function FranchiseShowcase() {
                   key={f.key}
                   className={`flex-[0_0_72%] sm:flex-[0_0_50%] md:flex-[0_0_33.333%] lg:flex-[0_0_25%] min-w-0 ${isRTL ? "pr-3 sm:pr-6" : "pl-3 sm:pl-6"}`}
                 >
-                  <div
+                  <Link
+                    href={f.href}
+                    prefetch={true}
                     onPointerDown={(e) => (pointerStart.current = { x: e.clientX, y: e.clientY })}
-                    onClick={(e) => open(e, f.href)}
-                    role="link"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        router.push(f.href);
-                      }
-                    }}
+                    onClick={handleLinkClick}
                     className="group relative block aspect-[4/5] overflow-hidden rounded-sm border border-ink-border/80 bg-ink-surface/40 hover:border-gold/60 transition-all duration-300 cursor-pointer hover:shadow-2xl hover:shadow-black/70"
                   >
                     <AnimeVerseImage
@@ -159,7 +151,7 @@ export function FranchiseShowcase() {
                       </h3>
                       <p className="mt-1 text-[9px] sm:text-[10px] font-mono tracking-[0.2em] text-gold uppercase">{counts.join(" · ")}</p>
                     </div>
-                  </div>
+                  </Link>
                 </div>
               );
             })}

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { ALL_SERIES } from "@/data/manga";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
@@ -10,7 +10,6 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 
 export default function SeriesDirectoryPage() {
-  const router = useRouter();
   const { locale, isRTL } = useTranslation();
   const isArabic = locale === "ar";
   const allSeries = useStorefrontStore((state) => state.series);
@@ -44,17 +43,14 @@ export default function SeriesDirectoryPage() {
           {seriesList.map((series) => (
             <div
               key={series.slug}
-              onClick={() => router.push(`/series/${series.slug}`)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  router.push(`/series/${series.slug}`);
-                }
-              }}
-              className="group relative rounded-sm border border-ink-border/80 bg-ink-surface/40 hover:border-gold/60 transition-all duration-300 overflow-hidden cursor-pointer hover:shadow-2xl hover:shadow-black/70 flex flex-col justify-between select-none"
+              className="group relative rounded-sm border border-ink-border/80 bg-ink-surface/40 hover:border-gold/60 transition-all duration-300 overflow-hidden hover:shadow-2xl hover:shadow-black/70 flex flex-col justify-between select-none"
             >
+              <Link
+                href={`/series/${series.slug}`}
+                prefetch={true}
+                className="absolute inset-0 z-0 focus:outline-none"
+                aria-label={series.title}
+              />
               {/* Top Banner Image with Kanji Watermark */}
               <div className="relative h-44 xs:h-52 sm:h-64 md:h-72 overflow-hidden bg-ink">
                 <AnimeVerseImage

@@ -156,6 +156,7 @@ function ShopProductView({ product }: { product: MangaVolume }) {
                 alt={product.title}
                 sizes="(max-width: 639px) 90vw, 448px"
                 preload
+                quality={90}
                 className="w-full h-full object-cover"
               />
               {comingSoon && <ComingSoonRibbon isArabic={isArabic} />}

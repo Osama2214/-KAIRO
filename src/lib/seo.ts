@@ -53,20 +53,24 @@ export interface StoreProfile {
   sameAs: string[];
 }
 
+/** Pull the small public profile from a catalogue snapshot already in hand. */
+export function storeProfileFromSnapshot(data: Record<string, unknown> | null | undefined): StoreProfile {
+  const editorial = (data?.editorialConfig || {}) as Record<string, unknown>;
+  const text = (key: string) => (typeof editorial[key] === "string" ? String(editorial[key]).trim() : "");
+  return {
+    email: text("contactEmail"),
+    phone: text("contactPhone"),
+    sameAs: ["instagramUrl", "facebookUrl", "tiktokUrl", "youtubeUrl", "xUrl"]
+      .map(text)
+      .filter((url) => /^https?:\/\/\S+$/i.test(url)),
+  };
+}
+
 /** The store's public contact details and social profiles, as the curator set them. */
 export const getStoreProfile = cache(async (): Promise<StoreProfile> => {
   try {
     const { readStorefrontSnapshot } = await import("@/lib/storefrontSnapshot");
-    const data = await readStorefrontSnapshot();
-    const editorial = (data?.editorialConfig || {}) as Record<string, unknown>;
-    const text = (key: string) => (typeof editorial[key] === "string" ? String(editorial[key]).trim() : "");
-    return {
-      email: text("contactEmail"),
-      phone: text("contactPhone"),
-      sameAs: ["instagramUrl", "facebookUrl", "tiktokUrl", "youtubeUrl", "xUrl"]
-        .map(text)
-        .filter((url) => /^https?:\/\/\S+$/i.test(url)),
-    };
+    return storeProfileFromSnapshot(await readStorefrontSnapshot());
   } catch {
     return { email: "", phone: "", sameAs: [] };
   }

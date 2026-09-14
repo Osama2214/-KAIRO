@@ -3,7 +3,6 @@
 import { PriceTag, PromoBadge } from "@/components/PriceTag";
 import React from "react";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ShoppingBag, Eye, ArrowRight, Heart } from "lucide-react";
 import { ALL_VOLUMES, MangaVolume } from "@/data/manga";
@@ -18,7 +17,6 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { StarRating } from "@/components/StarRating";
 
 export function NewReleases() {
-  const router = useRouter();
   const { locale, isRTL } = useTranslation();
   const isArabic = locale === "ar";
   const addItem = useCartStore((state) => state.addItem);
@@ -62,10 +60,6 @@ export function NewReleases() {
 
     return [...tagged, ...fillers].slice(0, NEW_RELEASES_COUNT);
   }, [activeVolumes]);
-
-  const handleCardClick = (volumeId: string) => {
-    router.push(`/manga/${volumeId}`);
-  };
 
   const handleAddToCart = (e: React.MouseEvent, volume: MangaVolume) => {
     e.preventDefault();
@@ -111,17 +105,14 @@ export function NewReleases() {
           {newItems.map((volume) => (
             <div
               key={volume.id}
-              onClick={() => handleCardClick(volume.id)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  handleCardClick(volume.id);
-                }
-              }}
-              className="group bg-ink-surface/30 border border-ink-border/70 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:shadow-xl hover:shadow-black/50 select-none"
+              className="group relative bg-ink-surface/30 border border-ink-border/70 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between hover:shadow-xl hover:shadow-black/50 select-none"
             >
+              <Link
+                href={`/manga/${volume.id}`}
+                prefetch={true}
+                className="absolute inset-0 z-0 focus:outline-none"
+                aria-label={volume.title}
+              />
               {/* Cover Media */}
               <div className="relative aspect-[3/4] overflow-hidden bg-ink">
                 <AnimeVerseImage

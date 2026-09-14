@@ -103,12 +103,12 @@ type AnimeVerseImageProps = {
 /**
  * Product/editorial imagery served through Next's optimizer and cache.
  *
- * Quality defaults to 90 rather than Next's 75: these are book covers, and at
- * 75 webp puts visible ringing on the fine linework and flattens the gradients
- * on the artwork. 90 is indistinguishable from the original at the size a card
- * actually draws, and still a fraction of the full-resolution master.
+ * Cards are deliberately served at Next's 75 quality. At their small rendered
+ * size it preserves the cover artwork while keeping the dozens of images in a
+ * catalogue visit meaningfully lighter on a mobile connection. The few large,
+ * above-the-fold images opt into 90 explicitly at their call sites.
  */
-export function AnimeVerseImage({ src, alt, className, sizes, preload = false, quality = 90 }: AnimeVerseImageProps) {
+export function AnimeVerseImage({ src, alt, className, sizes, preload = false, quality = 75 }: AnimeVerseImageProps) {
   const retry = useImageRetry(src);
 
   return (

@@ -51,10 +51,10 @@ export function StorefrontDataSync() {
 
     const load = async () => {
       try {
-        // The server already sent the catalogue with the page, so re-fetching it
-        // would download the same ~70KB twice and could only ever tell us what
-        // we were told a moment ago.
-        if (!wasSeededFromServer()) {
+        // If the server seeded only the initial essential home volumes (~35-45 items),
+        // fetch the full catalogue in the background so search and archive browsing have all items.
+        const currentCount = useStorefrontStore.getState().volumes.length;
+        if (!wasSeededFromServer() || currentCount < 100) {
           const response = await fetch("/api/storefront");
           const payload = await response.json().catch(() => null);
           if (active && payload?.success && payload.data && typeof payload.data === "object") {
