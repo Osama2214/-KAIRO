@@ -163,7 +163,7 @@ export function BoxSets() {
           dir={isRTL ? "rtl" : "ltr"}
           className="overflow-hidden select-none cursor-grab active:cursor-grabbing pb-4"
         >
-          <div className={`flex ${isRTL ? "-mr-4 sm:-mr-6" : "-ml-4 sm:-ml-6"}`}>
+          <div className={`flex items-start lg:items-stretch ${isRTL ? "-mr-4 sm:-mr-6" : "-ml-4 sm:-ml-6"}`}>
             {boxSets.map((volume) => {
               const hasDiscount = Boolean(volume.originalPrice && volume.originalPrice > volume.price);
               const savedPercent = hasDiscount
@@ -179,7 +179,7 @@ export function BoxSets() {
                 >
                   <div
                     onPointerDown={handlePointerDown}
-                    className="mobile-scroll-card group relative bg-ink-surface/50 border border-ink-border/80 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between h-full hover:shadow-2xl hover:shadow-black/70 select-none"
+                    className="group self-start relative bg-ink-surface/50 border border-ink-border/80 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between h-auto lg:h-full hover:shadow-2xl hover:shadow-black/70 select-none"
                   >
                     <Link
                       href={`/manga/${volume.id}`}

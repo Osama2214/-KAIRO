@@ -77,7 +77,7 @@ export function GenreBento() {
             <Link
               key={genre.id}
               href={`/manga?genre=${genre.id}`}
-              className="mobile-scroll-card @container group relative h-56 sm:h-72 rounded-sm overflow-hidden border border-ink-border/70 hover:border-gold/60 transition-all duration-500 flex flex-col justify-end p-4 sm:p-6 bg-ink-surface active:scale-[0.99]"
+              className="@container group relative h-56 sm:h-72 rounded-sm overflow-hidden border border-ink-border/70 hover:border-gold/60 transition-all duration-500 flex flex-col justify-end p-4 sm:p-6 bg-ink-surface active:scale-[0.99]"
             >
               {/* Artwork Background with Zoom on Hover */}
               <div className="absolute inset-0 overflow-hidden">
