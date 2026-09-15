@@ -55,7 +55,7 @@ export function ShopProductCard({
       <Link
         href={href}
         prefetch="auto"
-        className="absolute inset-0 z-0 focus:outline-none"
+        className="absolute inset-0 z-10 focus:outline-none"
         aria-label={item.title}
       />
       <div className="relative aspect-[3/4] overflow-hidden bg-ink">
@@ -87,7 +87,7 @@ export function ShopProductCard({
         {/* Top corner: the wishlist heart, and under it the offer countdown.
             While the heart is hidden (desktop, not hovered) the countdown
             moves up into its place. */}
-        <div className={`absolute z-10 flex flex-col items-end gap-1.5 ${home ? "top-2 sm:top-2.5 end-2 sm:end-2.5" : "top-2 end-2"}`}>
+        <div className={`absolute z-20 flex flex-col items-end gap-1.5 ${home ? "top-2 sm:top-2.5 end-2 sm:end-2.5" : "top-2 end-2"}`}>
           {!(comingSoon || item.price <= 0) && <button
             type="button"
             onClick={(e) => {
@@ -156,7 +156,7 @@ export function ShopProductCard({
                 e.stopPropagation();
                 toggleWishlist(item);
               }}
-              className="grow basis-auto px-3 py-2 bg-gold/10 border border-gold/50 text-gold hover:bg-gold hover:text-ink text-[9px] font-mono font-bold tracking-widest uppercase rounded-sm transition-colors whitespace-nowrap"
+              className="grow basis-auto px-3 py-2 bg-gold/10 border border-gold/50 text-gold hover:bg-gold hover:text-ink text-[9px] font-mono font-bold tracking-widest uppercase rounded-sm transition-colors z-20 whitespace-nowrap"
             >
               {saved ? (isArabic ? "محفوظ بالمفضلة" : "SAVED TO WISHLIST") : (isArabic ? "أضف للمفضلة" : "SAVE TO WISHLIST")}
             </button>
@@ -164,7 +164,7 @@ export function ShopProductCard({
             <button
               type="button"
               disabled
-              className="grow basis-auto px-3 py-2 bg-ink-surface/90 border border-ink-border text-text-muted text-[9px] font-mono font-bold tracking-widest uppercase rounded-sm cursor-not-allowed opacity-80 whitespace-nowrap"
+              className="grow basis-auto px-3 py-2 bg-ink-surface/90 border border-ink-border text-text-muted text-[9px] font-mono font-bold tracking-widest uppercase rounded-sm cursor-not-allowed opacity-80 z-20 whitespace-nowrap"
             >
               {isArabic ? "نفد من المخزن" : "OUT OF STOCK"}
             </button>
@@ -177,7 +177,7 @@ export function ShopProductCard({
                 addItem(item, 1, single?.sku);
                 openCart();
               }}
-              className="grow basis-auto px-3 py-2 bg-ink-elevated border border-ink-border hover:border-vermilion hover:bg-vermilion hover:text-white text-paper text-[10px] font-mono font-bold tracking-wider uppercase transition-all rounded-sm flex items-center justify-center gap-1.5 shadow-sm active:scale-95 z-10 whitespace-nowrap"
+              className="grow basis-auto px-3 py-2 bg-ink-elevated border border-ink-border hover:border-vermilion hover:bg-vermilion hover:text-white text-paper text-[10px] font-mono font-bold tracking-wider uppercase transition-all rounded-sm flex items-center justify-center gap-1.5 shadow-sm active:scale-95 z-20 whitespace-nowrap"
             >
               <ShoppingBag strokeWidth={1.3} className="w-3 h-3" />
               {isArabic ? "أضف للسلة" : "ADD TO CART"}

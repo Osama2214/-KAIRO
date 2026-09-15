@@ -158,7 +158,7 @@ export function MangaDiscovery() {
               <Link
                 href={productHref(volume)}
                 prefetch="auto"
-                className="absolute inset-0 z-0 focus:outline-none"
+                className="absolute inset-0 z-10 focus:outline-none"
                 aria-label={volume.title}
               />
               <div className="relative aspect-[3/4] overflow-hidden bg-ink">
@@ -193,7 +193,7 @@ export function MangaDiscovery() {
                     e.stopPropagation();
                     toggleWishlist(volume);
                   }}
-                  className={`absolute top-2.5 right-2.5 p-1.5 rounded-xs backdrop-blur-md border transition-all z-10 active:scale-90 ${
+                  className={`absolute top-2.5 right-2.5 p-1.5 rounded-xs backdrop-blur-md border transition-all z-20 active:scale-90 ${
                     mounted && isInWishlist(volume.id)
                       ? "bg-ink/90 border-vermilion text-vermilion"
                       : "bg-ink/80 border-ink-border text-paper-muted hover:text-gold hover:border-gold/60 opacity-80 sm:opacity-0 sm:group-hover:opacity-100"
@@ -253,7 +253,7 @@ export function MangaDiscovery() {
                         addItem(volume, 1, isMerch(volume) ? volume.variants?.[0]?.sku : undefined);
                         openCart();
                       }}
-                      className="px-2.5 sm:px-3 py-1 bg-ink border border-ink-border hover:border-vermilion hover:bg-vermilion hover:text-white text-[9px] sm:text-[10px] font-bold uppercase transition-colors rounded-xs z-10 active:scale-95"
+                      className="px-2.5 sm:px-3 py-1 bg-ink border border-ink-border hover:border-vermilion hover:bg-vermilion hover:text-white text-[9px] sm:text-[10px] font-bold uppercase transition-colors rounded-xs z-20 active:scale-95"
                     >
                       {isArabic ? "+ أضف" : "+ ADD"}
                     </button>

@@ -184,7 +184,7 @@ export function BoxSets() {
                     <Link
                       href={`/manga/${volume.id}`}
                       prefetch="auto"
-                      className="absolute inset-0 z-0 focus:outline-none"
+                      className="absolute inset-0 z-10 focus:outline-none"
                       aria-label={volume.title}
                       onClick={handleCardLinkClick}
                     />
@@ -257,7 +257,7 @@ export function BoxSets() {
                           <button
                             type="button"
                             onClick={(e) => handleQuickAdd(e, volume)}
-                            className="grow basis-auto px-3 py-2 bg-ink-elevated border border-ink-border hover:border-vermilion hover:bg-vermilion hover:text-white text-paper text-[10px] font-mono font-bold tracking-wider uppercase transition-all rounded-sm flex items-center justify-center gap-1.5 shadow-sm active:scale-95 z-10 whitespace-nowrap"
+                            className="grow basis-auto px-3 py-2 bg-ink-elevated border border-ink-border hover:border-vermilion hover:bg-vermilion hover:text-white text-paper text-[10px] font-mono font-bold tracking-wider uppercase transition-all rounded-sm flex items-center justify-center gap-1.5 shadow-sm active:scale-95 z-20 whitespace-nowrap"
                           >
                             <ShoppingBag strokeWidth={1.3} className="w-3 h-3" />
                             {isArabic ? "أضف للسلة" : "ADD TO CART"}

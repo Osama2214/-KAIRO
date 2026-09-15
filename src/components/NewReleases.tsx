@@ -110,7 +110,7 @@ export function NewReleases() {
               <Link
                 href={`/manga/${volume.id}`}
                 prefetch="auto"
-                className="absolute inset-0 z-0 focus:outline-none"
+                className="absolute inset-0 z-10 focus:outline-none"
                 aria-label={volume.title}
               />
               {/* Cover Media */}
@@ -144,7 +144,7 @@ export function NewReleases() {
                 </div>
 
                 {/* Floating Actions */}
-                <div className="absolute top-2 sm:top-2.5 right-2 sm:right-2.5 flex flex-col gap-1.5 z-10">
+                <div className="absolute top-2 sm:top-2.5 right-2 sm:right-2.5 flex flex-col gap-1.5 z-20">
                   {/* Wishlist Trigger */}
                   <button
                     type="button"
@@ -213,7 +213,7 @@ export function NewReleases() {
                     <button
                       type="button"
                       onClick={(e) => handleAddToCart(e, volume)}
-                      className="grow basis-auto px-3 py-2 bg-ink-elevated border border-ink-border hover:border-vermilion hover:bg-vermilion hover:text-white text-paper text-[10px] font-mono font-bold tracking-wider uppercase transition-all rounded-sm flex items-center justify-center gap-1.5 shadow-sm active:scale-95 z-10 whitespace-nowrap"
+                      className="grow basis-auto px-3 py-2 bg-ink-elevated border border-ink-border hover:border-vermilion hover:bg-vermilion hover:text-white text-paper text-[10px] font-mono font-bold tracking-wider uppercase transition-all rounded-sm flex items-center justify-center gap-1.5 shadow-sm active:scale-95 z-20 whitespace-nowrap"
                     >
                       <ShoppingBag strokeWidth={1.3} className="w-3 h-3" />
                       {isArabic ? "أضف للسلة" : "ADD TO CART"}

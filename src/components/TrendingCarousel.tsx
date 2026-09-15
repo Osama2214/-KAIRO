@@ -190,7 +190,7 @@ export function TrendingCarousel() {
                   <Link
                     href={`/manga/${volume.id}`}
                     prefetch="auto"
-                    className="absolute inset-0 z-0 focus:outline-none"
+                    className="absolute inset-0 z-10 focus:outline-none"
                     aria-label={volume.title}
                     onClick={handleCardLinkClick}
                   />
