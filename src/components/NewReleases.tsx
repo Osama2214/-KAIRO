@@ -5,7 +5,7 @@ import React from "react";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 import Link from "next/link";
 import { ShoppingBag, Eye, ArrowRight, Heart } from "lucide-react";
-import { ALL_VOLUMES, MangaVolume } from "@/data/manga";
+import { MangaVolume } from "@/data/manga";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
 import { useUIStore } from "@/store/useUIStore";
@@ -29,7 +29,7 @@ export function NewReleases() {
 
   // Books only; figures and posters have their own home section.
   const activeVolumes = React.useMemo(
-    () => (volumes && volumes.length > 0 ? volumes : ALL_VOLUMES).filter(isBook),
+    () => volumes.filter(isBook),
     [volumes]
   );
   const badgeText = isArabic
@@ -109,7 +109,7 @@ export function NewReleases() {
             >
               <Link
                 href={`/manga/${volume.id}`}
-                prefetch={true}
+                prefetch={false}
                 className="absolute inset-0 z-0 focus:outline-none"
                 aria-label={volume.title}
               />

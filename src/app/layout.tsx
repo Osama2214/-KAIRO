@@ -1,19 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, JetBrains_Mono, Cinzel } from "next/font/google";
 import localFont from "next/font/local";
-import { getImageProps } from "next/image";
-import introCharacter from "../../public/animat/animeverse-character.png";
-import introEmblem from "../../public/animat/animeverse-background-emblem.png";
-import introWordmark from "../../public/animat/animeverse-wordmark.png";
 import "./globals.css";
 import { StorefrontShell } from "@/components/StorefrontShell";
 import { getStorefrontSnapshot } from "@/lib/storefrontSnapshot";
-import { MangaReaderModal } from "@/components/MangaReaderModal";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
 import { SITE_URL, SITE_NAME, DEFAULT_OG_IMAGE, jsonLdHtml, storeProfileFromSnapshot } from "@/lib/seo";
 import { slimVolume } from "@/lib/catalogDetails";
-import { extractEssentialVolumes } from "@/lib/essentialVolumes";
-import type { MangaVolume } from "@/data/manga";
+import { ALL_VOLUMES, ALL_SERIES, type MangaVolume } from "@/data/manga";
+import { withoutSeriesVolumes } from "@/lib/seriesVolumes";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -57,17 +52,6 @@ const jetbrains = JetBrains_Mono({
   variable: "--font-mono",
   weight: ["400", "500"],
   display: "swap",
-});
-
-// The three layers of the opening animation, with the exact sizes and quality
-// CinematicIntro renders them at, so the preloaded files are the ones it uses.
-const INTRO_IMAGE_PRELOADS = [
-  { src: introCharacter, sizes: "(max-width: 767px) 62vw, 420px" },
-  { src: introEmblem, sizes: "(max-width: 767px) 70vw, 460px" },
-  { src: introWordmark, sizes: "(max-width: 767px) 74vw, 520px" },
-].map(({ src, sizes }) => {
-  const { props } = getImageProps({ src, alt: "", sizes, quality: 90 });
-  return { srcSet: props.srcSet || props.src, sizes };
 });
 
 export const viewport: Viewport = {
@@ -126,16 +110,15 @@ export default async function RootLayout({
   // what the shop sells, instead of the copy compiled into the bundle at build
   // time and corrected a fetch later.
   const snapshot = await getStorefrontSnapshot();
-  // Instead of sending the full ~500-product archive in every page's initial HTML payload,
-  // we extract and slim only the essential home products (~35-45 items).
-  // The full catalogue is hydrated on-demand in the background by StorefrontDataSync via /api/storefront.
-  const essentialVolumes =
+  // A complete lightweight index makes direct links, search and restored carts
+  // correct on the first render. Long text and sample pages load on demand.
+  const volumes =
     snapshot && Array.isArray(snapshot.volumes)
-      ? extractEssentialVolumes(snapshot.volumes as MangaVolume[], snapshot).map(slimVolume)
+      ? (snapshot.volumes as MangaVolume[]).map(slimVolume)
       : [];
   const catalog = snapshot
-    ? { ...snapshot, volumes: essentialVolumes }
-    : snapshot;
+    ? { ...snapshot, volumes }
+    : { volumes: ALL_VOLUMES.map(slimVolume), series: withoutSeriesVolumes(ALL_SERIES) };
   // The profile is inside the snapshot already used to seed the storefront.
   // Derive it locally so a cold request never needs a second catalogue lookup.
   const profile = storeProfileFromSnapshot(snapshot);
@@ -202,31 +185,6 @@ export default async function RootLayout({
               'document.documentElement.dir=l==="ar"?"rtl":"ltr";}catch(e){}',
           }}
         />
-        {/*
-          Arm the intro cover before the first paint. The React intro cannot
-          run until the bundle hydrates, and until this existed the homepage
-          was visible for that whole gap. Same session rule the overlay uses,
-          read here from sessionStorage directly.
-        */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              'try{var p=location.pathname;' +
-              'if((p==="/"||p==="")&&sessionStorage.getItem("kairo_intro_seen")!=="true"){' +
-              'document.documentElement.classList.add("intro-pending");' +
-              'window.__avCoverTimer=setTimeout(function(){document.documentElement.classList.remove("intro-pending");},6000);' +
-              // Start fetching the intro artwork now. The intro itself mounts
-              // only once the app has loaded, and until then the browser had no
-              // idea these images were needed — on a phone that left the
-              // character art (the page's largest paint) waiting ~8s to start.
-              "var imgs=" + JSON.stringify(INTRO_IMAGE_PRELOADS) + ";" +
-              'imgs.forEach(function(i){var k=document.createElement("link");k.rel="preload";k.as="image";' +
-              'k.setAttribute("imagesrcset",i.srcSet);k.setAttribute("imagesizes",i.sizes);k.setAttribute("fetchpriority","high");' +
-              "document.head.appendChild(k);});" +
-              '}}catch(e){}',
-          }}
-        />
-        <div id="av-intro-cover" aria-hidden="true" />
         <div id="animeverse-restore-loader" aria-hidden="true">
           <div className="av-loader-bg-glow" />
           <div className="av-loader-content">
@@ -241,7 +199,6 @@ export default async function RootLayout({
         <SmoothScrollProvider>
           <AtmosphericBackground />
           <StorefrontShell initialCatalog={catalog}>{children}</StorefrontShell>
-          <MangaReaderModal />
         </SmoothScrollProvider>
       </body>
     </html>

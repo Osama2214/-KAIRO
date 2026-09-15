@@ -27,22 +27,20 @@ export const SITE_NAME = "AnimeVerse";
 export const DEFAULT_OG_IMAGE = "/animeverse-og.png";
 
 /**
- * Reads the live catalogue for metadata, falling back to the bundled data if
- * the database is unreachable. Goes through the shared catalogue cache, and is
- * also memoised per request so a page and its layout never read it twice.
+ * Reads the live catalogue once per render. Infrastructure failures must
+ * propagate: substituting demo data would cache real products as missing.
  */
 export const getCatalog = cache(async (): Promise<{ volumes: MangaVolume[]; series: Series[] }> => {
   try {
-    const { readStorefrontSnapshot } = await import("@/lib/storefrontSnapshot");
-    const data = await readStorefrontSnapshot();
-    const volumes = Array.isArray(data?.volumes) && data.volumes.length > 0
-      ? (data.volumes as MangaVolume[])
-      : ALL_VOLUMES;
-    const series = Array.isArray(data?.series) && data.series.length > 0
-      ? (data.series as Series[])
-      : ALL_SERIES;
+    const { getStorefrontSnapshot } = await import("@/lib/storefrontSnapshot");
+    const data = await getStorefrontSnapshot();
+    const volumes = Array.isArray(data?.volumes) ? (data.volumes as MangaVolume[]) : ALL_VOLUMES;
+    const series = Array.isArray(data?.series) ? (data.series as Series[]) : ALL_SERIES;
     return { volumes, series };
   } catch {
+    // Local development can intentionally run without a database. The bundled
+    // catalogue remains a valid offline fallback; a partial server response is
+    // never used because the snapshot cache returns whole payloads only.
     return { volumes: ALL_VOLUMES, series: ALL_SERIES };
   }
 });

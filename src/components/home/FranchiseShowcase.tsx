@@ -132,7 +132,7 @@ export function FranchiseShowcase() {
                 >
                   <Link
                     href={f.href}
-                    prefetch={true}
+                    prefetch={false}
                     onPointerDown={(e) => (pointerStart.current = { x: e.clientX, y: e.clientY })}
                     onClick={handleLinkClick}
                     className="group relative block aspect-[4/5] overflow-hidden rounded-sm border border-ink-border/80 bg-ink-surface/40 hover:border-gold/60 transition-all duration-300 cursor-pointer hover:shadow-2xl hover:shadow-black/70"

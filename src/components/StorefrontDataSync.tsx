@@ -16,6 +16,7 @@ import type { MangaVolume, Series } from "@/data/manga";
 import { withDerivedSeriesVolumes, withoutSeriesVolumes } from "@/lib/seriesVolumes";
 import { hasUnsavedCuratorWork, useCuratorSaveStore } from "@/store/useCuratorSaveStore";
 import { STOREFRONT_DATA_KEYS } from "@/lib/storefrontKeys";
+import { requestCatalogIndex } from "@/lib/catalogRequests";
 
 function snapshot(state: Record<string, unknown>) {
   const data = Object.fromEntries(STOREFRONT_DATA_KEYS.map((key) => [key, state[key]]));
@@ -25,6 +26,7 @@ function snapshot(state: Record<string, unknown>) {
 }
 
 export function StorefrontDataSync() {
+  const catalogError = useStorefrontStore((state) => state.catalogError);
   useEffect(() => {
     // Remove the retired client-side CMS & users snapshots.
     try {
@@ -51,14 +53,11 @@ export function StorefrontDataSync() {
 
     const load = async () => {
       try {
-        // If the server seeded only the initial essential home volumes (~35-45 items),
-        // fetch the full catalogue in the background so search and archive browsing have all items.
-        const currentCount = useStorefrontStore.getState().volumes.length;
-        if (!wasSeededFromServer() || currentCount < 100) {
-          const response = await fetch("/api/storefront");
-          const payload = await response.json().catch(() => null);
-          if (active && payload?.success && payload.data && typeof payload.data === "object") {
-            const data = payload.data as Record<string, unknown>;
+        // The server index is complete regardless of its size. Never download
+        // the catalogue again merely because the shop has fewer than 100 items.
+        if (!wasSeededFromServer()) {
+          const data = await requestCatalogIndex();
+          if (active) {
             useStorefrontStore.setState({
               ...data,
               series: withDerivedSeriesVolumes(
@@ -68,6 +67,11 @@ export function StorefrontDataSync() {
             });
           }
         }
+        if (!active) return;
+        useStorefrontStore.setState({ catalogLoaded: true, catalogError: null });
+      } catch {
+        if (active) useStorefrontStore.setState({ catalogError: "The catalogue could not be loaded. Please try again." });
+        return;
       } finally {
         // Only the live run may finish. A cancelled one — React's double-mount
         // in development, or a real unmount — had its own fetch result thrown
@@ -75,7 +79,7 @@ export function StorefrontDataSync() {
         // announced a catalogue that was never actually applied: pages then
         // resolved products against the defaults bundled at build time and
         // 404'd everything added since.
-        if (active) {
+        if (active && useStorefrontStore.getState().catalogLoaded) {
           // Cart and wishlist persist ids only, so fill in titles, art and
           // prices here — unconditionally. Doing it only on a successful fetch
           // meant a storefront API outage left every restored cart line blank
@@ -84,16 +88,15 @@ export function StorefrontDataSync() {
           useCartStore.getState().hydrateFromCatalog(volumes);
           useWishlistStore.getState().hydrateFromCatalog(volumes);
           hydrated = true;
-          // Pages that resolve a product by id wait on this before deciding it
-          // is missing; it is set even on a failed fetch so an API outage shows
-          // the bundled catalogue rather than hanging on a spinner.
-          useStorefrontStore.setState({ catalogLoaded: true });
           previous = JSON.stringify(snapshot(useStorefrontStore.getState() as unknown as Record<string, unknown>));
         }
       }
     };
 
     void load();
+    const retryLoad = () => { if (!useStorefrontStore.getState().catalogLoaded) void load(); };
+    window.addEventListener("online", retryLoad);
+    window.addEventListener("kairo:retry-catalog", retryLoad);
 
     // The most recent edit, held so a failed save can be retried with the
     // latest state rather than whatever was in flight when it broke.
@@ -183,6 +186,8 @@ export function StorefrontDataSync() {
 
     return () => {
       active = false;
+      window.removeEventListener("online", retryLoad);
+      window.removeEventListener("kairo:retry-catalog", retryLoad);
       if (timer) clearTimeout(timer);
       if (retryTimer) clearTimeout(retryTimer);
       useCuratorSaveStore.getState().setRetry(null);
@@ -204,5 +209,9 @@ export function StorefrontDataSync() {
     return () => window.removeEventListener("beforeunload", warn);
   }, []);
 
-  return null;
+  if (!catalogError) return null;
+  return <div role="alert" className="fixed bottom-4 inset-x-4 z-[250] bg-ink border border-gold p-4 text-center text-paper">
+    <p>Couldn’t load the catalogue · تعذّر تحميل المنتجات</p>
+    <button className="mt-2 underline text-gold" onClick={() => window.dispatchEvent(new Event("kairo:retry-catalog"))}>Try again · حاول تاني</button>
+  </div>;
 }

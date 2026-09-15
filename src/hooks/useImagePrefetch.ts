@@ -20,7 +20,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
  * served by the page in front of them than by one they may never open.
  */
 
-const MAX_PREFETCH = 24;
+const MAX_PREFETCH = 6;
 
 type Connection = {
   saveData?: boolean;
@@ -31,7 +31,7 @@ type Connection = {
 function connectionAllowsPrefetch(): boolean {
   if (typeof navigator === "undefined") return false;
   const connection = (navigator as Navigator & { connection?: Connection }).connection;
-  if (!connection) return true;
+  if (!connection) return !window.matchMedia("(pointer: coarse)").matches && window.innerWidth >= 1024;
   if (connection.saveData) return false;
   // A next-page warmup is a convenience, never content the shopper asked
   // for. The Network Information API is mainly exposed by mobile Chromium;

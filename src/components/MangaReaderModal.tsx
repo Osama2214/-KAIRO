@@ -124,9 +124,17 @@ export function MangaReaderModal() {
   const loadedPages = useStorefrontStore((state) =>
     activeId ? state.volumes.find((v) => v.id === activeId && !hasOmittedDetails(v))?.previewPages : undefined
   );
+  const [detailsError, setDetailsError] = useState<string | null>(null);
+  const [detailsAttempt, setDetailsAttempt] = useState(0);
   useEffect(() => {
-    if (isReaderOpen && needsDetails) void ensureCatalogDetails().catch(() => {});
-  }, [isReaderOpen, needsDetails]);
+    let active = true;
+    if (isReaderOpen && needsDetails && activeId) {
+      void ensureCatalogDetails(activeId).catch(() => {
+        if (active) setDetailsError(activeId);
+      });
+    }
+    return () => { active = false; };
+  }, [isReaderOpen, needsDetails, activeId, detailsAttempt]);
   const previewPages = (needsDetails ? loadedPages : activeReaderVolume?.previewPages) || [];
   const previewPageCount = previewPages.length;
 
@@ -196,6 +204,15 @@ export function MangaReaderModal() {
   }, [isReaderOpen, handleNextPage, handlePrevPage, closeReader]);
 
   if (!isReaderOpen || !activeReaderVolume) return null;
+  if (needsDetails && !loadedPages) return (
+    <div role="dialog" aria-modal="true" aria-label="Manga preview" className="fixed inset-0 z-[200] bg-ink/95 flex flex-col items-center justify-center gap-5 text-paper px-6 text-center">
+      <p role="status">{detailsError === activeId
+        ? (isArabic ? "تعذّر تحميل المعاينة" : "Couldn’t load the preview")
+        : (isArabic ? "جاري تحميل المعاينة…" : "Loading preview…")}</p>
+      {detailsError === activeId && <button className="border border-gold px-5 py-3" onClick={() => { setDetailsError(null); setDetailsAttempt((attempt) => attempt + 1); }}>{isArabic ? "حاول تاني" : "Try again"}</button>}
+      <button autoFocus onClick={closeReader} className="text-gold underline">{isArabic ? "إغلاق" : "Close"}</button>
+    </div>
+  );
 
   const isLastPage = currentPageIndex >= pages.length;
   // A copy of the final page — the end card's backdrop, not the page itself.

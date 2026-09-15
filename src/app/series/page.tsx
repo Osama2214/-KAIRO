@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { ALL_SERIES } from "@/data/manga";
+
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -13,7 +13,7 @@ export default function SeriesDirectoryPage() {
   const { locale, isRTL } = useTranslation();
   const isArabic = locale === "ar";
   const allSeries = useStorefrontStore((state) => state.series);
-  const seriesList = allSeries && allSeries.length > 0 ? allSeries : ALL_SERIES;
+  const seriesList = allSeries;
 
   return (
     <div className="min-h-screen bg-ink pt-8 sm:pt-28 pb-16 sm:pb-24 px-3.5 sm:px-6 md:px-12 text-paper">
@@ -47,7 +47,7 @@ export default function SeriesDirectoryPage() {
             >
               <Link
                 href={`/series/${series.slug}`}
-                prefetch={true}
+                prefetch={false}
                 className="absolute inset-0 z-0 focus:outline-none"
                 aria-label={series.title}
               />

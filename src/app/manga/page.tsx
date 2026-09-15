@@ -17,7 +17,7 @@ import {
   Search,
   ShoppingBag,
 } from "lucide-react";
-import { ALL_VOLUMES, GENRES } from "@/data/manga";
+import { GENRES } from "@/data/manga";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore, useMounted } from "@/store/useWishlistStore";
 import { useUIStore } from "@/store/useUIStore";
@@ -51,7 +51,7 @@ function MangaCatalogContent() {
 
   // The manga catalogue lists books only; figures and posters live in /shop.
   const activeVolumes = useMemo(
-    () => (storeVolumes && storeVolumes.length > 0 ? storeVolumes : ALL_VOLUMES).filter(isBook),
+    () => storeVolumes.filter(isBook),
     [storeVolumes]
   );
   // The genre list follows the CMS and also picks up any genre a volume
@@ -147,10 +147,6 @@ function MangaCatalogContent() {
 
   const addItem = useCartStore((state) => state.addItem);
   const { openCart, openReader } = useUIStore();
-
-  const handleCardClick = (volumeId: string) => {
-    router.push(`/manga/${volumeId}`);
-  };
 
   const toggleGenre = (genreId: string) => {
     setCurrentPage(1);
@@ -798,7 +794,7 @@ function MangaCatalogContent() {
                   >
                     <Link
                       href={`/manga/${volume.id}`}
-                      prefetch={true}
+                      prefetch={false}
                       className="absolute inset-0 z-0 focus:outline-none"
                       aria-label={volume.title}
                     />

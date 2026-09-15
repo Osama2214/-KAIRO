@@ -7,7 +7,7 @@ import Link from "next/link";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { ChevronLeft, ChevronRight, ShoppingBag, Layers } from "lucide-react";
-import { ALL_VOLUMES, MangaVolume } from "@/data/manga";
+import { MangaVolume } from "@/data/manga";
 import { useCartStore } from "@/store/useCartStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
@@ -32,7 +32,7 @@ export function BoxSets() {
   const boxSetsConfig = useStorefrontStore((state) => state.boxSetsConfig);
   const boxSetsArabicConfig = useStorefrontStore((state) => state.boxSetsArabicConfig);
 
-  const activeVolumes = volumes && volumes.length > 0 ? volumes : ALL_VOLUMES;
+  const activeVolumes = volumes;
   const autoplaySpeed = boxSetsConfig?.autoplaySpeed || 4200;
   const autoplayEnabled = boxSetsConfig?.autoplayEnabled ?? true;
 
@@ -183,7 +183,7 @@ export function BoxSets() {
                   >
                     <Link
                       href={`/manga/${volume.id}`}
-                      prefetch={true}
+                      prefetch={false}
                       className="absolute inset-0 z-0 focus:outline-none"
                       aria-label={volume.title}
                       onClick={handleCardLinkClick}

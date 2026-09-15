@@ -10,7 +10,6 @@ import { PolicyModal, PolicyTab } from "./PolicyModal";
 
 import { useAuthStore } from "@/store/useAuthStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
-import { ALL_SERIES, ALL_VOLUMES } from "@/data/manga";
 import { buildFranchises } from "@/lib/franchise";
 import { FacebookIcon, InstagramIcon, TikTokIcon, XIcon, YoutubeIcon } from "@/components/SocialIcons";
 import { useMounted } from "@/store/useWishlistStore";
@@ -50,7 +49,7 @@ export function Footer() {
   // order as Shop by Franchise), then a link to all.
   const allSeries = useStorefrontStore((state) => state.series);
   const allVolumes = useStorefrontStore((state) => state.volumes);
-  const footerSeries = buildFranchises(mounted ? allVolumes : ALL_VOLUMES, mounted ? allSeries : ALL_SERIES)
+  const footerSeries = buildFranchises(allVolumes, allSeries)
     .filter((f) => f.seriesSlug)
     .slice(0, 5)
     .map((f) => ({ slug: f.seriesSlug!, title: f.name }));

@@ -54,7 +54,7 @@ export function ShopProductCard({
     >
       <Link
         href={href}
-        prefetch={true}
+        prefetch={false}
         className="absolute inset-0 z-0 focus:outline-none"
         aria-label={item.title}
       />

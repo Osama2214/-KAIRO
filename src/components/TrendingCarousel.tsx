@@ -6,7 +6,7 @@ import Link from "next/link";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { ChevronLeft, ChevronRight, Star, Plus, Eye } from "lucide-react";
-import { ALL_VOLUMES, MangaVolume } from "@/data/manga";
+import { MangaVolume } from "@/data/manga";
 import { useCartStore } from "@/store/useCartStore";
 import { useUIStore } from "@/store/useUIStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
@@ -27,7 +27,7 @@ export function TrendingCarousel() {
 
   // Books only; figures and posters have their own home section.
   const activeVolumes = React.useMemo(
-    () => (volumes && volumes.length > 0 ? volumes : ALL_VOLUMES).filter(isBook),
+    () => volumes.filter(isBook),
     [volumes]
   );
   const autoplaySpeed = trendingConfig?.autoplaySpeed || 3800;
@@ -40,7 +40,8 @@ export function TrendingCarousel() {
 
   const trendingItems = React.useMemo(() => {
     const picked = activeVolumes.filter((v) => v.isTrending);
-    if (picked.length >= MIN_TRENDING) return picked;
+    // Respect the configured rail size even when dozens of products are tagged.
+    if (picked.length >= MIN_TRENDING) return picked.slice(0, MIN_TRENDING);
 
     const chosen = new Set(picked.map((v) => v.id));
     const fillers = activeVolumes
@@ -188,7 +189,7 @@ export function TrendingCarousel() {
                 >
                   <Link
                     href={`/manga/${volume.id}`}
-                    prefetch={true}
+                    prefetch={false}
                     className="absolute inset-0 z-0 focus:outline-none"
                     aria-label={volume.title}
                     onClick={handleCardLinkClick}

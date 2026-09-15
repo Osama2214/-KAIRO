@@ -276,16 +276,8 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Native touch scrolling is faster and more battery-friendly than a
-    // perpetual JavaScript animation loop. Keep Lenis for pointer devices,
-    // where smooth wheel scrolling is the feature it is meant to provide.
-    if (
-      window.matchMedia?.("(pointer: coarse)").matches ||
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
-    ) {
-      return;
-    }
-
+    // Touch devices use the native scroll branch below, including its scroll
+    // persistence. Returning here used to skip those listeners entirely.
     // Disable default browser scroll jumping to allow Lenis restoration
     try {
       if ("scrollRestoration" in window.history) {
@@ -561,23 +553,27 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
       const targetId = hash.replace(/^#/, "");
       let attempts = 0;
       const maxAttempts = 25;
+      let cancelled = false;
+      let timer: ReturnType<typeof setTimeout>;
 
       const checkAndScroll = () => {
+        if (cancelled) return;
         const targetElement = document.getElementById(targetId);
-        if (targetElement && window.__lenis) {
-          window.__lenis.resize();
-          window.__lenis.scrollTo(targetElement, {
-            offset: -80,
-            duration: 0.6,
-          });
+        if (targetElement) {
+          if (window.__lenis) {
+            window.__lenis.resize();
+            window.__lenis.scrollTo(targetElement, { offset: -80, duration: 0.6 });
+          } else {
+            window.scrollTo({ top: targetElement.getBoundingClientRect().top + window.scrollY - 80, behavior: "instant" });
+          }
         } else if (attempts < maxAttempts) {
           attempts++;
-          setTimeout(checkAndScroll, 50);
+          timer = setTimeout(checkAndScroll, 50);
         }
       };
 
-      const timer = setTimeout(checkAndScroll, 70);
-      return () => clearTimeout(timer);
+      timer = setTimeout(checkAndScroll, 70);
+      return () => { cancelled = true; clearTimeout(timer); };
     }
 
     const wasPopState = isPopStateRef.current;

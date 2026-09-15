@@ -79,7 +79,7 @@ export function MangaDiscovery() {
   const filteredItems = useMemo(() => ranked.slice(0, displayCount), [ranked, displayCount]);
 
   return (
-    <section className="py-14 sm:py-24 px-4 sm:px-8 md:px-12 bg-ink border-t border-ink-border/60">
+    <section id="manga-discovery" className="py-14 sm:py-24 px-4 sm:px-8 md:px-12 bg-ink border-t border-ink-border/60">
       <div className="max-w-7xl mx-auto">
         {/* Section Title */}
         <div className="relative text-center max-w-2xl mx-auto mb-6 sm:mb-10 space-y-1.5 sm:space-y-2">
@@ -157,7 +157,7 @@ export function MangaDiscovery() {
             >
               <Link
                 href={productHref(volume)}
-                prefetch={true}
+                prefetch={false}
                 className="absolute inset-0 z-0 focus:outline-none"
                 aria-label={volume.title}
               />

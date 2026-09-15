@@ -55,7 +55,9 @@ test("validation", () => {
   assert.ok(validateProduct({ ...poster, variants: [] }).length);
   assert.ok(validateProduct({ ...poster, variants: [poster.variants[0], { ...poster.variants[0] }] }).some((e) => e.includes("twice")));
   assert.ok(validateProduct({ ...poster, variants: [{ sku: "A 3", label: "x", price: 1, stock: 1 }] }).length);
-  assert.ok(validateProduct({ ...poster, variants: [{ sku: "a3", label: "x", price: 0, stock: 1 }] }).length);
+  // Zero is a supported coming-soon price; checkout rejects it as unbuyable.
+  assert.deepEqual(validateProduct({ ...poster, variants: [{ sku: "a3", label: "x", price: 0, stock: 1 }] }), []);
+  assert.ok(validateProduct({ ...poster, variants: [{ sku: "a3", label: "x", price: -1, stock: 1 }] }).length);
   assert.ok(validateProduct({ ...poster, variants: [{ sku: "a3", label: "x", price: 5, stock: 1.5 }] }).length);
   assert.ok(validateProduct({ ...poster, variants: [{ sku: "a3", label: "", price: 5, stock: 1 }] }).length);
   assert.ok(validateProduct({ ...poster, id: "a~b" }).length);

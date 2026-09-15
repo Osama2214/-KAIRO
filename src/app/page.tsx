@@ -1,5 +1,5 @@
 import React from "react";
-import dynamic from "next/dynamic";
+import { DeferredHomeSection } from "@/components/home/DeferredHomeSection";
 import { Hero } from "@/components/Hero";
 import { TickerBar } from "@/components/TickerBar";
 import { TrendingCarousel } from "@/components/TrendingCarousel";
@@ -7,12 +7,6 @@ import { NewReleases } from "@/components/NewReleases";
 import { DealsSection } from "@/components/home/DealsSection";
 import { ForYouSection } from "@/components/home/ForYouSection";
 
-const BoxSets = dynamic(() => import("@/components/BoxSets").then((m) => m.BoxSets));
-const ShopShowcase = dynamic(() => import("@/components/ShopShowcase").then((m) => m.ShopShowcase));
-const FranchiseShowcase = dynamic(() => import("@/components/home/FranchiseShowcase").then((m) => m.FranchiseShowcase));
-const GenreBento = dynamic(() => import("@/components/GenreBento").then((m) => m.GenreBento));
-const FeaturedSeries = dynamic(() => import("@/components/FeaturedSeries").then((m) => m.FeaturedSeries));
-const MangaDiscovery = dynamic(() => import("@/components/MangaDiscovery").then((m) => m.MangaDiscovery));
 
 export default function HomePage() {
   return (
@@ -39,24 +33,24 @@ export default function HomePage() {
       <TickerBar slot="after-new-releases" />
 
       {/* 07 — Complete Box Sets Carousel */}
-      <BoxSets />
+      <DeferredHomeSection name="boxes" anchor="box-sets" title="Complete box sets" />
 
       {/* 07b — Figures & Posters (hidden until the shop has products) */}
-      <ShopShowcase />
+      <DeferredHomeSection name="shop" anchor="shop" title="Figures & posters" />
 
       {/* 07c — Shop by franchise */}
-      <FranchiseShowcase />
+      <DeferredHomeSection name="franchises" anchor="franchises" title="Shop by franchise" />
 
       {/* 08 — Browse by Genre Bento */}
-      <GenreBento />
+      <DeferredHomeSection name="genres" anchor="genres" title="Browse by genre" />
 
       {/* 09 — Featured Series Editorial Spotlight */}
-      <FeaturedSeries />
+      <DeferredHomeSection name="featured" anchor="featured-series" title="Featured series" />
 
       <TickerBar slot="before-discovery" />
 
       {/* 10 — Manga Discovery & Live Search */}
-      <MangaDiscovery />
+      <DeferredHomeSection name="discovery" anchor="manga-discovery" title="Discover the archive" />
     </>
   );
 }

@@ -9,7 +9,7 @@ import { ArrowRight, ChevronRight, Clock, CornerDownLeft, Flame, Search, X } fro
 import { useUIStore } from "@/store/useUIStore";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { useMounted } from "@/store/useWishlistStore";
-import { ALL_SERIES, ALL_VOLUMES, type MangaVolume } from "@/data/manga";
+import { type MangaVolume } from "@/data/manga";
 import { productHref, volumeBadgeLabel } from "@/lib/utils";
 import { isBook, isMerch, withVariantSummary } from "@/lib/variants";
 import { buildFranchises } from "@/lib/franchise";
@@ -85,10 +85,10 @@ export function SearchModal() {
   const storeVolumes = useStorefrontStore((state) => state.volumes);
   const storeSeries = useStorefrontStore((state) => state.series);
   const volumes = useMemo(
-    () => (storeVolumes && storeVolumes.length > 0 ? storeVolumes : ALL_VOLUMES).map(withVariantSummary),
+    () => storeVolumes.map(withVariantSummary),
     [storeVolumes]
   );
-  const seriesList = storeSeries && storeSeries.length > 0 ? storeSeries : ALL_SERIES;
+  const seriesList = storeSeries;
 
   // Focus the box whenever the dialog opens, so typing starts immediately.
   useEffect(() => {

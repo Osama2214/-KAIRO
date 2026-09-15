@@ -38,13 +38,11 @@ const loadSnapshot = unstable_cache(
   }
 );
 
-/** The cached catalogue, or null when it cannot be read. */
+/** The cached catalogue, or null when local development has no database. */
 export async function getStorefrontSnapshot(): Promise<Record<string, unknown> | null> {
   try {
     return await loadSnapshot();
   } catch {
-    // A database hiccup must not take the shop down: the page still renders
-    // from the bundled catalogue, exactly as it did before.
     return null;
   }
 }

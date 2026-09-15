@@ -45,6 +45,19 @@ export function detailsOf(volume: MangaVolume): VolumeDetails {
   };
 }
 
+/** The route supplies full text; the index may supply more recent stock/edits. */
+export function productWithDetails(initial: MangaVolume, live?: MangaVolume): MangaVolume {
+  if (!live || live.id !== initial.id) return initial;
+  const product = { ...initial, ...live };
+  if (hasOmittedDetails(live)) {
+    product.synopsis = initial.synopsis;
+    product.synopsisAr = initial.synopsisAr;
+    product.previewPages = initial.previewPages;
+    delete (product as unknown as Record<string, unknown>)[DETAILS_OMITTED];
+  }
+  return product;
+}
+
 /**
  * Whether a product (still carrying the marker) has a value of its own for a
  * detail field — one a curator typed after the page loaded — rather than the

@@ -6,22 +6,30 @@ import { readStorefrontSnapshot, STOREFRONT_CACHE_TAG } from "@/lib/storefrontSn
 import { STOREFRONT_DATA_KEYS } from "@/lib/storefrontKeys";
 import { validateCatalogue } from "@/lib/variants";
 import type { MangaVolume } from "@/data/manga";
-import { hasOmittedDetails, restoreOmittedDetails } from "@/lib/catalogDetails";
+import { detailsOf, hasOmittedDetails, restoreOmittedDetails, slimVolume } from "@/lib/catalogDetails";
 
 export const dynamic = "force-dynamic";
 
 /** The same list the client sends, so neither side can drift from the other. */
 const ALLOWED_KEYS = new Set<string>(STOREFRONT_DATA_KEYS);
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    // Every page load fetches this ~70KB payload, and each request previously
-    // ran three Neon queries with no-store. A short shared cache absorbs the
-    // repeat traffic; stock shown here is advisory anyway, since checkout
-    // reserves against the authoritative catalogue rows. A CDN miss reads the
-    // server-side cache rather than Neon, which saves and orders invalidate.
+    const snapshot = await readStorefrontSnapshot();
+    const params = new URL(request.url).searchParams;
+    const volumes = Array.isArray(snapshot?.volumes) ? snapshot.volumes as MangaVolume[] : [];
+    const id = params.get("id");
+    const detailsOnly = params.get("view") === "details";
+    if (detailsOnly && id && !volumes.some((volume) => volume.id === id)) {
+      return NextResponse.json({ success: false, message: "Product not found." }, { status: 404 });
+    }
+    // Search and cart hydration only need the index. A reader asks for one
+    // product's details; the curator explicitly asks for every description.
+    const data = detailsOnly
+      ? { details: volumes.filter((volume) => !id || volume.id === id).map(detailsOf) }
+      : snapshot ? { ...snapshot, volumes: volumes.map(slimVolume) } : null;
     return NextResponse.json(
-      { success: true, data: await readStorefrontSnapshot() },
+      { success: true, data },
       { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=300" } }
     );
   } catch (error) {

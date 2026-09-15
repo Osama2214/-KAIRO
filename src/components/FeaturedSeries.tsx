@@ -4,7 +4,6 @@ import React from "react";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { ALL_SERIES } from "@/data/manga";
 import { useStorefrontStore } from "@/store/useStorefrontStore";
 import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -42,7 +41,8 @@ export function FeaturedSeries() {
 
   const series =
     (allSeries && allSeries.find((s) => s.slug === featuredConfig?.seriesSlug)) ||
-    (allSeries && allSeries.length > 0 ? allSeries[0] : ALL_SERIES[0]);
+    allSeries[0];
+  if (!series) return null;
 
   const badgeText =
     featuredConfig?.badgeText && featuredConfig.badgeText !== `FEATURED SERIES — ${series.japaneseTitle}`
@@ -74,7 +74,7 @@ export function FeaturedSeries() {
     : `Written & Illustrated by ${series.author} • ${series.totalVolumes} Volumes (${series.status})`;
 
   return (
-    <section className="py-14 sm:py-20 px-4 sm:px-8 md:px-12 lg:px-16 bg-ink border-t border-ink-border/60 relative overflow-hidden">
+    <section id="featured-series" className="py-14 sm:py-20 px-4 sm:px-8 md:px-12 lg:px-16 bg-ink border-t border-ink-border/60 relative overflow-hidden">
       <div className="max-w-7xl mx-auto">
         <div className="relative rounded-sm border border-ink-border/70 bg-ink-surface/40 p-5 xs:p-7 sm:p-10 lg:p-14 overflow-hidden shadow-2xl backdrop-blur-sm">
           {/* Authentic Japanese Typographic Watermark Pattern inside Card */}

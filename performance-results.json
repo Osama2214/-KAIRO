@@ -1,0 +1,47 @@
+{
+  "generatedAt": "2026-09-15T15:03:24.243Z",
+  "products": 557,
+  "verifiedProductHtml": 557,
+  "catalogue": {
+    "rawBytes": 524620,
+    "gzipBytes": 65959
+  },
+  "oneProductDetails": {
+    "rawBytes": 1271,
+    "gzipBytes": 800
+  },
+  "homepage": {
+    "rawBytes": 1067155,
+    "gzipBytes": 92696,
+    "initialScripts": 18,
+    "scriptBytes": 902325,
+    "scriptGzip": 277049
+  },
+  "http": [
+    {
+      "route": "manga/vol-1789347613823",
+      "status": 200,
+      "localMs": 64
+    },
+    {
+      "route": "shop/figure-gojo-satoru",
+      "status": 200,
+      "localMs": 34
+    },
+    {
+      "route": "manga/vg-003",
+      "status": 200,
+      "localMs": 30
+    },
+    {
+      "route": "shop/poster-naruto-hidden-leaf",
+      "status": 200,
+      "localMs": 29
+    }
+  ],
+  "missingProduct": {
+    "status": 200,
+    "noindex": true
+  },
+  "note": "Local production HTTP/HTML checks and gzip estimates; not a throttled mobile or real-user Web Vitals measurement."
+}

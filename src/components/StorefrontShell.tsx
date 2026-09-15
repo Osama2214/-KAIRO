@@ -6,86 +6,53 @@ import { usePathname } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { TickerBar } from "@/components/TickerBar";
 import { Footer } from "@/components/Footer";
-import { CartDrawer } from "@/components/CartDrawer";
-import { SearchModal } from "@/components/SearchModal";
 import { useStorefrontStore, seedStorefrontFromServer } from "@/store/useStorefrontStore";
 import { useUIStore } from "@/store/useUIStore";
 import { StorefrontDataSync } from "@/components/StorefrontDataSync";
+import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 
-// Curator-only UI: kept out of the storefront bundle so shoppers never
-// download the visual editor. It renders null for everyone else anyway.
-const LiveVisualEditor = dynamic(
-  () => import("@/components/admin/LiveVisualEditor").then((m) => m.LiveVisualEditor),
-  { ssr: false }
-);
-
-// The intro is the only thing in the storefront that pulls in GSAP — the
-// largest chunk in the build. Mounting it unconditionally made every visitor
-// download that animation engine, including the returning ones who never see
-// the sequence. It is now fetched only when it is actually going to run.
-const loadIntro = () => import("@/components/CinematicIntro").then((m) => m.CinematicIntro);
-const CinematicIntro = dynamic(loadIntro, { ssr: false });
-
-// When the page opened with the intro armed (the inline script in the layout
-// sets `intro-pending`), start downloading it as soon as this module runs,
-// alongside the rest of the app, instead of after the app has finished
-// starting up. Returning visitors are not armed and fetch nothing.
-if (typeof document !== "undefined" && document.documentElement.classList.contains("intro-pending")) {
-  void loadIntro().catch(() => {});
-  // The cover's 6s safety net assumes the app never loaded. The app is loading
-  // now, and on a slow phone the intro can still be a few seconds from
-  // mounting — dropping the cover at 6s flashed the homepage before the intro
-  // then played over it. Give it more room; the intro releases the cover itself
-  // the moment it is on screen, and on every exit path.
-  const w = window as unknown as { __avCoverTimer?: ReturnType<typeof setTimeout> };
-  if (w.__avCoverTimer) clearTimeout(w.__avCoverTimer);
-  w.__avCoverTimer = setTimeout(() => document.documentElement.classList.remove("intro-pending"), 12000);
+function ModalLoading() {
+  useModalScrollLock(true);
+  const close = () => {
+    const ui = useUIStore.getState();
+    ui.closeCart();
+    ui.closeSearch();
+    ui.closeReader();
+    ui.closeIntro();
+  };
+  React.useEffect(() => {
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  return (
+    <div role="dialog" aria-modal="true" aria-label="Loading" className="fixed inset-0 z-[200] bg-ink/95 flex flex-col items-center justify-center gap-6 text-paper">
+      <p role="status">Loading… · جاري التحميل</p>
+      <button autoFocus onClick={close} className="border border-gold px-5 py-3 text-gold">Close · إغلاق</button>
+    </div>
+  );
 }
 
-/** Client-only flag source: nothing ever changes, so it never notifies. */
-const subscribeNever = () => () => {};
+const CartDrawer = dynamic(() => import("@/components/CartDrawer").then((m) => m.CartDrawer), { ssr: false, loading: ModalLoading });
+const SearchModal = dynamic(() => import("@/components/SearchModal").then((m) => m.SearchModal), { ssr: false, loading: ModalLoading });
+const MangaReaderModal = dynamic(() => import("@/components/MangaReaderModal").then((m) => m.MangaReaderModal), { ssr: false, loading: ModalLoading });
+const CinematicIntro = dynamic(() => import("@/components/CinematicIntro").then((m) => m.CinematicIntro), { ssr: false, loading: ModalLoading });
+const LiveVisualEditor = dynamic(() => import("@/components/admin/LiveVisualEditor").then((m) => m.LiveVisualEditor), { ssr: false });
 
-/** The same session rule the intro itself applies, read before mounting it. */
-function introCouldPlay(pathname: string | null): boolean {
-  if (typeof window === "undefined") return false;
-  if (pathname !== "/" && pathname !== "") return false;
-  try {
-    if ((window as unknown as { __kairo_intro_seen?: boolean }).__kairo_intro_seen) return false;
-    return sessionStorage.getItem("kairo_intro_seen") !== "true";
-  } catch {
-    return true;
-  }
-}
-
-export function StorefrontShell({
-  children,
-  initialCatalog,
-}: {
+export function StorefrontShell({ children, initialCatalog }: {
   children: React.ReactNode;
   initialCatalog?: Record<string, unknown> | null;
 }) {
-  // Seeded here, in the outermost client component, so it lands before anything
-  // below has read the store — on the server render and on hydration alike,
-  // which is what keeps the two in agreement.
   seedStorefrontFromServer(initialCatalog);
-
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/admin");
-
   const isAdminAuthenticated = useStorefrontStore((state) => state.isAdminAuthenticated);
-  // Replaying from the account page flips this, so the chunk loads on demand.
   const isIntroActive = useUIStore((state) => state.isIntroActive);
-  // useSyncExternalStore rather than a setState-in-effect: the first client
-  // render already knows we are on the client, with no extra render pass.
-  const mounted = React.useSyncExternalStore(
-    subscribeNever,
-    () => true,
-    () => false
-  );
-  const wantsIntro = isIntroActive || (mounted && introCouldPlay(pathname));
-  if (isAdmin) {
-    return <><StorefrontDataSync /><main className="flex-1 w-full overflow-x-clip relative">{children}</main></>;
-  }
+  const isCartOpen = useUIStore((state) => state.isCartOpen);
+  const isSearchOpen = useUIStore((state) => state.isSearchOpen);
+  const isReaderOpen = useUIStore((state) => state.isReaderOpen);
+
+  if (isAdmin) return <><StorefrontDataSync /><main className="flex-1 w-full overflow-x-clip relative">{children}</main></>;
 
   return (
     <>
@@ -94,9 +61,10 @@ export function StorefrontShell({
       <main className="flex-1 w-full overflow-x-clip relative">{children}</main>
       <TickerBar slot="above-footer" />
       <Footer />
-      <CartDrawer />
-      <SearchModal />
-      {wantsIntro && <CinematicIntro />}
+      {isCartOpen && <CartDrawer />}
+      {isSearchOpen && <SearchModal />}
+      {isReaderOpen && <MangaReaderModal />}
+      {isIntroActive && <CinematicIntro />}
       {isAdminAuthenticated && <LiveVisualEditor />}
     </>
   );

@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import Image, { getImageProps } from "next/image";
 import { ArrowRight } from "lucide-react";
 
 import { useStorefrontStore } from "@/store/useStorefrontStore";
@@ -19,16 +19,17 @@ import { useImageRetry } from "@/components/AnimeVerseImage";
  */
 function HeroBackdropFrame({ src, alt, first, active }: { src: string; alt: string; first: boolean; active: boolean }) {
   const retry = useImageRetry(src);
+  const { props } = getImageProps({ src: retry.src, alt, fill: true, sizes: "100vw", quality: 75 });
   return (
-    <Image
-      key={retry.key}
-      src={retry.src}
+    <picture>
+      {/* Desktop has its own cover; do not download the mobile backdrop there. */}
+      <source media="(min-width: 1024px)" srcSet="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" />
+      <img
+      {...props}
       alt={alt}
-      fill
-      sizes="100vw"
-      quality={90}
-      preload={first}
-      loading={first ? undefined : "lazy"}
+      key={retry.key}
+      loading={first ? "eager" : "lazy"}
+      fetchPriority={first ? "high" : "auto"}
       decoding="async"
       onError={retry.onError}
       onLoad={retry.onLoad}
@@ -38,7 +39,7 @@ function HeroBackdropFrame({ src, alt, first, active }: { src: string; alt: stri
       className={`absolute inset-0 w-full h-full object-cover object-[center_62%] filter contrast-[1.08] brightness-[1.05] saturate-[1.05] transition-all duration-1000 ease-in-out ${
         active ? "opacity-100 scale-100" : "opacity-0 scale-105 pointer-events-none"
       }`}
-    />
+    /></picture>
   );
 }
 
@@ -115,28 +116,7 @@ export function Hero() {
     };
   }, []);
 
-  // Automatic smooth transition between mobile hero backgrounds (8 seconds per slide)
-  useEffect(() => {
-    if (mobileHeroImages.length < 2) return;
-    const timer = setInterval(() => {
-      setBgIndex((prev) => (prev + 1) % mobileHeroImages.length);
-    }, 8000);
-    return () => clearInterval(timer);
-  }, [mobileHeroImages.length]);
-
-  // Frames already shown, and the next one, fetched a few seconds ahead so it
-  // is ready by its turn.
-  const [shownBg, setShownBg] = useState<number[]>([0]);
-  const [upcomingBg, setUpcomingBg] = useState<number | null>(null);
-  useEffect(() => {
-    if (mobileHeroImages.length < 2) return;
-    const raf = requestAnimationFrame(() => setShownBg((list) => (list.includes(bgIndex) ? list : [...list, bgIndex])));
-    const ahead = setTimeout(() => setUpcomingBg((bgIndex + 1) % mobileHeroImages.length), 5000);
-    return () => {
-      cancelAnimationFrame(raf);
-      clearTimeout(ahead);
-    };
-  }, [bgIndex, mobileHeroImages.length]);
+  // Alternate artwork is fetched only when a shopper selects a slide.
 
   const isAr = locale === "ar";
   const headlineLine1 = mounted
@@ -188,10 +168,7 @@ export function Hero() {
       {/* Mobile & iPad Cinematic Cover Backdrop (< lg screens): Automatic smooth crossfade between images */}
       <div className="lg:hidden absolute inset-0 z-0 overflow-hidden select-none">
         {mobileHeroImages.map((src, idx) =>
-          // A frame joins the page when it is about to show, and stays once it
-          // has (the crossfade needs the outgoing one). All five used to load
-          // at once on a phone, only for four to wait unseen for up to 32s.
-          idx === bgIndex || idx === upcomingBg || shownBg.includes(idx) ? (
+          idx === bgIndex ? (
             <HeroBackdropFrame
               key={src}
               src={src}
@@ -342,7 +319,7 @@ export function Hero() {
               fill
               sizes="(max-width: 1023px) 0px, (max-width: 1280px) 320px, 450px"
               quality={90}
-              preload
+              loading="lazy"
               decoding="async"
               onError={featuredCover.onError}
               onLoad={featuredCover.onLoad}
