@@ -41,7 +41,7 @@ function fromLocalInputValue(value: string): string | undefined {
 
 function getNextVolumeNumberForSeries(volumes: MangaVolume[], seriesSlug: string, excludeId?: string): number {
   const numbers = volumes
-    .filter((volume) => volume.id !== excludeId && volume.seriesSlug === seriesSlug && isBook(volume))
+    .filter((volume) => volume.id !== excludeId && volume.seriesSlug === seriesSlug && isBook(volume) && volume.format !== "Box Set")
     .map((volume) => Number(volume.volumeNumber))
     .filter((number) => Number.isInteger(number) && number > 0);
   return (numbers.length > 0 ? Math.max(...numbers) : 0) + 1;
@@ -108,6 +108,7 @@ function VolumeFormDialog({
   // suggestion editable: once a curator types a number, a catalog refresh or
   // series update must never overwrite that deliberate choice.
   const volumeNumberEdited = useRef(Boolean(initialVolume));
+  const editedDefaults = useRef(new Set<"price" | "originalPrice" | "stock" | "genre">());
 
   const effectiveFormats = useMemo(() => {
     const base = storeFormats && storeFormats.length > 0 ? storeFormats : DEFAULT_FORMATS;
@@ -182,6 +183,7 @@ function VolumeFormDialog({
   const [newGenreKanji, setNewGenreKanji] = useState("");
 
   const toggleGenreSelection = (genreName: string) => {
+    editedDefaults.current.add("genre");
     setSelectedGenres((prev) => {
       const exists = prev.some((g) => g.toLowerCase() === genreName.toLowerCase());
       if (exists) {
@@ -196,6 +198,7 @@ function VolumeFormDialog({
     e.preventDefault();
     const name = newGenreName.trim();
     if (!name) return;
+    editedDefaults.current.add("genre");
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     const kanji = newGenreKanji.trim() || name;
 
@@ -375,6 +378,45 @@ function VolumeFormDialog({
       return { ...prev, volumeNumber: suggestedVolumeNumber };
     });
   }, [initialVolume, suggestedVolumeNumber]);
+
+  const inheritedDefaults = useMemo(() => {
+    // Use the closest earlier volume of the same edition. A box set or a
+    // different edition must not supply the price of an individual volume.
+    const previous = allVolumes
+      .filter((volume) =>
+        volume.id !== formData.id &&
+        volume.seriesSlug === formData.seriesSlug &&
+        isBook(volume) && volume.format !== "Box Set" &&
+        volume.format === formData.format &&
+        Number.isInteger(Number(volume.volumeNumber)) &&
+        Number(volume.volumeNumber) >= 0 &&
+        Number(volume.volumeNumber) < Number(formData.volumeNumber)
+      )
+      .reduce<MangaVolume | undefined>((latest, volume) =>
+        !latest || Number(volume.volumeNumber) > Number(latest.volumeNumber) ? volume : latest,
+      undefined);
+    const series = effectiveSeriesList.find((item) => item.slug === formData.seriesSlug);
+    return {
+      price: previous?.price ?? 0,
+      originalPrice: previous?.originalPrice,
+      stock: previous?.stock ?? 20,
+      genre: previous?.genre ?? series?.genres ?? ["Action"],
+    };
+  }, [allVolumes, effectiveSeriesList, formData.id, formData.seriesSlug, formData.format, formData.volumeNumber]);
+
+  useEffect(() => {
+    if (initialVolume || isBoxSet) return;
+    // Preserve each field the curator has edited, including zero stock, a
+    // cleared original price, and deliberately deselected categories.
+    const edited = editedDefaults.current;
+    setFormData((prev) => ({
+      ...prev,
+      ...(!edited.has("price") ? { price: inheritedDefaults.price } : {}),
+      ...(!edited.has("originalPrice") ? { originalPrice: inheritedDefaults.originalPrice } : {}),
+      ...(!edited.has("stock") ? { stock: inheritedDefaults.stock } : {}),
+    }));
+    if (!edited.has("genre")) setSelectedGenres([...inheritedDefaults.genre]);
+  }, [initialVolume, isBoxSet, inheritedDefaults]);
 
   const memberIds = useMemo(() => formData.bundleOf || [], [formData.bundleOf]);
 
@@ -591,7 +633,14 @@ function VolumeFormDialog({
               </div>
 
               <div className="md:col-span-3 flex flex-col justify-end">
-                <label className="block text-text-muted mb-1.5 min-h-[20px] flex items-end">Volume Number *</label>
+                <div className="flex items-center justify-between gap-2 mb-1.5 min-h-[20px]">
+                  <label className="block text-text-muted">Volume Number *</label>
+                  {!initialVolume && (
+                    <span className="text-[9px] text-text-muted whitespace-nowrap">
+                      Next: <strong className="text-gold">{suggestedVolumeNumber}</strong>
+                    </span>
+                  )}
+                </div>
                 <CustomNumberInput
                   min={1}
                   className="h-10"
@@ -602,11 +651,6 @@ function VolumeFormDialog({
                   }}
                   required
                 />
-                {!initialVolume && (
-                  <span className="mt-1 text-[9px] text-text-muted">
-                    Suggested next in series: <strong className="text-gold">{suggestedVolumeNumber}</strong>
-                  </span>
-                )}
               </div>
 
               <div className="md:col-span-4 flex flex-col justify-end">
@@ -744,7 +788,10 @@ function VolumeFormDialog({
                   className="h-10"
                   inputClassName="text-gold font-bold"
                   value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => {
+                    editedDefaults.current.add("price");
+                    setFormData({ ...formData, price: parseFloat(e.target.value) || 0 });
+                  }}
                 />
               </div>
               <div className="md:col-span-3 flex flex-col justify-end" hidden={isBoxSet}>
@@ -756,7 +803,10 @@ function VolumeFormDialog({
                   className="h-10"
                   inputClassName="text-text-muted"
                   value={formData.originalPrice ?? ""}
-                  onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value ? parseFloat(e.target.value) : undefined })}
+                  onChange={(e) => {
+                    editedDefaults.current.add("originalPrice");
+                    setFormData({ ...formData, originalPrice: e.target.value ? parseFloat(e.target.value) : undefined });
+                  }}
                   placeholder="e.g. 250"
                 />
               </div>
@@ -767,7 +817,10 @@ function VolumeFormDialog({
                   step={1}
                   className="h-10"
                   value={formData.stock}
-                  onChange={(e) => setFormData({ ...formData, stock: parseInt(e.target.value, 10) || 0 })}
+                  onChange={(e) => {
+                    editedDefaults.current.add("stock");
+                    setFormData({ ...formData, stock: parseInt(e.target.value, 10) || 0 });
+                  }}
                   required={!isBoxSet}
                 />
               </div>
@@ -988,8 +1041,11 @@ function VolumeFormDialog({
 
           {/* Section: Artwork & Manga Reader Preview */}
           <div>
-            <h3 className="mb-4 pb-2 border-b border-ink-border/50 text-[11px] uppercase tracking-[0.18em] font-bold text-paper flex items-center gap-1.5">
+            <h3 className="mb-4 pb-2 border-b border-ink-border/50 text-[11px] uppercase tracking-[0.18em] font-bold text-paper flex flex-wrap items-center gap-2">
               <span><span className="text-gold/70">04.</span> Cover Artwork & Manga Reader Preview</span>
+              <span className="ms-auto shrink-0 rounded-sm border border-gold/40 bg-gold/10 px-2.5 py-1 text-gold tracking-normal whitespace-nowrap">
+                {isArabic ? "الجزء" : "VOL."} {formData.volumeNumber ?? "—"}
+              </span>
             </h3>
             <div className="space-y-6">
               <ImageUploadInput
