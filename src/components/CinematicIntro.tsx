@@ -7,17 +7,24 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useUIStore } from "@/store/useUIStore";
 import { useMounted } from "@/store/useWishlistStore";
+import { useTranslation } from "@/hooks/useTranslation";
+import { hasSeenIntro, markIntroSeen } from "@/lib/introSession";
 
-import backgroundEmblem from "../../public/animat/animeverse-background-emblem.png";
-import characterArt from "../../public/animat/animeverse-character.png";
-import wordmarkArt from "../../public/animat/animeverse-wordmark.png";
-import fullLogo from "../../public/animat/animeverse-full-logo.png";
+import backgroundEmblem from "../../public/animat/animeverse-background-emblem.webp";
+import characterArt from "../../public/animat/animeverse-character.webp";
+import wordmarkArt from "../../public/animat/animeverse-wordmark.webp";
+import fullLogo from "../../public/animat/animeverse-full-logo.webp";
+
+import mobileEmblem from "../../public/animat/animeverse-background-emblem-mobile.webp";
+import mobileCharacter from "../../public/animat/animeverse-character-mobile.webp";
+import mobileWordmark from "../../public/animat/animeverse-wordmark-mobile.webp";
+import mobileLogo from "../../public/animat/animeverse-full-logo-mobile.webp";
 
 gsap.registerPlugin(useGSAP);
 
 /**
  * AnimeVerse title sequence — a ~4.3s brand reveal built entirely from the
- * shipped brand assets. No video, no canvas, no redrawn artwork: six PNG
+ * shipped brand assets. No video, no canvas, no redrawn artwork: compressed WebP
  * layers moved with GPU-friendly transforms, plus a handful of CSS effect
  * layers.
  *
@@ -62,12 +69,6 @@ gsap.registerPlugin(useGSAP);
  * Use GSAP's own `xPercent`/`yPercent`, which compose with `x`/`y`.
  */
 
-/** Flip to false to show the intro on every home-page landing within a
- *  session (including client-side navigations back to `/`). True is the
- *  shipped behaviour: once per browsing session, surviving a refresh,
- *  dying with the tab. */
-const SHOW_INTRO_ONCE_PER_SESSION = true;
-
 /** Safety net, in seconds, armed when the overlay actually appears and run on
  *  GSAP's own ticker — the same clock as the sequence. The timeline ends at
  *  ~4.28s, so this only ever fires if a tween is dropped and onComplete never
@@ -88,41 +89,6 @@ function prefersReducedMotion(): boolean {
   } catch {
     return false;
   }
-}
-
-/**
- * Whether the intro has already played *this visit*.
- *
- * Scoped to the browsing session rather than the device: it should open every
- * visit, but a reload in the middle of one is not a new visit and replaying it
- * there would be tiresome. `sessionStorage` draws exactly that line, and the
- * in-memory flag covers a client-side navigation back to the home page within
- * the same page load.
- */
-function hasSeenIntro(): boolean {
-  if (typeof window === "undefined") return true;
-  if (!SHOW_INTRO_ONCE_PER_SESSION) return false;
-  try {
-    if ((window as unknown as { __kairo_intro_seen?: boolean }).__kairo_intro_seen) return true;
-    if (sessionStorage.getItem("kairo_intro_seen") === "true") return true;
-  } catch {
-    // Private windows can block storage outright; never loop the intro there.
-    return true;
-  }
-  return false;
-}
-
-function markIntroSeen(): void {
-  if (typeof window === "undefined") return;
-  try {
-    (window as unknown as { __kairo_intro_seen?: boolean }).__kairo_intro_seen = true;
-    sessionStorage.setItem("kairo_intro_seen", "true");
-    // Nothing device-wide is written: the next visit is meant to see it again.
-    // Anything left over from when it was remembered for good is cleared, or a
-    // returning visitor would go on being skipped forever.
-    localStorage.removeItem("kairo_intro_seen");
-    document.cookie = "kairo_intro_seen=; path=/; max-age=0; SameSite=Lax";
-  } catch {}
 }
 
 /**
@@ -262,6 +228,7 @@ const HAZE_PARTICLES = [
 ];
 
 export function CinematicIntro() {
+  const { locale } = useTranslation();
   const pathname = usePathname();
   const mounted = useMounted();
   const [visible, setVisible] = useState(false);
@@ -330,10 +297,10 @@ export function CinematicIntro() {
   const finishedRef = useRef(false);
 
   const particles = useMemo(
-    () => (isCompact ? IMPACT_PARTICLES.slice(0, 5) : IMPACT_PARTICLES),
+    () => (isCompact ? IMPACT_PARTICLES.slice(0, 3) : IMPACT_PARTICLES),
     [isCompact]
   );
-  const hazeDots = useMemo(() => (isCompact ? HAZE_PARTICLES.slice(0, 4) : HAZE_PARTICLES), [isCompact]);
+  const hazeDots = useMemo(() => (isCompact ? HAZE_PARTICLES.slice(0, 2) : HAZE_PARTICLES), [isCompact]);
   const speedAngles = useMemo(
     () => (isCompact ? SPEED_LINE_ANGLES.slice(0, 3) : SPEED_LINE_ANGLES),
     [isCompact]
@@ -396,19 +363,49 @@ export function CinematicIntro() {
       return;
     }
 
-    markIntroSeen();
     finishedRef.current = false;
+    let cancelled = false;
+    const assets = reducedMotion
+      ? [isCompact ? mobileLogo : fullLogo]
+      : isCompact
+        ? [mobileEmblem, mobileCharacter, mobileWordmark]
+        : [backgroundEmblem, characterArt, wordmarkArt];
 
-    // The page underneath keeps loading and hydrating throughout — the
-    // overlay never gates it.
-    // Deferred a task rather than set synchronously in the effect body, so
-    // this doesn't trigger a cascading render on mount. A timeout, not a
-    // rAF: rAF is suspended whenever the page is not being painted (a
-    // background tab, a devtools pane that isn't compositing), and gating the
-    // overlay's existence on paint made the sequence unreachable there.
-    const timer = setTimeout(() => setVisible(true), 0);
-    return () => clearTimeout(timer);
-  }, [mounted, pathname, isIntroActive, finish]);
+    // Prepare exactly the files rendered below. The shop stays usable while
+    // they download; don't start a blank sequence or interrupt someone shopping.
+    const stopWaiting = () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("pointerdown", cancel);
+      window.removeEventListener("keydown", cancel);
+    };
+    const cancel = () => {
+      cancelled = true;
+      stopWaiting();
+      markIntroSeen();
+      closeIntro();
+    };
+    const timer = window.setTimeout(cancel, 5000);
+    window.addEventListener("pointerdown", cancel);
+    window.addEventListener("keydown", cancel);
+    const pending = assets.map((asset) => new Promise<void>((resolve, reject) => {
+      const img = new window.Image();
+      img.onload = () => img.decode().then(resolve, reject);
+      img.onerror = () => reject(new Error("Intro image unavailable"));
+      img.src = asset.src;
+    }));
+    Promise.all(pending).then(() => {
+      if (cancelled) return;
+      stopWaiting();
+      markIntroSeen();
+      setVisible(true);
+    }, () => {
+      if (!cancelled) cancel();
+    });
+    return () => {
+      cancelled = true;
+      stopWaiting();
+    };
+  }, [mounted, pathname, isIntroActive, isCompact, reducedMotion, closeIntro]);
 
   // The overlay now owns the screen, so the static cover underneath can go.
   // One frame later, so the two never swap on the same paint.
@@ -441,7 +438,7 @@ export function CinematicIntro() {
       // static logo for a beat, then hand over to the site.
       if (prefersReducedMotion()) {
         gsap.set(fallbackRef.current, { opacity: 1 });
-        gsap.set([groupRef.current, skipRef.current], { opacity: 0 });
+        gsap.set(skipRef.current, { opacity: 0 });
         const t = gsap.delayedCall(0.6, () => finish(true));
         return () => t.kill();
       }
@@ -591,13 +588,13 @@ export function CinematicIntro() {
         opacity: 0,
         scale: 0.9,
         y: compact ? 26 : 42,
-        filter: `blur(${compact ? 4 : 7}px)`,
+        filter: compact ? "none" : "blur(7px)",
       });
       gsap.set(characterRef.current, {
         opacity: 0,
         x: compact ? -26 : -50,
         scale: 0.94,
-        filter: `blur(${compact ? 2.5 : 4}px)`,
+        filter: compact ? "none" : "blur(4px)",
       });
       gsap.set(eyesRef.current, { opacity: 0 });
       gsap.set(wordmarkRef.current, {
@@ -644,7 +641,7 @@ export function CinematicIntro() {
         // it reads as one move rather than three effects.
         .to(
           emblemRef.current,
-          { opacity: 1, scale: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease: "power3.out" },
+          { opacity: 1, scale: 1, y: 0, filter: compact ? "none" : "blur(0px)", duration: 0.7, ease: "power3.out" },
           0.35
         )
         // The scene is lit before anything stands in it — key light with the
@@ -666,7 +663,7 @@ export function CinematicIntro() {
         // on his mark.
         .to(
           characterRef.current,
-          { opacity: 1, x: 0, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "power3.out" },
+          { opacity: 1, x: 0, scale: 1, filter: compact ? "none" : "blur(0px)", duration: 0.6, ease: "power3.out" },
           1.05
         )
         // The hit lands on the frame he does — not earlier, or it punctuates
@@ -894,8 +891,9 @@ export function CinematicIntro() {
         >
           {/* ── Backdrop: the void ─────────────────────────────────────── */}
           <div ref={backdropRef} className="absolute inset-0" style={VOID_STYLE} />
-          <div className="absolute inset-0 pointer-events-none opacity-[0.04] mix-blend-overlay" style={GRAIN_STYLE} />
+          {!isCompact && !reducedMotion && <div className="absolute inset-0 pointer-events-none opacity-[0.04] mix-blend-overlay" style={GRAIN_STYLE} />}
 
+          {!reducedMotion && <>
           {/* The single atmospheric red source. Centred by GSAP's own
               xPercent/yPercent — see the transform note at the top. */}
           <div
@@ -904,7 +902,7 @@ export function CinematicIntro() {
             style={{
               background:
                 "radial-gradient(circle at 50% 50%, rgba(217,74,58,0.30) 0%, rgba(217,74,58,0.09) 42%, transparent 70%)",
-              filter: "blur(60px)",
+              filter: isCompact ? "none" : "blur(60px)",
             }}
           />
 
@@ -941,7 +939,7 @@ export function CinematicIntro() {
             style={{
               background:
                 "radial-gradient(circle at 50% 50%, rgba(255,90,70,0.85) 0%, rgba(217,74,58,0.35) 38%, transparent 68%)",
-              filter: "blur(24px)",
+              filter: isCompact ? "none" : "blur(24px)",
             }}
           />
 
@@ -1014,7 +1012,7 @@ export function CinematicIntro() {
               style={{
                 background:
                   "radial-gradient(ellipse at 50% 50%, rgba(217,74,58,0.34) 0%, rgba(150,40,32,0.14) 44%, transparent 72%)",
-                filter: "blur(56px)",
+                filter: isCompact ? "none" : "blur(56px)",
               }}
             />
 
@@ -1026,7 +1024,7 @@ export function CinematicIntro() {
               style={{
                 background:
                   "radial-gradient(ellipse at 50% 50%, rgba(217,74,58,0.26) 0%, rgba(217,74,58,0.07) 45%, transparent 74%)",
-                filter: "blur(34px)",
+                filter: isCompact ? "none" : "blur(34px)",
               }}
             />
 
@@ -1038,7 +1036,7 @@ export function CinematicIntro() {
               style={{
                 background:
                   "radial-gradient(ellipse at 50% 50%, rgba(255,142,120,0.55) 0%, rgba(255,190,175,0.22) 40%, transparent 72%)",
-                filter: "blur(46px)",
+                filter: isCompact ? "none" : "blur(46px)",
               }}
             />
 
@@ -1050,23 +1048,21 @@ export function CinematicIntro() {
             <div className={`relative ${characterBox} shrink-0`}>
               <div ref={emblemRef} className="absolute inset-0 -m-[9%] pointer-events-none">
                 <Image
-                  src={backgroundEmblem}
+                  src={isCompact ? mobileEmblem : backgroundEmblem}
                   alt=""
                   sizes="(max-width: 767px) 70vw, 460px"
-                  quality={90}
-                  priority
+                  unoptimized loading="eager"
                   className="w-full h-auto"
                 />
               </div>
 
               <div ref={characterRef} className="relative">
                 <Image
-                  src={characterArt}
+                  src={isCompact ? mobileCharacter : characterArt}
                   alt=""
                   sizes="(max-width: 767px) 62vw, 420px"
-                  quality={90}
-                  priority
-                  className="w-full h-auto drop-shadow-[0_10px_26px_rgba(0,0,0,0.75)]"
+                  unoptimized loading="eager"
+                  className={`w-full h-auto ${isCompact ? "" : "drop-shadow-[0_10px_26px_rgba(0,0,0,0.75)]"}`}
                 />
 
                 {/* The eye catch-light. Positioned as a fraction of the
@@ -1107,11 +1103,10 @@ export function CinematicIntro() {
             <div className={`relative ${wordmarkBox} shrink-0`}>
               <div ref={wordmarkRef} className="relative">
                 <Image
-                  src={wordmarkArt}
+                  src={isCompact ? mobileWordmark : wordmarkArt}
                   alt="AnimeVerse"
                   sizes="(max-width: 767px) 74vw, 520px"
-                  quality={90}
-                  priority
+                  unoptimized loading="eager"
                   className="w-full h-auto"
                 />
               </div>
@@ -1119,13 +1114,15 @@ export function CinematicIntro() {
             </div>
           </div>
 
+          </>}
+
           {/* Reduced-motion fallback: the shipped static logo, nothing moving. */}
           <div ref={fallbackRef} className="absolute z-20 w-[70vw] max-w-[520px] opacity-0 pointer-events-none">
             {/* Only fetched for visitors who asked for reduced motion: for
                 everyone else this layer stays invisible, and loading it at
                 high priority cost ~100KB on every first visit. */}
             {reducedMotion && (
-              <Image src={fullLogo} alt="AnimeVerse" sizes="(max-width: 767px) 70vw, 520px" quality={90} priority className="w-full h-auto" />
+              <Image src={isCompact ? mobileLogo : fullLogo} alt="AnimeVerse" sizes="(max-width: 767px) 70vw, 520px" unoptimized loading="eager" className="w-full h-auto" />
             )}
           </div>
 
@@ -1138,7 +1135,7 @@ export function CinematicIntro() {
           >
             <span className="inline-flex items-center gap-3">
               <span className="h-px w-6 bg-vermilion/40" />
-              Enter
+              {locale === "ar" ? "دخول المتجر" : "Enter"}
               <span className="h-px w-6 bg-vermilion/40" />
             </span>
           </button>
@@ -1165,7 +1162,7 @@ export function CinematicIntro() {
           }}
           className="fixed bottom-3 left-3 z-[200] rounded-sm border border-vermilion/30 bg-ink/90 px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-vermilion/70 backdrop-blur-sm transition-colors hover:border-vermilion/60 hover:text-vermilion cursor-pointer"
         >
-          ⟲ Replay intro
+          ⟲ {locale === "ar" ? "إعادة الانترو" : "Replay intro"}
         </button>
       )}
     </>

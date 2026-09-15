@@ -10,11 +10,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
  * Fetching them quietly while the current page is being read means the next one
  * is already in the browser cache by the time it is asked for.
  *
- * The optimizer URL has to match what `next/image` will ask for, or the browser
- * caches one file and requests another. Rather than recompute the chosen width
- * from the `sizes` attribute and the viewport — which would quietly disagree the
- * moment either changes — it is read back off an image the grid has already
- * rendered, so the warmed URL is by construction the one that will be used.
+ * When Next's image transformer is enabled, the optimizer URL has to match what
+ * `next/image` will ask for. This project serves images directly because the
+ * deployment may return 402 when its transformer quota is exhausted. In that
+ * mode the original source URL is the cache key and is prefetched as-is.
  *
  * Nothing is warmed on a metered or slow connection: someone on 2G is better
  * served by the page in front of them than by one they may never open.
@@ -42,49 +41,8 @@ function connectionAllowsPrefetch(): boolean {
 }
 
 /**
- * The width and quality the optimizer was actually asked for, read from images
- * the grid has already fetched.
- *
- * Only `currentSrc` will do. The `src` attribute `next/image` writes is the
- * largest candidate in the set — 3840px here — and is what the browser falls
- * back to, not what it picks; copying that would warm a full-size file for
- * every card when the grid displays them at 256px.
- *
- * The most common width across the grid wins rather than the first one found,
- * so a single card that happens to be laid out differently cannot decide it.
- */
-function optimizerShape(root: HTMLElement | null): { width: string; quality: string } | null {
-  if (!root) return null;
-  const tally = new Map<string, number>();
-  let quality: string | null = null;
-
-  for (const image of root.querySelectorAll("img")) {
-    const source = image.currentSrc;
-    if (!source || !source.includes("/_next/image")) continue;
-    const params = new URLSearchParams(source.slice(source.indexOf("?") + 1));
-    const width = params.get("w");
-    const q = params.get("q");
-    if (!width || !q) continue;
-    tally.set(width, (tally.get(width) ?? 0) + 1);
-    quality ??= q;
-  }
-
-  if (!quality || tally.size === 0) return null;
-  let width = "";
-  let best = -1;
-  for (const [candidate, count] of tally) {
-    if (count > best) {
-      best = count;
-      width = candidate;
-    }
-  }
-  return { width, quality };
-}
-
-/**
  * @param sources Image URLs for the next page, in the order they will appear.
- * @param gridRef The element holding the current page's cards, read to learn
- *   which optimizer variant this layout asks for.
+ * @param gridRef Kept for the stable hook API used by catalogue grids.
  */
 export function useImagePrefetch(
   sources: readonly string[],
@@ -108,44 +66,25 @@ export function useImagePrefetch(
     };
 
     const warm = (): boolean => {
-      // `currentSrc` is only filled in once a variant has actually been chosen
-      // and fetched, so until the grid has drawn something there is nothing to
-      // copy the width from and warming has to wait.
-      const shape = optimizerShape(gridRef.current);
-      if (!shape) return false;
-
       for (const source of sources.slice(0, MAX_PREFETCH)) {
         if (!source || warmed.current.has(source)) continue;
         warmed.current.add(source);
-        const url = `/_next/image?url=${encodeURIComponent(source)}&w=${shape.width}&q=${shape.quality}`;
         const image = new Image();
         // Explicitly the lowest priority: this must never compete with what the
         // shopper is looking at right now.
         image.fetchPriority = "low";
         image.decoding = "async";
-        image.src = url;
+        image.src = source;
       }
       return true;
     };
 
-    let onLoad: ((event: Event) => void) | undefined;
-    const grid = gridRef.current;
-
     const handle = idle(() => {
-      if (cancelled || warm()) return;
-      // Nothing had loaded yet. Rather than give up for the life of the page,
-      // wait for the grid's first cover and take the measurement from that.
-      // `load` does not bubble, hence the capture phase.
-      onLoad = () => {
-        if (cancelled) return;
-        if (warm() && grid && onLoad) grid.removeEventListener("load", onLoad, true);
-      };
-      grid?.addEventListener("load", onLoad, true);
+      if (!cancelled) warm();
     });
 
     return () => {
       cancelled = true;
-      if (grid && onLoad) grid.removeEventListener("load", onLoad, true);
       const cancel = (window as Window & { cancelIdleCallback?: (handle: number) => void }).cancelIdleCallback;
       if (cancel) cancel(handle as number);
       else window.clearTimeout(handle as number);

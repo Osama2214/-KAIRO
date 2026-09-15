@@ -12,32 +12,41 @@ import { LiveEditButton } from "@/components/admin/LiveEditButton";
 import { useTranslation } from "@/hooks/useTranslation";
 import { PLACEHOLDER_COVER } from "@/config/mediaDefaults";
 import { useImageRetry } from "@/components/AnimeVerseImage";
+import { mobileHeroImages } from "@/config/mobileHeroImages";
 
 /**
  * One frame of the mobile backdrop. Split out so each carries its own retry
  * state: a frame that fails is re-requested rather than fading in empty.
  */
-function HeroBackdropFrame({ src, alt, first, active }: { src: string; alt: string; first: boolean; active: boolean }) {
-  const retry = useImageRetry(src);
-  const { props } = getImageProps({ src: retry.src, alt, fill: true, sizes: "100vw", quality: 75 });
+function HeroBackdropFrame({ frame, first, active, onReady }: {
+  frame: (typeof mobileHeroImages)[number];
+  first: boolean;
+  active: boolean;
+  onReady: () => void;
+}) {
+  const retry = useImageRetry(frame.src);
+  const { props } = getImageProps({ src: retry.src, alt: "", width: frame.width, height: frame.height, unoptimized: true });
   return (
     <picture>
       {/* Desktop has its own cover; do not download the mobile backdrop there. */}
       <source media="(min-width: 1024px)" srcSet="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" />
+      <source type="image/avif" srcSet={frame.avif} sizes="100vw" />
       <img
       {...props}
-      alt={alt}
+      alt=""
       key={retry.key}
-      loading={first ? "eager" : "lazy"}
+      srcSet={frame.webp}
+      sizes="100vw"
+      loading="eager"
       fetchPriority={first ? "high" : "auto"}
       decoding="async"
       onError={retry.onError}
-      onLoad={retry.onLoad}
+      onLoad={() => { retry.onLoad(); onReady(); }}
       // All five frames share one treatment. The old rule gave slide 0 full
       // brightness and dimmed the rest to 76%, which on artwork this dark
       // left the characters barely readable.
-      className={`absolute inset-0 w-full h-full object-cover object-[center_62%] filter contrast-[1.08] brightness-[1.05] saturate-[1.05] transition-all duration-1000 ease-in-out ${
-        active ? "opacity-100 scale-100" : "opacity-0 scale-105 pointer-events-none"
+      className={`absolute inset-0 w-full h-full object-cover object-[center_62%] filter contrast-[1.08] brightness-[1.05] saturate-[1.05] ${
+        active ? "opacity-100" : "opacity-0 pointer-events-none"
       }`}
     /></picture>
   );
@@ -49,13 +58,7 @@ export function Hero() {
   const { t, locale } = useTranslation();
 
   const [bgIndex, setBgIndex] = useState(0);
-  const mobileHeroImages: string[] = [
-    "/images/hero-mobile-bg.webp",
-    "/images/hero-mobile-bg-2.webp",
-    "/images/hero-mobile-bg-3.webp",
-    "/images/hero-mobile-bg-4.webp",
-    "/images/hero-mobile-bg-5.webp",
-  ];
+  const [loadedBgIndex, setLoadedBgIndex] = useState(0);
 
   const heroContent = useStorefrontStore((state) => state.heroContent);
   const heroArabicContent = useStorefrontStore((state) => state.heroArabicContent);
@@ -160,21 +163,24 @@ export function Hero() {
 
   return (
     <section className="relative h-[100svh] min-h-[100svh] max-h-[100svh] lg:h-auto lg:min-h-screen lg:max-h-none w-full flex flex-col justify-center overflow-hidden pt-20 sm:pt-24 lg:pt-28 pb-8 sm:pb-12 lg:pb-16 px-5 sm:px-8 md:px-12 lg:px-16 bg-ink">
+      {/* Match the picture's AVIF candidate so only one first-frame file is
+          preloaded, only below lg, directly from the deployment's asset cache. */}
+      <link rel="preload" as="image" type="image/avif" media="(max-width: 1023px)" imageSrcSet={mobileHeroImages[0].avif} imageSizes="100vw" fetchPriority="high" />
       {/* Subtle Japanese Typographic Watermark Background */}
       <div className="absolute inset-0 bg-japanese-pattern pointer-events-none select-none z-0" />
       <div className="absolute top-1/4 left-1/4 w-[450px] h-[450px] rounded-full bg-vermilion/5 blur-[130px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-[450px] h-[450px] rounded-full bg-gold/5 blur-[130px] pointer-events-none" />
 
-      {/* Mobile & iPad Cinematic Cover Backdrop (< lg screens): Automatic smooth crossfade between images */}
+      {/* Keep the current background visible until the selected image loads. */}
       <div className="lg:hidden absolute inset-0 z-0 overflow-hidden select-none">
-        {mobileHeroImages.map((src, idx) =>
-          idx === bgIndex ? (
+        {mobileHeroImages.map((frame, idx) =>
+          idx === bgIndex || idx === loadedBgIndex ? (
             <HeroBackdropFrame
-              key={src}
-              src={src}
-              alt={featuredVolume?.title || "ANIMEVERSE Manga Hero"}
+              key={frame.src}
+              frame={frame}
               first={idx === 0}
-              active={idx === bgIndex}
+              active={idx === loadedBgIndex}
+              onReady={() => { if (idx === bgIndex) setLoadedBgIndex(idx); }}
             />
           ) : null
         )}
@@ -191,7 +197,8 @@ export function Hero() {
             <button
               key={idx}
               onClick={() => setBgIndex(idx)}
-              aria-label={`Switch slide ${idx + 1}`}
+              aria-label={isAr ? `عرض الخلفية ${idx + 1}` : `Switch slide ${idx + 1}`}
+              aria-pressed={idx === bgIndex}
               className={`h-1 rounded-full transition-all duration-500 cursor-pointer ${
                 idx === bgIndex ? "w-5 bg-gold shadow-[0_0_8px_rgba(199,167,108,0.6)]" : "w-1.5 bg-paper/30 hover:bg-paper/60"
               }`}

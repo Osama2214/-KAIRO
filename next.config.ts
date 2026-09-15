@@ -38,6 +38,11 @@ const nextConfig: NextConfig = {
   //   KAIRO_DIST_DIR=.next-analyze npx next build
   distDir: process.env.KAIRO_DIST_DIR || ".next",
   images: {
+    // The deployment's image transformation endpoint can return 402 when its
+    // quota is exhausted. Serve the already-compressed WebP/AVIF files
+    // directly instead of routing every image through /_next/image, so the
+    // storefront keeps showing artwork even when that service is unavailable.
+    unoptimized: true,
     // Only hosts the catalogue actually serves from. Each extra entry is a
     // host anyone can make this optimiser fetch and cache on our bill, and
     // every image in the shop now lives in our own R2 bucket.

@@ -11,6 +11,7 @@ import { useUIStore } from "@/store/useUIStore";
 import { StorefrontDataSync } from "@/components/StorefrontDataSync";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { useTranslation } from "@/hooks/useTranslation";
+import { hasSeenIntro } from "@/lib/introSession";
 
 function ModalLoading() {
   useModalScrollLock(true);
@@ -39,8 +40,24 @@ function ModalLoading() {
 const CartDrawer = dynamic(() => import("@/components/CartDrawer").then((m) => m.CartDrawer), { ssr: false, loading: ModalLoading });
 const SearchModal = dynamic(() => import("@/components/SearchModal").then((m) => m.SearchModal), { ssr: false, loading: ModalLoading });
 const MangaReaderModal = dynamic(() => import("@/components/MangaReaderModal").then((m) => m.MangaReaderModal), { ssr: false, loading: ModalLoading });
-const CinematicIntro = dynamic(() => import("@/components/CinematicIntro").then((m) => m.CinematicIntro), { ssr: false, loading: ModalLoading });
+const CinematicIntro = dynamic(() => import("@/components/CinematicIntro").then((m) => m.CinematicIntro), { ssr: false });
 const LiveVisualEditor = dynamic(() => import("@/components/admin/LiveVisualEditor").then((m) => m.LiveVisualEditor), { ssr: false });
+
+function IntroGate() {
+  const pathname = usePathname();
+  const isIntroActive = useUIStore((state) => state.isIntroActive);
+  const [autoIntro, setAutoIntro] = React.useState(false);
+  const onHome = pathname === "/";
+
+  React.useEffect(() => {
+    if (!onHome || hasSeenIntro()) return;
+    const timer = window.setTimeout(() => setAutoIntro(true), 0);
+    return () => window.clearTimeout(timer);
+  }, [onHome]);
+
+  // Load the animation code only for a first home visit or an explicit replay.
+  return (onHome && autoIntro) || isIntroActive ? <CinematicIntro /> : null;
+}
 
 export function StorefrontShell({ children, initialCatalog }: {
   children: React.ReactNode;
@@ -50,7 +67,6 @@ export function StorefrontShell({ children, initialCatalog }: {
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/admin");
   const isAdminAuthenticated = useStorefrontStore((state) => state.isAdminAuthenticated);
-  const isIntroActive = useUIStore((state) => state.isIntroActive);
   const isCartOpen = useUIStore((state) => state.isCartOpen);
   const isSearchOpen = useUIStore((state) => state.isSearchOpen);
   const isReaderOpen = useUIStore((state) => state.isReaderOpen);
@@ -67,7 +83,7 @@ export function StorefrontShell({ children, initialCatalog }: {
       {isCartOpen && <CartDrawer />}
       {isSearchOpen && <SearchModal />}
       {isReaderOpen && <MangaReaderModal />}
-      {isIntroActive && <CinematicIntro />}
+      <IntroGate />
       {isAdminAuthenticated && <LiveVisualEditor />}
     </>
   );

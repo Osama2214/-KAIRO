@@ -48,7 +48,7 @@ export default function SeriesDirectoryPage() {
               <Link
                 href={`/series/${series.slug}`}
                 prefetch="auto"
-                className="absolute inset-0 z-0 focus:outline-none"
+                className="absolute inset-0 z-10 focus-visible:outline-2 focus-visible:outline-gold focus-visible:-outline-offset-2"
                 aria-label={series.title}
               />
               {/* Top Banner Image with Kanji Watermark */}
@@ -67,7 +67,7 @@ export default function SeriesDirectoryPage() {
                 </div>
 
                 {/* Status Badge */}
-                <div className="absolute top-3 left-3 z-10 flex gap-1.5 sm:gap-2">
+                <div className="absolute top-3 left-3 z-10 flex gap-1.5 sm:gap-2 pointer-events-none">
                   <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-xs bg-ink/90 backdrop-blur-md text-[9px] sm:text-[10px] font-mono tracking-widest text-gold border border-ink-border">
                     {isArabic
                       ? series.status.toLowerCase() === "ongoing"

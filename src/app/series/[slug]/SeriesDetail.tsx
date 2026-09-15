@@ -263,7 +263,7 @@ export default function SeriesView({ series: initialSeries }: { series: Series }
               <Link
                 href={`/manga/${volume.id}`}
                 prefetch={false}
-                className="absolute inset-0 z-0 focus:outline-none"
+                className="absolute inset-0 z-10 focus-visible:outline-2 focus-visible:outline-gold focus-visible:-outline-offset-2"
                 aria-label={volume.title}
               />
               {/* Media */}
@@ -293,7 +293,7 @@ export default function SeriesView({ series: initialSeries }: { series: Series }
                     </span>
                   )}
                 </div>
-                <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-10">
+                <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-20 pointer-events-none [&_button]:pointer-events-auto">
                   {!(volume.comingSoon || volume.price <= 0) && <button
                     type="button"
                     onClick={(e) => {
@@ -364,7 +364,7 @@ export default function SeriesView({ series: initialSeries }: { series: Series }
                         e.stopPropagation();
                         toggleWishlist(volume);
                       }}
-                      className="h-7 sm:h-8 px-2 sm:px-3 bg-gold/10 border border-gold/50 text-gold hover:bg-gold hover:text-ink text-[8px] sm:text-[9px] font-mono font-bold uppercase rounded-xs transition-colors shrink-0"
+                      className="relative z-20 h-7 sm:h-8 px-2 sm:px-3 bg-gold/10 border border-gold/50 text-gold hover:bg-gold hover:text-ink text-[8px] sm:text-[9px] font-mono font-bold uppercase rounded-xs transition-colors shrink-0"
                     >
                       {mounted && isInWishlist(volume.id) ? (isArabic ? "محفوظ" : "SAVED") : (isArabic ? "أضف للمفضلة" : "WISHLIST")}
                     </button>
@@ -381,7 +381,7 @@ export default function SeriesView({ series: initialSeries }: { series: Series }
                         addItem(volume, 1);
                         openCart();
                       }}
-                      className="h-7 sm:h-8 px-2 sm:px-3 bg-paper text-ink hover:bg-vermilion hover:text-white font-bold text-[10px] uppercase transition-colors rounded-xs flex items-center gap-1 z-10 active:scale-95 shrink-0"
+                      className="relative z-20 h-7 sm:h-8 px-2 sm:px-3 bg-paper text-ink hover:bg-vermilion hover:text-white font-bold text-[10px] uppercase transition-colors rounded-xs flex items-center gap-1 active:scale-95 shrink-0"
                     >
                       <Plus strokeWidth={1.5} className="w-3 h-3" />
                       <span className="hidden xs:inline">{isArabic ? "أضف" : "ADD"}</span>
