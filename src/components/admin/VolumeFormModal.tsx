@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { X, Save, Plus, Check, Upload, Loader2, Timer, Package, AlertTriangle } from "lucide-react";
 import { MangaVolume, Series, GenreInfo, type ProductType } from "@/data/manga";
 import { isBook, isMerch } from "@/lib/variants";
@@ -37,6 +37,14 @@ function fromLocalInputValue(value: string): string | undefined {
   if (!value) return undefined;
   const ms = Date.parse(value);
   return Number.isFinite(ms) ? new Date(ms).toISOString() : undefined;
+}
+
+function getNextVolumeNumberForSeries(volumes: MangaVolume[], seriesSlug: string, excludeId?: string): number {
+  const numbers = volumes
+    .filter((volume) => volume.id !== excludeId && volume.seriesSlug === seriesSlug && isBook(volume))
+    .map((volume) => Number(volume.volumeNumber))
+    .filter((number) => Number.isInteger(number) && number > 0);
+  return (numbers.length > 0 ? Math.max(...numbers) : 0) + 1;
 }
 
 function VolumeFormDialog({
@@ -95,6 +103,11 @@ function VolumeFormDialog({
       previewPages: [],
     };
   });
+
+  // New books start with the next number in the selected series. Keep the
+  // suggestion editable: once a curator types a number, a catalog refresh or
+  // series update must never overwrite that deliberate choice.
+  const volumeNumberEdited = useRef(Boolean(initialVolume));
 
   const effectiveFormats = useMemo(() => {
     const base = storeFormats && storeFormats.length > 0 ? storeFormats : DEFAULT_FORMATS;
@@ -318,6 +331,9 @@ function VolumeFormDialog({
         seriesTitle: selected.title,
         author: prev.author || selected.author,
         artist: prev.artist || selected.artist,
+        ...(initialVolume || volumeNumberEdited.current
+          ? {}
+          : { volumeNumber: getNextVolumeNumberForSeries(allVolumes, selected.slug, formData.id) }),
       }));
     }
   };
@@ -342,6 +358,23 @@ function VolumeFormDialog({
   // --- Box set contents -----------------------------------------------------
   const allVolumes = useStorefrontStore((s) => s.volumes);
   const isBoxSet = formData.format === "Box Set";
+
+  const suggestedVolumeNumber = useMemo(
+    () => getNextVolumeNumberForSeries(
+      allVolumes,
+      String(formData.seriesSlug || effectiveSeriesList[0]?.slug || ""),
+      formData.id
+    ),
+    [allVolumes, formData.id, formData.seriesSlug, effectiveSeriesList]
+  );
+
+  useEffect(() => {
+    if (initialVolume || volumeNumberEdited.current) return;
+    setFormData((prev) => {
+      if (prev.volumeNumber === suggestedVolumeNumber) return prev;
+      return { ...prev, volumeNumber: suggestedVolumeNumber };
+    });
+  }, [initialVolume, suggestedVolumeNumber]);
 
   const memberIds = useMemo(() => formData.bundleOf || [], [formData.bundleOf]);
 
@@ -563,9 +596,17 @@ function VolumeFormDialog({
                   min={1}
                   className="h-10"
                   value={formData.volumeNumber}
-                  onChange={(e) => setFormData({ ...formData, volumeNumber: parseInt(e.target.value, 10) || 1 })}
+                  onChange={(e) => {
+                    volumeNumberEdited.current = true;
+                    setFormData((prev) => ({ ...prev, volumeNumber: parseInt(e.target.value, 10) || 1 }));
+                  }}
                   required
                 />
+                {!initialVolume && (
+                  <span className="mt-1 text-[9px] text-text-muted">
+                    Suggested next in series: <strong className="text-gold">{suggestedVolumeNumber}</strong>
+                  </span>
+                )}
               </div>
 
               <div className="md:col-span-4 flex flex-col justify-end">
