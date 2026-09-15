@@ -47,7 +47,7 @@ export default function SeriesDirectoryPage() {
             >
               <Link
                 href={`/series/${series.slug}`}
-                prefetch={false}
+                prefetch="auto"
                 className="absolute inset-0 z-0 focus:outline-none"
                 aria-label={series.title}
               />

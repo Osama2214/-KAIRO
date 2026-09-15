@@ -39,7 +39,7 @@ export function ShopProductCard({
   const { toggleWishlist, isInWishlist } = useWishlistStore();
   const mounted = useMounted();
   const saved = mounted && isInWishlist(item.id);
-  // Books use this card too (in mixed rows like deals and "picked for you"):
+  // Books use this card too in mixed home rows such as deals:
   // they are always added straight to the cart and are labelled by series.
   const book = isBook(item);
   const franchise = book ? item.seriesTitle : (isArabic && item.merch?.franchiseAr) || item.merch?.franchise || "";
@@ -54,7 +54,7 @@ export function ShopProductCard({
     >
       <Link
         href={href}
-        prefetch={false}
+        prefetch="auto"
         className="absolute inset-0 z-0 focus:outline-none"
         aria-label={item.title}
       />

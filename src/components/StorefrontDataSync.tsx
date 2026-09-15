@@ -17,6 +17,7 @@ import { withDerivedSeriesVolumes, withoutSeriesVolumes } from "@/lib/seriesVolu
 import { hasUnsavedCuratorWork, useCuratorSaveStore } from "@/store/useCuratorSaveStore";
 import { STOREFRONT_DATA_KEYS } from "@/lib/storefrontKeys";
 import { requestCatalogIndex } from "@/lib/catalogRequests";
+import { useTranslation } from "@/hooks/useTranslation";
 
 function snapshot(state: Record<string, unknown>) {
   const data = Object.fromEntries(STOREFRONT_DATA_KEYS.map((key) => [key, state[key]]));
@@ -27,11 +28,16 @@ function snapshot(state: Record<string, unknown>) {
 
 export function StorefrontDataSync() {
   const catalogError = useStorefrontStore((state) => state.catalogError);
+  const { locale } = useTranslation();
+  const isArabic = locale === "ar";
   useEffect(() => {
     // Remove the retired client-side CMS & users snapshots.
     try {
       localStorage.removeItem("kairo_storefront_cms_v3");
       localStorage.removeItem("kairo_users_db");
+      // The personal recommendations section was removed; its local view
+      // history is no longer used and should not linger on the device.
+      localStorage.removeItem("kairo_browsing_history");
     } catch {}
 
     // Older builds kept complete guest orders — name, phone, delivery address —
@@ -210,8 +216,8 @@ export function StorefrontDataSync() {
   }, []);
 
   if (!catalogError) return null;
-  return <div role="alert" className="fixed bottom-4 inset-x-4 z-[250] bg-ink border border-gold p-4 text-center text-paper">
-    <p>Couldn’t load the catalogue · تعذّر تحميل المنتجات</p>
-    <button className="mt-2 underline text-gold" onClick={() => window.dispatchEvent(new Event("kairo:retry-catalog"))}>Try again · حاول تاني</button>
+  return <div role="alert" dir={isArabic ? "rtl" : "ltr"} className="fixed bottom-4 inset-x-4 z-[250] bg-ink border border-gold p-4 text-center text-paper">
+    <p>{isArabic ? "تعذّر تحميل المنتجات" : "Couldn’t load the catalogue"}</p>
+    <button className="mt-2 underline text-gold" onClick={() => window.dispatchEvent(new Event("kairo:retry-catalog"))}>{isArabic ? "حاول مرة أخرى" : "Try again"}</button>
   </div>;
 }

@@ -14,6 +14,7 @@ import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { useStorefrontStore, DEFAULT_FORMATS } from "@/store/useStorefrontStore";
 import { PLACEHOLDER_BANNER, PLACEHOLDER_COVER } from "@/config/mediaDefaults";
 import { useNow } from "@/hooks/useNow";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface VolumeFormModalProps {
   isOpen: boolean;
@@ -49,6 +50,8 @@ function VolumeFormDialog({
   onClose: () => void;
   onSave: (volume: MangaVolume) => void;
 }) {
+  const { locale } = useTranslation();
+  const isArabic = locale === "ar";
   useModalScrollLock(true);
 
   const storeGenres = useStorefrontStore((s) => s.genres);
@@ -985,7 +988,7 @@ function VolumeFormDialog({
                         <>
                           <Loader2 className="w-3 h-3 animate-spin text-gold" />
                           <span>
-                            Uploading ({previewUploadProgress ? `${previewUploadProgress.done}/${previewUploadProgress.total}` : "..."})
+                            {isArabic ? "جاري الرفع" : "Uploading"} ({previewUploadProgress ? `${previewUploadProgress.done}/${previewUploadProgress.total}` : "..."})
                           </span>
                         </>
                       ) : (

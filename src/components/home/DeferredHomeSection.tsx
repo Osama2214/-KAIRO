@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useTranslation } from "@/hooks/useTranslation";
 
 function SectionLoading() {
-  return <div role="status" className="min-h-[640px] flex items-center justify-center text-gold">Loading… · جاري التحميل</div>;
+  const { t } = useTranslation();
+  return <div role="status" className="min-h-[640px] flex items-center justify-center text-gold">{t.common.loading}</div>;
 }
 
 const sections = {
@@ -23,6 +25,8 @@ export function DeferredHomeSection({ name, anchor, title }: {
   anchor: string;
   title: string;
 }) {
+  const { locale } = useTranslation();
+  const isArabic = locale === "ar";
   const ref = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   useEffect(() => {
@@ -45,9 +49,16 @@ export function DeferredHomeSection({ name, anchor, title }: {
   const Section = sections[name];
   return <div ref={ref}>
     {ready ? <Section /> : <section id={anchor} className="min-h-[640px] px-6 py-24 border-t border-ink-border flex flex-col items-center justify-center gap-6">
-      <h2 className="font-serif text-2xl text-gold">{title}</h2>
-      <button onClick={() => setReady(true)} className="border border-gold/50 px-6 py-3 text-paper">Explore · استكشف</button>
-      <noscript><Link href="/manga" prefetch={false}>Browse the catalogue</Link></noscript>
+      <h2 className="font-serif text-2xl text-gold">{isArabic ? {
+        boxes: "بوكس سيت كاملة",
+        shop: "فيجرز وبوسترات",
+        franchises: "تصفح حسب العمل",
+        genres: "تصفح حسب التصنيف",
+        featured: "سلاسل مميزة",
+        discovery: "اكتشف الأرشيف",
+      }[name] : title}</h2>
+      <button onClick={() => setReady(true)} className="border border-gold/50 px-6 py-3 text-paper">{isArabic ? "استكشف" : "Explore"}</button>
+      <noscript><Link href="/manga" prefetch={false}>{isArabic ? "تصفح الكتالوج" : "Browse the catalogue"}</Link></noscript>
     </section>}
   </div>;
 }

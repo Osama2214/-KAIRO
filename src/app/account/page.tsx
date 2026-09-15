@@ -53,6 +53,7 @@ import { WelcomeOfferBanner } from "@/components/WelcomeOfferBanner";
 import { useTranslation } from "@/hooks/useTranslation";
 import { PLACEHOLDER_COVER } from "@/config/mediaDefaults";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
+import { CatalogPending } from "@/components/CatalogPending";
 
 interface GoogleTokenResponse {
   access_token?: string;
@@ -1901,7 +1902,7 @@ function AccountContent() {
             className="w-full py-2.5 bg-ink hover:bg-ink-border/40 border border-ink-border hover:border-gold/50 text-paper font-mono text-xs uppercase tracking-wider rounded-xs transition-all cursor-pointer flex items-center justify-center gap-2.5 shadow-sm"
           >
             <GoogleIcon className="w-4 h-4 shrink-0" />
-            <span>{isGoogleLoading ? "CONNECTING TO GOOGLE..." : "SIGN IN WITH GOOGLE"}</span>
+            <span>{isGoogleLoading ? (isArabic ? "جارٍ الاتصال بجوجل..." : "CONNECTING TO GOOGLE...") : (isArabic ? "تسجيل الدخول بجوجل" : "SIGN IN WITH GOOGLE")}</span>
           </button>
         </div>
 
@@ -3256,7 +3257,7 @@ function AccountContent() {
 
 export default function AccountPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-ink pt-32 text-center font-mono">LOADING ACCOUNT...</div>}>
+    <Suspense fallback={<CatalogPending />}>
       <AccountContent />
     </Suspense>
   );

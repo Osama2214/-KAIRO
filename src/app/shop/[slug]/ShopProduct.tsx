@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { useBrowsingHistoryStore } from "@/store/useBrowsingHistoryStore";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { Check, Heart, Minus, Plus, Share2, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
 import type { MangaVolume, ProductVariant } from "@/data/manga";
@@ -33,11 +32,6 @@ export default function ShopProductView({ product: initialProduct }: { product: 
   const { openCart } = useUIStore();
   const { toggleWishlist, isInWishlist } = useWishlistStore();
   const mounted = useMounted();
-
-  const recordView = useBrowsingHistoryStore((state) => state.recordView);
-  useEffect(() => {
-    recordView(product.id);
-  }, [product.id, recordView]);
 
   const variants = useMemo(() => product.variants || [], [product.variants]);
   // Preselect the first variant that can be bought.

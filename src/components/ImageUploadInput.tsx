@@ -2,6 +2,7 @@
 
 import React, { useRef, useState } from "react";
 import { Upload, Link2, Check, AlertCircle, Loader2, X } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface ImageUploadInputProps {
   value?: string | null;
@@ -33,6 +34,8 @@ export function ImageUploadInput({
   helpText,
   recommendedDimensions,
 }: ImageUploadInputProps) {
+  const { locale } = useTranslation();
+  const isArabic = locale === "ar";
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -218,7 +221,7 @@ export function ImageUploadInput({
           {isUploading || isImporting ? (
             <>
               <Loader2 className="w-3.5 h-3.5 animate-spin text-gold" />
-              <span className="hidden sm:inline">{isImporting ? "IMPORTING..." : "UPLOADING..."}</span>
+              <span className="hidden sm:inline">{isImporting ? (isArabic ? "جارٍ الاستيراد..." : "IMPORTING...") : (isArabic ? "جارٍ الرفع..." : "UPLOADING...")}</span>
             </>
           ) : uploadSuccess ? (
             <>

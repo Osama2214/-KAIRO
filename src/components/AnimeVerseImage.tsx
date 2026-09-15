@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { PLACEHOLDER_COVER } from "@/config/mediaDefaults";
 
 /**
  * Backoff between re-requests. A cover that failed on a cold optimizer miss is
@@ -109,24 +110,38 @@ type AnimeVerseImageProps = {
  * above-the-fold images opt into 90 explicitly at their call sites.
  */
 export function AnimeVerseImage({ src, alt, className, sizes, preload = false, quality = 75 }: AnimeVerseImageProps) {
-  const retry = useImageRetry(src);
+  // A failed optimizer request should not leave a card blank until the
+  // shopper opens the product page (where the hero image is preloaded). Fall
+  // back to the original bucket URL immediately; it is still lazy and keeps
+  // the failure isolated to this image instead of blocking the grid.
+  const source = src || PLACEHOLDER_COVER;
+  const retry = useImageRetry(source);
+  const [directFallbackSource, setDirectFallbackSource] = useState<string | null>(null);
+  const directFallback = directFallbackSource === source;
+  const { src: retrySrc, key: retryKey, onError, onLoad } = retry;
+
+  const handleError = useCallback(() => {
+    setDirectFallbackSource(source);
+    onError();
+  }, [onError, source]);
 
   return (
     <>
       <Image
-        key={retry.key}
-        src={retry.src}
+        key={`${retryKey}:${directFallback ? "direct" : "optimized"}`}
+        src={directFallback ? source : retrySrc}
         alt={alt}
         fill
         sizes={sizes}
         quality={quality}
         preload={preload}
+        unoptimized={directFallback}
         loading={preload ? undefined : "lazy"}
         decoding="async"
         draggable={false}
-        onError={retry.onError}
-        onLoad={retry.onLoad}
-        className={className}
+        onError={handleError}
+        onLoad={onLoad}
+        className={`${className || ""} ${retry.exhausted ? "opacity-0" : ""}`}
       />
       {/* After every attempt has failed, a quiet placeholder rather than the
           browser's broken-image glyph. It clears itself the moment a later

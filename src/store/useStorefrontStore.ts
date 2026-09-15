@@ -175,20 +175,15 @@ export interface HomeSectionSettings {
   cardImages?: { key: string; image: string }[];
 }
 
-/**
- * The home sections added with the shop: limited-time deals, shop by
- * franchise, and the personal "picked for you" row. Kept as one stored key.
- */
+/** Home sections that can be configured from the live editor. */
 export interface HomeExtrasConfig {
   deals: HomeSectionSettings;
   franchises: HomeSectionSettings;
-  forYou: HomeSectionSettings;
 }
 
 export const DEFAULT_HOME_EXTRAS_CONFIG: HomeExtrasConfig = {
   deals: { enabled: true, badgeText: "LIMITED TIME", badgeTextAr: "لفترة محدودة", headline: "DEALS ENDING SOON", headlineAr: "عروض قاربت على الانتهاء", maxCards: 8 },
   franchises: { enabled: true, badgeText: "BROWSE BY ANIME", badgeTextAr: "تسوق حسب الأنمي", headline: "SHOP BY FRANCHISE", headlineAr: "عالم الأنمي المفضل لديك", maxCards: 8 },
-  forYou: { enabled: true, badgeText: "BASED ON YOUR BROWSING", badgeTextAr: "بناءً على تصفحك", headline: "PICKED FOR YOU", headlineAr: "مختارات لك", maxCards: 8 },
 };
 
 /** Stored settings laid over the defaults, so a newly added field is never missing. */
@@ -197,7 +192,6 @@ export function resolveHomeExtras(stored: Partial<HomeExtrasConfig> | undefined 
   return {
     deals: { ...DEFAULT_HOME_EXTRAS_CONFIG.deals, ...(s.deals || {}) },
     franchises: { ...DEFAULT_HOME_EXTRAS_CONFIG.franchises, ...(s.franchises || {}) },
-    forYou: { ...DEFAULT_HOME_EXTRAS_CONFIG.forYou, ...(s.forYou || {}) },
   };
 }
 
@@ -719,7 +713,7 @@ export type LiveEditTarget =
   | { type: "editorial"; tab?: "shipping" | "authenticity" | "privacy" | "terms" }
   | { type: "manga-discovery" }
   | { type: "shop-showcase" }
-  | { type: "home-extras"; section: "deals" | "franchises" | "forYou" }
+  | { type: "home-extras"; section: "deals" | "franchises" }
   | { type: "genre-card"; genreId: string };
 
 export interface StorefrontState {

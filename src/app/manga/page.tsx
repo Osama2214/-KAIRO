@@ -33,6 +33,7 @@ import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 import { ComingSoonRibbon } from "@/components/ComingSoonRibbon";
 import { usePaginatedImagePrefetch } from "@/hooks/useImagePrefetch";
+import { CatalogPending } from "@/components/CatalogPending";
 
 function MangaCatalogContent() {
   const router = useRouter();
@@ -794,7 +795,7 @@ function MangaCatalogContent() {
                   >
                     <Link
                       href={`/manga/${volume.id}`}
-                      prefetch={false}
+                      prefetch="auto"
                       className="absolute inset-0 z-0 focus:outline-none"
                       aria-label={volume.title}
                     />
@@ -1025,7 +1026,7 @@ function MangaCatalogContent() {
 
 export default function MangaCatalogPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-ink pt-32 text-center font-mono">LOADING CATALOG...</div>}>
+    <Suspense fallback={<CatalogPending />}>
       <MangaCatalogContent />
     </Suspense>
   );

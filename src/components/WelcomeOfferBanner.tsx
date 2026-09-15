@@ -6,6 +6,7 @@ import { useCartStore } from "@/store/useCartStore";
 import { useUIStore } from "@/store/useUIStore";
 
 import { useWelcomeOffer } from "@/hooks/useWelcomeOffer";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface TimeRemaining {
   hours: number;
@@ -31,6 +32,7 @@ export function WelcomeOfferBanner() {
   const openCart = useUIStore((state) => state.openCart);
 
   const { mounted, currentUser, hasOffer, voucherCode, expiresAt, firstName } = useWelcomeOffer();
+  const { t } = useTranslation();
 
   const [copied, setCopied] = useState(false);
   // Re-render once a second; the remaining time itself is derived below so it
@@ -95,7 +97,7 @@ export function WelcomeOfferBanner() {
                 {pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}
               </div>
             ) : (
-              <span className="text-xs text-text-muted">Loading...</span>
+              <span className="text-xs text-text-muted">{t.common.loading}</span>
             )}
           </div>
 

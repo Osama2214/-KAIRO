@@ -10,9 +10,12 @@ import { useStorefrontStore, seedStorefrontFromServer } from "@/store/useStorefr
 import { useUIStore } from "@/store/useUIStore";
 import { StorefrontDataSync } from "@/components/StorefrontDataSync";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
+import { useTranslation } from "@/hooks/useTranslation";
 
 function ModalLoading() {
   useModalScrollLock(true);
+  const { locale, t } = useTranslation();
+  const isArabic = locale === "ar";
   const close = () => {
     const ui = useUIStore.getState();
     ui.closeCart();
@@ -26,9 +29,9 @@ function ModalLoading() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
   return (
-    <div role="dialog" aria-modal="true" aria-label="Loading" className="fixed inset-0 z-[200] bg-ink/95 flex flex-col items-center justify-center gap-6 text-paper">
-      <p role="status">Loading… · جاري التحميل</p>
-      <button autoFocus onClick={close} className="border border-gold px-5 py-3 text-gold">Close · إغلاق</button>
+    <div role="dialog" aria-modal="true" aria-label={t.common.loading} dir={isArabic ? "rtl" : "ltr"} className="fixed inset-0 z-[200] bg-ink/95 flex flex-col items-center justify-center gap-6 text-paper">
+      <p role="status">{t.common.loading}</p>
+      <button autoFocus onClick={close} className="border border-gold px-5 py-3 text-gold">{t.common.close}</button>
     </div>
   );
 }

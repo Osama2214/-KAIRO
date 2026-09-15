@@ -532,7 +532,7 @@ export function LiveVisualEditor() {
         />
       )}
 
-      {/* Deals / Shop by franchise / Picked for you home sections */}
+      {/* Deals / Shop by franchise home sections */}
       {activeLiveEditTarget?.type === "home-extras" && (
         <HomeExtrasLiveEditModal
           key={activeLiveEditTarget.section}

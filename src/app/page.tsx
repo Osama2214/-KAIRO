@@ -5,7 +5,6 @@ import { TickerBar } from "@/components/TickerBar";
 import { TrendingCarousel } from "@/components/TrendingCarousel";
 import { NewReleases } from "@/components/NewReleases";
 import { DealsSection } from "@/components/home/DealsSection";
-import { ForYouSection } from "@/components/home/ForYouSection";
 
 
 export default function HomePage() {
@@ -17,9 +16,6 @@ export default function HomePage() {
 
       {/* 04 — Scrolling Announcement Strip */}
       <TickerBar slot="after-hero" />
-
-      {/* 04b — Picked for you (personal; hidden until the visitor has browsed) */}
-      <ForYouSection />
 
       {/* 05 — Trending Now Carousel */}
       <TrendingCarousel />

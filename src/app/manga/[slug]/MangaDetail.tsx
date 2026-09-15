@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useBrowsingHistoryStore } from "@/store/useBrowsingHistoryStore";
+import React, { useState } from "react";
 import Link from "next/link";
 import { Plus, Minus, ShoppingBag, BookOpen, Share2, ShieldCheck, Truck, ArrowRight, ChevronLeft, ChevronRight, Eye, Check, Heart } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
@@ -48,11 +47,6 @@ export default function MangaDetailView({ volume: initialVolume }: { volume: Man
   const isSavedInWishlist = mounted && isInWishlist(volume.id);
   const comingSoon = Boolean(volume.comingSoon) || Number(volume.price) <= 0;
   const unavailable = comingSoon || (volume.stock ?? 0) <= 0;
-
-  const recordView = useBrowsingHistoryStore((state) => state.recordView);
-  useEffect(() => {
-    recordView(volume.id);
-  }, [volume.id, recordView]);
 
   const handleToggleWishlist = () => {
     toggleWishlist(volume);

@@ -109,7 +109,7 @@ export function NewReleases() {
             >
               <Link
                 href={`/manga/${volume.id}`}
-                prefetch={false}
+                prefetch="auto"
                 className="absolute inset-0 z-0 focus:outline-none"
                 aria-label={volume.title}
               />

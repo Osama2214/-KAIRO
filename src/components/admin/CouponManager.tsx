@@ -5,6 +5,7 @@ import { AlertTriangle, Check, Loader2, Megaphone, Plus, Save, Ticket, Trash2 } 
 import { useNow } from "@/hooks/useNow";
 import { DateTimeField } from "@/components/admin/DateTimeField";
 import { Checkbox } from "@/components/admin/Checkbox";
+import { useTranslation } from "@/hooks/useTranslation";
 
 /**
  * Create and run discount codes from the console.
@@ -96,6 +97,8 @@ function ExplainedCheckbox({
 }
 
 export function CouponManager({ onToast }: { onToast: (message: string) => void }) {
+  const { locale } = useTranslation();
+  const isArabic = locale === "ar";
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<Coupon | null>(null);
@@ -353,7 +356,7 @@ export function CouponManager({ onToast }: { onToast: (message: string) => void 
       {loading ? (
         <p className="text-xs text-text-muted flex items-center gap-2">
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          Loading vouchers…
+          {isArabic ? "جاري تحميل القسائم…" : "Loading vouchers…"}
         </p>
       ) : coupons.length === 0 ? (
         <p className="text-xs text-text-muted py-6 text-center">

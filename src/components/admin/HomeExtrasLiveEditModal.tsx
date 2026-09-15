@@ -18,13 +18,9 @@ const TITLES: Record<keyof HomeExtrasConfig, { title: string; note: string }> = 
     title: "Shop by Franchise",
     note: "One card per series, with its books and the figures/posters whose franchise matches the series name. Merch-only franchises open the shop filtered.",
   },
-  forYou: {
-    title: "Picked for You",
-    note: "Personal to each visitor, from the products they viewed on this device: next volumes, box sets, matching figures/posters and similar genres. Hidden for first-time visitors.",
-  },
 };
 
-/** Live-editor panel for one of the deals / franchises / picked-for-you home sections. */
+/** Live-editor panel for one of the configurable home sections. */
 export function HomeExtrasLiveEditModal({
   section,
   initial,
