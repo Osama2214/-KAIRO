@@ -110,14 +110,18 @@ export default async function RootLayout({
   // what the shop sells, instead of the copy compiled into the bundle at build
   // time and corrected a fetch later.
   const snapshot = await getStorefrontSnapshot();
+  const snapshotIsUsable = Boolean(
+    snapshot && Array.isArray(snapshot.volumes) && Array.isArray(snapshot.series)
+  );
+  const liveSnapshot = snapshotIsUsable ? snapshot : null;
   // A complete lightweight index makes direct links, search and restored carts
   // correct on the first render. Long text and sample pages load on demand.
   const volumes =
-    snapshot && Array.isArray(snapshot.volumes)
-      ? (snapshot.volumes as MangaVolume[]).map(slimVolume)
+    liveSnapshot
+      ? (liveSnapshot.volumes as MangaVolume[]).map(slimVolume)
       : [];
-  const catalog = snapshot
-    ? { ...snapshot, volumes }
+  const catalog = liveSnapshot
+    ? { ...liveSnapshot, volumes }
     : { volumes: ALL_VOLUMES.map(slimVolume), series: withoutSeriesVolumes(ALL_SERIES) };
   // The profile is inside the snapshot already used to seed the storefront.
   // Derive it locally so a cold request never needs a second catalogue lookup.
@@ -193,12 +197,15 @@ export default async function RootLayout({
             <div className="av-loader-bar">
               <div className="av-loader-bar-fill" />
             </div>
-            <div className="av-loader-caption">RESTORING ARCHIVE</div>
+            <div className="av-loader-caption">
+              <span className="av-loader-caption-en">RESTORING ARCHIVE</span>
+              <span className="av-loader-caption-ar">جاري استعادة الأرشيف</span>
+            </div>
           </div>
         </div>
         <SmoothScrollProvider>
           <AtmosphericBackground />
-          <StorefrontShell initialCatalog={catalog}>{children}</StorefrontShell>
+          <StorefrontShell initialCatalog={catalog} initialCatalogIsLive={snapshotIsUsable}>{children}</StorefrontShell>
         </SmoothScrollProvider>
       </body>
     </html>

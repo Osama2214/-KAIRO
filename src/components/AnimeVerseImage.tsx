@@ -43,7 +43,13 @@ export function useImageRetry(src: string) {
   if (state.src !== src) setState({ src, nonce: 0, failures: 0 });
 
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  // A card can be reused for a different product while a retry is pending.
+  // Cancel the old timer when its source changes so it cannot bump the new
+  // image's nonce after the component has been recycled during fast scrolling.
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = undefined;
+  }, [src]);
 
   const exhausted = state.failures > RETRY_DELAYS_MS.length;
 

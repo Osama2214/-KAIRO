@@ -81,13 +81,14 @@ export const useCartStore = create<CartState>()(
         if (availableStock <= 0) {
           return;
         }
+        const requestedQuantity = Math.max(1, Math.floor(Number(quantity) || 1));
 
         const currentItems = get().items;
         const existingIndex = currentItems.findIndex((item) => item.volumeId === volume.id);
 
         if (existingIndex > -1) {
           const currentQty = currentItems[existingIndex].quantity;
-          const newQty = Math.min(currentQty + quantity, availableStock);
+          const newQty = Math.min(currentQty + requestedQuantity, availableStock);
           const updated = [...currentItems];
           updated[existingIndex] = {
             ...updated[existingIndex],
@@ -97,7 +98,7 @@ export const useCartStore = create<CartState>()(
           };
           set({ items: updated });
         } else {
-          const initialQty = Math.min(quantity, availableStock);
+          const initialQty = Math.min(requestedQuantity, availableStock);
           const newItem: CartItem = {
             id: `${volume.id}-${Date.now()}`,
             volumeId: volume.id,
@@ -112,7 +113,8 @@ export const useCartStore = create<CartState>()(
         set({ items: get().items.filter((item) => item.id !== id) });
       },
       updateQuantity: (id: string, quantity: number) => {
-        if (quantity <= 0) {
+        const requestedQuantity = Math.floor(Number(quantity));
+        if (!Number.isFinite(requestedQuantity) || requestedQuantity <= 0) {
           get().removeItem(id);
           return;
         }
@@ -120,7 +122,7 @@ export const useCartStore = create<CartState>()(
           items: get().items.map((item) => {
             if (item.id !== id) return item;
             const max = typeof item.maxStock === "number" ? item.maxStock : 9999;
-            const clampedQty = Math.min(quantity, max);
+            const clampedQty = Math.min(requestedQuantity, max);
             return { ...item, quantity: clampedQty };
           }),
         });
@@ -149,7 +151,7 @@ export const useCartStore = create<CartState>()(
               ...item,
               ...lineFields(volume),
               maxStock: availableStock,
-              quantity: Math.max(1, Math.min(item.quantity, availableStock)),
+              quantity: Math.max(1, Math.min(Math.floor(Number(item.quantity) || 1), availableStock)),
             }];
           }),
         });
@@ -249,7 +251,7 @@ export const useCartStore = create<CartState>()(
             .map((item) => ({
               id: item.id || `${item.volumeId}-restored`,
               volumeId: item.volumeId,
-              quantity: Math.max(1, Number(item.quantity) || 1),
+              quantity: Math.max(1, Math.floor(Number(item.quantity) || 1)),
               // Placeholders until hydrateFromCatalog runs with live data.
               title: "",
               seriesTitle: "",

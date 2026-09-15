@@ -581,6 +581,20 @@ html.animeverse-loading .av-loader-bar-fill {
   text-transform: uppercase;
 }
 
+.av-loader-caption-ar {
+  display: none;
+  letter-spacing: 0;
+  margin-right: 0;
+}
+
+html[dir="rtl"] .av-loader-caption-en {
+  display: none;
+}
+
+html[dir="rtl"] .av-loader-caption-ar {
+  display: inline;
+}
+
 @keyframes avKanjiGlow {
   0% {
     transform: scale(0.97);

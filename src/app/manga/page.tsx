@@ -34,6 +34,9 @@ import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 import { ComingSoonRibbon } from "@/components/ComingSoonRibbon";
 import { usePaginatedImagePrefetch } from "@/hooks/useImagePrefetch";
 import { CatalogPending } from "@/components/CatalogPending";
+import { PriceTag, PromoBadge } from "@/components/PriceTag";
+import { useNow } from "@/hooks/useNow";
+import { priceVolume } from "@/lib/pricing";
 
 function MangaCatalogContent() {
   const router = useRouter();
@@ -116,6 +119,7 @@ function MangaCatalogContent() {
     Number.isInteger(pageFromUrl) && pageFromUrl > 0 ? pageFromUrl : 1
   );
   const ITEMS_PER_PAGE = 12;
+  const now = useNow();
 
   const { toggleWishlist, isInWishlist } = useWishlistStore();
   const mounted = useMounted();
@@ -139,12 +143,11 @@ function MangaCatalogContent() {
     const format = searchParams.get("format");
     const raf = requestAnimationFrame(() => {
       setOnSaleOnly(isSale);
-      if (genre) {
-        setSelectedGenres([genre.toLowerCase()]);
-      }
-      if (format) {
-        setSelectedFormats([format]);
-      }
+      // Back/Forward can move from a filtered URL to the plain catalogue.
+      // Clear filters that disappeared from the URL instead of leaving the
+      // old client state active against the new route.
+      setSelectedGenres(genre ? [genre.toLowerCase()] : []);
+      setSelectedFormats(format ? [format] : []);
       const page = Number(searchParams.get("page"));
       setCurrentPage(Number.isInteger(page) && page > 0 ? page : 1);
     });
@@ -185,8 +188,9 @@ function MangaCatalogContent() {
   const preSearchVolumes = useMemo(() => {
     return activeVolumes.filter((volume) => {
       // Sale filter
-      if (onSaleOnly && (!volume.originalPrice || volume.originalPrice <= volume.price)) {
-        return false;
+      if (onSaleOnly) {
+        const priced = priceVolume(volume, now ?? 0);
+        if (!priced.activePromo && !priced.listPrice) return false;
       }
 
       // Genre filter
@@ -222,7 +226,7 @@ function MangaCatalogContent() {
       if (!a.isTrending && b.isTrending) return 1;
       return b.rating - a.rating;
     });
-  }, [selectedGenres, selectedFormats, inStockOnly, onSaleOnly, effectivePriceMax, sortBy, activeVolumes]);
+  }, [selectedGenres, selectedFormats, inStockOnly, onSaleOnly, effectivePriceMax, sortBy, activeVolumes, now]);
 
   // Relevance ordering only makes sense while something is typed; otherwise
   // the shopper's chosen sort stands.
@@ -835,6 +839,7 @@ function MangaCatalogContent() {
                             SALE -{Math.round(((volume.originalPrice - volume.price) / volume.originalPrice) * 100)}%
                           </span>
                         )}
+                        <PromoBadge volume={volume} isArabic={isArabic} />
                         {volume.format === "Deluxe Edition" && (
                           <span className="px-2 py-0.5 rounded-xs bg-gold/90 text-[8px] font-mono tracking-wider text-ink font-bold">
                             DELUXE
@@ -914,16 +919,7 @@ function MangaCatalogContent() {
 
                       {/* Price and Cart Button — same shape as the New Releases grid */}
                       <div className="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-ink-border/50 flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5">
-                        <div className="flex flex-wrap items-baseline gap-x-2 leading-tight">
-                          <span className="text-sm font-mono font-extrabold text-paper">
-                            {volume.price > 0 ? formatPrice(volume.price) : (isArabic ? "السعر قريبًا" : "PRICE TBA")}
-                          </span>
-                          {volume.originalPrice && volume.originalPrice > volume.price && (
-                            <span className="text-[11px] font-mono text-text-muted/70 line-through">
-                              {formatPrice(volume.originalPrice)}
-                            </span>
-                          )}
-                        </div>
+                        <PriceTag volume={volume} isArabic={isArabic} />
                         {volume.comingSoon || volume.price <= 0 ? (
                           <button
                             type="button"

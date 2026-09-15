@@ -55,7 +55,9 @@ export async function POST(request: Request) {
     // 2. Check user existence
     const user = await getUserByEmail(email);
     if (!user) {
-      return NextResponse.json({ success: false, message: "No patron account found with this email." }, { status: 404 });
+      // Keep recovery responses generic so a valid OTP cannot be used to
+      // enumerate which email addresses have accounts.
+      return NextResponse.json({ success: false, message: "Invalid or expired recovery request." }, { status: 400 });
     }
 
     // 3. Update password in Neon DB

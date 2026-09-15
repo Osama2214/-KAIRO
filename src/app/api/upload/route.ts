@@ -33,6 +33,7 @@ const WEBP_QUALITY = 92;
 // Remote images are pulled by the server, so a slow or hanging host must not
 // hold a function open until the platform kills it.
 const REMOTE_FETCH_TIMEOUT_MS = 15_000;
+const MAX_REMOTE_REDIRECTS = 3;
 
 /**
  * Validates actual binary magic bytes of the buffer to prevent polyglot / masked executable attacks
@@ -129,24 +130,53 @@ async function fetchRemoteImage(rawUrl: string): Promise<{ buffer: Buffer } | { 
     return { error: "Only http and https image URLs can be imported.", status: 400 };
   }
 
-  try {
-    const addresses = await dns.lookup(parsed.hostname, { all: true });
-    if (addresses.some((entry) => isPrivateAddress(entry.address))) {
-      return { error: "That host is not reachable for imports.", status: 400 };
+  const isPublicHttpUrl = async (candidate: URL): Promise<{ ok: true } | { error: string; status: number }> => {
+    if (candidate.protocol !== "http:" && candidate.protocol !== "https:") {
+      return { error: "Only http and https image URLs can be imported.", status: 400 };
     }
-  } catch {
-    return { error: "The image host could not be resolved.", status: 400 };
-  }
+    try {
+      const addresses = await dns.lookup(candidate.hostname, { all: true });
+      if (addresses.length === 0 || addresses.some((entry) => isPrivateAddress(entry.address))) {
+        return { error: "That host is not reachable for imports.", status: 400 };
+      }
+    } catch {
+      return { error: "The image host could not be resolved.", status: 400 };
+    }
+    return { ok: true };
+  };
+
+  const initialHost = await isPublicHttpUrl(parsed);
+  if ("error" in initialHost) return initialHost;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REMOTE_FETCH_TIMEOUT_MS);
 
   try {
-    const response = await fetch(parsed.toString(), {
-      redirect: "follow",
-      signal: controller.signal,
-      headers: { "User-Agent": "AnimeVerse/1.0 (cover import)", Accept: "image/*" },
-    });
+    let requestUrl = parsed;
+    let response: Response;
+    for (let redirectCount = 0; ; redirectCount += 1) {
+      response = await fetch(requestUrl.toString(), {
+        redirect: "manual",
+        signal: controller.signal,
+        headers: { "User-Agent": "AnimeVerse/1.0 (cover import)", Accept: "image/*" },
+      });
+      if (response.status < 300 || response.status >= 400) break;
+      if (redirectCount >= MAX_REMOTE_REDIRECTS) {
+        return { error: "The image host redirected too many times.", status: 400 };
+      }
+      // We only need the Location header; release the redirect body before
+      // opening the next connection so a chain cannot hold sockets in memory.
+      await response.body?.cancel();
+      const location = response.headers.get("location");
+      if (!location) return { error: "The image host returned an invalid redirect.", status: 400 };
+      try {
+        requestUrl = new URL(location, requestUrl);
+      } catch {
+        return { error: "The image host returned an invalid redirect.", status: 400 };
+      }
+      const redirectHost = await isPublicHttpUrl(requestUrl);
+      if ("error" in redirectHost) return redirectHost;
+    }
 
     if (!response.ok) {
       return { error: `The image host responded with ${response.status}.`, status: 400 };

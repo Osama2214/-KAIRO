@@ -74,11 +74,12 @@ function IntroGate() {
   return (onHome && autoIntro) || isIntroActive ? <CinematicIntro /> : null;
 }
 
-export function StorefrontShell({ children, initialCatalog }: {
+export function StorefrontShell({ children, initialCatalog, initialCatalogIsLive }: {
   children: React.ReactNode;
   initialCatalog?: Record<string, unknown> | null;
+  initialCatalogIsLive?: boolean;
 }) {
-  seedStorefrontFromServer(initialCatalog);
+  seedStorefrontFromServer(initialCatalog, initialCatalogIsLive !== false);
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/admin");
   const isAdminAuthenticated = useStorefrontStore((state) => state.isAdminAuthenticated);

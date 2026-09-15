@@ -65,6 +65,8 @@ let writeQueue = Promise.resolve();
 const databaseUrl = process.env.DATABASE_URL;
 const sql = databaseUrl ? neon(databaseUrl) : null;
 let schemaReady: Promise<void> | null = null;
+const localExpiredClaims = new Set<string>();
+const localCancellationClaims = new Set<string>();
 
 /**
  * Vercel's filesystem is ephemeral, so production uses Neon/Postgres whenever
@@ -121,7 +123,10 @@ async function ensureOrdersFile(): Promise<void> {
 /**
  * Automatically evaluates and cancels electronic payment orders that exceeded 36 hours without admin verification
  */
-export function processExpiredPendingOrders(orders: ServerOrder[]): {
+export function processExpiredPendingOrders(
+  orders: ServerOrder[],
+  claimExpired?: (order: ServerOrder) => Promise<boolean>
+): {
   orders: ServerOrder[];
   changed: ServerOrder[];
   hasChanges: boolean;
@@ -161,9 +166,14 @@ export function processExpiredPendingOrders(orders: ServerOrder[]): {
 
   if (expiredOrdersToNotify.length > 0) {
     settled = (async () => {
+      const claimedExpiredOrders: ServerOrder[] = [];
       try {
         const { restoreCatalogItems } = await import("./storefrontDataStore");
         for (const exp of expiredOrdersToNotify) {
+          // Neon callers claim the transition atomically before touching stock.
+          // A concurrent status poll therefore cannot restore the same order twice.
+          if (claimExpired && !(await claimExpired(exp))) continue;
+          claimedExpiredOrders.push(exp);
           if (Array.isArray(exp.items)) {
             await restoreCatalogItems(exp.items);
           }
@@ -174,7 +184,7 @@ export function processExpiredPendingOrders(orders: ServerOrder[]): {
 
       try {
         const { sendCustomerOrderAutoCancelledEmail } = await import("./email");
-        for (const exp of expiredOrdersToNotify) {
+        for (const exp of claimedExpiredOrders) {
           await sendCustomerOrderAutoCancelledEmail(exp);
         }
       } catch (err) {
@@ -192,6 +202,53 @@ export function processExpiredPendingOrders(orders: ServerOrder[]): {
 }
 
 /**
+ * Claims an automatic expiry in Neon. The status predicate makes the write a
+ * compare-and-set: once one request changes the row to a cancelled state,
+ * every concurrent request gets zero rows and skips restocking/email work.
+ */
+async function claimExpiredOrder(order: ServerOrder): Promise<boolean> {
+  if (!sql) {
+    if (localExpiredClaims.has(order.id)) return false;
+    localExpiredClaims.add(order.id);
+    return true;
+  }
+  await ensureDatabaseSchema();
+  const rows = await sql`
+    UPDATE kairo_orders
+    SET payload = ${JSON.stringify(order)}::jsonb,
+        updated_at = ${order.updatedAt || Date.now()}
+    WHERE id = ${order.id}
+      AND (payload->>'status') NOT ILIKE '%cancelled%'
+      AND (
+        (payload->>'paymentStatus') = 'Pending Verification'
+        OR (payload->>'status') = 'Pending Payment'
+      )
+    RETURNING id
+  `;
+  return rows.length > 0;
+}
+
+/** Claims a manual cancellation before its stock is returned. */
+async function claimCancellation(order: ServerOrder, previousStatus: string): Promise<boolean> {
+  if (!sql) {
+    if (localCancellationClaims.has(order.id)) return false;
+    localCancellationClaims.add(order.id);
+    return true;
+  }
+  await ensureDatabaseSchema();
+  const rows = await sql`
+    UPDATE kairo_orders
+    SET payload = ${JSON.stringify(order)}::jsonb,
+        updated_at = ${order.updatedAt || Date.now()}
+    WHERE id = ${order.id}
+      AND (payload->>'status') = ${previousStatus}
+      AND (payload->>'status') NOT ILIKE '%cancelled%'
+    RETURNING id
+  `;
+  return rows.length > 0;
+}
+
+/**
  * Loads all orders from central server storage and processes any expired orders
  */
 export async function getAllServerOrders(): Promise<ServerOrder[]> {
@@ -202,12 +259,9 @@ export async function getAllServerOrders(): Promise<ServerOrder[]> {
       const orders = rows
         .map((row) => parseOrderPayload(row.payload))
         .filter((order): order is ServerOrder => order !== null);
-      const { orders: processed, changed, settled } = processExpiredPendingOrders(orders);
-      // Persist only the orders that expired. This used to rewrite every row in
-      // the table whenever a single order timed out.
-      if (changed.length > 0) {
-        await Promise.all(changed.map((order) => persistOrders(order)));
-      }
+      const { orders: processed, settled } = processExpiredPendingOrders(orders, claimExpiredOrder);
+      // claimExpiredOrder persists each successful transition atomically. The
+      // local file path below still persists the complete list as before.
       await settled;
       return processed;
     } catch (error) {
@@ -217,7 +271,7 @@ export async function getAllServerOrders(): Promise<ServerOrder[]> {
   }
 
   if (globalThis.__kairo_orders_cache) {
-    const { orders: processed, hasChanges, settled } = processExpiredPendingOrders(globalThis.__kairo_orders_cache);
+    const { orders: processed, hasChanges, settled } = processExpiredPendingOrders(globalThis.__kairo_orders_cache, claimExpiredOrder);
     if (hasChanges) {
       await settled;
       globalThis.__kairo_orders_cache = processed;
@@ -231,7 +285,7 @@ export async function getAllServerOrders(): Promise<ServerOrder[]> {
     const raw = await readFile(ORDERS_FILE, "utf-8");
     const parsed = JSON.parse(raw);
     const orders: ServerOrder[] = Array.isArray(parsed) ? parsed : [];
-    const { orders: processed, hasChanges, settled } = processExpiredPendingOrders(orders);
+    const { orders: processed, hasChanges, settled } = processExpiredPendingOrders(orders, claimExpiredOrder);
     globalThis.__kairo_orders_cache = processed;
     if (hasChanges) {
       await settled;
@@ -391,18 +445,40 @@ export async function updateServerOrderStatus(
   // If order is transitioned to Cancelled, return reserved items back to catalogue
   const isNowCancelled = String(updates.status || "").toLowerCase().includes("cancelled");
   const wasAlreadyCancelled = String(current.status || "").toLowerCase().includes("cancelled");
+
+  if (sql) {
+    if (isNowCancelled && !wasAlreadyCancelled) {
+      // Persist the transition first with a compare-and-set. Only the request
+      // that wins may restore stock; concurrent admin clicks become no-ops.
+      const claimed = await claimCancellation(updated, String(current.status || ""));
+      if (!claimed) {
+        const latest = await getServerOrderById(orderId);
+        return latest ? { updated: latest, previous: current } : null;
+      }
+      if (Array.isArray(current.items)) {
+        try {
+          const { restoreCatalogItems } = await import("./storefrontDataStore");
+          await restoreCatalogItems(current.items);
+        } catch (restockErr) {
+          console.error("[ADMIN CANCEL RESTOCK ERROR]:", restockErr);
+        }
+      }
+    } else {
+      await persistOrders(updated);
+    }
+    return { updated, previous: current };
+  }
+
   if (isNowCancelled && !wasAlreadyCancelled && Array.isArray(current.items)) {
+    if (!(await claimCancellation(updated, String(current.status || "")))) {
+      return { updated: current, previous: current };
+    }
     try {
       const { restoreCatalogItems } = await import("./storefrontDataStore");
       await restoreCatalogItems(current.items);
     } catch (restockErr) {
       console.error("[ADMIN CANCEL RESTOCK ERROR]:", restockErr);
     }
-  }
-
-  if (sql) {
-    await persistOrders(updated);
-    return { updated, previous: current };
   }
 
   const updatedList = [...orders];
@@ -446,8 +522,7 @@ export async function getServerOrdersByIds(orderIds: string[]): Promise<ServerOr
   const orders = rows
     .map((row) => parseOrderPayload(row.payload))
     .filter((order): order is ServerOrder => order !== null);
-  const { orders: processed, changed, settled } = processExpiredPendingOrders(orders);
-  if (changed.length > 0) await Promise.all(changed.map((order) => persistOrders(order)));
+  const { orders: processed, settled } = processExpiredPendingOrders(orders, claimExpiredOrder);
   await settled;
   return processed;
 }

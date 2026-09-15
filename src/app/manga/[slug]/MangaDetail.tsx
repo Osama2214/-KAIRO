@@ -19,6 +19,9 @@ import { AnimeVerseImage } from "@/components/AnimeVerseImage";
 import { productWithDetails } from "@/lib/catalogDetails";
 import { ImageLightbox, ImagePreviewTrigger } from "@/components/ImageLightbox";
 import { ComingSoonRibbon } from "@/components/ComingSoonRibbon";
+import { PriceTag } from "@/components/PriceTag";
+import { useNow } from "@/hooks/useNow";
+import { effectivePrice } from "@/lib/pricing";
 
 export default function MangaDetailView({ volume: initialVolume }: { volume: MangaVolume }) {
   const liveVolume = useStorefrontStore((state) => state.volumes.find((item) => item.id === initialVolume.id));
@@ -43,6 +46,10 @@ export default function MangaDetailView({ volume: initialVolume }: { volume: Man
   const { openCart, openReader } = useUIStore();
   const mounted = useMounted();
   const { hasOffer: hasWelcomeOffer, voucherCode: welcomeCode } = useWelcomeOffer();
+  const now = useNow();
+  // Keep the server's first render identical to the static catalogue. The
+  // live promotion price is applied as soon as the client clock is ready.
+  const paidPrice = now === null ? Number(volume.price) || 0 : effectivePrice(volume, now);
 
   const isSavedInWishlist = mounted && isInWishlist(volume.id);
   const comingSoon = Boolean(volume.comingSoon) || Number(volume.price) <= 0;
@@ -60,9 +67,14 @@ export default function MangaDetailView({ volume: initialVolume }: { volume: Man
 
   const handleShare = () => {
     if (typeof window !== "undefined") {
-      navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      const write = navigator.clipboard?.writeText(window.location.href);
+      if (!write) return;
+      void write.then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(() => {
+        setCopied(false);
+      });
     }
   };
 
@@ -352,16 +364,7 @@ export default function MangaDetailView({ volume: initialVolume }: { volume: Man
 
             {/* Price Tag & Real-Time Stock Status */}
             <div className="py-3.5 sm:py-4 border-y border-ink-border/70 flex items-center justify-between gap-3 font-mono flex-wrap">
-              <div className="flex items-baseline gap-2.5">
-                <span className="text-[1.4rem] sm:text-3xl font-extrabold text-paper">
-                  {volume.price > 0 ? formatPrice(volume.price) : (isArabic ? "السعر قريبًا" : "PRICE TBA")}
-                </span>
-                {volume.originalPrice && (
-                  <span className="text-xs sm:text-sm text-text-muted line-through">
-                    {formatPrice(volume.originalPrice)}
-                  </span>
-                )}
-              </div>
+              <PriceTag volume={volume} isArabic={isArabic} size="lg" />
               {unavailable ? (
                 <span className={`text-[10px] px-2.5 py-1 rounded-xs uppercase tracking-wider font-bold shrink-0 ${comingSoon ? "text-gold bg-gold/15 border border-gold/50" : "text-vermilion bg-vermilion/15 border border-vermilion/40 animate-pulse"}`}>
                   {comingSoon ? (isArabic ? "قريبًا — أضفه للمفضلة" : "COMING SOON — WISHLIST IT") : (isArabic ? "غير متوفر" : "OUT OF STOCK")}
@@ -383,7 +386,7 @@ export default function MangaDetailView({ volume: initialVolume }: { volume: Man
                 <div className="flex items-center gap-2 text-gold min-w-0">
                   <div className="truncate">
                     <span>{isArabic ? "خصم الترحيب: " : "Private Grant: "}</span>
-                    <strong className="text-paper">{formatPrice(volume.price * 0.8)}</strong>
+                    <strong className="text-paper">{formatPrice(paidPrice * 0.8)}</strong>
                     <span className="text-[10px] text-text-muted mx-1">
                       {isArabic ? `(خصم 20%)` : `(-20%)`}
                     </span>
@@ -473,7 +476,7 @@ export default function MangaDetailView({ volume: initialVolume }: { volume: Man
                   <span className="truncate">
                     {unavailable
                       ? (comingSoon ? (isSavedInWishlist ? (isArabic ? "محفوظ بالمفضلة" : "SAVED TO WISHLIST") : (isArabic ? "قريبًا — أضف للمفضلة" : "COMING SOON — SAVE TO WISHLIST")) : (isArabic ? "نفد من المخزن حالياً" : "CURRENTLY OUT OF STOCK"))
-                      : (isArabic ? `أضف للسلة — ${formatPrice(volume.price * quantity)}` : `ADD TO CART — ${formatPrice(volume.price * quantity)}`)}
+                      : (isArabic ? `أضف للسلة — ${formatPrice(paidPrice * quantity)}` : `ADD TO CART — ${formatPrice(paidPrice * quantity)}`)}
                   </span>
                 </button>
 
@@ -681,15 +684,8 @@ export default function MangaDetailView({ volume: initialVolume }: { volume: Man
                   </div>
 
                   <div className="mt-3 pt-2.5 sm:mt-4 sm:pt-3 border-t border-ink-border/50 flex items-center justify-between font-mono gap-1">
-                    <div className="flex flex-col min-w-0 pr-1">
-                      <span className="text-paper font-bold text-[11px] sm:text-xs truncate">
-                        {formatPrice(item.price)}
-                      </span>
-                      {item.originalPrice && (
-                        <span className="text-[9px] sm:text-[10px] text-text-muted line-through truncate">
-                          {formatPrice(item.originalPrice)}
-                        </span>
-                      )}
+                    <div className="min-w-0 pr-1">
+                      <PriceTag volume={item} isArabic={isArabic} showTimer={false} className="flex-col items-start" />
                     </div>
                     <button
                       type="button"

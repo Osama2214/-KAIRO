@@ -1626,6 +1626,7 @@ export function getActiveGovernorates(shippingConfig?: ShippingConfig | null): E
  * process ever served would pin its catalogue for every request after it.
  */
 let seededInBrowser = false;
+let seededServerCatalog = false;
 
 /**
  * The section defaults as the code declares them, captured before anything
@@ -1637,7 +1638,10 @@ const PRISTINE_DEFAULTS: Record<string, unknown> = { ...useStorefrontStore.getIn
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-export function seedStorefrontFromServer(data: Record<string, unknown> | null | undefined): void {
+export function seedStorefrontFromServer(
+  data: Record<string, unknown> | null | undefined,
+  fromServer = true
+): void {
   if (!data || typeof data !== "object") return;
 
   // The server sends series without their volume lists; rebuild them from the
@@ -1690,6 +1694,7 @@ export function seedStorefrontFromServer(data: Record<string, unknown> | null | 
   // re-seeding would undo a curator's unsaved edits on every re-render.
   if (seededInBrowser) return;
   seededInBrowser = true;
+  seededServerCatalog = fromServer;
 
   // Written into the live state object rather than pushed through `setState`.
   // This runs inside the render of the outermost client component, so nothing
@@ -1702,7 +1707,7 @@ export function seedStorefrontFromServer(data: Record<string, unknown> | null | 
 
 /** True once the server handed us a catalogue, so the client can skip its own fetch. */
 export function wasSeededFromServer(): boolean {
-  return seededInBrowser;
+  return seededServerCatalog;
 }
 
 const detailsRequests = new Map<string, Promise<void>>();
