@@ -185,7 +185,7 @@ export function TrendingCarousel() {
               >
                 <div
                   onPointerDown={handlePointerDown}
-                  className="group relative bg-ink-surface/50 border border-ink-border/80 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between h-full hover:shadow-2xl hover:shadow-black/70 select-none"
+                  className="mobile-scroll-card group relative bg-ink-surface/50 border border-ink-border/80 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between h-full hover:shadow-2xl hover:shadow-black/70 select-none"
                 >
                   <Link
                     href={`/manga/${volume.id}`}

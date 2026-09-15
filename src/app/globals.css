@@ -418,6 +418,36 @@ input[type="number"] {
   }
 }
 
+/* Keep long catalogue pages cheap to scroll on phones.  The browser can skip
+   layout/paint for cards that are well below the viewport and only materialise
+   them as the user approaches.  This is deliberately scoped to repeated
+   storefront cards so product details and dialogs keep their normal layout. */
+.mobile-scroll-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 560px;
+}
+
+@media (pointer: coarse), (max-width: 767px) {
+  .mobile-scroll-card {
+    contain: layout paint style;
+    box-shadow: none !important;
+    transition: none !important;
+  }
+
+  /* Backdrop filters are especially expensive while a finger scrolls over a
+     grid.  The opaque ink background preserves contrast without re-sampling
+     the artwork underneath on every frame. */
+  .mobile-scroll-card [class*="backdrop-blur"] {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    background-color: rgba(13, 13, 15, 0.92) !important;
+  }
+
+  .mobile-scroll-card img {
+    transition: none !important;
+  }
+}
+
 
 /* ========================================================= */
 /* PRINT STYLESHEET: Clean 1-Page Invoice Printing           */

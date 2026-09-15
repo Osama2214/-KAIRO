@@ -312,6 +312,21 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
        "ontouchstart" in window);
 
     if (prefersReducedMotion || isTouchOrMobile) {
+      // sessionStorage writes are synchronous. Writing on every few scroll
+      // events can steal time from the browser's touch compositor on a phone,
+      // especially while a long catalogue is being painted. Keep only the
+      // latest position and persist it during an idle gap instead.
+      let pendingScrollY = 0;
+      let saveTimer: ReturnType<typeof setTimeout> | null = null;
+      const scheduleNativeScrollSave = (y: number) => {
+        pendingScrollY = y;
+        if (saveTimer !== null) return;
+        saveTimer = setTimeout(() => {
+          saveTimer = null;
+          saveAnimeVerseScroll(pathnameRef.current, pendingScrollY);
+        }, 180);
+      };
+
       const handleNativeScroll = () => {
         if (isRestoringRef.current) return;
         const currentY = Math.round(window.scrollY);
@@ -319,7 +334,7 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
         const now = Date.now();
         if (now - lastSavedTime.current > 75) {
           lastSavedTime.current = now;
-          saveAnimeVerseScroll(pathnameRef.current, currentY);
+          scheduleNativeScrollSave(currentY);
         }
       };
       window.addEventListener("scroll", handleNativeScroll, { passive: true });
@@ -339,6 +354,7 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
 
       return () => {
         window.removeEventListener("scroll", handleNativeScroll);
+        if (saveTimer !== null) clearTimeout(saveTimer);
         document.removeEventListener("click", handleInteractiveClick, { capture: true });
         window.removeEventListener("pagehide", saveCurrentScroll);
         window.removeEventListener("beforeunload", saveCurrentScroll);

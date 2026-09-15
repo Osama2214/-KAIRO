@@ -137,7 +137,7 @@ export function FeaturedSeries() {
             {/* Right Column: Clean, Pure Art Presentation */}
             {/* On phones the art leads, so the section opens on the picture instead of a screen of text. */}
             <div className="order-first lg:order-none lg:col-span-5 flex items-center justify-center lg:justify-end w-full">
-              <div className="relative w-full max-w-[350px] xs:max-w-[390px] sm:max-w-[440px] lg:max-w-[450px] aspect-[4/5] sm:aspect-[3/4] rounded-sm overflow-hidden border border-ink-border/80 shadow-[0_25px_80px_rgba(0,0,0,0.9)] group">
+              <div className="mobile-scroll-card relative w-full max-w-[350px] xs:max-w-[390px] sm:max-w-[440px] lg:max-w-[450px] aspect-[4/5] sm:aspect-[3/4] rounded-sm overflow-hidden border border-ink-border/80 shadow-[0_25px_80px_rgba(0,0,0,0.9)] group">
                 <AnimeVerseImage
                   src={image}
                   alt={title}

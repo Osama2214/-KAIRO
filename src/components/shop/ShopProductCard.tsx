@@ -50,7 +50,7 @@ export function ShopProductCard({
 
   return (
     <div
-      className={`group relative ${home ? "bg-ink-surface/30" : "bg-ink-surface/40"} border border-ink-border/70 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between hover:shadow-xl hover:shadow-black/50 select-none`}
+      className={`mobile-scroll-card group relative ${home ? "bg-ink-surface/30" : "bg-ink-surface/40"} border border-ink-border/70 rounded-sm overflow-hidden hover:border-gold/60 transition-all duration-300 flex flex-col justify-between hover:shadow-xl hover:shadow-black/50 select-none`}
     >
       <Link
         href={href}
