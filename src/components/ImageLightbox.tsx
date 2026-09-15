@@ -5,13 +5,15 @@ import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, Maximize2, X, ZoomIn, ZoomOut } from "lucide-react";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 
-const ZOOM = 2.5;
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 4;
 
 /**
  * Full-screen view of a product's photos: the original file, not the
  * optimised thumbnail, so print detail on a cover or a figure's paint can be
- * inspected. Click (or double-tap) zooms in at that point and dragging pans;
- * arrows, swipes and the keyboard move between photos; Escape closes.
+ * inspected. Clicking or using a two-finger pinch zooms at the point being
+ * viewed; dragging pans; arrows, swipes and the keyboard move between photos;
+ * Escape closes.
  */
 export function ImageLightbox({
   images,
@@ -29,18 +31,26 @@ export function ImageLightbox({
   onClose: () => void;
 }) {
   useModalScrollLock(true);
-  const [zoomed, setZoomed] = useState(false);
+  const [scale, setScale] = useState(1);
   const [origin, setOrigin] = useState({ x: 50, y: 50 });
   const [loaded, setLoaded] = useState(false);
+  const [isInteracting, setIsInteracting] = useState(false);
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const swipeStart = useRef<number | null>(null);
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ startDistance: number; startScale: number } | null>(null);
+  const zoomed = scale > MIN_ZOOM + 0.01;
   const count = images.length;
   const src = images[index];
 
   const go = useCallback(
     (delta: number) => {
       if (count < 2) return;
-      setZoomed(false);
+      setScale(MIN_ZOOM);
+      setOrigin({ x: 50, y: 50 });
+      drag.current = null;
+      pointers.current.clear();
+      pinch.current = null;
       setLoaded(false);
       onIndexChange((index + delta + count) % count);
     },
@@ -67,22 +77,52 @@ export function ImageLightbox({
   };
 
   const onPointerDown = (e: React.PointerEvent<HTMLImageElement>) => {
+    const activePointers = pointers.current;
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setIsInteracting(true);
+
+    if (activePointers.size >= 2) {
+      const [a, b] = [...activePointers.values()];
+      pinch.current = {
+        startDistance: Math.hypot(a.x - b.x, a.y - b.y) || 1,
+        startScale: scale,
+      };
+      drag.current = null;
+      swipeStart.current = null;
+      // Keep the point between the fingers as the visual anchor while the
+      // scale changes, instead of making the image jump back to its centre.
+      setOrigin(pointAt((a.x + b.x) / 2, (a.y + b.y) / 2, e.currentTarget));
+      return;
+    }
+
     drag.current = { x: e.clientX, y: e.clientY, moved: false };
     swipeStart.current = zoomed ? null : e.clientX;
-    e.currentTarget.setPointerCapture(e.pointerId);
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLImageElement>) => {
+    const activePointers = pointers.current;
+    if (!activePointers.has(e.pointerId)) return;
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    const activePinch = pinch.current;
+    if (activePinch && activePointers.size >= 2) {
+      const [a, b] = [...activePointers.values()];
+      const distance = Math.hypot(a.x - b.x, a.y - b.y);
+      setScale(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, activePinch.startScale * (distance / activePinch.startDistance))));
+      return;
+    }
+
     if (!drag.current) return;
     const dx = e.clientX - drag.current.x;
     const dy = e.clientY - drag.current.y;
     if (Math.abs(dx) + Math.abs(dy) > 4) drag.current.moved = true;
     if (zoomed && drag.current.moved) {
       // Pan so the picture follows the pointer. The rect is the scaled size;
-      // shifting the transform origin by 1% moves the picture (ZOOM - 1)% of
-      // its unscaled size the other way.
+      // shifting the transform origin by 1% moves the picture by the current
+      // zoom amount instead of using a fixed desktop-only zoom value.
       const rect = e.currentTarget.getBoundingClientRect();
-      const factor = (100 * ZOOM) / (ZOOM - 1);
+      const factor = (100 * scale) / (scale - 1);
       setOrigin((o) => ({
         x: Math.min(100, Math.max(0, o.x - (dx / rect.width) * factor)),
         y: Math.min(100, Math.max(0, o.y - (dy / rect.height) * factor)),
@@ -93,22 +133,49 @@ export function ImageLightbox({
   };
 
   const onPointerUp = (e: React.PointerEvent<HTMLImageElement>) => {
+    const activePointers = pointers.current;
+    activePointers.delete(e.pointerId);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+
+    if (pinch.current) {
+      if (activePointers.size < 2) {
+        pinch.current = null;
+        drag.current = null;
+        swipeStart.current = null;
+      }
+      if (activePointers.size === 0) setIsInteracting(false);
+      return;
+    }
+
     const state = drag.current;
     drag.current = null;
-    if (!state) return;
+    if (!state) {
+      if (activePointers.size === 0) setIsInteracting(false);
+      return;
+    }
     if (!zoomed && swipeStart.current !== null) {
       const dx = e.clientX - swipeStart.current;
       swipeStart.current = null;
       if (Math.abs(dx) > 60) {
         // In Arabic the next photo sits to the left.
+        setIsInteracting(false);
         go((dx < 0 ? 1 : -1) * (isArabic ? -1 : 1));
         return;
       }
     }
     if (!state.moved) {
       if (!zoomed) setOrigin(pointAt(e.clientX, e.clientY, e.currentTarget));
-      setZoomed((z) => !z);
+      setScale((current) => (current > MIN_ZOOM + 0.01 ? MIN_ZOOM : MAX_ZOOM));
     }
+    if (activePointers.size === 0) setIsInteracting(false);
+  };
+
+  const onPointerCancel = (e: React.PointerEvent<HTMLImageElement>) => {
+    pointers.current.delete(e.pointerId);
+    pinch.current = null;
+    drag.current = null;
+    swipeStart.current = null;
+    setIsInteracting(false);
   };
 
   if (typeof document === "undefined" || !src) return null;
@@ -126,7 +193,7 @@ export function ImageLightbox({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setZoomed((z) => !z)}
+            onClick={() => setScale((current) => (current > MIN_ZOOM + 0.01 ? MIN_ZOOM : MAX_ZOOM))}
             className="p-2 rounded-sm border border-white/15 hover:border-gold hover:text-gold transition-colors cursor-pointer"
             aria-label={zoomed ? (isArabic ? "تصغير" : "Zoom out") : isArabic ? "تكبير" : "Zoom in"}
           >
@@ -159,8 +226,13 @@ export function ImageLightbox({
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
-          onPointerCancel={() => (drag.current = null)}
-          style={{ transform: zoomed ? `scale(${ZOOM})` : "scale(1)", transformOrigin: `${origin.x}% ${origin.y}%`, touchAction: zoomed ? "none" : "pan-y" }}
+          onPointerCancel={onPointerCancel}
+          style={{
+            transform: `scale(${scale})`,
+            transformOrigin: `${origin.x}% ${origin.y}%`,
+            transition: isInteracting ? "none" : "transform 180ms ease-out",
+            touchAction: "none",
+          }}
           className={`max-h-full max-w-full object-contain transition-[transform,opacity] duration-200 ${loaded ? "opacity-100" : "opacity-0"} ${
             zoomed ? "cursor-grab active:cursor-grabbing" : "cursor-zoom-in"
           }`}
@@ -189,7 +261,7 @@ export function ImageLightbox({
       </div>
 
       <p className="shrink-0 py-3 text-center font-mono text-[10px] tracking-wider text-text-muted">
-        {isArabic ? "اضغط على الصورة للتكبير • اسحب للتحريك" : "Click the image to zoom • drag to move around"}
+        {isArabic ? "اضغط أو ضم إصبعين للتكبير • اسحب للتحريك" : "Click or pinch to zoom • drag to move around"}
       </p>
     </div>,
     document.body

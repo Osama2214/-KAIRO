@@ -105,6 +105,7 @@ export default function MangaDetailView({ volume: initialVolume }: { volume: Man
       const dy = Math.abs(e.clientY - dragStart.current.y);
       if (dx > 8 || dy > 8) e.preventDefault();
     }
+    dragStart.current = null;
   };
 
   /**
@@ -632,7 +633,7 @@ export default function MangaDetailView({ volume: initialVolume }: { volume: Man
                 <Link
                   href={`/manga/${item.id}`}
                   prefetch={false}
-                  className="absolute inset-0 z-0 focus:outline-none"
+                  className="absolute inset-0 z-10 focus:outline-none"
                   aria-label={item.title}
                   onClick={handleRelatedLinkClick}
                 />
@@ -655,7 +656,7 @@ export default function MangaDetailView({ volume: initialVolume }: { volume: Man
                       e.stopPropagation();
                       toggleWishlist(item);
                     }}
-                    className={`absolute top-2 right-2 w-7 h-7 rounded-full backdrop-blur-md border transition-all z-10 flex items-center justify-center active:scale-90 ${
+                    className={`absolute top-2 right-2 w-7 h-7 rounded-full backdrop-blur-md border transition-all z-20 flex items-center justify-center active:scale-90 ${
                       mounted && isInWishlist(item.id)
                         ? "bg-vermilion/30 border-vermilion text-vermilion"
                         : "bg-black/60 border-white/15 text-paper-muted hover:text-gold hover:border-gold/60"
@@ -698,9 +699,9 @@ export default function MangaDetailView({ volume: initialVolume }: { volume: Man
                         addItem(item, 1);
                         openCart();
                       }}
-                      className="h-7 sm:h-8 px-2 sm:px-3 bg-paper text-ink hover:bg-vermilion hover:text-white font-bold text-[10px] uppercase transition-colors rounded-xs z-10 active:scale-95 shrink-0 flex items-center gap-1"
+                      className="h-9 min-w-9 sm:h-10 sm:min-w-10 px-2 sm:px-3 bg-paper text-ink hover:bg-vermilion hover:text-white font-bold text-[10px] uppercase transition-colors rounded-xs z-20 active:scale-95 shrink-0 flex items-center justify-center gap-1"
                     >
-                      <span>+</span>
+                      <span className="text-base sm:text-lg leading-none">+</span>
                       <span className="hidden xs:inline">{isArabic ? "أضف" : "ADD"}</span>
                     </button>
                   </div>
