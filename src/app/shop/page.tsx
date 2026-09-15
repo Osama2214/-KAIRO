@@ -75,7 +75,10 @@ function ShopCatalogContent() {
   const [priceMax, setPriceMax] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<SortKey>("FEATURED");
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
+  const pageFromUrl = Number(searchParams.get("page"));
+  const [currentPage, setCurrentPage] = useState(
+    Number.isInteger(pageFromUrl) && pageFromUrl > 0 ? pageFromUrl : 1
+  );
   useModalScrollLock(mobileFilterOpen);
 
   // Footer and card links arrive as /shop?type=figure or ?franchise=naruto.
@@ -85,7 +88,8 @@ function ShopCatalogContent() {
     const raf = requestAnimationFrame(() => {
       setSelectedTypes(type === "figure" || type === "poster" ? [type] : []);
       setSelectedFranchises(franchise ? [franchise] : []);
-      setCurrentPage(1);
+      const page = Number(searchParams.get("page"));
+      setCurrentPage(Number.isInteger(page) && page > 0 ? page : 1);
     });
     return () => cancelAnimationFrame(raf);
   }, [searchParams]);
@@ -180,7 +184,12 @@ function ShopCatalogContent() {
   usePaginatedImagePrefetch(allCovers, currentPage, ITEMS_PER_PAGE, gridRef);
 
   const goToPage = (page: number) => {
-    setCurrentPage(page);
+    const nextPage = Math.min(Math.max(1, page), Math.max(1, totalPages));
+    setCurrentPage(nextPage);
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextPage === 1) params.delete("page");
+    else params.set("page", String(nextPage));
+    router.push(`/shop${params.toString() ? `?${params.toString()}` : ""}`);
     window.__lenis?.scrollTo(0, { immediate: true });
     window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
   };

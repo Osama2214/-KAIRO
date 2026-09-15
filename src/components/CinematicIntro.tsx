@@ -91,6 +91,18 @@ function prefersReducedMotion(): boolean {
   }
 }
 
+function hasSlowConnection(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const connection = (navigator as Navigator & {
+    connection?: { saveData?: boolean; effectiveType?: string };
+  }).connection;
+  return Boolean(
+    connection?.saveData ||
+      connection?.effectiveType === "slow-2g" ||
+      connection?.effectiveType === "2g"
+  );
+}
+
 /**
  * Drop the pre-hydration cover painted by the layout's inline script.
  *
@@ -371,6 +383,15 @@ export function CinematicIntro() {
         ? [mobileEmblem, mobileCharacter, mobileWordmark]
         : [backgroundEmblem, characterArt, wordmarkArt];
 
+    // A slow connection must never leave a late overlay waiting in the
+    // background. Skip it for this visit and let the store open immediately.
+    if (hasSlowConnection()) {
+      markIntroSeen();
+      closeIntro();
+      releaseIntroCover();
+      return () => {};
+    }
+
     // Prepare exactly the files rendered below. The shop stays usable while
     // they download; don't start a blank sequence or interrupt someone shopping.
     const stopWaiting = () => {
@@ -384,7 +405,8 @@ export function CinematicIntro() {
       markIntroSeen();
       closeIntro();
     };
-    const timer = window.setTimeout(cancel, 5000);
+    // The intro either starts quickly or is skipped for this visit.
+    const timer = window.setTimeout(cancel, 1400);
     window.addEventListener("pointerdown", cancel);
     window.addEventListener("keydown", cancel);
     const pending = assets.map((asset) => new Promise<void>((resolve, reject) => {

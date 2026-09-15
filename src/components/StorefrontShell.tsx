@@ -11,7 +11,7 @@ import { useUIStore } from "@/store/useUIStore";
 import { StorefrontDataSync } from "@/components/StorefrontDataSync";
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 import { useTranslation } from "@/hooks/useTranslation";
-import { hasSeenIntro } from "@/lib/introSession";
+import { hasSeenIntro, markIntroSeen } from "@/lib/introSession";
 
 function ModalLoading() {
   useModalScrollLock(true);
@@ -52,7 +52,22 @@ function IntroGate() {
   React.useEffect(() => {
     if (!onHome || hasSeenIntro()) return;
     const timer = window.setTimeout(() => setAutoIntro(true), 0);
-    return () => window.clearTimeout(timer);
+    // If the visitor starts using the page while the lazy intro chunk is still
+    // downloading, cancel the pending run so it can never appear late on top
+    // of the action they just started.
+    const cancelPendingIntro = () => {
+      if (useUIStore.getState().isIntroActive) return;
+      window.clearTimeout(timer);
+      markIntroSeen();
+      setAutoIntro(false);
+    };
+    window.addEventListener("pointerdown", cancelPendingIntro, { once: true });
+    window.addEventListener("keydown", cancelPendingIntro, { once: true });
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("pointerdown", cancelPendingIntro);
+      window.removeEventListener("keydown", cancelPendingIntro);
+    };
   }, [onHome]);
 
   // Load the animation code only for a first home visit or an explicit replay.

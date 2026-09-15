@@ -111,7 +111,10 @@ function MangaCatalogContent() {
   const effectivePriceMax = priceMax ?? highestPrice;
   const [sortBy, setSortBy] = useState<"POPULAR" | "NEWEST" | "PRICE_ASC" | "PRICE_DESC" | "RATING">("POPULAR");
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
+  const pageFromUrl = Number(searchParams.get("page"));
+  const [currentPage, setCurrentPage] = useState(
+    Number.isInteger(pageFromUrl) && pageFromUrl > 0 ? pageFromUrl : 1
+  );
   const ITEMS_PER_PAGE = 12;
 
   const { toggleWishlist, isInWishlist } = useWishlistStore();
@@ -142,6 +145,8 @@ function MangaCatalogContent() {
       if (format) {
         setSelectedFormats([format]);
       }
+      const page = Number(searchParams.get("page"));
+      setCurrentPage(Number.isInteger(page) && page > 0 ? page : 1);
     });
     return () => cancelAnimationFrame(raf);
   }, [searchParams]);
@@ -246,7 +251,12 @@ function MangaCatalogContent() {
   usePaginatedImagePrefetch(allCovers, currentPage, ITEMS_PER_PAGE, gridRef);
 
   const goToPage = (page: number) => {
-    setCurrentPage(page);
+    const nextPage = Math.min(Math.max(1, page), Math.max(1, totalPages));
+    setCurrentPage(nextPage);
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextPage === 1) params.delete("page");
+    else params.set("page", String(nextPage));
+    router.push(`/manga${params.toString() ? `?${params.toString()}` : ""}`);
     // Pagination changes the client state without changing the route, so Lenis
     // must be moved explicitly; native window scrolling alone is ignored by it.
     window.__lenis?.scrollTo(0, { immediate: true });

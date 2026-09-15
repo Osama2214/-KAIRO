@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { BookOpen, Plus, Eye, User, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { type MangaVolume, type Series } from "@/data/manga";
 import { useCartStore } from "@/store/useCartStore";
@@ -20,6 +21,8 @@ import { franchiseKey, merchForSeries } from "@/lib/franchise";
 import { sortVolumesByNumber } from "@/lib/seriesVolumes";
 
 export default function SeriesView({ series: initialSeries }: { series: Series }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const liveSeries = useStorefrontStore((state) => state.series.find((item) => item.slug === initialSeries.slug));
   const series = liveSeries || initialSeries;
   const { locale } = useTranslation();
@@ -109,7 +112,17 @@ export default function SeriesView({ series: initialSeries }: { series: Series }
    * and the browser to lay out. The archive is paged instead.
    */
   const VOLUMES_PER_PAGE = 24;
-  const [volumePage, setVolumePage] = useState(1);
+  const pageFromUrl = Number(searchParams.get("page"));
+  const [volumePage, setVolumePage] = useState(
+    Number.isInteger(pageFromUrl) && pageFromUrl > 0 ? pageFromUrl : 1
+  );
+  React.useEffect(() => {
+    const page = Number(searchParams.get("page"));
+    const raf = requestAnimationFrame(() => {
+      setVolumePage(Number.isInteger(page) && page > 0 ? page : 1);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [searchParams]);
   const volumePageCount = Math.max(1, Math.ceil(seriesVolumes.length / VOLUMES_PER_PAGE));
   // A page number left over from a longer list would show nothing at all.
   const currentVolumePage = Math.min(volumePage, volumePageCount);
@@ -128,6 +141,10 @@ export default function SeriesView({ series: initialSeries }: { series: Series }
   const goToVolumePage = (page: number) => {
     const next = Math.min(volumePageCount, Math.max(1, page));
     setVolumePage(next);
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === 1) params.delete("page");
+    else params.set("page", String(next));
+    router.push(`/series/${series.slug}${params.toString() ? `?${params.toString()}` : ""}`);
     // Back to the top of the archive, not the top of the page — the banner is
     // not what someone paging through volumes wants to look at again. Lenis
     // drives the scroll, so a plain scrollIntoView would be ignored.
